@@ -1,0 +1,348 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "measured",
+  "analysedAt": "2026-11-07T23:05:28.546Z",
+  "execution": {
+    "file": "timing-execution.json",
+    "sha256": "9b3215433022d735aa14751b00a744547a783ed03e3445f23de9726247f492fe"
+  },
+  "artifactReceipt": {
+    "file": "artifact-receipt.json",
+    "sha256": "f74a81f29c7300b80f29df85965ab3752a7407c2d70fd6686c10e40edf3ba1d5"
+  },
+  "preflightResults": {
+    "file": "preflight/results.json",
+    "sha256": "30d2be33e64a067b05beb9bd4010dfbc5c55c4c42489cc48de77c1d390f4a267"
+  },
+  "retainedSamples": 72,
+  "discardedSamples": 0,
+  "cyclicOrderingVerified": true,
+  "ordinalVisitsPerSlot": 2,
+  "variants": [
+    {
+      "name": "naive",
+      "slots": {
+        "baselineA": "attribute-baseline-naive-a",
+        "candidate": "attribute-candidate-naive",
+        "baselineB": "attribute-baseline-naive-b"
+      },
+      "summary": {
+        "baselineAMedian": 539.9,
+        "candidateMedian": 519.1,
+        "baselineBMedian": 559.9,
+        "baselineMedianMidpoint": 549.9,
+        "candidateMinusBaselineMedianMidpoint": -30.8,
+        "candidateFasterRounds": 7,
+        "candidateSlowerRounds": 5,
+        "tiedRounds": 0,
+        "medianPairedDelta": -2.75,
+        "minimumPairedDelta": -239.1,
+        "maximumPairedDelta": 328.6,
+        "medianDuplicateBaselineAbsoluteDifference": 121.8,
+        "maximumDuplicateBaselineAbsoluteDifference": 302.6,
+        "sync": {
+          "baselineA": 64.3,
+          "candidate": 64.7,
+          "baselineB": 67.5
+        },
+        "animationFrame": {
+          "baselineA": 474.1,
+          "candidate": 453.3,
+          "baselineB": 483.2
+        }
+      },
+      "rounds": [
+        {
+          "round": 1,
+          "baselineA": 498.2,
+          "candidate": 620.9,
+          "baselineB": 629.9,
+          "baselineMidpoint": 564.05,
+          "candidateMinusBaselineMidpoint": 56.85,
+          "duplicateBaselineSignedDifference": -131.7,
+          "duplicateBaselineAbsoluteDifference": 131.7
+        },
+        {
+          "round": 2,
+          "baselineA": 738.1,
+          "candidate": 673.2,
+          "baselineB": 618.7,
+          "baselineMidpoint": 678.4,
+          "candidateMinusBaselineMidpoint": -5.2,
+          "duplicateBaselineSignedDifference": 119.4,
+          "duplicateBaselineAbsoluteDifference": 119.4
+        },
+        {
+          "round": 3,
+          "baselineA": 665.3,
+          "candidate": 683.4,
+          "baselineB": 705,
+          "baselineMidpoint": 685.15,
+          "candidateMinusBaselineMidpoint": -1.75,
+          "duplicateBaselineSignedDifference": -39.7,
+          "duplicateBaselineAbsoluteDifference": 39.7
+        },
+        {
+          "round": 4,
+          "baselineA": 631.3,
+          "candidate": 660.1,
+          "baselineB": 743.3,
+          "baselineMidpoint": 687.3,
+          "candidateMinusBaselineMidpoint": -27.2,
+          "duplicateBaselineSignedDifference": -112,
+          "duplicateBaselineAbsoluteDifference": 112
+        },
+        {
+          "round": 5,
+          "baselineA": 638.8,
+          "candidate": 664.9,
+          "baselineB": 611.4,
+          "baselineMidpoint": 625.1,
+          "candidateMinusBaselineMidpoint": 39.8,
+          "duplicateBaselineSignedDifference": 27.4,
+          "duplicateBaselineAbsoluteDifference": 27.4
+        },
+        {
+          "round": 6,
+          "baselineA": 581.8,
+          "candidate": 289.7,
+          "baselineB": 322.9,
+          "baselineMidpoint": 452.35,
+          "candidateMinusBaselineMidpoint": -162.65,
+          "duplicateBaselineSignedDifference": 258.9,
+          "duplicateBaselineAbsoluteDifference": 258.9
+        },
+        {
+          "round": 7,
+          "baselineA": 239.2,
+          "candidate": 417.3,
+          "baselineB": 541.8,
+          "baselineMidpoint": 390.5,
+          "candidateMinusBaselineMidpoint": 26.8,
+          "duplicateBaselineSignedDifference": -302.6,
+          "duplicateBaselineAbsoluteDifference": 302.6
+        },
+        {
+          "round": 8,
+          "baselineA": 309.2,
+          "candidate": 772.2,
+          "baselineB": 578,
+          "baselineMidpoint": 443.6,
+          "candidateMinusBaselineMidpoint": 328.6,
+          "duplicateBaselineSignedDifference": -268.8,
+          "duplicateBaselineAbsoluteDifference": 268.8
+        },
+        {
+          "round": 9,
+          "baselineA": 272.6,
+          "candidate": 229.1,
+          "baselineB": 294.3,
+          "baselineMidpoint": 283.45,
+          "candidateMinusBaselineMidpoint": -54.35,
+          "duplicateBaselineSignedDifference": -21.7,
+          "duplicateBaselineAbsoluteDifference": 21.7
+        },
+        {
+          "round": 10,
+          "baselineA": 581.6,
+          "candidate": 267.1,
+          "baselineB": 430.8,
+          "baselineMidpoint": 506.2,
+          "candidateMinusBaselineMidpoint": -239.1,
+          "duplicateBaselineSignedDifference": 150.8,
+          "duplicateBaselineAbsoluteDifference": 150.8
+        },
+        {
+          "round": 11,
+          "baselineA": 286.8,
+          "candidate": 325.3,
+          "baselineB": 371.3,
+          "baselineMidpoint": 329.05,
+          "candidateMinusBaselineMidpoint": -3.75,
+          "duplicateBaselineSignedDifference": -84.5,
+          "duplicateBaselineAbsoluteDifference": 84.5
+        },
+        {
+          "round": 12,
+          "baselineA": 241.1,
+          "candidate": 408.4,
+          "baselineB": 365.3,
+          "baselineMidpoint": 303.2,
+          "candidateMinusBaselineMidpoint": 105.2,
+          "duplicateBaselineSignedDifference": -124.2,
+          "duplicateBaselineAbsoluteDifference": 124.2
+        }
+      ]
+    },
+    {
+      "name": "optimised",
+      "slots": {
+        "baselineA": "attribute-baseline-optimised-a",
+        "candidate": "attribute-candidate-optimised",
+        "baselineB": "attribute-baseline-optimised-b"
+      },
+      "summary": {
+        "baselineAMedian": 298.5,
+        "candidateMedian": 337,
+        "baselineBMedian": 384.3,
+        "baselineMedianMidpoint": 341.4,
+        "candidateMinusBaselineMedianMidpoint": -4.4,
+        "candidateFasterRounds": 8,
+        "candidateSlowerRounds": 4,
+        "tiedRounds": 0,
+        "medianPairedDelta": -26.15,
+        "minimumPairedDelta": -116.25,
+        "maximumPairedDelta": 151.35,
+        "medianDuplicateBaselineAbsoluteDifference": 109.6,
+        "maximumDuplicateBaselineAbsoluteDifference": 341.4,
+        "sync": {
+          "baselineA": 70.7,
+          "candidate": 66.1,
+          "baselineB": 83
+        },
+        "animationFrame": {
+          "baselineA": 227.8,
+          "candidate": 260,
+          "baselineB": 300.7
+        }
+      },
+      "rounds": [
+        {
+          "round": 1,
+          "baselineA": 323,
+          "candidate": 359.1,
+          "baselineB": 442.7,
+          "baselineMidpoint": 382.85,
+          "candidateMinusBaselineMidpoint": -23.75,
+          "duplicateBaselineSignedDifference": -119.7,
+          "duplicateBaselineAbsoluteDifference": 119.7
+        },
+        {
+          "round": 2,
+          "baselineA": 364.3,
+          "candidate": 318.1,
+          "baselineB": 434.1,
+          "baselineMidpoint": 399.2,
+          "candidateMinusBaselineMidpoint": -81.1,
+          "duplicateBaselineSignedDifference": -69.8,
+          "duplicateBaselineAbsoluteDifference": 69.8
+        },
+        {
+          "round": 3,
+          "baselineA": 431.8,
+          "candidate": 425.3,
+          "baselineB": 377.6,
+          "baselineMidpoint": 404.7,
+          "candidateMinusBaselineMidpoint": 20.6,
+          "duplicateBaselineSignedDifference": 54.2,
+          "duplicateBaselineAbsoluteDifference": 54.2
+        },
+        {
+          "round": 4,
+          "baselineA": 400.3,
+          "candidate": 399.5,
+          "baselineB": 390.1,
+          "baselineMidpoint": 395.2,
+          "candidateMinusBaselineMidpoint": 4.3,
+          "duplicateBaselineSignedDifference": 10.2,
+          "duplicateBaselineAbsoluteDifference": 10.2
+        },
+        {
+          "round": 5,
+          "baselineA": 356.3,
+          "candidate": 355.9,
+          "baselineB": 389.2,
+          "baselineMidpoint": 372.75,
+          "candidateMinusBaselineMidpoint": -16.85,
+          "duplicateBaselineSignedDifference": -32.9,
+          "duplicateBaselineAbsoluteDifference": 32.9
+        },
+        {
+          "round": 6,
+          "baselineA": 186.7,
+          "candidate": 170.2,
+          "baselineB": 386.2,
+          "baselineMidpoint": 286.45,
+          "candidateMinusBaselineMidpoint": -116.25,
+          "duplicateBaselineSignedDifference": -199.5,
+          "duplicateBaselineAbsoluteDifference": 199.5
+        },
+        {
+          "round": 7,
+          "baselineA": 217.9,
+          "candidate": 223.4,
+          "baselineB": 440.8,
+          "baselineMidpoint": 329.35,
+          "candidateMinusBaselineMidpoint": -105.95,
+          "duplicateBaselineSignedDifference": -222.9,
+          "duplicateBaselineAbsoluteDifference": 222.9
+        },
+        {
+          "round": 8,
+          "baselineA": 463.9,
+          "candidate": 424.7,
+          "baselineB": 122.5,
+          "baselineMidpoint": 293.2,
+          "candidateMinusBaselineMidpoint": 131.5,
+          "duplicateBaselineSignedDifference": 341.4,
+          "duplicateBaselineAbsoluteDifference": 341.4
+        },
+        {
+          "round": 9,
+          "baselineA": 171.9,
+          "candidate": 176.3,
+          "baselineB": 237.8,
+          "baselineMidpoint": 204.85,
+          "candidateMinusBaselineMidpoint": -28.55,
+          "duplicateBaselineSignedDifference": -65.9,
+          "duplicateBaselineAbsoluteDifference": 65.9
+        },
+        {
+          "round": 10,
+          "baselineA": 167.2,
+          "candidate": 132.7,
+          "baselineB": 321.1,
+          "baselineMidpoint": 244.15,
+          "candidateMinusBaselineMidpoint": -111.45,
+          "duplicateBaselineSignedDifference": -153.9,
+          "duplicateBaselineAbsoluteDifference": 153.9
+        },
+        {
+          "round": 11,
+          "baselineA": 274,
+          "candidate": 375.6,
+          "baselineB": 174.5,
+          "baselineMidpoint": 224.25,
+          "candidateMinusBaselineMidpoint": 151.35,
+          "duplicateBaselineSignedDifference": 99.5,
+          "duplicateBaselineAbsoluteDifference": 99.5
+        },
+        {
+          "round": 12,
+          "baselineA": 205.6,
+          "candidate": 243.4,
+          "baselineB": 382.4,
+          "baselineMidpoint": 294,
+          "candidateMinusBaselineMidpoint": -50.6,
+          "duplicateBaselineSignedDifference": -176.8,
+          "duplicateBaselineAbsoluteDifference": 176.8
+        }
+      ]
+    }
+  ],
+  "decision": {
+    "status": "does-not-meet-optimised-acceptance-criterion",
+    "reasons": [
+      "The naive candidate median (519.1 ms) is below both byte-identical baseline medians (539.9 and 559.9 ms), so a view-construction or allocation benefit remains plausible. However, it was faster than the same-round baseline midpoint in only 7/12 rounds and its paired median delta (-2.75 ms) is far smaller than the duplicate-baseline median absolute spread (121.8 ms).",
+      "The optimised candidate median (337 ms) lies between its byte-identical baseline medians (298.5 and 384.3 ms). Its paired median delta (-26.15 ms) is also smaller than the duplicate-baseline median absolute spread (109.6 ms), so it does not demonstrate a reliable reduction in the measured optimised regression.",
+      "This end-to-end driver cannot resolve the expected Attribute-construction effect against the observed duplicate-baseline variation; a separate focused construction/allocation workload would be required to test that narrower hypothesis."
+    ],
+    "profileRecommended": false,
+    "integrateAsPreviewRegressionFix": false,
+    "retainPrototypeForFocusedAttributeBenchmark": true
+  },
+  "limitations": [
+    "The unchanged driver prints per-run totals rounded to 0.1 ms and only representative median bucket counters, not unrounded per-run bucket values.",
+    "The duplicate baseline controls quantify variation in this batch; they do not identify its source."
+  ]
+}

@@ -1,0 +1,90 @@
+harness revision: unknown
+chromium version: 153.0.8010.12
+[round 1/12] mount-baseline-naive-a: 670.3ms
+[round 1/12] mount-experiment-naive: 700.0ms
+[round 1/12] mount-baseline-optimised-a: 394.9ms
+[round 1/12] mount-experiment-optimised: 292.5ms
+[round 1/12] mount-baseline-naive-b: 497.6ms
+[round 1/12] mount-baseline-optimised-b: 265.6ms
+[round 2/12] mount-experiment-naive: 607.7ms
+[round 2/12] mount-baseline-optimised-a: 372.3ms
+[round 2/12] mount-experiment-optimised: 434.6ms
+[round 2/12] mount-baseline-naive-b: 649.0ms
+[round 2/12] mount-baseline-optimised-b: 389.2ms
+[round 2/12] mount-baseline-naive-a: 648.9ms
+[round 3/12] mount-baseline-optimised-a: 370.0ms
+[round 3/12] mount-experiment-optimised: 364.3ms
+[round 3/12] mount-baseline-naive-b: 641.3ms
+[round 3/12] mount-baseline-optimised-b: 357.9ms
+[round 3/12] mount-baseline-naive-a: 637.3ms
+[round 3/12] mount-experiment-naive: 573.9ms
+[round 4/12] mount-experiment-optimised: 312.9ms
+[round 4/12] mount-baseline-naive-b: 497.8ms
+[round 4/12] mount-baseline-optimised-b: 293.5ms
+[round 4/12] mount-baseline-naive-a: 446.5ms
+[round 4/12] mount-experiment-naive: 411.2ms
+[round 4/12] mount-baseline-optimised-a: 277.6ms
+[round 5/12] mount-baseline-naive-b: 679.0ms
+[round 5/12] mount-baseline-optimised-b: 329.9ms
+[round 5/12] mount-baseline-naive-a: 618.1ms
+[round 5/12] mount-experiment-naive: 656.3ms
+[round 5/12] mount-baseline-optimised-a: 322.2ms
+[round 5/12] mount-experiment-optimised: 354.8ms
+[round 6/12] mount-baseline-optimised-b: 342.4ms
+[round 6/12] mount-baseline-naive-a: 598.6ms
+[round 6/12] mount-experiment-naive: 543.2ms
+[round 6/12] mount-baseline-optimised-a: 330.8ms
+[round 6/12] mount-experiment-optimised: 304.8ms
+[round 6/12] mount-baseline-naive-b: 623.4ms
+[round 7/12] mount-baseline-naive-a: 654.6ms
+[round 7/12] mount-experiment-naive: 668.6ms
+[round 7/12] mount-baseline-optimised-a: 324.3ms
+[round 7/12] mount-experiment-optimised: 308.1ms
+[round 7/12] mount-baseline-naive-b: 676.0ms
+[round 7/12] mount-baseline-optimised-b: 397.6ms
+[round 8/12] mount-experiment-naive: 745.7ms
+[round 8/12] mount-baseline-optimised-a: 374.2ms
+[round 8/12] mount-experiment-optimised: 371.0ms
+[round 8/12] mount-baseline-naive-b: 693.3ms
+[round 8/12] mount-baseline-optimised-b: 399.1ms
+[round 8/12] mount-baseline-naive-a: 685.8ms
+[round 9/12] mount-baseline-optimised-a: 353.9ms
+[round 9/12] mount-experiment-optimised: 349.9ms
+[round 9/12] mount-baseline-naive-b: 616.5ms
+[round 9/12] mount-baseline-optimised-b: 358.4ms
+[round 9/12] mount-baseline-naive-a: 614.9ms
+[round 9/12] mount-experiment-naive: 700.8ms
+[round 10/12] mount-experiment-optimised: 404.8ms
+[round 10/12] mount-baseline-naive-b: 640.0ms
+[round 10/12] mount-baseline-optimised-b: 354.8ms
+[round 10/12] mount-baseline-naive-a: 692.6ms
+[round 10/12] mount-experiment-naive: 679.3ms
+[round 10/12] mount-baseline-optimised-a: 326.3ms
+[round 11/12] mount-baseline-naive-b: 612.1ms
+[round 11/12] mount-baseline-optimised-b: 393.1ms
+[round 11/12] mount-baseline-naive-a: 690.8ms
+[round 11/12] mount-experiment-naive: 650.0ms
+[round 11/12] mount-baseline-optimised-a: 398.2ms
+[round 11/12] mount-experiment-optimised: 354.6ms
+[round 12/12] mount-baseline-optimised-b: 360.5ms
+[round 12/12] mount-baseline-naive-a: 644.5ms
+[round 12/12] mount-experiment-naive: 759.9ms
+[round 12/12] mount-baseline-optimised-a: 299.7ms
+[round 12/12] mount-experiment-optimised: 359.3ms
+[round 12/12] mount-baseline-naive-b: 546.8ms
+mount-baseline-naive-a {"crossOriginIsolated":true,"total":646.7,"sync":71.1,"timeout":0,"animationFrame":573.6,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.89}
+mount-experiment-naive {"crossOriginIsolated":true,"total":662.4,"sync":73.9,"timeout":0,"animationFrame":589.5,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.94}
+mount-baseline-optimised-a {"crossOriginIsolated":true,"total":342.3,"sync":71.4,"timeout":0,"animationFrame":273.6,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1}
+mount-experiment-optimised {"crossOriginIsolated":true,"total":354.7,"sync":73.6,"timeout":0,"animationFrame":279.6,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.04}
+mount-baseline-naive-b {"crossOriginIsolated":true,"total":631.7,"sync":70,"timeout":0,"animationFrame":557.4,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.85}
+mount-baseline-optimised-b {"crossOriginIsolated":true,"total":358.2,"sync":77.3,"timeout":0,"animationFrame":279.8,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.05}
+
+=== medians (ms) ===
+implementation                            total   relative       sync    timeout animationFrame  microtask    promise
+mount-baseline-naive-a                    646.7      1.89x       71.1          0      573.6          0          0
+mount-experiment-naive                    662.4      1.94x       73.9          0      589.5          0          0
+mount-baseline-optimised-a                342.3      1.00x       71.4          0      273.6          0          0
+mount-experiment-optimised                354.7      1.04x       73.6          0      279.6          0          0
+mount-baseline-naive-b                    631.7      1.85x         70          0      557.4          0          0
+mount-baseline-optimised-b                358.2      1.05x       77.3          0      279.8          0          0
+fatal: not a git repository (or any of the parent directories): .git

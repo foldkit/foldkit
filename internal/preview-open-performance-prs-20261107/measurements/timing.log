@@ -1,0 +1,90 @@
+harness revision: unknown
+chromium version: 153.0.8010.12
+[round 1/12] attribute-baseline-naive-a: 498.2ms
+[round 1/12] attribute-candidate-naive: 620.9ms
+[round 1/12] attribute-baseline-optimised-a: 323.0ms
+[round 1/12] attribute-candidate-optimised: 359.1ms
+[round 1/12] attribute-baseline-naive-b: 629.9ms
+[round 1/12] attribute-baseline-optimised-b: 442.7ms
+[round 2/12] attribute-candidate-naive: 673.2ms
+[round 2/12] attribute-baseline-optimised-a: 364.3ms
+[round 2/12] attribute-candidate-optimised: 318.1ms
+[round 2/12] attribute-baseline-naive-b: 618.7ms
+[round 2/12] attribute-baseline-optimised-b: 434.1ms
+[round 2/12] attribute-baseline-naive-a: 738.1ms
+[round 3/12] attribute-baseline-optimised-a: 431.8ms
+[round 3/12] attribute-candidate-optimised: 425.3ms
+[round 3/12] attribute-baseline-naive-b: 705.0ms
+[round 3/12] attribute-baseline-optimised-b: 377.6ms
+[round 3/12] attribute-baseline-naive-a: 665.3ms
+[round 3/12] attribute-candidate-naive: 683.4ms
+[round 4/12] attribute-candidate-optimised: 399.5ms
+[round 4/12] attribute-baseline-naive-b: 743.3ms
+[round 4/12] attribute-baseline-optimised-b: 390.1ms
+[round 4/12] attribute-baseline-naive-a: 631.3ms
+[round 4/12] attribute-candidate-naive: 660.1ms
+[round 4/12] attribute-baseline-optimised-a: 400.3ms
+[round 5/12] attribute-baseline-naive-b: 611.4ms
+[round 5/12] attribute-baseline-optimised-b: 389.2ms
+[round 5/12] attribute-baseline-naive-a: 638.8ms
+[round 5/12] attribute-candidate-naive: 664.9ms
+[round 5/12] attribute-baseline-optimised-a: 356.3ms
+[round 5/12] attribute-candidate-optimised: 355.9ms
+[round 6/12] attribute-baseline-optimised-b: 386.2ms
+[round 6/12] attribute-baseline-naive-a: 581.8ms
+[round 6/12] attribute-candidate-naive: 289.7ms
+[round 6/12] attribute-baseline-optimised-a: 186.7ms
+[round 6/12] attribute-candidate-optimised: 170.2ms
+[round 6/12] attribute-baseline-naive-b: 322.9ms
+[round 7/12] attribute-baseline-naive-a: 239.2ms
+[round 7/12] attribute-candidate-naive: 417.3ms
+[round 7/12] attribute-baseline-optimised-a: 217.9ms
+[round 7/12] attribute-candidate-optimised: 223.4ms
+[round 7/12] attribute-baseline-naive-b: 541.8ms
+[round 7/12] attribute-baseline-optimised-b: 440.8ms
+[round 8/12] attribute-candidate-naive: 772.2ms
+[round 8/12] attribute-baseline-optimised-a: 463.9ms
+[round 8/12] attribute-candidate-optimised: 424.7ms
+[round 8/12] attribute-baseline-naive-b: 578.0ms
+[round 8/12] attribute-baseline-optimised-b: 122.5ms
+[round 8/12] attribute-baseline-naive-a: 309.2ms
+[round 9/12] attribute-baseline-optimised-a: 171.9ms
+[round 9/12] attribute-candidate-optimised: 176.3ms
+[round 9/12] attribute-baseline-naive-b: 294.3ms
+[round 9/12] attribute-baseline-optimised-b: 237.8ms
+[round 9/12] attribute-baseline-naive-a: 272.6ms
+[round 9/12] attribute-candidate-naive: 229.1ms
+[round 10/12] attribute-candidate-optimised: 132.7ms
+[round 10/12] attribute-baseline-naive-b: 430.8ms
+[round 10/12] attribute-baseline-optimised-b: 321.1ms
+[round 10/12] attribute-baseline-naive-a: 581.6ms
+[round 10/12] attribute-candidate-naive: 267.1ms
+[round 10/12] attribute-baseline-optimised-a: 167.2ms
+[round 11/12] attribute-baseline-naive-b: 371.3ms
+[round 11/12] attribute-baseline-optimised-b: 174.5ms
+[round 11/12] attribute-baseline-naive-a: 286.8ms
+[round 11/12] attribute-candidate-naive: 325.3ms
+[round 11/12] attribute-baseline-optimised-a: 274.0ms
+[round 11/12] attribute-candidate-optimised: 375.6ms
+[round 12/12] attribute-baseline-optimised-b: 382.4ms
+[round 12/12] attribute-baseline-naive-a: 241.1ms
+[round 12/12] attribute-candidate-naive: 408.4ms
+[round 12/12] attribute-baseline-optimised-a: 205.6ms
+[round 12/12] attribute-candidate-optimised: 243.4ms
+[round 12/12] attribute-baseline-naive-b: 365.3ms
+attribute-baseline-naive-a {"crossOriginIsolated":true,"total":539.9,"sync":64.3,"timeout":0,"animationFrame":474.1,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.81}
+attribute-candidate-naive {"crossOriginIsolated":true,"total":519.1,"sync":64.7,"timeout":0,"animationFrame":453.3,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.74}
+attribute-baseline-optimised-a {"crossOriginIsolated":true,"total":298.5,"sync":70.7,"timeout":0,"animationFrame":227.8,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1}
+attribute-candidate-optimised {"crossOriginIsolated":true,"total":337,"sync":66.1,"timeout":0,"animationFrame":260,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.13}
+attribute-baseline-naive-b {"crossOriginIsolated":true,"total":559.9,"sync":67.5,"timeout":0,"animationFrame":483.2,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.88}
+attribute-baseline-optimised-b {"crossOriginIsolated":true,"total":384.3,"sync":83,"timeout":0,"animationFrame":300.7,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.29}
+
+=== medians (ms) ===
+implementation                            total   relative       sync    timeout animationFrame  microtask    promise
+attribute-baseline-naive-a                539.9      1.81x       64.3          0      474.1          0          0
+attribute-candidate-naive                 519.1      1.74x       64.7          0      453.3          0          0
+attribute-baseline-optimised-a            298.5      1.00x       70.7          0      227.8          0          0
+attribute-candidate-optimised               337      1.13x       66.1          0        260          0          0
+attribute-baseline-naive-b                559.9      1.88x       67.5          0      483.2          0          0
+attribute-baseline-optimised-b            384.3      1.29x         83          0      300.7          0          0
+fatal: not a git repository (or any of the parent directories): .git

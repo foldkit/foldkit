@@ -23,8 +23,14 @@ starts on `codex/preview-followups-20261107`; another publication needs approval
       not detect that loss.
 - [ ] Finish combined emitted-package, consumer, formatting, lint and build gates.
 - [ ] Independently review each exact commit and pass the normal push hook.
-- [ ] Retain controlled renderer timing and current editor-latency evidence;
-      do not substitute compiler counters for measured responsiveness.
+- [x] Independently approve API/testing commit `dc2bf3175f`, after fixing the
+      grouped-step type hole, Pixel Art import cycle and evidence whitespace.
+- [x] Retain controlled renderer timing, exact source-map attribution and current
+      editor-latency/profile evidence. Reject unsupported runtime speed claims.
+- [x] Catch the profile-control plumbing failure through actual source hashes,
+      observe the new gate reject that invalid capture, and repeat all controls.
+- [ ] Review and push the tooling/evidence commit after the normal hook. Runtime
+      and editor optimization remain open before the main merge.
 
 The Schema, resolver and Story Subscription reports own their focused evidence.
 The renderer experiment and editor-probe repair remain separate from the API

@@ -1,0 +1,1574 @@
+{
+  "schemaVersion": 1,
+  "method": {
+    "description": "Disjoint generated intervals between successive source-map segments are assigned to the active mapped source; explicit unmapped segments, line prefixes, and line endings use the unmapped bucket.",
+    "generatedColumns": "UTF-16 code units converted to UTF-8 byte lengths",
+    "compression": "Whole JavaScript asset only; no per-module gzip attribution"
+  },
+  "javascript": {
+    "path": "/private/tmp/foldkit-bundle-invocation-controls-20261107/d_retargeted/internal/lustre-benchmark/dist-map/naive/assets/index-ZmDGH17y.js",
+    "bytes": 475519,
+    "gzipBytes": 147123,
+    "sha256": "445b31212df9efe25ce6e81fe60cb7a5dfc583c46fc098dd84de40e234e9d146",
+    "lines": 98
+  },
+  "sourceMap": {
+    "path": "/private/tmp/foldkit-bundle-invocation-controls-20261107/d_retargeted/internal/lustre-benchmark/dist-map/naive/assets/index-ZmDGH17y.js.map",
+    "bytes": 6156639,
+    "gzipBytes": 1257289,
+    "sha256": "4ded625981064248a1f3ac38e980d563d3dcc1b94da34770cc06afc25dd41616",
+    "sources": 254,
+    "mappedLines": 98
+  },
+  "controls": {
+    "attributedBytes": 475519,
+    "exactRawByteSum": true,
+    "disjointSpanCount": 108102
+  },
+  "buckets": [
+    {
+      "bucket": "Effect and other dependencies",
+      "bytes": 151038,
+      "modules": 95,
+      "spans": 41156,
+      "percent": 31.7628
+    },
+    {
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 128187,
+      "modules": 55,
+      "spans": 26047,
+      "percent": 26.9573
+    },
+    {
+      "bucket": "Other Foldkit",
+      "bytes": 127644,
+      "modules": 62,
+      "spans": 28284,
+      "percent": 26.8431
+    },
+    {
+      "bucket": "Foldkit Runtime",
+      "bytes": 53647,
+      "modules": 34,
+      "spans": 11045,
+      "percent": 11.2818
+    },
+    {
+      "bucket": "Unmapped or generated wrapper",
+      "bytes": 8545,
+      "modules": 1,
+      "spans": 196,
+      "percent": 1.797
+    },
+    {
+      "bucket": "Benchmark application",
+      "bytes": 6458,
+      "modules": 3,
+      "spans": 1374,
+      "percent": 1.3581
+    }
+  ],
+  "modules": [
+    {
+      "source": "packages/foldkit/src/html/index.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 46560,
+      "spans": 9560
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/effect.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 29158,
+      "spans": 7909
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/SchemaAST.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 25358,
+      "spans": 6721
+    },
+    {
+      "source": "packages/foldkit/src/block/bindChild.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 11559,
+      "spans": 2011
+    },
+    {
+      "source": "packages/foldkit/src/experimental/contracted/runtime.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 9867,
+      "spans": 1805
+    },
+    {
+      "source": "packages/foldkit/src/block/delivery.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 9553,
+      "spans": 1880
+    },
+    {
+      "source": "packages/foldkit/src/block/definition.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 9180,
+      "spans": 1819
+    },
+    {
+      "source": "packages/foldkit/src/hydrate.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 8697,
+      "spans": 2315
+    },
+    {
+      "source": "[unmapped]",
+      "bucket": "Unmapped or generated wrapper",
+      "bytes": 8545,
+      "spans": 196
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/hashMap.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 8245,
+      "spans": 2373
+    },
+    {
+      "source": "packages/foldkit/src/block/keyedFieldConnection.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 8217,
+      "spans": 1380
+    },
+    {
+      "source": "packages/foldkit/src/domReflection.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 8124,
+      "spans": 1278
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/PubSub.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 7536,
+      "spans": 1618
+    },
+    {
+      "source": "packages/foldkit/src/html/boundary.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 7067,
+      "spans": 1090
+    },
+    {
+      "source": "packages/foldkit/src/runtime/hydrationHandoff.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 7025,
+      "spans": 900
+    },
+    {
+      "source": "packages/foldkit/src/snabbdom/init.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 6916,
+      "spans": 1978
+    },
+    {
+      "source": "internal/lustre-benchmark/src/todo.ts",
+      "bucket": "Benchmark application",
+      "bytes": 6115,
+      "spans": 1304
+    },
+    {
+      "source": "packages/foldkit/src/block/initializationRuntime.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 6087,
+      "spans": 1223
+    },
+    {
+      "source": "packages/foldkit/src/experimental/constructed/runtime.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 6085,
+      "spans": 1413
+    },
+    {
+      "source": "packages/foldkit/src/block/binding.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 5696,
+      "spans": 1323
+    },
+    {
+      "source": "packages/foldkit/src/runtime/runtime.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 5670,
+      "spans": 1187
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Schema.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 5662,
+      "spans": 1510
+    },
+    {
+      "source": "packages/foldkit/src/runtime/compositionRuntime.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 5478,
+      "spans": 1394
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/core.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 5092,
+      "spans": 1335
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Duration.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 4996,
+      "spans": 1200
+    },
+    {
+      "source": "packages/foldkit/src/block/keyedBinding.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 4909,
+      "spans": 1150
+    },
+    {
+      "source": "packages/foldkit/src/experimental/constructed/symbolic.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 4686,
+      "spans": 978
+    },
+    {
+      "source": "packages/foldkit/src/block/keyedMapFieldConnection.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 4306,
+      "spans": 897
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Channel.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 4164,
+      "spans": 1523
+    },
+    {
+      "source": "packages/foldkit/src/runtime/renderer.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 4116,
+      "spans": 971
+    },
+    {
+      "source": "packages/foldkit/src/block/directConnection.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 3951,
+      "spans": 681
+    },
+    {
+      "source": "packages/foldkit/src/block/scope.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 3880,
+      "spans": 1027
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Queue.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 3871,
+      "spans": 1003
+    },
+    {
+      "source": "packages/foldkit/src/devTools/store.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 3599,
+      "spans": 1017
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/SchemaIssue.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 3572,
+      "spans": 848
+    },
+    {
+      "source": "packages/foldkit/src/runtime/programRoot.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 3494,
+      "spans": 479
+    },
+    {
+      "source": "packages/foldkit/src/runtime/crashUI.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 3383,
+      "spans": 602
+    },
+    {
+      "source": "packages/foldkit/src/block/bindingRelationship.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 3348,
+      "spans": 587
+    },
+    {
+      "source": "packages/foldkit/src/controlledDomState.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 3292,
+      "spans": 671
+    },
+    {
+      "source": "packages/foldkit/src/block/occurrenceRuntime.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 3133,
+      "spans": 650
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Formatter.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 2929,
+      "spans": 769
+    },
+    {
+      "source": "packages/foldkit/src/subscription/subscription.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 2851,
+      "spans": 647
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/schema/toEquivalence.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 2842,
+      "spans": 761
+    },
+    {
+      "source": "packages/foldkit/src/html/block.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 2842,
+      "spans": 672
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Context.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 2823,
+      "spans": 813
+    },
+    {
+      "source": "packages/foldkit/src/dom/dom.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 2614,
+      "spans": 570
+    },
+    {
+      "source": "packages/foldkit/src/runtime/documentMetadata.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 2585,
+      "spans": 500
+    },
+    {
+      "source": "packages/foldkit/src/managedResource/managedResource.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 2539,
+      "spans": 505
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/schema/interpreter.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 2347,
+      "spans": 776
+    },
+    {
+      "source": "packages/foldkit/src/experimental/contracted/inMessageUpdate.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 2316,
+      "spans": 421
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Equal.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 2280,
+      "spans": 660
+    },
+    {
+      "source": "packages/foldkit/src/schema/index.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 2208,
+      "spans": 512
+    },
+    {
+      "source": "packages/foldkit/src/block/variantBinding.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 2189,
+      "spans": 417
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Array.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 2164,
+      "spans": 801
+    },
+    {
+      "source": "packages/foldkit/src/runtime/childOrigin.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 2147,
+      "spans": 455
+    },
+    {
+      "source": "packages/foldkit/src/runtime/slowPhase.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 2144,
+      "spans": 360
+    },
+    {
+      "source": "packages/foldkit/src/block/composition.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 1963,
+      "spans": 371
+    },
+    {
+      "source": "packages/foldkit/src/block/outMessageHandlers.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 1958,
+      "spans": 409
+    },
+    {
+      "source": "packages/foldkit/src/html/runtimeSingleton.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 1956,
+      "spans": 314
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Layer.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1952,
+      "spans": 601
+    },
+    {
+      "source": "packages/foldkit/src/block/decodedSchemaShape.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 1952,
+      "spans": 585
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/SchemaParser.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1928,
+      "spans": 552
+    },
+    {
+      "source": "packages/foldkit/src/runtime/devToolsIntegration.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 1910,
+      "spans": 483
+    },
+    {
+      "source": "packages/foldkit/src/block/bindingOutMessagePolicy.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 1860,
+      "spans": 359
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/BigDecimal.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1851,
+      "spans": 531
+    },
+    {
+      "source": "packages/foldkit/src/propsModule.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 1823,
+      "spans": 479
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/matcher.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1819,
+      "spans": 521
+    },
+    {
+      "source": "packages/foldkit/src/experimental/hybrid/authoring.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 1814,
+      "spans": 397
+    },
+    {
+      "source": "packages/foldkit/src/block/childEnvelope.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 1788,
+      "spans": 334
+    },
+    {
+      "source": "packages/foldkit/src/snabbdom/style.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 1744,
+      "spans": 447
+    },
+    {
+      "source": "packages/foldkit/src/mount/index.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 1728,
+      "spans": 475
+    },
+    {
+      "source": "packages/foldkit/src/runtime/programConstruction.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 1707,
+      "spans": 356
+    },
+    {
+      "source": "packages/foldkit/src/command/index.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 1661,
+      "spans": 435
+    },
+    {
+      "source": "packages/foldkit/src/runtime/application.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 1617,
+      "spans": 333
+    },
+    {
+      "source": "packages/foldkit/src/block/bindingConnection.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 1615,
+      "spans": 352
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Hash.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1599,
+      "spans": 461
+    },
+    {
+      "source": "packages/foldkit/src/runtime/messageQueue.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 1504,
+      "spans": 411
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/MutableList.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1497,
+      "spans": 408
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Scheduler.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1486,
+      "spans": 332
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Function.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1482,
+      "spans": 432
+    },
+    {
+      "source": "packages/foldkit/src/block/lowering.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 1462,
+      "spans": 340
+    },
+    {
+      "source": "packages/foldkit/src/snabbdom/h.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 1452,
+      "spans": 410
+    },
+    {
+      "source": "packages/foldkit/src/snabbdom/htmldomapi.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 1419,
+      "spans": 322
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/schema/toCodec.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1418,
+      "spans": 365
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Stream.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1405,
+      "spans": 514
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Semaphore.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1367,
+      "spans": 372
+    },
+    {
+      "source": "packages/foldkit/src/dom/inert.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 1342,
+      "spans": 344
+    },
+    {
+      "source": "packages/foldkit/src/runtime/browserListeners.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 1333,
+      "spans": 323
+    },
+    {
+      "source": "packages/foldkit/src/block/viewScope.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 1309,
+      "spans": 274
+    },
+    {
+      "source": "packages/foldkit/src/update/update.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 1232,
+      "spans": 337
+    },
+    {
+      "source": "packages/foldkit/src/block/instanceContext.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 1210,
+      "spans": 268
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Tracer.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1207,
+      "spans": 237
+    },
+    {
+      "source": "packages/foldkit/src/block/identity.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 1104,
+      "spans": 303
+    },
+    {
+      "source": "packages/foldkit/src/snabbdom/attributes.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 1043,
+      "spans": 242
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/encoding/Hex.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 1042,
+      "spans": 308
+    },
+    {
+      "source": "packages/foldkit/src/runtime/makeApplication.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 1041,
+      "spans": 229
+    },
+    {
+      "source": "packages/foldkit/src/block/define.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 1024,
+      "spans": 169
+    },
+    {
+      "source": "packages/foldkit/src/command/interruptible/interruptible.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 1020,
+      "spans": 301
+    },
+    {
+      "source": "packages/foldkit/src/dom/scrollLock.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 1011,
+      "spans": 209
+    },
+    {
+      "source": "packages/foldkit/src/runtime/managedResourceFibers.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 956,
+      "spans": 275
+    },
+    {
+      "source": "packages/foldkit/src/snabbdom/class.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 937,
+      "spans": 253
+    },
+    {
+      "source": "packages/foldkit/src/runtime/hostContainer.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 935,
+      "spans": 58
+    },
+    {
+      "source": "packages/foldkit/src/experimental/hybrid/planComposer.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 921,
+      "spans": 245
+    },
+    {
+      "source": "packages/foldkit/src/runtime/hostConnector.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 912,
+      "spans": 185
+    },
+    {
+      "source": "packages/foldkit/src/snabbdom/tovnode.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 890,
+      "spans": 263
+    },
+    {
+      "source": "packages/foldkit/src/block/operationGraph.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 881,
+      "spans": 151
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/result.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 875,
+      "spans": 228
+    },
+    {
+      "source": "packages/foldkit/src/mount/handler.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 843,
+      "spans": 169
+    },
+    {
+      "source": "packages/foldkit/src/runtime/subscriptionFibers.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 842,
+      "spans": 202
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/schema/make.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 841,
+      "spans": 188
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Option.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 802,
+      "spans": 301
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/option.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 793,
+      "spans": 205
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/SchemaTransformation.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 779,
+      "spans": 189
+    },
+    {
+      "source": "packages/foldkit/src/vdom.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 778,
+      "spans": 246
+    },
+    {
+      "source": "packages/foldkit/src/block/compiledOperation.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 773,
+      "spans": 153
+    },
+    {
+      "source": "packages/foldkit/src/block/bindingConstructors.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 744,
+      "spans": 135
+    },
+    {
+      "source": "packages/foldkit/src/block/runtimeCapability.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 737,
+      "spans": 162
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/references.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 730,
+      "spans": 92
+    },
+    {
+      "source": "packages/foldkit/src/runtime/resourceProvider.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 724,
+      "spans": 195
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Predicate.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 710,
+      "spans": 186
+    },
+    {
+      "source": "packages/foldkit/src/snabbdom/eventlisteners.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 674,
+      "spans": 190
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/SchemaGetter.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 662,
+      "spans": 148
+    },
+    {
+      "source": "packages/foldkit/src/managedResource/handler.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 660,
+      "spans": 112
+    },
+    {
+      "source": "packages/foldkit/src/onUnmountModule.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 656,
+      "spans": 182
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Runtime.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 637,
+      "spans": 153
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Pipeable.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 621,
+      "spans": 280
+    },
+    {
+      "source": "packages/foldkit/src/runtime/devToolsConfig.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 617,
+      "spans": 169
+    },
+    {
+      "source": "packages/foldkit/src/runtime/program.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 614,
+      "spans": 170
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/equal.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 612,
+      "spans": 122
+    },
+    {
+      "source": "packages/foldkit/src/runtime/start.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 612,
+      "spans": 153
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/hashSet.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 609,
+      "spans": 190
+    },
+    {
+      "source": "packages/foldkit/src/block/assemblyState.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 601,
+      "spans": 94
+    },
+    {
+      "source": "packages/foldkit/src/html/dragZoneTracking.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 568,
+      "spans": 137
+    },
+    {
+      "source": "packages/foldkit/src/update/operationRecipe.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 562,
+      "spans": 102
+    },
+    {
+      "source": "packages/foldkit/src/url/index.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 557,
+      "spans": 156
+    },
+    {
+      "source": "packages/foldkit/src/block/outMessagePolicyRuntime.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 553,
+      "spans": 74
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Deferred.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 532,
+      "spans": 160
+    },
+    {
+      "source": "packages/foldkit/src/serialization.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 501,
+      "spans": 126
+    },
+    {
+      "source": "packages/foldkit/src/runtime/viewTransition.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 487,
+      "spans": 115
+    },
+    {
+      "source": "packages/foldkit/src/subscription/handler.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 481,
+      "spans": 89
+    },
+    {
+      "source": "packages/foldkit/src/hydrationMarkers.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 472,
+      "spans": 126
+    },
+    {
+      "source": "packages/foldkit/src/block/instanceSchema.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 464,
+      "spans": 136
+    },
+    {
+      "source": "packages/foldkit/src/block/messageSchemaContract.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 462,
+      "spans": 139
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/SubscriptionRef.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 445,
+      "spans": 130
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Effect.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 439,
+      "spans": 148
+    },
+    {
+      "source": "packages/foldkit/src/block/outMessageFold.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 438,
+      "spans": 68
+    },
+    {
+      "source": "packages/foldkit/src/runtime/preserveScheduler.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 437,
+      "spans": 136
+    },
+    {
+      "source": "packages/foldkit/src/command/handler.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 422,
+      "spans": 82
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Inspectable.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 421,
+      "spans": 112
+    },
+    {
+      "source": "packages/foldkit/src/propertyProvenance.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 418,
+      "spans": 110
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/tracer.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 408,
+      "spans": 101
+    },
+    {
+      "source": "packages/foldkit/src/experimental/contracted/unified.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 396,
+      "spans": 91
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/schema/compilerRegistry.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 393,
+      "spans": 101
+    },
+    {
+      "source": "packages/foldkit/src/nativeInnerHtml.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 392,
+      "spans": 80
+    },
+    {
+      "source": "packages/foldkit/src/snabbdom/dataset.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 385,
+      "spans": 99
+    },
+    {
+      "source": "packages/foldkit/src/block/outMessageForward.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 373,
+      "spans": 79
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Pull.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 371,
+      "spans": 119
+    },
+    {
+      "source": "packages/foldkit/src/runtime/rootBlock.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 366,
+      "spans": 123
+    },
+    {
+      "source": "packages/foldkit/src/block/operationMessage.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 362,
+      "spans": 63
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Ref.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 344,
+      "spans": 107
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Utils.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 343,
+      "spans": 99
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Record.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 341,
+      "spans": 134
+    },
+    {
+      "source": "packages/foldkit/src/block/ownerName.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 340,
+      "spans": 50
+    },
+    {
+      "source": "packages/foldkit/src/port/port.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 320,
+      "spans": 89
+    },
+    {
+      "source": "packages/foldkit/src/block/initRecipe.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 319,
+      "spans": 78
+    },
+    {
+      "source": "packages/foldkit/src/runtime/scrollPreservation.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 314,
+      "spans": 92
+    },
+    {
+      "source": "packages/foldkit/src/block/fieldStep.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 311,
+      "spans": 107
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Order.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 307,
+      "spans": 99
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Redactable.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 304,
+      "spans": 65
+    },
+    {
+      "source": "packages/foldkit/src/struct/index.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 304,
+      "spans": 80
+    },
+    {
+      "source": "packages/foldkit/src/block/named.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 301,
+      "spans": 99
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/dateTime.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 289,
+      "spans": 73
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/record.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 289,
+      "spans": 64
+    },
+    {
+      "source": "../../../../../../private/tmp/foldkit-bundle-invocation-controls-20261107/d_retargeted/packages/foldkit/dist/brand/brand.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 271,
+      "spans": 66
+    },
+    {
+      "source": "packages/foldkit/src/message/inMessageOperation.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 267,
+      "spans": 36
+    },
+    {
+      "source": "packages/foldkit/src/runtime/deepFreeze.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 263,
+      "spans": 72
+    },
+    {
+      "source": "internal/lustre-benchmark/src/application.ts",
+      "bucket": "Benchmark application",
+      "bytes": 262,
+      "spans": 53
+    },
+    {
+      "source": "packages/foldkit/src/render/commit.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 258,
+      "spans": 62
+    },
+    {
+      "source": "packages/foldkit/src/devTools/blockPath.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 249,
+      "spans": 73
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Data.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 248,
+      "spans": 70
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/stackTraceLimit.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 247,
+      "spans": 43
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Struct.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 246,
+      "spans": 81
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/MutableRef.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 236,
+      "spans": 63
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Iterable.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 226,
+      "spans": 68
+    },
+    {
+      "source": "node_modules/.pnpm/@effect+platform-browser@4.1.0_effect@4.1.0/node_modules/@effect/platform-browser/dist/BrowserRuntime.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 207,
+      "spans": 42
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/schema/annotations.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 204,
+      "spans": 45
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/String.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 204,
+      "spans": 64
+    },
+    {
+      "source": "packages/foldkit/src/snabbdom/vnode.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 200,
+      "spans": 46
+    },
+    {
+      "source": "packages/foldkit/src/block/operation.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 189,
+      "spans": 64
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Equivalence.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 182,
+      "spans": 56
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/schema/cause.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 174,
+      "spans": 54
+    },
+    {
+      "source": "packages/foldkit/src/block/defaultView.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 167,
+      "spans": 41
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/encoding/Base64.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 160,
+      "spans": 28
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/schemaError.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 157,
+      "spans": 16
+    },
+    {
+      "source": "packages/foldkit/src/block/inMessageUpdate.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 154,
+      "spans": 45
+    },
+    {
+      "source": "packages/foldkit/src/command/brand.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 152,
+      "spans": 30
+    },
+    {
+      "source": "packages/foldkit/src/mountModule.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 152,
+      "spans": 47
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/stream.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 147,
+      "spans": 40
+    },
+    {
+      "source": "packages/foldkit/src/block/outMessageStep.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 147,
+      "spans": 38
+    },
+    {
+      "source": "packages/foldkit/src/block/commandsStep.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 143,
+      "spans": 38
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/layer.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 141,
+      "spans": 57
+    },
+    {
+      "source": "packages/foldkit/src/block/namespaceIdentity.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 141,
+      "spans": 23
+    },
+    {
+      "source": "packages/foldkit/src/snabbdom/is.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 120,
+      "spans": 19
+    },
+    {
+      "source": "packages/foldkit/src/cssStyleProperties.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 116,
+      "spans": 8
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Result.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 115,
+      "spans": 34
+    },
+    {
+      "source": "packages/foldkit/src/block/fromAssembly.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 115,
+      "spans": 19
+    },
+    {
+      "source": "packages/foldkit/src/tagName.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 112,
+      "spans": 37
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/schema/content.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 108,
+      "spans": 23
+    },
+    {
+      "source": "packages/foldkit/src/runtime/browserScheduler.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 102,
+      "spans": 32
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/schema/parser.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 93,
+      "spans": 32
+    },
+    {
+      "source": "packages/foldkit/src/runtime/modelPreservation.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 92,
+      "spans": 33
+    },
+    {
+      "source": "packages/foldkit/src/block/owner.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 85,
+      "spans": 16
+    },
+    {
+      "source": "internal/lustre-benchmark/src/entry.ts",
+      "bucket": "Benchmark application",
+      "bytes": 81,
+      "spans": 17
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/HashMap.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 72,
+      "spans": 24
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Cause.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 70,
+      "spans": 23
+    },
+    {
+      "source": "packages/foldkit/src/runtime/visibility.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 69,
+      "spans": 18
+    },
+    {
+      "source": "packages/foldkit/src/runtime/runtimeStatus.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 65,
+      "spans": 9
+    },
+    {
+      "source": "packages/foldkit/src/effectExtensions/stringExtensions.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 62,
+      "spans": 26
+    },
+    {
+      "source": "packages/foldkit/src/html/childAttribute.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 61,
+      "spans": 10
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Exit.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 54,
+      "spans": 18
+    },
+    {
+      "source": "packages/foldkit/src/managedResource/registry.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 53,
+      "spans": 4
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Number.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 52,
+      "spans": 15
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/count.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 50,
+      "spans": 18
+    },
+    {
+      "source": "packages/foldkit/src/dom/dialogRuntime.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 50,
+      "spans": 9
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/net/NetAddress.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 49,
+      "spans": 24
+    },
+    {
+      "source": "packages/foldkit/src/block/mapBinding.ts",
+      "bucket": "Foldkit Block authoring and completion",
+      "bytes": 49,
+      "spans": 16
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Scope.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 48,
+      "spans": 16
+    },
+    {
+      "source": "packages/foldkit/src/hydrationMarker.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 46,
+      "spans": 4
+    },
+    {
+      "source": "packages/foldkit/src/navigation/urlRequest.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 46,
+      "spans": 15
+    },
+    {
+      "source": "packages/foldkit/src/runtime/dispatch.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 45,
+      "spans": 9
+    },
+    {
+      "source": "packages/foldkit/src/imeComposition.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 43,
+      "spans": 9
+    },
+    {
+      "source": "packages/foldkit/src/runtime/modelPreservationBridge.ts",
+      "bucket": "Foldkit Runtime",
+      "bytes": 41,
+      "spans": 16
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Effectable.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 39,
+      "spans": 12
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/metric.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 39,
+      "spans": 2
+    },
+    {
+      "source": "packages/foldkit/src/html/mountCapture.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 39,
+      "spans": 13
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Match.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 36,
+      "spans": 12
+    },
+    {
+      "source": "packages/foldkit/src/effectExtensions/optionExtensions.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 34,
+      "spans": 13
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Fiber.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 24,
+      "spans": 8
+    },
+    {
+      "source": "packages/foldkit/src/buildToken.ts",
+      "bucket": "Other Foldkit",
+      "bytes": 24,
+      "spans": 2
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/HashSet.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 19,
+      "spans": 6
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/http/Headers.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 19,
+      "spans": 4
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/http/Cookies.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 17,
+      "spans": 8
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/array.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 17,
+      "spans": 5
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/internal/hash.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 17,
+      "spans": 6
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Tuple.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 13,
+      "spans": 4
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Latch.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 12,
+      "spans": 4
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/net/Host.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 12,
+      "spans": 5
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/http/UrlParams.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 8,
+      "spans": 4
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/net/Dns.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 8,
+      "spans": 4
+    },
+    {
+      "source": "node_modules/.pnpm/effect@4.1.0/node_modules/effect/dist/Redacted.js",
+      "bucket": "Effect and other dependencies",
+      "bytes": 8,
+      "spans": 4
+    }
+  ]
+}

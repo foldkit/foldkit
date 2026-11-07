@@ -1,0 +1,58 @@
+{
+  "source": "/private/tmp/foldkit-layer-profile-20261107.OXTyfI",
+  "files": [
+    {
+      "file": "capture.json",
+      "sha256": "9a175524caf72e3f8bacd1e92e298022a93349384b218a136ed0fdea1f7b87cc",
+      "bytes": 8141
+    },
+    {
+      "file": "summary.json",
+      "sha256": "415245058cdf26e3de260c5e8d6381832c820669b072c373e3fc6466fc9364cd",
+      "bytes": 96007
+    },
+    {
+      "file": "profiles/full/72509-1794093482941-cpuprofile.pb.gz",
+      "sha256": "f54544d3d6e43f89d62d06ba13f7e71c8f20a23d9552d00660da024a4ccd5891",
+      "bytes": 48954
+    },
+    {
+      "file": "profiles/imports/72494-1794093472255-cpuprofile.pb.gz",
+      "sha256": "993cc47388f86250b5d138d7df649d6989e2e6f5a55423bccde48536db503ec7",
+      "bytes": 47719
+    },
+    {
+      "file": "profiles/minimal/72491-1794093471508-cpuprofile.pb.gz",
+      "sha256": "61f2765d6e301719aae4ba71eb85e92ade59c87090addd82082beba51fde4ea5",
+      "bytes": 24453
+    },
+    {
+      "file": "profiles/post-open/72582-1794093488473-cpuprofile.pb.gz",
+      "sha256": "19da09797242ecac9b0703829f450ccd9b1b8af121abf93b68e50287dfcf6137",
+      "bytes": 34680
+    },
+    {
+      "file": "profiles/unprovided/72508-1794093477337-cpuprofile.pb.gz",
+      "sha256": "6f2e47d1db3afa0ee0e216cc94daf058146f56dcf855f80e2a0f682104a371cc",
+      "bytes": 46629
+    },
+    {
+      "file": "profile-block-language-service.ts",
+      "sha256": "e1bdc2e28460cd38253fa20ef3a2df3d1d98fbd558af76b2e8720700bac968a2",
+      "bytes": 68529,
+      "kind": "exact tool snapshot"
+    },
+    {
+      "file": "summarize-go-pprof.ts",
+      "sha256": "33ddde871c1a70ff167e9c81a5cc790bf59f2b2b57bdf0152e7e26e9d589b772",
+      "bytes": 12127,
+      "kind": "exact tool snapshot"
+    },
+    {
+      "file": "invalid-all-original-source-capture.json",
+      "sha256": "c31e33d82bd172e657a38e33dffb467020f96ca219793e787c715f72a4e3be67",
+      "bytes": 8157,
+      "kind": "invalid control batch; not latency evidence"
+    }
+  ]
+}

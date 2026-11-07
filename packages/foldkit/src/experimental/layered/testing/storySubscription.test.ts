@@ -363,7 +363,8 @@ if (false) {
 
   // @ts-expect-error Grouping retains the selected Binding path's parent owner.
   // oxfmt-ignore
-  Story.story({ block: RootBlock, layer: rootLayer }, Story.given(initialModel), shellEmission)
+  const wrongParentStory = Story.story({ block: RootBlock, layer: rootLayer }, Story.given(initialModel), shellEmission)
+  void wrongParentStory
 
   // @ts-expect-error Grouping cannot introduce graph-backed steps into an update-only Story.
   // oxfmt-ignore

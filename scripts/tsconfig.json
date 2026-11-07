@@ -15,6 +15,7 @@
     "../packages/foldkit/scripts/check-child-instances.ts",
     "../packages/foldkit/scripts/check-emitted-declarations.ts",
     "../packages/foldkit/scripts/profile-block-language-service.ts",
+    "../packages/foldkit/scripts/summarize-go-pprof.ts",
     "../packages/ui/scripts/check-emitted-declarations.ts"
   ],
   "exclude": ["fixtures/packed-ssr-consumer"]

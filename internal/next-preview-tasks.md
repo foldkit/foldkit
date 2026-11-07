@@ -16,22 +16,43 @@ New implementation work starts from that snapshot on
       values and Service-dependent Codecs. The eight unchanged compiler workloads
       pass. Runtime controls reject broad-string selection Codecs, including
       generated parent envelopes.
-- [ ] Finish consumer, documentation, scaffold, skill and lint adoption; run the
-      complete affected checks and review the exact committed change before push.
+- [x] Finish consumer, documentation, scaffold, skill and lint adoption. Focused
+      checks and exact-commit review passed for `dc2bf3175f`; the normal push
+      gate remains below.
 - [x] Implement graph-aware Story Subscription emission (#1910), retaining an
       explicit registry path for update-only Stories and checked Binding paths
       for encapsulated child sources. Source identity is verified at delivery.
 - [x] Make Story/Scene Command resolvers local to each call (#1911), preserving
       tolerant and exact resolution separately. Reuse extracted local steps
       explicitly when the test needs the same response after another dispatch.
+- [x] Measure and reject the iterative Mount walk and the adapted #1575 Attribute
+      experiment as fixes for the optimized benchmark gap. Retain duplicate
+      controls, every sample and the separate deterministic gzip observation.
+- [x] Recover byte-exact bundle attribution after correcting copied workspace
+      links. Block authoring/completion occupies 128,187 raw bytes; subpath
+      imports do not materially reduce the emitted asset.
+- [x] Repair current editor probes and collect five-run latency samples plus
+      request-scoped profiles with actual-source hash controls. The slow imported
+      graph includes both root inputs and child Layers; no individual alias has
+      been identified as the cause.
 - [ ] Investigate the rendering and bundle costs and reduce demonstrated
       overhead before the main merge. Preserve unchanged benchmark workloads.
       Assess existing performance PRs #1575, #1576, #1581 and #1585 before
       introducing overlapping work. #1859 changes benchmark coverage rather
       than the renderer implementation.
 - [ ] Continue measured TypeScript editor-performance investigation (#1709).
+- [ ] Review the exact tooling/evidence commit and pass the normal push gate
+      before pushing the follow-up branch. No new preview is authorized here.
 - [ ] Refresh preview feedback and support the code/documentation review before
       the next release; prepare stable documentation before merging to main.
+
+The focused reports are [selection contracts](selection-contracts-20261107/README.md),
+[Story Subscription delivery](story-subscription-20261107.md),
+[resolver lifetimes](resolver-lifetimes-20261107.md),
+[open performance PRs](preview-open-performance-prs-20261107.md) and
+[editor latency](editor-latency-20261107.md). The November 7 feedback refresh found
+no newer #1655 replies. #1916 is a general docs-packaging investigation outside
+this preview-fix pass; it remains open.
 
 Bookmarked naming/design work: `Query.define` to `Query.makeBlock`, clearer
 `pendingArgs` naming, and alternatives to explicit Symbol declarations that

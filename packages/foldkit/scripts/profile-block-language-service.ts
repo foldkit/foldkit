@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import {
   existsSync,
   globSync,
+  mkdirSync,
   readFileSync,
   realpathSync,
   statSync,
@@ -48,8 +49,7 @@ type RequestTargetConfig =
         owner: string
         typeNames?: ReadonlyArray<string>
         requireSchemaHeader?: boolean
-        schemaHeaderFragments?: ReadonlyArray<string>
-        namedBoundaryFragments?: ReadonlyArray<string>
+        schemaAlternatives?: ReadonlyArray<ReadonlyArray<string>>
       }>
     }>
   | Readonly<{ method: 'textDocument/definition' }>
@@ -85,6 +85,24 @@ type ScenarioResult = Readonly<{
   serverInfo: ServerInfo
   measurements: ReadonlyArray<Measurement>
   serverMemory?: ServerMemory
+  cpuProfiles?: ReadonlyArray<CPUProfileCapture>
+}>
+
+type LayerProfileKind =
+  | 'minimal'
+  | 'imports'
+  | 'unprovided'
+  | 'full'
+  | 'post-open'
+
+type CPUProfileCapture = Readonly<{
+  kind: LayerProfileKind
+  profilePath: string
+  profileBytes: number
+  profileSha256: string
+  startProfileLatencyMs: number
+  stopProfileLatencyMs: number
+  didOpenBeforeProfile: boolean
 }>
 
 type ServerMemory = Readonly<{
@@ -105,35 +123,36 @@ type ServerMemorySample = Readonly<{
 type Options = Readonly<{
   runs: number
   timeoutMs: number
-  scenario: 'all' | 'message-constructors' | 'workspace'
+  scenario: 'all' | 'layer-profile' | 'message-constructors' | 'workspace'
+  profileDir: string | undefined
 }>
+
+export const lspRequestArguments = (
+  method: string,
+  params: unknown,
+): [method: string] | [method: string, params: unknown] =>
+  params === undefined ? [method] : [method, params]
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const workspaceRoot = resolve(packageRoot, '../..')
 const benchmarkScriptPath = fileURLToPath(import.meta.url)
+const measuredHarnessSnapshotPath = join(
+  workspaceRoot,
+  'internal/editor-latency-20261107/measurements/profile-block-language-service.ts',
+)
+const expectedMeasuredHarnessSha256 =
+  '14f5cba79e287995a032217ea63b601b3653d4105cf76031efe951637328d2d8'
 const blockPath = 'packages/website/src/block.ts'
 const compositionPath = 'packages/website/src/composition/composition.ts'
+const layerPath = 'packages/website/src/layer.ts'
 const changedUrlPath = 'packages/website/src/update/handleChangedUrl.ts'
 const workspaceCompositionPath = 'examples/workspace/src/composition.ts'
-const workspaceInitializationPath =
-  'examples/workspace/src/update/initChildren.ts'
-const workspaceUpdatePath = Option.getOrElse(
-  EffectArray.findFirst(
-    [
-      workspaceInitializationPath,
-      'examples/workspace/src/update/initChildrenStep.ts',
-      'examples/workspace/src/update/initChildBlocksStep.ts',
-      'examples/workspace/src/update/initializeRouteChildren.ts',
-      'examples/workspace/src/update/initializeActiveChildren.ts',
-    ],
-    path => existsSync(resolve(workspaceRoot, path)),
-  ),
-  () => 'examples/workspace/src/update.ts',
-)
+const workspaceBindingCompletionPath =
+  'examples/workspace/src/view/workspace.ts'
 const workspaceEntryPath = 'examples/workspace/src/entry.ts'
 const workspaceDetailUpdatePath =
   'examples/workspace/src/blocks/issueDetail/update.ts'
-const workspaceBindingProbe = '\nIssueDetailsBinding.init\n'
+const workspaceBindingAccess = 'IssueDetailsBinding.embedView'
 const workspaceBlockAccess = 'ApplicationBlock.Message.ClickedLink'
 const workspaceTitleWriter = 'title: () => value'
 const workspaceInvalidTitle = 'value.length'
@@ -144,33 +163,47 @@ const bindingCall = 'SearchBinding.informOfRouteChange()'
 export const searchBindingHover = {
   name: 'SearchBinding',
   owner: 'Search',
-  typeNames: ['InitializedBinding', 'BindingEvidence'],
-  requireSchemaHeader: true,
-  schemaHeaderFragments: [
-    'InitializedBinding<GeneratedDirectBindingReturn<AssemblyWithView<Struct<{',
-    'readonly query: String;',
-    'readonly searchState: TaggedUnion<',
-    'readonly activeResultIndex: Number;',
+  typeNames: [
+    'Block.ParentDescriptorBindingFields',
+    'ParentDescriptorBindingFields',
+    'Block.DescriptorBindingMember',
+    'DescriptorBindingMember',
+    'Block.DescriptorBinding',
+    'DescriptorBinding',
   ],
-  namedBoundaryFragments: [
-    'BindingEvidence<AssemblyWithView<Struct<{',
-    'readonly query: String;',
-    'readonly searchState: TaggedUnion<',
-    'readonly activeResultIndex: Number;',
-    ', false> &',
+  requireSchemaHeader: true,
+  schemaAlternatives: [
+    [
+      'readonly dialog:',
+      'readonly query: String;',
+      'readonly searchState: TaggedUnion<',
+      'readonly activeResultIndex: Number;',
+    ],
+    ['SearchBlock', 'Model'],
   ],
 }
 export const workspaceBindingHover = {
   name: 'IssueDetailsBinding',
   owner: 'IssueDetail',
-  typeNames: ['Block.BindingWithoutOutMessagePolicy'],
-  schemaHeaderFragments: [
-    'AssemblyWithViewAndOutMessage<Struct<{',
-    'readonly issueId: String;',
-    'readonly baseline: Struct<{',
-    'readonly draft: Struct<{',
+  typeNames: [
+    'Block.DescriptorBindingWithPolicyFields',
+    'DescriptorBindingWithPolicyFields',
+    'Block.DescriptorBindingMember',
+    'DescriptorBindingMember',
+    'Block.DescriptorBinding',
+    'DescriptorBinding',
   ],
-  namedBoundaryFragments: ['IssueDetailBlock', 'readonly route: RouteUnion<{'],
+  requireSchemaHeader: true,
+  schemaAlternatives: [
+    [
+      'readonly issueId: String;',
+      'readonly baselineRevision: Struct<{',
+      'readonly fields: Struct<{',
+      'readonly title: String;',
+      'readonly status: Literals<',
+    ],
+    ['IssueDetailBlock', 'Model'],
+  ],
 }
 const routeWriter = 'route: () => nextRoute'
 const routeErrorCode = 2322
@@ -268,11 +301,12 @@ const parseOptions = (): Options => {
       runs: { type: 'string', default: '3' },
       'timeout-ms': { type: 'string', default: '60000' },
       scenario: { type: 'string', default: 'all' },
+      'profile-dir': { type: 'string' },
     },
   })
   if (values.help) {
     process.stdout.write(
-      'Usage: node packages/foldkit/scripts/profile-block-language-service.ts [--runs N] [--timeout-ms N] [--scenario all|message-constructors|workspace]\n',
+      'Usage: node packages/foldkit/scripts/profile-block-language-service.ts [--runs N] [--timeout-ms N] [--scenario all|layer-profile|message-constructors|workspace] [--profile-dir PATH]\n',
     )
     process.exit(0)
   }
@@ -280,16 +314,34 @@ const parseOptions = (): Options => {
   const scenario = values.scenario
   if (
     scenario !== 'all' &&
+    scenario !== 'layer-profile' &&
     scenario !== 'message-constructors' &&
     scenario !== 'workspace'
   ) {
-    return fail(`--scenario must be all, message-constructors or workspace.`)
+    return fail(
+      `--scenario must be all, layer-profile, message-constructors or workspace.`,
+    )
+  }
+
+  const runs = parsePositiveInteger(values.runs, '--runs')
+  const profileDir = values['profile-dir']
+  if (scenario === 'layer-profile') {
+    if (runs !== 1) {
+      return fail(`--scenario layer-profile requires --runs 1.`)
+    }
+    if (profileDir === undefined) {
+      return fail(`--scenario layer-profile requires --profile-dir.`)
+    }
+  } else if (profileDir !== undefined) {
+    return fail(`--profile-dir requires --scenario layer-profile.`)
   }
 
   return {
     scenario,
-    runs: parsePositiveInteger(values.runs, '--runs'),
+    runs,
     timeoutMs: parsePositiveInteger(values['timeout-ms'], '--timeout-ms'),
+    profileDir:
+      profileDir === undefined ? undefined : resolve(workspaceRoot, profileDir),
   }
 }
 
@@ -307,6 +359,7 @@ class LspClient {
   private stderr = ''
   private hasExited = false
   private lifecycleError: Error | undefined
+  private readonly openDocumentUris = new Set<string>()
 
   get processId(): number {
     return this.child.pid ?? fail(`Language server has no process ID.`)
@@ -369,9 +422,29 @@ class LspClient {
     await this.connection.sendNotification(method, params)
   }
 
+  trackOpenDocument(uri: string): void {
+    this.openDocumentUris.add(uri)
+  }
+
   async request(
     method: string,
     params: unknown,
+    timeoutMs: number,
+  ): Promise<Response> {
+    const args = lspRequestArguments(method, params)
+    return this.timedRequest(
+      method,
+      () =>
+        args.length === 1
+          ? this.connection.sendRequest<unknown>(args[0])
+          : this.connection.sendRequest<unknown>(args[0], args[1]),
+      timeoutMs,
+    )
+  }
+
+  private async timedRequest(
+    method: string,
+    send: () => Promise<unknown>,
     timeoutMs: number,
   ): Promise<Response> {
     if (this.lifecycleError !== undefined) {
@@ -388,10 +461,7 @@ class LspClient {
       )
     })
     try {
-      const result = await Promise.race([
-        this.connection.sendRequest<unknown>(method, params),
-        timeout,
-      ])
+      const result = await Promise.race([send(), timeout])
       return { result, latencyMs: performance.now() - started }
     } finally {
       if (timeoutHandle !== undefined) {
@@ -407,6 +477,12 @@ class LspClient {
     }
 
     try {
+      for (const uri of this.openDocumentUris) {
+        await this.notify('textDocument/didClose', {
+          textDocument: { uri },
+        })
+      }
+      this.openDocumentUris.clear()
       await this.request(
         'shutdown',
         undefined,
@@ -415,7 +491,9 @@ class LspClient {
       await this.notify('exit')
       this.child.stdin.end()
       await Promise.race([this.exitPromise, delay(2_000)])
-    } catch {
+    } catch {}
+
+    if (!this.hasExited) {
       this.child.kill('SIGTERM')
       await Promise.race([this.exitPromise, delay(2_000)])
     }
@@ -587,20 +665,6 @@ const requestTarget = (
   ),
 })
 
-const bindingFactoryMarker = (text: string): string => {
-  if (text.includes('makeRequiredFieldBinding(')) {
-    return 'makeRequiredFieldBinding'
-  } else if (text.includes('.makeBinding')) {
-    return 'makeBinding'
-  } else if (text.includes('.bindChild')) {
-    return 'bindChild'
-  }
-
-  return fail(
-    `Could not find a supported Binding constructor in Website composition.`,
-  )
-}
-
 const openDocument = async (
   client: LspClient,
   source: SourceDocument,
@@ -615,6 +679,7 @@ const openDocument = async (
       text,
     },
   })
+  client.trackOpenDocument(source.uri)
 }
 
 const changeDocument = async (
@@ -830,8 +895,7 @@ export const validateResult = (
         name,
         owner,
         typeNames = ['InitializedBinding'],
-        schemaHeaderFragments,
-        namedBoundaryFragments,
+        schemaAlternatives,
         requireSchemaHeader = false,
       } = target.expectedBinding
       const text = hoverText(result.contents)
@@ -849,15 +913,20 @@ export const validateResult = (
             `${name}:\\s*${typeName.replaceAll('.', '\\.')}<\\s*(any|unknown|never)\\s*[,>]`,
           ).test(text),
         )
-      const hasVisibleOwner = text.includes('Owner<"')
-      const hasExpectedOwner = text.includes(`Owner<"${owner}"`)
+      const visibleOwners = [
+        ...text.matchAll(
+          /(?:Block\.)?Owner<(?:(?:Block\.)?NominalId<)?"([^"]+)"/g,
+        ),
+      ].flatMap(match => (match[1] === undefined ? [] : [match[1]]))
+      const hasVisibleOwner = EffectArray.isReadonlyArrayNonEmpty(visibleOwners)
+      const hasExpectedOwner = visibleOwners.includes(owner)
       const hasSchemaHeader =
-        (schemaHeaderFragments !== undefined &&
-          EffectArray.isReadonlyArrayNonEmpty(schemaHeaderFragments) &&
-          schemaHeaderFragments.every(fragment => text.includes(fragment))) ||
-        (namedBoundaryFragments !== undefined &&
-          EffectArray.isReadonlyArrayNonEmpty(namedBoundaryFragments) &&
-          namedBoundaryFragments.every(fragment => text.includes(fragment)))
+        schemaAlternatives !== undefined &&
+        schemaAlternatives.some(
+          fragments =>
+            EffectArray.isReadonlyArrayNonEmpty(fragments) &&
+            fragments.every(fragment => text.includes(fragment)),
+        )
       if (
         !hasExpectedBindingType ||
         isErased ||
@@ -1045,14 +1114,13 @@ const hoverScenario = (timeoutMs: number): Promise<ScenarioResult> =>
 
 const definitionScenario = (timeoutMs: number): Promise<ScenarioResult> =>
   runScenario(timeoutMs, async client => {
-    const composition = document(compositionPath)
-    await openDocument(client, composition)
-    const marker = bindingFactoryMarker(composition.originalText)
+    const layer = document(layerPath)
+    await openDocument(client, layer)
     const target = requestTarget(
       { method: 'textDocument/definition' },
-      composition,
-      marker,
-      'SearchBinding',
+      layer,
+      'makeLayer',
+      'ApplicationBlock.makeLayer',
     )
     const measurements = [
       ...(await measurePair(
@@ -1069,7 +1137,7 @@ const definitionScenario = (timeoutMs: number): Promise<ScenarioResult> =>
         timeoutMs,
         ['definition.postWhitespace', 'definition.postWhitespaceWarm'],
         target,
-        `${composition.originalText}\n`,
+        `${layer.originalText}\n`,
       )),
     )
     return measurements
@@ -1340,7 +1408,7 @@ const measureDiagnostic = async (
   }
 }
 
-type MessageConstructorAccess = 'local' | 'completed'
+type MessageConstructorAccess = 'local' | 'block'
 
 const messageConstructorSource = (access: MessageConstructorAccess): string => {
   const expression =
@@ -1376,6 +1444,233 @@ const messageConstructorScenario = (
       ),
     ]
   })
+
+const layerDiagnosticScenario = (timeoutMs: number): Promise<ScenarioResult> =>
+  runScenario(timeoutMs, async client => {
+    const layer = document(layerPath)
+    await openDocument(client, layer)
+
+    return [
+      await measureDiagnostic(client, timeoutMs, 'layer.cold', layer, 'Clean'),
+    ]
+  })
+
+const layerImplementationStart = 'export const layer ='
+
+export const layerProfileSource = (
+  kind: LayerProfileKind,
+  realSource: string,
+): string => {
+  if (kind === 'minimal') {
+    return [
+      "import { ApplicationBlock } from './block'",
+      '',
+      'export const layer = ApplicationBlock',
+      '',
+    ].join('\n')
+  } else if (kind === 'full' || kind === 'post-open') {
+    return realSource
+  }
+
+  const imports = realSource.slice(
+    0,
+    uniqueOccurrence(realSource, layerImplementationStart),
+  )
+  const childValues = [
+    'ApiReference',
+    'BlockPage',
+    'ComingFromReact',
+    'ExampleDetail',
+    'Home',
+    'Playground',
+    'Search',
+    'SnippetCopy',
+    'SnippetDisclosure',
+    'Ui',
+    'Dialog',
+    'Menu',
+  ]
+
+  if (kind === 'imports') {
+    return `${imports}export const rootInputs = {
+  ApplicationBlock,
+  EffectsLayer,
+  init,
+  update,
+  view,
+  subscriptions,
+}
+
+export const childLayers = {
+  Layer,
+  ${childValues.map(name => `${name}: ${name}.layer`).join(',\n  ')},
+}
+`
+  }
+
+  return `${imports}export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
+})
+
+export const childLayers = {
+  Layer,
+  ${childValues.map(name => `${name}: ${name}.layer`).join(',\n  ')},
+}
+`
+}
+
+export const validateLayerProfileSourceHashes = (
+  measurements: ReadonlyArray<
+    Readonly<Pick<Measurement, 'label' | 'sourceSha256'>>
+  >,
+  realSource: string,
+): void => {
+  const kinds = [
+    'minimal',
+    'imports',
+    'unprovided',
+    'full',
+    'post-open',
+  ] as const
+  const actualHashes = new Map<string, string>()
+  for (const measurement of measurements) {
+    const sourceSha256 = measurement.sourceSha256
+    if (sourceSha256 === undefined) {
+      return fail(measurement.label + ' has no measured source hash.')
+    }
+    actualHashes.set(measurement.label, sourceSha256)
+  }
+  const expectedHashes = new Map(
+    kinds.map(kind => [kind, sha256(layerProfileSource(kind, realSource))]),
+  )
+
+  for (const kind of kinds) {
+    const label = `layerProfile.${kind}.diagnostic`
+    const actual = actualHashes.get(label)
+    const expected = expectedHashes.get(kind)
+    if (actual === undefined || actual !== expected) {
+      return fail(`${label} did not measure its generated control source.`)
+    }
+  }
+
+  const boundaryHashes = ['minimal', 'imports', 'unprovided', 'full'].map(
+    kind =>
+      actualHashes.get(`layerProfile.${kind}.diagnostic`) ??
+      fail(`Missing ${kind} measured source hash.`),
+  )
+  if (new Set(boundaryHashes).size !== boundaryHashes.length) {
+    return fail(`Layer profile boundary control sources are not distinct.`)
+  }
+  if (
+    actualHashes.get('layerProfile.full.diagnostic') !==
+    actualHashes.get('layerProfile.post-open.diagnostic')
+  ) {
+    return fail(`Full and post-open controls do not use the same source.`)
+  }
+}
+
+const cpuProfileFile = (
+  result: unknown,
+  expectedDirectory: string,
+): Readonly<{ path: string; bytes: number; sha256: string }> => {
+  if (
+    !Predicate.isObject(result) ||
+    !('file' in result) ||
+    !Predicate.isString(result['file'])
+  ) {
+    return fail(`CPU profiler returned no file path.`)
+  }
+
+  const path = realpathSync(result['file'])
+  if (dirname(path) !== realpathSync(expectedDirectory)) {
+    return fail(`CPU profiler wrote outside its requested directory.`)
+  }
+  const bytes = statSync(path).size
+  if (bytes < 1 || !path.endsWith('-cpuprofile.pb.gz')) {
+    return fail(`CPU profiler returned an empty or unexpected file.`)
+  }
+
+  return { path, bytes, sha256: sha256(readFileSync(path)) }
+}
+
+const layerCPUProfileScenario = async (
+  timeoutMs: number,
+  profileRoot: string,
+  kind: LayerProfileKind,
+): Promise<ScenarioResult> => {
+  const profileDirectory = join(profileRoot, kind)
+  mkdirSync(profileDirectory)
+  const client = new LspClient()
+  let isProfiling = false
+  try {
+    const serverInfo = await initLanguageServer(client, timeoutMs)
+    const layer = document(layerPath)
+    const profileSource = layerProfileSource(kind, layer.originalText)
+    const didOpenBeforeProfile = kind === 'post-open'
+    if (didOpenBeforeProfile) {
+      await openDocument(client, layer, profileSource)
+    }
+
+    const start = await client.request(
+      'custom/startCPUProfile',
+      { dir: profileDirectory },
+      timeoutMs,
+    )
+    if (start.result !== null) {
+      return fail(`CPU profiler returned an unexpected start result.`)
+    }
+    isProfiling = true
+
+    if (!didOpenBeforeProfile) {
+      await openDocument(client, layer, profileSource)
+    }
+    const measurement = await measureDiagnostic(
+      client,
+      timeoutMs,
+      `layerProfile.${kind}.diagnostic`,
+      layer,
+      'Clean',
+    )
+    if (measurement.sourceSha256 !== sha256(profileSource)) {
+      return fail(`Layer profile did not measure its generated control source.`)
+    }
+    const stop = await client.request(
+      'custom/stopCPUProfile',
+      undefined,
+      timeoutMs,
+    )
+    isProfiling = false
+    const profile = cpuProfileFile(stop.result, profileDirectory)
+
+    return {
+      serverInfo,
+      measurements: [measurement],
+      cpuProfiles: [
+        {
+          kind,
+          profilePath: profile.path,
+          profileBytes: profile.bytes,
+          profileSha256: profile.sha256,
+          startProfileLatencyMs: globalThis.Number(start.latencyMs.toFixed(3)),
+          stopProfileLatencyMs: globalThis.Number(stop.latencyMs.toFixed(3)),
+          didOpenBeforeProfile,
+        },
+      ],
+    }
+  } finally {
+    try {
+      if (isProfiling) {
+        await client.request('custom/stopCPUProfile', undefined, timeoutMs)
+      }
+    } finally {
+      await client.close(timeoutMs)
+    }
+  }
+}
 
 const changedUrlWorkflowScenario = (
   timeoutMs: number,
@@ -1540,8 +1835,8 @@ export const workspaceBindingCompletionTarget = (
   source,
   position: positionAt(
     source.text,
-    uniqueOccurrence(source.text, workspaceBindingProbe) +
-      '\nIssueDetailsBinding.'.length,
+    uniqueOccurrence(source.text, workspaceBindingAccess) +
+      'IssueDetailsBinding.'.length,
   ),
 })
 
@@ -1551,11 +1846,8 @@ const workspaceBindingCompletionScenario = (
   workspaceRequestScenario(
     timeoutMs,
     'workspace.bindingCompletion',
-    workspaceUpdatePath,
-    source => {
-      source.text = `${source.text}${workspaceBindingProbe}`
-      return workspaceBindingCompletionTarget(source)
-    },
+    workspaceBindingCompletionPath,
+    workspaceBindingCompletionTarget,
   )
 
 export const workspaceBlockCompletionTarget = (
@@ -1782,10 +2074,30 @@ const summarize = (
 const selectedScenarios = async (
   options: Options,
 ): Promise<ReadonlyArray<ScenarioResult>> => {
-  if (options.scenario === 'message-constructors') {
+  if (options.scenario === 'layer-profile') {
+    const profileDir =
+      options.profileDir ?? fail(`Profile directory is missing.`)
+    const scenarios = [
+      await layerCPUProfileScenario(options.timeoutMs, profileDir, 'minimal'),
+      await layerCPUProfileScenario(options.timeoutMs, profileDir, 'imports'),
+      await layerCPUProfileScenario(
+        options.timeoutMs,
+        profileDir,
+        'unprovided',
+      ),
+      await layerCPUProfileScenario(options.timeoutMs, profileDir, 'full'),
+      await layerCPUProfileScenario(options.timeoutMs, profileDir, 'post-open'),
+    ]
+    validateLayerProfileSourceHashes(
+      scenarios.flatMap(scenario => scenario.measurements),
+      readFileSync(join(workspaceRoot, layerPath), 'utf8'),
+    )
+    return scenarios
+  } else if (options.scenario === 'message-constructors') {
     return [
       await messageConstructorScenario(options.timeoutMs, 'local'),
-      await messageConstructorScenario(options.timeoutMs, 'completed'),
+      await messageConstructorScenario(options.timeoutMs, 'block'),
+      await layerDiagnosticScenario(options.timeoutMs),
     ]
   } else if (options.scenario === 'workspace') {
     return [
@@ -1802,13 +2114,16 @@ const selectedScenarios = async (
       await bindingCompletionScenario(options.timeoutMs),
       await changedUrlWorkflowScenario(options.timeoutMs),
       await messageConstructorScenario(options.timeoutMs, 'local'),
-      await messageConstructorScenario(options.timeoutMs, 'completed'),
+      await messageConstructorScenario(options.timeoutMs, 'block'),
+      await layerDiagnosticScenario(options.timeoutMs),
     ]
   }
 }
 
 const documentChangeMode = (scenario: Options['scenario']): string => {
-  if (scenario === 'message-constructors') {
+  if (scenario === 'layer-profile') {
+    return 'Five fresh request-scoped CPU profiles; controls are in-memory documents at the real Layer URI'
+  } else if (scenario === 'message-constructors') {
     return 'One fresh document per cold constructor scenario; no edits'
   } else if (scenario === 'workspace') {
     return 'Incremental ranges for workspace hover, completion and title diagnostics'
@@ -1819,7 +2134,10 @@ const documentChangeMode = (scenario: Options['scenario']): string => {
 
 const main = async (): Promise<void> => {
   const options = parseOptions()
-  nativeCompilerExecutable()
+  const nativeCompilerPath = nativeCompilerExecutable()
+  if (options.profileDir !== undefined) {
+    mkdirSync(options.profileDir)
+  }
 
   const sourceCommit = gitOutput(['rev-parse', 'HEAD'])
   const sourceWorkloadDirty =
@@ -1836,6 +2154,12 @@ const main = async (): Promise<void> => {
     readFileSync(join(workspaceRoot, 'pnpm-lock.yaml')),
   )
   const benchmarkScriptHash = sha256(readFileSync(benchmarkScriptPath))
+  const measuredHarnessSnapshotHash = sha256(
+    readFileSync(measuredHarnessSnapshotPath),
+  )
+  if (measuredHarnessSnapshotHash !== expectedMeasuredHarnessSha256) {
+    return fail(`The measured harness snapshot does not match its receipt.`)
+  }
   const typescriptVersion = compilerVersion()
 
   const runs: Array<
@@ -1843,6 +2167,7 @@ const main = async (): Promise<void> => {
       run: number
       measurements: ReadonlyArray<Measurement>
       serverMemory?: ReadonlyArray<ServerMemory>
+      cpuProfiles?: ReadonlyArray<CPUProfileCapture>
     }>
   > = []
   let serverInfo: ServerInfo | undefined
@@ -1879,6 +2204,15 @@ const main = async (): Promise<void> => {
             ),
           }
         : {}),
+      ...(options.scenario === 'layer-profile'
+        ? {
+            cpuProfiles: scenarios.flatMap(
+              scenario =>
+                scenario.cpuProfiles ??
+                fail(`Layer profile scenario produced no CPU profile.`),
+            ),
+          }
+        : {}),
     })
   }
 
@@ -1891,17 +2225,26 @@ const main = async (): Promise<void> => {
 
   const output = {
     metadata: {
-      formatVersion: 5,
+      formatVersion: 7,
       measuredAt: new Date().toISOString(),
       sourceCommit,
       sourceWorkloadDirty,
       workloadSha256: initialWorkloadHash,
       lockfileSha256: lockfileHash,
       benchmarkScriptSha256: benchmarkScriptHash,
+      measuredHarnessSnapshotSha256: measuredHarnessSnapshotHash,
       compilerPackageVersion: typescriptVersion,
       nativeCompilerPackage,
+      nativeCompilerExecutable: {
+        path: nativeCompilerPath,
+        sha256: sha256(readFileSync(nativeCompilerPath)),
+      },
       server: serverInfo ?? fail(`The benchmark produced no server metadata.`),
       nodeVersion: process.version,
+      nodeExecutable: {
+        path: realpathSync(process.execPath),
+        sha256: sha256(readFileSync(realpathSync(process.execPath))),
+      },
       platform: process.platform,
       architecture: process.arch,
       runs: options.runs,
@@ -1915,9 +2258,7 @@ const main = async (): Promise<void> => {
         ? {
             hoverFirst: `${blockPath}#ApplicationBlock`,
             hoverAfterEdit: `${compositionPath}#SearchBinding`,
-            definitionFirst: `${compositionPath}#${bindingFactoryMarker(
-              readFileSync(join(workspaceRoot, compositionPath), 'utf8'),
-            )}`,
+            definitionFirst: `${layerPath}#ApplicationBlock.makeLayer`,
             completion: `${changedUrlPath}#previousRoute.`,
             bindingCompletion: `${changedUrlPath}#SearchBinding.|informOfRouteChange()`,
             changedUrlHover: `${changedUrlPath}#SearchBinding at informOfRouteChange()`,
@@ -1935,7 +2276,7 @@ const main = async (): Promise<void> => {
             workspace: {
               bindingHover: `${workspaceCompositionPath}#IssueDetailsBinding`,
               bindingHoverValidation: workspaceBindingHover,
-              bindingCompletion: `${workspaceUpdatePath}#appended in-memory IssueDetailsBinding.|init probe`,
+              bindingCompletion: `${workspaceBindingCompletionPath}#IssueDetailsBinding.|embedView`,
               expectedBindingMembers: ['requestSave', 'embedView', 'init'],
               blockCompletion: `${workspaceEntryPath}#ApplicationBlock.|Message.ClickedLink`,
               expectedBlockMembers: [
@@ -1960,14 +2301,41 @@ const main = async (): Promise<void> => {
               },
             },
           }
-        : {
-            messageConstructorDiagnostics: {
-              source: 'packages/website/src/entry.ts',
+        : {}),
+      ...(options.scenario === 'layer-profile'
+        ? {
+            layerProfile: {
+              source: layerPath,
+              outputDirectory: options.profileDir,
+              controls: {
+                minimal:
+                  'Same URI and project with only passive ApplicationBlock access',
+                imports:
+                  'Every real import used in a plain exported record; no makeLayer',
+                unprovided:
+                  'Real makeLayer record plus every child Layer used outside provider composition',
+                full: 'Unmodified real Layer source',
+                postOpen:
+                  'Unmodified real Layer source opened before the profiling barrier',
+              },
+              mode: 'custom/startCPUProfile immediately before the selected window and custom/stopCPUProfile immediately after exact clean pull diagnostics',
+            },
+          }
+        : {}),
+      ...(options.scenario === 'message-constructors'
+        ? {
+            messageAccessDiagnostics: {
+              source: {
+                messageAccess: 'packages/website/src/entry.ts',
+                layerCompletion: layerPath,
+              },
               local: messageConstructorSource('local'),
-              completed: messageConstructorSource('completed'),
+              block: messageConstructorSource('block'),
+              layer: 'Current ApplicationBlock.makeLayer record completion',
               mode: 'One cold full pull diagnostic request per fresh server',
             },
-          }),
+          }
+        : {}),
     },
     summary: summarize(runs),
     runs,

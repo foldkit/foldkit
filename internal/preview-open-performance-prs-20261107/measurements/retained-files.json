@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "hashAlgorithm": "sha256",
+  "files": {
+    "../../preview-open-performance-prs-20261107.md": "653a55633350bfc5187d62a3a63e350d4654dc095704c20a997c53895b4769a9",
+    "../tools/adapt-direct-attributes.mjs": "ea9cec0843e6f8738c3e189a59466cd5940563ba6270420c4b6da1b8338aa98d",
+    "../tools/audit-direct-attributes.mjs": "183f5b4693900b75c4c0d47115d683ecf5039aaf7b69255f9d1e1795bf4bc1c0",
+    "../tools/build-twins.mjs": "680972acb55cbbbc1298b389d1f29a65c2be9b29859b0af5d7a618b8047b6fa0",
+    "artifact-receipt.json": "f74a81f29c7300b80f29df85965ab3752a7407c2d70fd6686c10e40edf3ba1d5",
+    "build-receipt.json": "35dc614dd70a9b445a7f3075d83a9fa9230fe0f85e59a281758d15c4bd04fcb3",
+    "correctness-receipt.json": "702cd6922e53ce205442acb31cc47c6384c198161e226236e30032eed6989563",
+    "executed-scripts/analyse-timing.mjs": "e375fde9f664000e7620aba39e050a68b1322930963ba59c8be07ad38723d6eb",
+    "executed-scripts/build-twins.mjs": "0d4cf23fc19b37058e1befa0f96bdc06f8fd0c48c776fd7855f0f94af066e7d9",
+    "executed-scripts/prepare-timing.mjs": "e6fcc99f11e449b975323782caeacdb1a43a383e9dfeebb6fec933d4827230d1",
+    "executed-scripts/run-preflight.mjs": "6906d529867b3467923d444ee36c05ef4bf112fd217ae961cea506812f29aa16",
+    "executed-scripts/run-timing.mjs": "8b3e4a0b1f734b5c8e7b57fd8df4d5ccd372199c6f910de255cccec2393bdad1",
+    "fixtures/directAttribute.test.ts": "f47c302e9fddeecce2c66b18897d6517738700f2abb77cece7174a38b748eb17",
+    "preflight/results.json": "30d2be33e64a067b05beb9bd4010dfbc5c55c4c42489cc48de77c1d390f4a267",
+    "source-receipt.json": "5f039548ce4c22a6754655904433688822a5c7b48ee975e20563e754a42f3e6a",
+    "timing-analysis.json": "b3a84d7154f05f46259aad910732a3136675ad2b7fd5c74800d36fa9b48463dc",
+    "timing-execution.json": "9b3215433022d735aa14751b00a744547a783ed03e3445f23de9726247f492fe",
+    "timing-host-after.json": "f6905398912879081803d3e329bfe42f83aa28a7c3c1257a64eb7cd8d07a4666",
+    "timing-host-before.json": "62b863c538aca3f44ec6f682145513a7970eb8ae63ba6cf41b9deccbbc348280",
+    "timing.log": "790e47ebbf7e7e170bf64dd3fb69f4894b73f7f5c2230bb08aa6aa0ef36931d2"
+  }
+}

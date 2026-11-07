@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "preview": {
+    "commit": "54f8bcd443b4fd18952403a3d02e212abf872d58",
+    "htmlSource": "packages/foldkit/src/html/index.ts",
+    "sha256": "3b2464b443db3614e03dda8e9285fbada713788d906c8c198ab23e7469eb06ac",
+    "bytes": 218838
+  },
+  "pullRequest1575": {
+    "url": "https://github.com/foldkit/foldkit/pull/1575",
+    "base": "482593707a08de3e6f13dd9b32140ebf1b8345be",
+    "head": "5034908a43dec249761b851b08b6af0f8b601eee",
+    "headUrl": "https://github.com/foldkit/foldkit/commit/5034908a43dec249761b851b08b6af0f8b601eee",
+    "patchSha256": "0a427a6b517170a5638c3269cbd00f689247953b288739aa4e39e9dd27016cf4",
+    "htmlSourceSha256": "f6fdc377e12c31144089ec7945ae3372ce03e0d08ed158bb69db8f3fa968f3a9",
+    "contractTestSha256": "8f536897ec65d2a5acc1133f6c748a0152e6fe92ff60bb6abfbe364738b7e0fb"
+  },
+  "adaptedCandidate": {
+    "htmlSourceSha256": "4ac1d2c011fe79cba71a92663496e2d4035b4990cb848c1b2e9a08d4b8bc3749",
+    "htmlSourceBytes": 217978,
+    "contractTestSha256": "f47c302e9fddeecce2c66b18897d6517738700f2abb77cece7174a38b748eb17",
+    "contractTestBytes": 7354,
+    "productionDiff": {
+      "files": [
+        "packages/foldkit/src/html/index.ts"
+      ],
+      "insertions": 371,
+      "deletions": 637
+    },
+    "audit": {
+      "baselineAttributeCount": 313,
+      "candidateAttributeCount": 313,
+      "directBodyMatches": 312,
+      "mismatchedDirectBodies": [],
+      "onMountSourceUnchanged": true,
+      "retainedEffectConstructors": [
+        "Prop",
+        "OnCustomEvent"
+      ],
+      "sourceTypeShapeDifferences": []
+    }
+  },
+  "reproductionTools": {
+    "adapt-direct-attributes.mjs": "ea9cec0843e6f8738c3e189a59466cd5940563ba6270420c4b6da1b8338aa98d",
+    "audit-direct-attributes.mjs": "183f5b4693900b75c4c0d47115d683ecf5039aaf7b69255f9d1e1795bf4bc1c0",
+    "build-twins.mjs": "680972acb55cbbbc1298b389d1f29a65c2be9b29859b0af5d7a618b8047b6fa0"
+  }
+}

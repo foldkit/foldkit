@@ -1,0 +1,347 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "measured",
+  "analysedAt": "2026-11-07T22:20:27.688Z",
+  "execution": {
+    "file": "timing-execution.json",
+    "sha256": "5769781d5765f16c8867de28ff24776578f7553e879dded393bfb53016a4bf4f"
+  },
+  "artifactReceipt": {
+    "file": "artifact-receipt.json",
+    "sha256": "60a0f32a15d37f158592cdfdd19b653bcd6144a54539de62ad1524f20ee21b06"
+  },
+  "preflightResults": {
+    "file": "preflight/results.json",
+    "sha256": "3125d293b6677a9f75e2f72733e6e94b38f924877d23f2dfcbc377b0eb193876"
+  },
+  "retainedSamples": 72,
+  "discardedSamples": 0,
+  "cyclicOrderingVerified": true,
+  "ordinalVisitsPerSlot": 2,
+  "variants": [
+    {
+      "name": "naive",
+      "slots": {
+        "baselineA": "mount-baseline-naive-a",
+        "experiment": "mount-experiment-naive",
+        "baselineB": "mount-baseline-naive-b"
+      },
+      "summary": {
+        "baselineAMedian": 646.7,
+        "experimentMedian": 662.4,
+        "baselineBMedian": 631.7,
+        "baselineMedianMidpoint": 639.2,
+        "experimentMinusBaselineMedianMidpoint": 23.2,
+        "experimentFasterRounds": 5,
+        "experimentSlowerRounds": 7,
+        "tiedRounds": 0,
+        "medianPairedDelta": 5.53,
+        "minimumPairedDelta": -67.8,
+        "maximumPairedDelta": 164.25,
+        "medianDuplicateBaselineAbsoluteDifference": 38.05,
+        "maximumDuplicateBaselineAbsoluteDifference": 172.7,
+        "sync": {
+          "baselineA": 71.1,
+          "experiment": 73.9,
+          "baselineB": 70
+        },
+        "animationFrame": {
+          "baselineA": 573.6,
+          "experiment": 589.5,
+          "baselineB": 557.4
+        }
+      },
+      "rounds": [
+        {
+          "round": 1,
+          "baselineA": 670.3,
+          "experiment": 700,
+          "baselineB": 497.6,
+          "baselineMidpoint": 583.95,
+          "experimentMinusBaselineMidpoint": 116.05,
+          "duplicateBaselineSignedDifference": 172.7,
+          "duplicateBaselineAbsoluteDifference": 172.7
+        },
+        {
+          "round": 2,
+          "baselineA": 648.9,
+          "experiment": 607.7,
+          "baselineB": 649,
+          "baselineMidpoint": 648.95,
+          "experimentMinusBaselineMidpoint": -41.25,
+          "duplicateBaselineSignedDifference": -0.1,
+          "duplicateBaselineAbsoluteDifference": 0.1
+        },
+        {
+          "round": 3,
+          "baselineA": 637.3,
+          "experiment": 573.9,
+          "baselineB": 641.3,
+          "baselineMidpoint": 639.3,
+          "experimentMinusBaselineMidpoint": -65.4,
+          "duplicateBaselineSignedDifference": -4,
+          "duplicateBaselineAbsoluteDifference": 4
+        },
+        {
+          "round": 4,
+          "baselineA": 446.5,
+          "experiment": 411.2,
+          "baselineB": 497.8,
+          "baselineMidpoint": 472.15,
+          "experimentMinusBaselineMidpoint": -60.95,
+          "duplicateBaselineSignedDifference": -51.3,
+          "duplicateBaselineAbsoluteDifference": 51.3
+        },
+        {
+          "round": 5,
+          "baselineA": 618.1,
+          "experiment": 656.3,
+          "baselineB": 679,
+          "baselineMidpoint": 648.55,
+          "experimentMinusBaselineMidpoint": 7.75,
+          "duplicateBaselineSignedDifference": -60.9,
+          "duplicateBaselineAbsoluteDifference": 60.9
+        },
+        {
+          "round": 6,
+          "baselineA": 598.6,
+          "experiment": 543.2,
+          "baselineB": 623.4,
+          "baselineMidpoint": 611,
+          "experimentMinusBaselineMidpoint": -67.8,
+          "duplicateBaselineSignedDifference": -24.8,
+          "duplicateBaselineAbsoluteDifference": 24.8
+        },
+        {
+          "round": 7,
+          "baselineA": 654.6,
+          "experiment": 668.6,
+          "baselineB": 676,
+          "baselineMidpoint": 665.3,
+          "experimentMinusBaselineMidpoint": 3.3,
+          "duplicateBaselineSignedDifference": -21.4,
+          "duplicateBaselineAbsoluteDifference": 21.4
+        },
+        {
+          "round": 8,
+          "baselineA": 685.8,
+          "experiment": 745.7,
+          "baselineB": 693.3,
+          "baselineMidpoint": 689.55,
+          "experimentMinusBaselineMidpoint": 56.15,
+          "duplicateBaselineSignedDifference": -7.5,
+          "duplicateBaselineAbsoluteDifference": 7.5
+        },
+        {
+          "round": 9,
+          "baselineA": 614.9,
+          "experiment": 700.8,
+          "baselineB": 616.5,
+          "baselineMidpoint": 615.7,
+          "experimentMinusBaselineMidpoint": 85.1,
+          "duplicateBaselineSignedDifference": -1.6,
+          "duplicateBaselineAbsoluteDifference": 1.6
+        },
+        {
+          "round": 10,
+          "baselineA": 692.6,
+          "experiment": 679.3,
+          "baselineB": 640,
+          "baselineMidpoint": 666.3,
+          "experimentMinusBaselineMidpoint": 13,
+          "duplicateBaselineSignedDifference": 52.6,
+          "duplicateBaselineAbsoluteDifference": 52.6
+        },
+        {
+          "round": 11,
+          "baselineA": 690.8,
+          "experiment": 650,
+          "baselineB": 612.1,
+          "baselineMidpoint": 651.45,
+          "experimentMinusBaselineMidpoint": -1.45,
+          "duplicateBaselineSignedDifference": 78.7,
+          "duplicateBaselineAbsoluteDifference": 78.7
+        },
+        {
+          "round": 12,
+          "baselineA": 644.5,
+          "experiment": 759.9,
+          "baselineB": 546.8,
+          "baselineMidpoint": 595.65,
+          "experimentMinusBaselineMidpoint": 164.25,
+          "duplicateBaselineSignedDifference": 97.7,
+          "duplicateBaselineAbsoluteDifference": 97.7
+        }
+      ]
+    },
+    {
+      "name": "optimised",
+      "slots": {
+        "baselineA": "mount-baseline-optimised-a",
+        "experiment": "mount-experiment-optimised",
+        "baselineB": "mount-baseline-optimised-b"
+      },
+      "summary": {
+        "baselineAMedian": 342.3,
+        "experimentMedian": 354.7,
+        "baselineBMedian": 358.2,
+        "baselineMedianMidpoint": 350.25,
+        "experimentMinusBaselineMedianMidpoint": 4.45,
+        "experimentFasterRounds": 6,
+        "experimentSlowerRounds": 6,
+        "tiedRounds": 0,
+        "medianPairedDelta": -2.95,
+        "minimumPairedDelta": -52.85,
+        "maximumPairedDelta": 64.25,
+        "medianDuplicateBaselineAbsoluteDifference": 16.4,
+        "maximumDuplicateBaselineAbsoluteDifference": 129.3,
+        "sync": {
+          "baselineA": 71.4,
+          "experiment": 73.6,
+          "baselineB": 77.3
+        },
+        "animationFrame": {
+          "baselineA": 273.6,
+          "experiment": 279.6,
+          "baselineB": 279.8
+        }
+      },
+      "rounds": [
+        {
+          "round": 1,
+          "baselineA": 394.9,
+          "experiment": 292.5,
+          "baselineB": 265.6,
+          "baselineMidpoint": 330.25,
+          "experimentMinusBaselineMidpoint": -37.75,
+          "duplicateBaselineSignedDifference": 129.3,
+          "duplicateBaselineAbsoluteDifference": 129.3
+        },
+        {
+          "round": 2,
+          "baselineA": 372.3,
+          "experiment": 434.6,
+          "baselineB": 389.2,
+          "baselineMidpoint": 380.75,
+          "experimentMinusBaselineMidpoint": 53.85,
+          "duplicateBaselineSignedDifference": -16.9,
+          "duplicateBaselineAbsoluteDifference": 16.9
+        },
+        {
+          "round": 3,
+          "baselineA": 370,
+          "experiment": 364.3,
+          "baselineB": 357.9,
+          "baselineMidpoint": 363.95,
+          "experimentMinusBaselineMidpoint": 0.35,
+          "duplicateBaselineSignedDifference": 12.1,
+          "duplicateBaselineAbsoluteDifference": 12.1
+        },
+        {
+          "round": 4,
+          "baselineA": 277.6,
+          "experiment": 312.9,
+          "baselineB": 293.5,
+          "baselineMidpoint": 285.55,
+          "experimentMinusBaselineMidpoint": 27.35,
+          "duplicateBaselineSignedDifference": -15.9,
+          "duplicateBaselineAbsoluteDifference": 15.9
+        },
+        {
+          "round": 5,
+          "baselineA": 322.2,
+          "experiment": 354.8,
+          "baselineB": 329.9,
+          "baselineMidpoint": 326.05,
+          "experimentMinusBaselineMidpoint": 28.75,
+          "duplicateBaselineSignedDifference": -7.7,
+          "duplicateBaselineAbsoluteDifference": 7.7
+        },
+        {
+          "round": 6,
+          "baselineA": 330.8,
+          "experiment": 304.8,
+          "baselineB": 342.4,
+          "baselineMidpoint": 336.6,
+          "experimentMinusBaselineMidpoint": -31.8,
+          "duplicateBaselineSignedDifference": -11.6,
+          "duplicateBaselineAbsoluteDifference": 11.6
+        },
+        {
+          "round": 7,
+          "baselineA": 324.3,
+          "experiment": 308.1,
+          "baselineB": 397.6,
+          "baselineMidpoint": 360.95,
+          "experimentMinusBaselineMidpoint": -52.85,
+          "duplicateBaselineSignedDifference": -73.3,
+          "duplicateBaselineAbsoluteDifference": 73.3
+        },
+        {
+          "round": 8,
+          "baselineA": 374.2,
+          "experiment": 371,
+          "baselineB": 399.1,
+          "baselineMidpoint": 386.65,
+          "experimentMinusBaselineMidpoint": -15.65,
+          "duplicateBaselineSignedDifference": -24.9,
+          "duplicateBaselineAbsoluteDifference": 24.9
+        },
+        {
+          "round": 9,
+          "baselineA": 353.9,
+          "experiment": 349.9,
+          "baselineB": 358.4,
+          "baselineMidpoint": 356.15,
+          "experimentMinusBaselineMidpoint": -6.25,
+          "duplicateBaselineSignedDifference": -4.5,
+          "duplicateBaselineAbsoluteDifference": 4.5
+        },
+        {
+          "round": 10,
+          "baselineA": 326.3,
+          "experiment": 404.8,
+          "baselineB": 354.8,
+          "baselineMidpoint": 340.55,
+          "experimentMinusBaselineMidpoint": 64.25,
+          "duplicateBaselineSignedDifference": -28.5,
+          "duplicateBaselineAbsoluteDifference": 28.5
+        },
+        {
+          "round": 11,
+          "baselineA": 398.2,
+          "experiment": 354.6,
+          "baselineB": 393.1,
+          "baselineMidpoint": 395.65,
+          "experimentMinusBaselineMidpoint": -41.05,
+          "duplicateBaselineSignedDifference": 5.1,
+          "duplicateBaselineAbsoluteDifference": 5.1
+        },
+        {
+          "round": 12,
+          "baselineA": 299.7,
+          "experiment": 359.3,
+          "baselineB": 360.5,
+          "baselineMidpoint": 330.1,
+          "experimentMinusBaselineMidpoint": 29.2,
+          "duplicateBaselineSignedDifference": -60.8,
+          "duplicateBaselineAbsoluteDifference": 60.8
+        }
+      ]
+    }
+  ],
+  "decision": {
+    "status": "reject",
+    "reasons": [
+      "The optimized experiment was faster in six paired rounds and slower in six, so improvement is not consistent.",
+      "The optimized experiment median lies between the two byte-identical baseline medians and its paired median delta is within duplicate-baseline variation.",
+      "The naive experiment was slower in seven of twelve paired rounds and had a slower median than either baseline copy."
+    ],
+    "profileRecommended": false,
+    "retainSourceChange": false
+  },
+  "limitations": [
+    "The unchanged driver prints per-run totals rounded to 0.1 ms and only representative median bucket counters, not unrounded per-run bucket values.",
+    "The duplicate baseline controls quantify variation in this batch; they do not identify the source of that variation."
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-11-07T21:56:36.604Z",
+  "artifactReceipt": {
+    "file": "artifact-receipt.json",
+    "sha256": "60a0f32a15d37f158592cdfdd19b653bcd6144a54539de62ad1524f20ee21b06"
+  },
+  "harnessRoot": "/private/tmp/foldkit-mount-iterative-20261107-32wcjI/harness",
+  "port": "8587",
+  "timingStarted": false,
+  "results": [
+    {
+      "slot": "mount-baseline-naive-a",
+      "startedAt": "2026-11-07T21:56:31.065Z",
+      "completedAt": "2026-11-07T21:56:32.188Z",
+      "exitCode": 0,
+      "log": "mount-baseline-naive-a.log",
+      "logSha256": "7b6a1b057ab45a26d062e3b793af9e7ce907eaf6498058385cba134a2fb4c347",
+      "artifactReceiptSha256": "60a0f32a15d37f158592cdfdd19b653bcd6144a54539de62ad1524f20ee21b06"
+    },
+    {
+      "slot": "mount-experiment-naive",
+      "startedAt": "2026-11-07T21:56:32.189Z",
+      "completedAt": "2026-11-07T21:56:33.033Z",
+      "exitCode": 0,
+      "log": "mount-experiment-naive.log",
+      "logSha256": "f123ace0855dab6885b68d67fef97d9e3e359a38fa80b6e7bb824c63d2ab6587",
+      "artifactReceiptSha256": "60a0f32a15d37f158592cdfdd19b653bcd6144a54539de62ad1524f20ee21b06"
+    },
+    {
+      "slot": "mount-baseline-optimised-a",
+      "startedAt": "2026-11-07T21:56:33.033Z",
+      "completedAt": "2026-11-07T21:56:33.940Z",
+      "exitCode": 0,
+      "log": "mount-baseline-optimised-a.log",
+      "logSha256": "824dc6420e5687ab916e9a4a291e526cf7846f700e72c7b373ea147acc2843de",
+      "artifactReceiptSha256": "60a0f32a15d37f158592cdfdd19b653bcd6144a54539de62ad1524f20ee21b06"
+    },
+    {
+      "slot": "mount-experiment-optimised",
+      "startedAt": "2026-11-07T21:56:33.940Z",
+      "completedAt": "2026-11-07T21:56:34.815Z",
+      "exitCode": 0,
+      "log": "mount-experiment-optimised.log",
+      "logSha256": "50dc9d541c79d8b340a9f54a32b7091efcd7e15e35c93078020ef484b74fdcdd",
+      "artifactReceiptSha256": "60a0f32a15d37f158592cdfdd19b653bcd6144a54539de62ad1524f20ee21b06"
+    },
+    {
+      "slot": "mount-baseline-naive-b",
+      "startedAt": "2026-11-07T21:56:34.816Z",
+      "completedAt": "2026-11-07T21:56:35.666Z",
+      "exitCode": 0,
+      "log": "mount-baseline-naive-b.log",
+      "logSha256": "11752d720ae83284b4fad82b9b46d637fede2a1a1fc69e437fa8374aa08e58c6",
+      "artifactReceiptSha256": "60a0f32a15d37f158592cdfdd19b653bcd6144a54539de62ad1524f20ee21b06"
+    },
+    {
+      "slot": "mount-baseline-optimised-b",
+      "startedAt": "2026-11-07T21:56:35.666Z",
+      "completedAt": "2026-11-07T21:56:36.603Z",
+      "exitCode": 0,
+      "log": "mount-baseline-optimised-b.log",
+      "logSha256": "566a6e5fb76b03b08d0f78a1602bfdc6cd23d5139a500b0fe44ea51fd232c812",
+      "artifactReceiptSha256": "60a0f32a15d37f158592cdfdd19b653bcd6144a54539de62ad1524f20ee21b06"
+    }
+  ]
+}
