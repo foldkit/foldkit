@@ -1,4 +1,4 @@
-import { Effect, Number, Schema } from 'effect'
+import { Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -44,14 +44,9 @@ const view = CounterComposition.makeView((model, h) =>
   h.button([h.OnClick(Message.ClickedIncrement())], [`Count: ${model.count}`]),
 )
 
-export const layer = CounterBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-    }
-  }),
-)
+export const layer = CounterBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+})

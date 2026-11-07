@@ -152,20 +152,13 @@ type Authoring<Item extends string, ItemEncoded> = ReturnType<
 const construct = <Item extends string, ItemEncoded>(
   authoring: Authoring<Item, ItemEncoded>,
 ) =>
-  authoring.Definition.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* authoring.Composition.acquireChildren()
-
-      return {
-        children,
-        init: authoring.init,
-        update: authoring.update,
-        inMessageUpdate: authoring.inMessageUpdate,
-        view: authoring.view,
-        EffectsLayer,
-      }
-    }),
-  ).pipe(Layer.provide(AnimationLayer))
+  authoring.Definition.makeLayer({
+    init: authoring.init,
+    update: authoring.update,
+    inMessageUpdate: authoring.inMessageUpdate,
+    view: authoring.view,
+    EffectsLayer,
+  }).pipe(Layer.provide(AnimationLayer))
 
 interface ComboboxImplementation extends Block.FamilyLifetime {
   readonly construct: typeof construct

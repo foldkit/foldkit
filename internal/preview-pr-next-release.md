@@ -6,7 +6,7 @@ The next Blocks + Effect Layers preview is being prepared. The verified publishe
 
 - Declare the public contract once with `Block.make`, author through its helpers and Composition, and export its ordinary implementation `layer` with `FooBlock.makeLayer`. Application authoring no longer needs a separate Definition, preparation producer or assembly annotation. Parent code imports the child contract; Layers supply its implementation.
 - Select each child relationship with the storage-specific parent Block constructor: required field, optional field, optional keyed field, keyed array, Record, HashMap, custom unkeyed, custom keyed or whole variant. Replace `makeBinding`/`makeMapBinding`, move standalone variants onto the parent, rename `presentWhen` to `activeWhen`, and import initialization helpers from `foldkit/binding`. Storage and whole-occurrence activity are distinct.
-- Pass `{ block, layer }` to Program, Server, Story and Scene. Constructors yield the registered Bindings and return their connections under `children`. Provide child implementation Layers through ordinary `Layer.provide` composition.
+- Pass `{ block, layer }` to Program, Server, Story and Scene. Ordinary implementations use `makeLayer({ init, update, view, ... })`; the record acquires the init Composition's registered child inventory internally. Provide child implementation Layers through ordinary `Layer.provide` composition. Custom Effects retain explicit child acquisition.
 - Name the positional initializer Schema `InitArgs`. The initializer function and `makeInit` keep their names; `Init` is not a compatibility alias.
 - Rename UI child notification operations such as `informItemsChanged` to `informOfItemsChanged`. Generated `InformedOfX` methods retain the same preposition as `informOfX`; `RequestedX` continues to generate `requestX`.
 - Ensure Foldkit-managed Model and Message Codecs are synchronous and service-free, including generated child envelopes. Synchronous transformations, Option and Date remain supported. Effectful loading and normalization belong in Commands or other explicitly effectful boundaries.
@@ -23,7 +23,7 @@ The active stable-to-preview and previous-preview guides cover these paths separ
 - InMessages have their own exhaustive `makeInMessageUpdate` record and can reuse ordinary Steps. `defineInMessageUnion` is the canonical case-record helper and catches invalid names at the declaration. Other valid Schema unions remain supported.
 - Exhaustive update records remain the ordinary approach. Focused updates can also be composed in order with `cases`, `each`, `on`, `except` and `compose`, preserving the original dispatch Model and every result channel.
 - Keyed OutMessage folds can use an authored fold directly when the key is unused or a key-dependent producer when needed. Existing explicit folds remain valid. Model-produced `makeInitIfMissingStep` requests select a key and init args from the current Model without manual child placement.
-- `Composition.acquireChildren()` collects the exact registered child tuple without repeating the inventory in the constructor. It preserves Layer requirements, errors, identities and Scope without initializing child Models. Direct keyed-array startup may omit an identity `toItem`; wrappers and metadata retain an explicit adapter.
+- Record-form `makeLayer` removes the mandatory constructor generator, child-acquisition call and returned `children` field. The init plan selects one authenticated Composition; all plans must belong to that graph. `Composition.acquireChildren()` remains available in custom constructors, preserving exact requirements, errors, identities and Scope without initializing child Models. Direct keyed-array startup may omit an identity `toItem`; wrappers and metadata retain an explicit adapter.
 - `Story.messageIn` handles a local Message in a bound child and returns the composed parent result after the child update and Binding fold. It is distinct from a formal InMessage. Story's returned Model and `Story.models` support immutable observations. Keyed Scene Subscription and ManagedResource selections identify the occurrence explicitly. The repository's examples, Website, Typing Game, scaffolds and skills use the same patterns.
 - Nested Story delivery accepts checked Binding paths with keyed selection. `Story.Command.expectExactInOrder` and its Scene equivalent preserve exact ordered assertions without inspecting simulation internals; `expectExact` remains order-independent.
 
@@ -31,6 +31,7 @@ Application-authored transitions use operation names such as `clearDraft` and `c
 
 ### Correctness and application changes
 
+- Validate selected host handlers against declared Service and constructor-error bounds, preserve their exact requirements and reject incompatible provider alternatives.
 - Repair lifecycle delivery and cleanup around current DOM boundaries, occurrence replacement and late asynchronous work.
 - Cancel late Node response bodies, handle empty and changing Menu items, correct source-excluded DragAndDrop positions, and preserve Dialog terminal cleanup.
 - Improve Query Runtime lifetime coverage, SSR request isolation and development reload behavior, and validate relay destinations before probing liveness.
@@ -46,18 +47,11 @@ A Block declaration provides the Model, local Message, optional InMessage and Ou
 For example, the compiled [Profile snippet](https://github.com/foldkit/foldkit/blob/codex/layers-and-submodels/packages/website/src/snippet/blockProfile.ts) completes its independently authored pieces like this:
 
 ```ts
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ApplicationComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Settings.layer))
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Settings.layer))
 ```
 
 The Binding declaration is available to extracted update and view modules before construction. Those modules do not need a bag of constructor-local instances. For example, the compiled [Message Composer parent](https://github.com/foldkit/foldkit/blob/codex/layers-and-submodels/packages/website/src/snippet/blockInMessageParent.ts) uses generated child methods directly:

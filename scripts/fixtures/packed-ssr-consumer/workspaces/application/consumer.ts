@@ -30,15 +30,10 @@ export const update = WorkspaceConsumerComposition.makeUpdate({
   })),
 })
 
-export const layer = WorkspaceConsumerBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-    }
-  }),
-)
+export const layer = WorkspaceConsumerBlock.makeLayer({
+  init,
+  update,
+})
 
 await Effect.runPromise(
   withBlock({ block: WorkspaceConsumerBlock, layer }, consumer => {

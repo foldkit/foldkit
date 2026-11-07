@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import * as Scene from 'foldkit/scene'
 
@@ -64,18 +64,11 @@ const panel = Scene.selector('#panel')
 
 const hoverIntentScene = {
   block: HoverIntentSceneBlock,
-  layer: HoverIntentSceneBlock.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* HoverIntentSceneComposition.acquireChildren()
-
-      return {
-        children,
-        init,
-        update,
-        view: sceneView,
-      }
-    }),
-  ).pipe(Layer.provide(layer)),
+  layer: HoverIntentSceneBlock.makeLayer({
+    init,
+    update,
+    view: sceneView,
+  }).pipe(Layer.provide(layer)),
 }
 
 describe('HoverIntent', () => {

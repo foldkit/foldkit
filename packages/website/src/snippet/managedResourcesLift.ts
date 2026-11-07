@@ -50,16 +50,9 @@ export const managedResources = makeManagedResources(entry => ({
   }),
 }))
 
-export const layer = CallBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* CallComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      managedResources,
-      EffectsLayer: managedResources.signalingSocket.layer,
-    }
-  }),
-).pipe(Layer.provide(VideoCall.layer))
+export const layer = CallBlock.makeLayer({
+  init,
+  update,
+  managedResources,
+  EffectsLayer: managedResources.signalingSocket.layer,
+}).pipe(Layer.provide(VideoCall.layer))

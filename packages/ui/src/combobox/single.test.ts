@@ -97,19 +97,12 @@ const fruitParentUpdate = FruitComboboxTestComposition.makeUpdate({
 
 const fruitComboboxTest = {
   block: FruitComboboxTestBlock,
-  layer: FruitComboboxTestBlock.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* FruitComboboxTestComposition.acquireChildren()
-
-      return {
-        children,
-        init: FruitComboboxTestComposition.makeInit(() => ({
-          model: { maybeSelectedFruit: Option.none() },
-        })),
-        update: fruitParentUpdate,
-      }
-    }),
-  ).pipe(Layer.provide(layer)),
+  layer: FruitComboboxTestBlock.makeLayer({
+    init: FruitComboboxTestComposition.makeInit(() => ({
+      model: { maybeSelectedFruit: Option.none() },
+    })),
+    update: fruitParentUpdate,
+  }).pipe(Layer.provide(layer)),
 }
 
 type TestHtmlBuilder = Parameters<

@@ -55,15 +55,8 @@ const update = ApplicationComposition.makeUpdate({
 
 const init = ApplicationComposition.makeInit(() => ({ model: {} }))
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ApplicationComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      EffectsLayer: ReadCurrentTime.layer,
-    }
-  }),
-).pipe(Layer.provide(Query.layer))
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  EffectsLayer: ReadCurrentTime.layer,
+}).pipe(Layer.provide(Query.layer))

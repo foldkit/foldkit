@@ -2327,33 +2327,26 @@ describe('Menu', () => {
     const DynamicMenuComposition = DynamicMenuBlock.makeComposition({
       bindings: [MenuBinding],
     })
-    const DynamicMenuLayer = DynamicMenuBlock.makeLayer(
-      Effect.gen(function* () {
-        const children = yield* DynamicMenuComposition.acquireChildren()
-
-        return {
-          children,
-          init: DynamicMenuComposition.makeInit(() => ({
-            model: { items: ['Edit', 'Duplicate', 'Delete'] },
-          })),
-          update: DynamicMenuComposition.makeUpdate({}),
-          inMessageUpdate: DynamicMenuComposition.makeInMessageUpdate({
-            InformedOfItems: (model, { items }) => ({
-              model: modifyFields(model, { items: () => items }),
-            }),
-          }),
-          view: DynamicMenuComposition.makeView((model, h) =>
-            h.block(
-              MenuBinding.embedView({
-                slotId: 'Menu',
-                model: model.menu,
-                viewInputs: { ...sceneViewInputs(), items: model.items },
-              }),
-            ),
-          ),
-        }
+    const DynamicMenuLayer = DynamicMenuBlock.makeLayer({
+      init: DynamicMenuComposition.makeInit(() => ({
+        model: { items: ['Edit', 'Duplicate', 'Delete'] },
+      })),
+      update: DynamicMenuComposition.makeUpdate({}),
+      inMessageUpdate: DynamicMenuComposition.makeInMessageUpdate({
+        InformedOfItems: (model, { items }) => ({
+          model: modifyFields(model, { items: () => items }),
+        }),
       }),
-    ).pipe(Layer.provide(layer))
+      view: DynamicMenuComposition.makeView((model, h) =>
+        h.block(
+          MenuBinding.embedView({
+            slotId: 'Menu',
+            model: model.menu,
+            viewInputs: { ...sceneViewInputs(), items: model.items },
+          }),
+        ),
+      ),
+    }).pipe(Layer.provide(layer))
     const menu = Scene.role('menu')
     const hasNoActiveItem = [
       Scene.expect(button).toHaveAttr('aria-expanded', 'true'),

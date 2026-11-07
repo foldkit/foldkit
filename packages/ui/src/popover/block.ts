@@ -784,20 +784,13 @@ export const view = PopoverComposition.makeView.withInputs(
   },
 )
 
-export const layer = PopoverBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* PopoverComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Animation.layer))
+export const layer = PopoverBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+  EffectsLayer,
+}).pipe(Layer.provide(Animation.layer))
 
 /** @internal Selected implementation used by component tests. */
 export const block = { block: PopoverBlock, layer }

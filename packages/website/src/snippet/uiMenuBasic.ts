@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -103,15 +103,8 @@ const view = ActionMenuExampleComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = ActionMenuExampleBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ActionMenuExampleComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Menu.layer))
+export const layer = ActionMenuExampleBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Menu.layer))

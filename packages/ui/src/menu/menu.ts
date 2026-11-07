@@ -1400,20 +1400,13 @@ const menuViewImpl = (
 const view = MenuComposition.makeView.withInputs(menuViewImpl)
 
 /** @internal Acquired implementation used by focused library tests. */
-const canonicalLayer = MenuBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* MenuComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Animation.layer))
+const canonicalLayer = MenuBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+  EffectsLayer,
+}).pipe(Layer.provide(Animation.layer))
 /** Constructs Menu and its private Animation dependency. */
 type CanonicalIdentity = Block.SelectedPublicIdentity<typeof MenuBlock>
 const MenuRefinementRule = Symbol('Menu.Refinement')

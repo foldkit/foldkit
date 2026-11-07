@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Schema } from 'effect'
+import { Array, Layer, Schema } from 'effect'
 import { Block, File } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -102,15 +102,8 @@ const view = FileDropExampleComposition.makeView((model, h) => {
   )
 })
 
-export const layer = FileDropExampleBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* FileDropExampleComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(FileDrop.layer))
+export const layer = FileDropExampleBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(FileDrop.layer))

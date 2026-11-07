@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -46,13 +46,8 @@ const inMessageUpdate = RouteAwareComposition.makeInMessageUpdate({
   }),
 })
 
-export const layer = RouteAwareBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-    }
-  }),
-)
+export const layer = RouteAwareBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+})

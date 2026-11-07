@@ -86,14 +86,9 @@ const view = EditorComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = EditorBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer: SaveDocument.layer,
-    }
-  }),
-)
+export const layer = EditorBlock.makeLayer({
+  init,
+  update,
+  view,
+  EffectsLayer: SaveDocument.layer,
+})

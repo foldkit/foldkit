@@ -1,5 +1,3 @@
-import { Effect } from 'effect'
-
 import { RoomBlock } from './block'
 import { EffectsLayer } from './effectsLayer'
 import { inMessageUpdate } from './inMessageUpdate'
@@ -8,16 +6,11 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const layer = RoomBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      subscriptions,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = RoomBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+  subscriptions,
+  EffectsLayer,
+})

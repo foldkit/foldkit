@@ -946,8 +946,44 @@ export const makeDefinitionRuntime = (
       })
     },
     makeBlock: complete,
-    makeLayer: (constructor: Effect.Effect<any, any, any>) =>
-      complete(constructor).layer,
+    makeLayer: (implementation: Effect.Effect<any, any, any> | object) => {
+      if (Effect.isEffect(implementation)) {
+        if ('init' in implementation && 'update' in implementation) {
+          throw new Error(
+            '[foldkit] A Block constructor Effect must return its implementation fields, not carry them. Pass an implementation record or an Effect constructor separately.',
+          )
+        }
+
+        return complete(implementation).layer
+      }
+
+      for (const field of ['children', 'bindings', 'operations']) {
+        if (Object.hasOwn(implementation, field)) {
+          throw new Error(
+            field === 'children'
+              ? '[foldkit] Record Block completion cannot declare "children"; use an Effect constructor for explicit child acquisition.'
+              : `[foldkit] Record Block completion cannot declare "${field}"; declare Bindings on the Composition and operations on the Block.`,
+          )
+        }
+      }
+
+      const body = Object.freeze({ ...implementation })
+      const constructor = Effect.gen(function* () {
+        const source = planComposition<any>(Reflect.get(body, 'init'))
+
+        if (!authoringSources.has(source)) {
+          throw new Error(
+            '[foldkit] Constructor plans belong to another Definition.',
+          )
+        }
+
+        const children = yield* acquireCompositionChildren(source.bindings)
+
+        return { ...body, children }
+      })
+
+      return complete(constructor).layer
+    },
     provideHandlers: (handlers: Layer.Any) => (layer: Layer.Any) => {
       if (!Layer.isLayer(handlers) || !Layer.isLayer(layer)) {
         throw new Error(

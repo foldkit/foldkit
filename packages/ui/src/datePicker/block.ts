@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Predicate, Schema, Tuple } from 'effect'
+import { Layer, Option, Predicate, Schema, Tuple } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Calendar from 'foldkit/calendar'
 import type { CalendarDate } from 'foldkit/calendar'
@@ -479,19 +479,12 @@ export const view = DatePickerComposition.makeView.withInputs(
   },
 )
 
-export const layer = DatePickerBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* DatePickerComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      inMessageUpdate,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(Popover.layer, UiCalendar.layer)))
+export const layer = DatePickerBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+}).pipe(Layer.provide(Layer.mergeAll(Popover.layer, UiCalendar.layer)))
 
 /** @internal Selected implementation used by component tests. */
 export const block = { block: DatePickerBlock, layer }

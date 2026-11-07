@@ -107,7 +107,8 @@ export type NominalId<Id extends string, Key extends symbol> = Id &
 type AnySchema = Schema.Codec<any, any, any, any>
 type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
-type BindingAcquisition<Binding> =
+/** @internal Preserves the exact Effect channels of a registered Binding. */
+export type BindingAcquisition<Binding> =
   Binding extends Readonly<{
     [Symbol.iterator](): Effect.EffectIterator<
       infer Acquisition extends Effect.Effect<any, any, any>
@@ -1226,8 +1227,9 @@ export type ContractComposition<
 > &
   AuthoringSourceEvidence<Source> &
   Readonly<{
-    /** Acquires every registered child implementation in Binding order.
-     * The returned Effect is passive until executed and does not initialize
+    /** Acquires the registered inventory inside a custom Effect constructor.
+     * Ordinary record completion acquires these children internally.
+     * The returned Effect preserves Binding order and is passive until executed and does not initialize
      * child Models or start their handlers and lifecycles. Use individual
      * Binding yields when construction needs their acquired handles.
      *

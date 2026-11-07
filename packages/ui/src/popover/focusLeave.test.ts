@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
@@ -75,24 +75,16 @@ const view = PopoverFocusLeaveTestComposition.makeView((model, h) =>
 const makeProgram = (container: HTMLElement) => {
   const block = {
     block: PopoverFocusLeaveTestBlock,
-    layer: PopoverFocusLeaveTestBlock.makeLayer(
-      Effect.gen(function* () {
-        const children =
-          yield* PopoverFocusLeaveTestComposition.acquireChildren()
-
-        return {
-          children,
-          init: PopoverFocusLeaveTestComposition.makeInit(() =>
-            PopoverBinding.init({
-              args: [{ id: 'sort' }],
-              toParentModel: popover => ({ popover }),
-            }),
-          ),
-          update: PopoverFocusLeaveTestComposition.makeUpdate({}),
-          view,
-        }
-      }),
-    ).pipe(Layer.provide(layer)),
+    layer: PopoverFocusLeaveTestBlock.makeLayer({
+      init: PopoverFocusLeaveTestComposition.makeInit(() =>
+        PopoverBinding.init({
+          args: [{ id: 'sort' }],
+          toParentModel: popover => ({ popover }),
+        }),
+      ),
+      update: PopoverFocusLeaveTestComposition.makeUpdate({}),
+      view,
+    }).pipe(Layer.provide(layer)),
   }
 
   return Program.makeElement({

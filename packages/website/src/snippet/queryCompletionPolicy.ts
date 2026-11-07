@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Result, Schema } from 'effect'
+import { Layer, Option, Result, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { Query } from 'foldkit/experimental'
 
@@ -51,14 +51,7 @@ const init = ApplicationComposition.makeInit(() => ({
 }))
 const update = ApplicationComposition.makeUpdate({})
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ApplicationComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-    }
-  }),
-).pipe(Layer.provide(Query.layer))
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+}).pipe(Layer.provide(Query.layer))

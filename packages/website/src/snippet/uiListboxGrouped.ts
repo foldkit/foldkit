@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -133,15 +133,8 @@ const view = CharacterPickerComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = CharacterPickerBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* CharacterPickerComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Listbox.layer))
+export const layer = CharacterPickerBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Listbox.layer))

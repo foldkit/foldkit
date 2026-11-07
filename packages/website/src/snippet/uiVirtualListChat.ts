@@ -212,16 +212,9 @@ const view = MessageListExampleComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = MessageListExampleBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* MessageListExampleComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-      EffectsLayer: FetchHistory.layer,
-    }
-  }),
-).pipe(Layer.provide(VirtualList.layer))
+export const layer = MessageListExampleBlock.makeLayer({
+  init,
+  update,
+  view,
+  EffectsLayer: FetchHistory.layer,
+}).pipe(Layer.provide(VirtualList.layer))

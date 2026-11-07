@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block, CustomElement } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -350,13 +350,8 @@ const previewView = (
   )
 }
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+})

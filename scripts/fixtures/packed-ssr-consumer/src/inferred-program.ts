@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block, Program } from 'foldkit'
 import type { Document } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -51,29 +51,19 @@ const applicationView = ApplicationComposition.makeView(
 
 const EffectsLayer = Layer.empty
 
-const elementLayer = ElementBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init: elementInit,
-      update: elementUpdate,
-      EffectsLayer,
-      view: elementView,
-    }
-  }),
-)
+const elementLayer = ElementBlock.makeLayer({
+  init: elementInit,
+  update: elementUpdate,
+  EffectsLayer,
+  view: elementView,
+})
 
-const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      EffectsLayer,
-      view: applicationView,
-    }
-  }),
-)
+const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  EffectsLayer,
+  view: applicationView,
+})
 
 export const makeInferredElement = (container: HTMLElement) =>
   Program.makeElement({

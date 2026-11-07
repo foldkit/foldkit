@@ -243,15 +243,10 @@ const startStopButton = (
 const buttonStyle =
   'px-6 py-4 flex-1 font-semibold text-white transition-colors'
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      subscriptions,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
+})

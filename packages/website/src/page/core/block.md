@@ -51,19 +51,25 @@ Features without children or Mounts still call `makeComposition()`. Creating a C
 
 ### Construct the implementation
 
-Complete the implementation with `FeatureBlock.makeLayer(Effect.gen(function* () { ... }))`. Yield the registered Bindings to acquire their child implementations. Return those connections as `children`, together with the complete init, update, and view builder expressions and the local handler and lifecycle declarations.
+Complete the implementation with `FeatureBlock.makeLayer({ init, update, view, ... })`. The record acquires the init plan's registered child inventory when its Layer is built. Init, update, InMessage update, and view plans must belong to that same Composition. Omit `children`, including for a childless Block.
 
 ::Snippet{name="blockFeatureExports" label="Public contract and implementation Layer"}
 
-Provide each child's implementation Layer through ordinary Layer composition. The static Composition uses `bindings`; the constructor returns the acquired `children`. Each relationship is declared once. Yielding it acquires that relationship's executable implementation.
+Provide each child's implementation Layer through ordinary Layer composition. Composition declares the Bindings; `makeLayer` acquires their selected implementations in registration order.
 
-If construction only collects those connections, acquire the registered inventory with `Composition.acquireChildren()`. It preserves the exact child tuple, Layer requirements, construction errors, registration order and scoped cleanup. Keep individual Binding yields when the constructor uses a child handle. Acquisition does not evaluate initialization arguments or create child Models.
+::Snippet{name="blockAcquireChildren" label="Constructing the registered child graph"}
 
-::Snippet{name="blockAcquireChildren" label="Acquire the registered child graph"}
+A complete builder expression can stay inline, move to a local value, or move to another module. Its owning Block or Composition preserves contextual inference. Extracted transitions keep referring to stable Binding declarations, so they need no bag of constructor-local child instances.
 
-A complete builder expression can stay inline, move to a local value in the constructor, or move to another module. Its owning Block or Composition preserves contextual inference. Extracted transitions keep referring to stable Binding declarations, so they need no bag of constructor-local child instances.
+Creating the Layer is passive. The host builds it under a Scope with the existing Layer memoization. Acquisition does not call init, evaluate `init.contextToArgs`, construct handler Layers, or start Commands, Subscriptions, ManagedResources, or Mounts. The acquired init, update, and operations are synchronous.
 
-Declaring the constructor is passive. The host builds its Layer under a Scope. Construction does not call init, evaluate `init.contextToArgs`, construct handler Layers, or start Commands, Subscriptions, ManagedResources, or Mounts. The acquired init, update, and operations are synchronous.
+### Custom construction
+
+Pass an Effect when construction itself needs to perform work, acquire an implementation dependency, or own a scoped resource. For example, a constructor can record when its graph is built:
+
+::Snippet{name="blockCustomConstruction" label="Logging during graph construction"}
+
+An Effect constructor supplies its own `children`. Use `Composition.acquireChildren()` to collect the registered inventory, or yield Bindings individually when construction uses their handles. Foldkit does not add children to this form. The record form rejects an explicit `children` field, keeping automatic and custom acquisition separate. Ordinary request Services belong in handler constructors; Model-driven resources belong in ManagedResources or Mounts.
 
 ### Export the feature
 
@@ -89,7 +95,7 @@ A child whose Message Schema is `Schema.Never` cannot emit a Message. Its Bindin
 
 ::Snippet{name="blockMessageFreeChild" label="Binding a Message-free child"}
 
-Every Binding constructor creates passive configuration. The example registers `SettingsBinding` in `ApplicationComposition.bindings` so the parent update and view can use it. The constructor yields that Binding to acquire the selected child implementation. The acquired graph routes child Messages, validates embedded views, collects handler recipes and lifecycle definitions, and assembles child startup through the same relationship. Declaring the Binding and Composition runs none of that work.
+Every Binding constructor creates passive configuration. The example registers `SettingsBinding` in `ApplicationComposition.bindings` so the parent update and view can use it. The implementation Layer acquires that Binding to obtain the selected child implementation. The acquired graph routes child Messages, validates embedded views, collects handler recipes and lifecycle definitions, and assembles child startup through the same relationship. Declaring the Binding and Composition runs none of that work.
 
 ### Route child Messages {#fold-child}
 
@@ -109,7 +115,7 @@ Author an exhaustive `Composition.makeInMessageUpdate` record alongside `makeUpd
 
 ::Snippet{name="blockInMessageHandlers" label="Sharing a transition across local and parent inputs"}
 
-Return `inMessageUpdate` from the constructor with init, update, and view:
+Include `inMessageUpdate` in the implementation record with init, update, and view:
 
 ::Snippet{name="blockInMessageImplementation" label="Completing a Block with parent input handling"}
 
@@ -296,7 +302,7 @@ The entry gives `{ block: ApplicationBlock, layer }` to `Program.make` and start
 
 The Application Composition carries the child graph. Its completion config supplies root-local handler recipes and lifecycle definitions. Registered child Blocks contribute their own handlers through that graph. `ApplicationLayer` supplies ordinary application Services such as storage or an HTTP client. It does not re-merge each feature's `EffectsLayer`.
 
-`ApplicationBlock.makeLayer` checks the returned child connections and implementation. `Program.make` records the host configuration and `program.provide(ApplicationLayer)` records providers. The Runtime acquires the graph and builds the selected handlers when the Program starts. Missing handlers, incompatible child Bindings, unavailable Mount requirements, and an unhandled root OutMessage fail before a user interaction.
+`ApplicationBlock.makeLayer` checks the implementation plans and registered child graph. `Program.make` records the host configuration and `program.provide(ApplicationLayer)` records providers. The Runtime acquires the graph and builds the selected handlers when the Program starts. Missing handlers, incompatible child Bindings, unavailable Mount requirements, and an unhandled root OutMessage fail before a user interaction.
 
 Server rendering uses the same root:
 
@@ -618,7 +624,9 @@ When related contracts share owned effect definitions, `Block.makeNamespace(id)`
 
 ### FeatureBlock.makeLayer
 
-`FeatureBlock.makeLayer(constructor)` checks the constructor's returned init, update, view, local lifecycle declarations, handler recipe, and acquired `children` against the Block declaration and Composition. Missing, duplicate, incompatible, or unregistered child connections are rejected. A leaf returns `children: []`.
+`FeatureBlock.makeLayer({ init, update, view, ... })` checks the portable plans, local lifecycle declarations and handler recipe against the Block declaration and the init plan's Composition. Its Layer acquires that Composition's registered children. All implementation plans must belong to the same Composition. The record rejects explicit `children`, `bindings`, and `operations` fields.
+
+`FeatureBlock.makeLayer(effect)` supports custom construction. That Effect acquires and returns its own `children`; missing, duplicate, incompatible, or unregistered connections are rejected. A custom childless constructor returns `children: []`.
 
 The returned ordinary Layer is passive. Compose child implementation providers with `.pipe(Layer.provide(Child.layer))`. Program and Server receive `{ block: FeatureBlock, layer }` and acquire the graph under their lifetime. Scoped Story and Scene runners accept that same pair.
 
@@ -636,7 +644,7 @@ The public `effects` contract describes runtime handler capabilities. The implem
 | `effects.managedResources` | ManagedResource handle requirements                         |
 | `effects.Error`            | Failures while building the handler Layer                   |
 
-Graph-constructor requirements and errors are inferred separately from the Effect passed to `makeLayer`. A Command invocation's ordinary failures still become Messages. Use `Block.makeEffectsContract<E, R>()` as the type-based alternative for generic handler-Layer errors and ordinary Service bounds. Extra ManagedResource requirements on an explicit operation or `inMessageOutputs` use the same `managedResources` spelling.
+Graph-construction requirements and errors come from the registered child Layers and any custom constructor Effect, separately from the handler bounds. A Command invocation's ordinary failures still become Messages. Use `Block.makeEffectsContract<E, R>()` as the type-based alternative for generic handler-Layer errors and ordinary Service bounds. Extra ManagedResource requirements on an explicit operation or `inMessageOutputs` use the same `managedResources` spelling.
 
 ## Serializable Model and Message Codecs
 

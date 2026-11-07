@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Layer, Option, Schema } from 'effect'
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
@@ -148,15 +148,8 @@ const view = FilterDialogComposition.makeView((model, h) => {
   )
 })
 
-export const layer = FilterDialogBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* FilterDialogComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(Dialog.layer, Combobox.layer)))
+export const layer = FilterDialogBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Layer.mergeAll(Dialog.layer, Combobox.layer)))

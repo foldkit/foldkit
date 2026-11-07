@@ -65,16 +65,13 @@ const ApplicationBlock = block.make('Application', {
   view: { kind: 'Document' },
 })
 const ApplicationComposition = ApplicationBlock.makeComposition()
-const layer = ApplicationBlock.makeLayer(
-  Effect.succeed({
-    children: [],
-    init: ApplicationComposition.makeInit(() => ({ model: Model.make({}) })),
-    update: ApplicationComposition.makeUpdate({
-      IgnoredRender: model => ({ model }),
-    }),
-    view: ApplicationComposition.makeView(() => ({ title: 't', body: null })),
+const layer = ApplicationBlock.makeLayer({
+  init: ApplicationComposition.makeInit(() => ({ model: Model.make({}) })),
+  update: ApplicationComposition.makeUpdate({
+    IgnoredRender: model => ({ model }),
   }),
-)
+  view: ApplicationComposition.makeView(() => ({ title: 't', body: null })),
+})
 const error = await Effect.runPromise(
   Effect.flip(
     server.renderToString({ block: ApplicationBlock, layer }, {}, {}),

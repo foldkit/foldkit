@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
@@ -75,24 +75,16 @@ const view = PopoverTriggerClickTestComposition.makeView((model, h) =>
 const makeProgram = (container: HTMLElement, isModal: boolean) => {
   const block = {
     block: PopoverTriggerClickTestBlock,
-    layer: PopoverTriggerClickTestBlock.makeLayer(
-      Effect.gen(function* () {
-        const children =
-          yield* PopoverTriggerClickTestComposition.acquireChildren()
-
-        return {
-          children,
-          init: PopoverTriggerClickTestComposition.makeInit(() =>
-            PopoverBinding.init({
-              args: [{ id: 'sort', isModal }],
-              toParentModel: popover => ({ popover }),
-            }),
-          ),
-          update: PopoverTriggerClickTestComposition.makeUpdate({}),
-          view,
-        }
-      }),
-    ).pipe(Layer.provide(layer)),
+    layer: PopoverTriggerClickTestBlock.makeLayer({
+      init: PopoverTriggerClickTestComposition.makeInit(() =>
+        PopoverBinding.init({
+          args: [{ id: 'sort', isModal }],
+          toParentModel: popover => ({ popover }),
+        }),
+      ),
+      update: PopoverTriggerClickTestComposition.makeUpdate({}),
+      view,
+    }).pipe(Layer.provide(layer)),
   }
 
   return Program.makeElement({

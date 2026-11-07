@@ -1,5 +1,3 @@
-import { Effect } from 'effect'
-
 import {
   Message,
   MessageComposerBlock,
@@ -26,16 +24,11 @@ const view = MessageComposerComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = MessageComposerBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-    }
-  }),
-)
+export const layer = MessageComposerBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+})
 
 export { MessageComposerBlock } from './blockInMessageDefinition'

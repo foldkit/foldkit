@@ -206,7 +206,7 @@ Pass optional Commands directly to APIs that accept them, such as `Command.mapMe
 
 The acquired update supports `update(model, message, ...context)` for Runtime dispatch and `update(message)(model, ...context)` as an internal Step. For an explicit operation adapter to local update, put the Message constructor directly under `operations` when its payload is the public input. Acquisition creates callable operations without constructing a startup Message. A constructor with fields takes one constructor payload object followed by update context, with constructor defaults honored; an empty-fields constructor takes no payload placeholder. Keep a tuple producer under `operations` when public inputs need mapping, refinement, defaults, or an exact context tuple. Both forms pass the Message through update synchronously as part of the pure transition. Keep standalone Steps for internal Model transformations. Because `Update.combineSteps` accepts unary Steps, adapt an update with required dispatch context through an explicit unary function that supplies that context.
 
-Use `defineInMessageUnion` and exhaustive `Composition.makeInMessageUpdate` for ordinary parent requests and notifications. Keep local Messages and OutMessages on `defineMessageUnion`, keep InMessage context separate, return `inMessageUpdate` from the constructor, and share Steps where the transition is the same. Explicit `operations` still supports positional/generic adapters and existing local Message mappings. The [Parent inputs reference](../foldkit/references/composition.md#parent-inputs) owns generated naming, output bounds, context and testing details. Avoid `reflect*` helpers that bypass the owning transition.
+Use `defineInMessageUnion` and exhaustive `Composition.makeInMessageUpdate` for ordinary parent requests and notifications. Keep local Messages and OutMessages on `defineMessageUnion`, keep InMessage context separate, include `inMessageUpdate` in the implementation record, and share Steps where the transition is the same. Explicit `operations` still supports positional/generic adapters and existing local Message mappings. The [Parent inputs reference](../foldkit/references/composition.md#parent-inputs) owns generated naming, output bounds, context and testing details. Avoid `reflect*` helpers that bypass the owning transition.
 
 Record-authored updates retain each selected Message handler's output contract, including exact Command requirements and OutMessages. A producer selecting several Messages retains their possible outputs; update utilities retain the union across all handlers. Calling a pure operation does not run effects from another branch. Precision depends on the visible return contracts of any extracted helpers.
 
@@ -312,17 +312,12 @@ const ApplicationBlock = Block.make('Application', {
 })
 const ApplicationComposition = ApplicationBlock.makeComposition()
 
-const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+  EffectsLayer,
+})
 
 const program = Program.make({
   block: ApplicationBlock,
@@ -412,10 +407,10 @@ Assemble each feature with its local Subscription registry. Include its parent-o
 
 A Block gives one feature its own state machine and effect boundary. Define its
 independent contract, register its child and Mount graph in a named Composition,
-and author portable builders there. `FeatureBlock.makeLayer` constructs the
-selected implementation by acquiring its registered children. The parent imports
+and author portable builders there. `FeatureBlock.makeLayer` completes the
+selected implementation and automatically acquires the Binding inventory selected by init. The parent imports
 the passive contract and integrates it through a registered Binding; its own
-constructor receives the child implementation through a Layer.
+construction Layer receives the child implementation through a Layer.
 
 Read [Block composition and Layers](../foldkit/references/composition.md) before
 creating or changing this graph. It provides the canonical contract, builder and construction shape
@@ -449,7 +444,7 @@ Build all Subscriptions owned by one Block in one `FeatureBlock.makeSubscription
 
 When an external generic Stream helper infers its Message from one callback and rejects another declared variant, annotate the callback that determines its result with the union this entry declares. Use the `Message` alias when the entry declares the full Message union. Keep the entry's exact `messages` declaration; it still checks the resulting Stream.
 
-Name the handler for the events or scoped behavior the entry supplies, such as `KeyboardPresses`, `SystemThemeChanges`, or `GameClockTicks`. The handler name identifies the Layer requirement. Keep the record key parallel, such as `keyboardPresses`, `systemThemeChanges`, or `gameClockTicks`; the key identifies the runtime registration and Stream scope. Several lifted registrations can share one definition and handler Layer while retaining distinct keys. The Model dependencies determine when its scope is active. Avoid generic `Watch*` names that identify only the input source. When Subscription declarations are split from Block assembly, that module exports the Block's one registry; compose `Feature.subscriptions.layer` directly in the feature's `EffectsLayer`. When the registry supplies every local handler, pass `EffectsLayer: subscriptions.layer` directly from the Block constructor. Create a standalone binding such as `KeyboardPressesLayer` only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Use `Subscription.aggregate` at graph, adapter, or test boundaries that join independent records. Subscription lifecycle entries in DevTools are follow-up work.
+Name the handler for the events or scoped behavior the entry supplies, such as `KeyboardPresses`, `SystemThemeChanges`, or `GameClockTicks`. The handler name identifies the Layer requirement. Keep the record key parallel, such as `keyboardPresses`, `systemThemeChanges`, or `gameClockTicks`; the key identifies the runtime registration and Stream scope. Several lifted registrations can share one definition and handler Layer while retaining distinct keys. The Model dependencies determine when its scope is active. Avoid generic `Watch*` names that identify only the input source. When Subscription declarations are split from Block assembly, that module exports the Block's one registry; compose `Feature.subscriptions.layer` directly in the feature's `EffectsLayer`. When the registry supplies every local handler, pass `EffectsLayer: subscriptions.layer` directly in the Block implementation record. Create a standalone binding such as `KeyboardPressesLayer` only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Use `Subscription.aggregate` at graph, adapter, or test boundaries that join independent records. Subscription lifecycle entries in DevTools are follow-up work.
 
 For Layer-backed Subscriptions without local Model dependencies (keyboard listeners, window resize, animation frame ticks), pass the stable handler name, Message Schemas, and `handler: function* () { return () => stream }`. Use the cold `Dom.animationFrameTicks` Stream for animation frame ticks. The Subscription then stays active across local Model updates. Its parent can still gate it when lifted.
 
@@ -597,7 +592,7 @@ Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, o
 
 ## With and Without URL Routing
 
-Establish `FooBlock` once at module scope with a unique `key`, Model, local Message, `InitArgs` tuple, optional Context/OutMessage/ChildInitContext, view inputs and operation/effect contracts. Export `FooBlock = Block.make(...)` for parents. Register static relationships in `FooComposition`, author portable init/update/view plans, then complete with `FooBlock.makeLayer(Effect.gen(...))`: acquire the registered tuple with `const children = yield* FooComposition.acquireChildren()` and return `children` with the plans and local effects. Export the implementation `layer` and provide child Layers there. Program and Server receive `{ block: ApplicationBlock, layer }`. Read [Block composition and Layers](../foldkit/references/composition.md) for the complete spelling and ownership rules.
+Establish `FooBlock` once at module scope with a unique `key`, Model, local Message, `InitArgs` tuple, optional Context/OutMessage/ChildInitContext, view inputs and operation/effect contracts. Export `FooBlock = Block.make(...)` for parents. Register static relationships in `FooComposition`, author portable init/update/view plans, then complete ordinary implementations with `FooBlock.makeLayer({ init, update, view, ... })`; init selects the Composition's registered inventory and Foldkit acquires it automatically. Export the implementation `layer` and provide child Layers separately. Program and Server receive `{ block: ApplicationBlock, layer }`. Reserve the explicit Effect constructor and `children` result for genuine graph-construction dependencies, scoped resources, or code that uses acquired handles. Read [Block composition and Layers](../foldkit/references/composition.md) for the complete spelling and ownership rules.
 
 ### Without Routing
 
@@ -614,16 +609,7 @@ const ApplicationBlock = Block.make('Application', {
 })
 const ApplicationComposition = ApplicationBlock.makeComposition()
 
-const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+const layer = ApplicationBlock.makeLayer({ init, update, view })
 
 const program = Program.make({
   block: ApplicationBlock,
@@ -647,18 +633,9 @@ const HomeBinding = ApplicationBlock.makeRequiredFieldBinding(Home.HomeBlock, {
 const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [HomeBinding],
 })
-const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const home = yield* HomeBinding
-
-    return {
-      children: [home],
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Home.layer))
+const layer = ApplicationBlock.makeLayer({ init, update, view }).pipe(
+  Layer.provide(Home.layer),
+)
 const program = Program.make({
   block: ApplicationBlock,
   layer,
@@ -675,16 +652,7 @@ const program = Program.make({
 `Program.make` owns the page and requires a root Block whose view returns a Document. `Program.makeElement` creates a container-scoped Program from a root Block whose view returns Html and has no routing config:
 
 ```ts
-const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+const layer = ApplicationBlock.makeLayer({ init, update, view })
 
 const program = Program.makeElement({
   block: ApplicationBlock,

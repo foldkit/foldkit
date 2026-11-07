@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import type { ChildAttribute, TaggedAttribute } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
@@ -80,18 +80,11 @@ const card = Scene.selector('#card')
 
 const dragAndDropScene = {
   block: DragAndDropSceneBlock,
-  layer: DragAndDropSceneBlock.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* DragAndDropSceneComposition.acquireChildren()
-
-      return {
-        children,
-        init,
-        update,
-        view: view,
-      }
-    }),
-  ).pipe(Layer.provide(layer)),
+  layer: DragAndDropSceneBlock.makeLayer({
+    init,
+    update,
+    view: view,
+  }).pipe(Layer.provide(layer)),
 }
 
 describe('DragAndDrop view', () => {

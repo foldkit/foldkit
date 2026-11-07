@@ -208,7 +208,7 @@ Declare ordinary parent requests and notifications with `defineInMessageUnion` i
 
 ::Snippet{name="antiPatternBlockBoundaryGood" label="✅ A parent input preserves the child's transition boundary"}
 
-This excerpt focuses on the operation and its parent call. Complete the implementation with `FeatureBlock.makeLayer`, yielding the registered Binding and returning that connection under `children`. See [Block completion](/core/block#construct-the-implementation) for the full constructor.
+This excerpt focuses on the operation and its parent call. Complete the implementation with `FeatureBlock.makeLayer({ init, update, view, ... })`; its Layer acquires the registered Binding when built. See [Block completion](/core/block#construct-the-implementation) for the full constructor.
 
 The Binding writes the returned child Model into the parent, maps its Commands, and applies the required `fold` or `forward` selected through `withOutMessagePolicy`. The [Block guide](/core/block) explains child Messages and OutMessages. [Informing Blocks](/patterns/informing-blocks) covers parent-owned facts that a child needs to hear about.
 

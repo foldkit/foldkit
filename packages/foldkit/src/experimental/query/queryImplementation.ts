@@ -31,16 +31,13 @@ const constructNotifyingQuery = <Name extends string, A, AI, E, EI>({
     RequestedLoadIfMissing: api.loadIfMissing,
     RequestedCancel: api.cancel,
   })
-  return Definition.makeLayer(
-    Effect.succeed({
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      EffectsLayer: Layer.empty,
-      hostHandlers: [Fetch],
-    }),
-  )
+  return Definition.makeLayer({
+    init,
+    update,
+    inMessageUpdate,
+    EffectsLayer: Layer.empty,
+    hostHandlers: [Fetch],
+  })
 }
 
 const constructSilentQuery = <Name extends string, A, AI, E, EI>({
@@ -63,16 +60,13 @@ const constructSilentQuery = <Name extends string, A, AI, E, EI>({
     RequestedLoadIfMissing: api.loadIfMissing,
     RequestedCancel: api.cancel,
   })
-  return Definition.makeLayer(
-    Effect.succeed({
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      EffectsLayer: Layer.empty,
-      hostHandlers: [Fetch],
-    }),
-  )
+  return Definition.makeLayer({
+    init,
+    update,
+    inMessageUpdate,
+    EffectsLayer: Layer.empty,
+    hostHandlers: [Fetch],
+  })
 }
 
 function constructQueryRecipe<Name extends string, A, AI, E, EI>(

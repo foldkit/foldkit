@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Option, Schema } from 'effect'
+import { Array, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -120,15 +120,8 @@ const view = CityPickerComposition.makeView((model, h) => {
   )
 })
 
-export const layer = CityPickerBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* CityPickerComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Combobox.layer))
+export const layer = CityPickerBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Combobox.layer))

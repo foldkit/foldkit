@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block, Story } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Update from 'foldkit/update'
@@ -40,15 +40,10 @@ const init = ContextualRefreshComposition.makeInit(() => ({
   model: { lastRequestId: '', refreshCount: 0 },
 }))
 
-const layer = ContextualRefreshBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-    }
-  }),
-)
+const layer = ContextualRefreshBlock.makeLayer({
+  init,
+  update,
+})
 
 export const requestRefresh = Story.withBlock(
   { block: ContextualRefreshBlock, layer },

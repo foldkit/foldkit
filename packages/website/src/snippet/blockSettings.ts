@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import {
@@ -49,15 +48,10 @@ const init = SettingsComposition.makeInit(() => ({
 
 export { SettingsBlock } from './blockDefinition'
 
-export const layer = SettingsBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer: SaveTheme.layer,
-    }
-  }),
-)
+export const layer = SettingsBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+  EffectsLayer: SaveTheme.layer,
+})

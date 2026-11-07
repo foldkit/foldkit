@@ -36,6 +36,7 @@
         "packages/foldkit/src/experimental/contracted/runtime.ts",
         "packages/foldkit/src/experimental/contracted/directBlockLayer.test.ts",
         "packages/foldkit/src/experimental/contracted/mixedUnifiedBoundary.test.ts",
+        "packages/foldkit/src/experimental/contracted/recordCompletion.test.ts",
         "packages/foldkit/src/experimental/layered/testing/withBlock.ts",
         "packages/foldkit/src/experimental/layered/testing/story.ts",
         "packages/foldkit/src/experimental/layered/testing/scene.ts",
@@ -49,6 +50,7 @@
     {
       "files": [
         "packages/foldkit/declaration-tests/rejected.ts",
+        "packages/foldkit/declaration-tests/record-completion/rejected.ts",
         "packages/foldkit/declaration-tests/**/*.rejected.ts",
         "packages/ui/declaration-tests/**/*.rejected.ts"
       ],

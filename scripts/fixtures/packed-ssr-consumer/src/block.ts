@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { CustomElement, Block } from 'foldkit'
 import { type Document } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -252,8 +252,9 @@ export const view = ApplicationComposition.makeView((model, h): Document => {
 
 export const EffectsLayer = Layer.empty
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return { children: [], init, update, view, EffectsLayer }
-  }),
-)
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+  EffectsLayer,
+})

@@ -1,5 +1,11 @@
 # Next preview release handoff
 
+## November 7 record completion
+
+The user approved publication after the current work, then separately approved Daybreak review of the final Foldkit candidate and relevant history, including review-driven fixes and rechecks through publication. These approvals supersede the older holds below. The verified published snapshot remains `90746b32d2ca` until a new release is actually published.
+
+Record-form `Block.makeLayer({ init, update, view, ... })` acquires the authenticated init Composition's explicit registered inventory under the existing Layer Scope and memoization. Custom Effects retain explicit child acquisition. The prototype passes source/emitted/relocated checks, realistic Workspace and generic UI consumers, deferred initialization and lifecycle checks. Ordinary consumers and active guidance are migrated. The full adoption gates, exact-commit review, protected integration, refreshed performance evidence and authorized Daybreak review still precede publication. See the [current task board](next-preview-tasks.md#november-7-record-completion-and-publication) and [compiler comparison](block-record-completion-20261107/performance.json).
+
 ## November 6 follow-up feedback
 
 The [follow-up report](preview-followup-feedback-20261106.md) and

@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Schema } from 'effect'
+import { Array, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -122,15 +122,8 @@ const view = SortableListComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = SortableListBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* SortableListComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(DragAndDrop.layer))
+export const layer = SortableListBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(DragAndDrop.layer))

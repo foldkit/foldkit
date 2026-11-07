@@ -980,6 +980,12 @@ const checks: ReadonlyArray<
     consumers: ['bulk-child-acquisition/consume.ts'],
   },
   {
+    name: 'record-completion',
+    accepted: ['record-completion/view.ts', 'record-completion/accepted.ts'],
+    rejected: ['record-completion/rejected.ts'],
+    consumers: ['record-completion/consume.ts'],
+  },
+  {
     name: 'story-message-in-path',
     accepted: ['story-message-in-path/accepted.ts'],
     rejected: ['story-message-in-path/rejected.ts'],
@@ -1252,6 +1258,7 @@ const main = async (): Promise<void> => {
     'variant-binding',
     'binding-relationships',
     'bulk-child-acquisition',
+    'record-completion',
     'story-message-in-path',
     'codec-contract',
     'managed-resource-contract',

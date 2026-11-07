@@ -1,4 +1,4 @@
-import { Array, Effect, Schema } from 'effect'
+import { Array, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import * as File from 'foldkit/file'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
@@ -165,16 +165,11 @@ export const view = FileDropComposition.makeView.withInputs(
 )
 
 /** Constructs the FileDrop implementation without starting occurrence effects. */
-export const layer = FileDropBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+export const layer = FileDropBlock.makeLayer({
+  init,
+  update,
+  view,
+})
 
 /** @internal Selected implementation used by component tests. */
 export const block = { block: FileDropBlock, layer }

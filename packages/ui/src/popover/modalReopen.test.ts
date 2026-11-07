@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Layer, Option, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, it, vi } from 'vitest'
 
@@ -74,24 +74,16 @@ const view = PopoverModalReopenTestComposition.makeView((model, h) =>
 )
 const ApplicationBlock = {
   block: PopoverModalReopenTestBlock,
-  layer: PopoverModalReopenTestBlock.makeLayer(
-    Effect.gen(function* () {
-      const children =
-        yield* PopoverModalReopenTestComposition.acquireChildren()
-
-      return {
-        children,
-        init: PopoverModalReopenTestComposition.makeInit(() =>
-          PopoverBinding.init({
-            args: [{ id: POPOVER_ID, isModal: true }],
-            toParentModel: popover => ({ popover }),
-          }),
-        ),
-        update: PopoverModalReopenTestComposition.makeUpdate({}),
-        view,
-      }
-    }),
-  ).pipe(Layer.provide(layer)),
+  layer: PopoverModalReopenTestBlock.makeLayer({
+    init: PopoverModalReopenTestComposition.makeInit(() =>
+      PopoverBinding.init({
+        args: [{ id: POPOVER_ID, isModal: true }],
+        toParentModel: popover => ({ popover }),
+      }),
+    ),
+    update: PopoverModalReopenTestComposition.makeUpdate({}),
+    view,
+  }).pipe(Layer.provide(layer)),
 }
 
 const findInertAncestor = (element: Element | null): Option.Option<Element> => {

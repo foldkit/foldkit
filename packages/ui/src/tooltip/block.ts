@@ -401,17 +401,12 @@ export const view = TooltipComposition.makeView.withInputs(
 )
 
 /** Constructs the Tooltip implementation without starting occurrence effects. */
-export const layer = TooltipBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = TooltipBlock.makeLayer({
+  init,
+  update,
+  view,
+  EffectsLayer,
+})
 
 /** @internal Selected implementation used by component tests. */
 export const block = { block: TooltipBlock, layer }

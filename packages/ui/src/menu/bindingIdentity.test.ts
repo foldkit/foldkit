@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
@@ -68,18 +68,10 @@ const update = GenericMenuBindingIdentityComposition.makeUpdate({
 })
 const block = {
   block: GenericMenuBindingIdentityBlock,
-  layer: GenericMenuBindingIdentityBlock.makeLayer(
-    Effect.gen(function* () {
-      const children =
-        yield* GenericMenuBindingIdentityComposition.acquireChildren()
-
-      return {
-        children,
-        init,
-        update,
-      }
-    }),
-  ).pipe(Layer.provide(Menu.layer)),
+  layer: GenericMenuBindingIdentityBlock.makeLayer({
+    init,
+    update,
+  }).pipe(Layer.provide(Menu.layer)),
 }
 
 it.effect(

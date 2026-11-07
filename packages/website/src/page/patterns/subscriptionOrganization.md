@@ -34,7 +34,7 @@ Nested Blocks repeat the same pattern. By the time a Stream reaches the root, ev
 
 ## Install the Root
 
-The Composition registers child relationships. The constructor passed to `ApplicationBlock.makeLayer` yields those Bindings and returns the acquired children, local Subscription registry, and handlers. The Program host acquires that graph; `Program.make` adds browser host configuration:
+The Composition registers child relationships. The record passed to `ApplicationBlock.makeLayer` supplies init, update, view, the local Subscription registry, and handlers. Its Layer acquires the registered children when built. The Program host acquires that graph; `Program.make` adds browser host configuration:
 
 ::Snippet{name="subscriptionOrganizationRoot" label="Installing the root Subscription graph"}
 

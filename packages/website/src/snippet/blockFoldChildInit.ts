@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -37,16 +37,11 @@ const themePickerView = ThemePickerComposition.makeView((model, h) =>
   h.p([], [`Theme: ${model.theme}`]),
 )
 
-const layer = ThemePickerBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init: themePickerInit,
-      update: themePickerUpdate,
-      view: themePickerView,
-    }
-  }),
-)
+const layer = ThemePickerBlock.makeLayer({
+  init: themePickerInit,
+  update: themePickerUpdate,
+  view: themePickerView,
+})
 
 const ProfileModel = Schema.Struct({
   username: Schema.String,

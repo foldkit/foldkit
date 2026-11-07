@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -135,15 +135,8 @@ const view = TabsExampleComposition.makeView((model, h) => {
   )
 })
 
-export const layer = TabsExampleBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* TabsExampleComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Tabs.layer))
+export const layer = TabsExampleBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Tabs.layer))

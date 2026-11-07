@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -147,15 +147,8 @@ const view = NotificationsComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = NotificationsBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* NotificationsComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(UiToast.layer))
+export const layer = NotificationsBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(UiToast.layer))

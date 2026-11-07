@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Layer, Option, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
@@ -64,19 +64,11 @@ const init = ListboxTriggerClickTestComposition.makeInit(() => ({
 const update = ListboxTriggerClickTestComposition.makeUpdate({})
 const ApplicationBlock = {
   block: ListboxTriggerClickTestBlock,
-  layer: ListboxTriggerClickTestBlock.makeLayer(
-    Effect.gen(function* () {
-      const children =
-        yield* ListboxTriggerClickTestComposition.acquireChildren()
-
-      return {
-        children,
-        init,
-        update,
-        view,
-      }
-    }),
-  ).pipe(Layer.provide(ListboxLayer)),
+  layer: ListboxTriggerClickTestBlock.makeLayer({
+    init,
+    update,
+    view,
+  }).pipe(Layer.provide(ListboxLayer)),
 }
 
 const requireElement = (id: string): HTMLElement => {

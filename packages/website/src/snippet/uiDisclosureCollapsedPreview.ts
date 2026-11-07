@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -117,13 +117,8 @@ const view = ArticlePreviewComposition.makeView((model, h) => {
   )
 })
 
-export const layer = ArticlePreviewBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+export const layer = ArticlePreviewBlock.makeLayer({
+  init,
+  update,
+  view,
+})

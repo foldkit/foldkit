@@ -60,14 +60,9 @@ const init = PanelComposition.makeInit(() => ({
   model: Model.make({ panelHeight: Option.none() }),
 }))
 
-export const layer = PanelBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer: MeasurePanel.layer,
-    }
-  }),
-)
+export const layer = PanelBlock.makeLayer({
+  init,
+  update,
+  view,
+  EffectsLayer: MeasurePanel.layer,
+})

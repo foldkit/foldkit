@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -132,15 +132,8 @@ const view = InvoiceTableComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = InvoiceTableBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* InvoiceTableComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(VirtualList.layer))
+export const layer = InvoiceTableBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(VirtualList.layer))

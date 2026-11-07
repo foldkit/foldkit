@@ -1,5 +1,3 @@
-import { Effect } from 'effect'
-
 import { ApiReferenceBlock } from './block'
 import { LoadApiData } from './command'
 import { inMessageUpdate } from './inMessageUpdate'
@@ -9,15 +7,10 @@ import { view } from './view'
 
 const EffectsLayer = LoadApiData.layer
 
-export const layer = ApiReferenceBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = ApiReferenceBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+  EffectsLayer,
+})

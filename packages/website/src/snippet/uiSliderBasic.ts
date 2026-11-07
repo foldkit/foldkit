@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -133,15 +133,8 @@ const view = VolumeSliderComposition.makeView((model, h) => {
   )
 })
 
-export const layer = VolumeSliderBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* VolumeSliderComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Slider.layer))
+export const layer = VolumeSliderBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Slider.layer))
