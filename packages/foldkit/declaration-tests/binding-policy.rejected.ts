@@ -137,9 +137,12 @@ export type RejectedBindingPolicyAssertions = [
 const impossibleOutMessagePolicy = {
   fold: (_outMessage: never) => DirectParent.makeStep(model => ({ model })),
 }
-const ImpossiblePolicyBinding = DirectParent.makeBinding(DirectChildBlock, {
-  field: 'child',
-})
+const ImpossiblePolicyBinding = DirectParent.makeRequiredFieldBinding(
+  DirectChildBlock,
+  {
+    field: 'child',
+  },
+)
 // @ts-expect-error A direct policy must accept every child OutMessage.
 ImpossiblePolicyBinding.withOutMessagePolicy(impossibleOutMessagePolicy)
 
@@ -148,11 +151,14 @@ const narrowKeyPolicy = {
     DeclarationWrappedKeyedFieldParentDefinition.makeStep(model => ({ model })),
 }
 const NarrowKeyPolicyBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    field: 'literalChoices',
-    key: 'kind',
-    childField: 'choice',
-  })
+  DeclarationWrappedKeyedFieldParentDefinition.makeKeyedArrayBinding(
+    Choice.block,
+    {
+      field: 'literalChoices',
+      key: 'kind',
+      childField: 'choice',
+    },
+  )
 // @ts-expect-error A keyed shorthand policy must accept every collection key.
 NarrowKeyPolicyBinding.withOutMessagePolicy(narrowKeyPolicy)
 

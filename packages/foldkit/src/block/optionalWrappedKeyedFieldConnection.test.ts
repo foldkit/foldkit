@@ -266,7 +266,7 @@ const Parent = makeDefinition('OptionalWrappedKeyedParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = Parent.makeBinding(ChildBlock, {
+const ChildBinding = Parent.makeOptionalKeyedFieldBinding(ChildBlock, {
   field: 'maybeEntry',
   key: 'id',
   childField: 'child',

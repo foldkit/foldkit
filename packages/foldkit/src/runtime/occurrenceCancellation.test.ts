@@ -177,7 +177,7 @@ const foldItemOutMessage = RootDefinition.makeOutMessageFold(ItemBlock, {
   RemovedSelf: () =>
     RootDefinition.makeFieldsStep(() => ({ entries: () => ({}) })),
 })
-const EntriesBinding = RootDefinition.makeMapBinding(ItemBlock, {
+const EntriesBinding = RootDefinition.makeRecordBinding(ItemBlock, {
   field: 'entries',
 }).withOutMessagePolicy({
   fold: (_key, outMessage) => foldItemOutMessage(outMessage),

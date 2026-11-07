@@ -42,7 +42,7 @@ export const SaveProfileWithRedundantLocalPath = ProfileDefinition.makeCommand(
   },
 )
 
-export const ChildBinding = ProfileDefinition.makeBinding(Child.block, {
+export const ChildBinding = ProfileDefinition.makeRequiredFieldBinding(Child.block, {
   field: 'child',
   toParentMessage: message => Message.GotChildMessage({ message }),
 })

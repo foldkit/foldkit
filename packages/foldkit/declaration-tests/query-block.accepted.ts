@@ -122,12 +122,10 @@ const DeclarationQueryParentDefinition = Block.makeDefinition(
 export const DeclarationQueryParentContract =
   DeclarationQueryParentDefinition.contract
 
-export const NotesChildBinding = DeclarationQueryParentDefinition.makeBinding(
-  Notes,
-  {
+export const NotesChildBinding =
+  DeclarationQueryParentDefinition.makeRequiredFieldBinding(Notes, {
     field: 'notes',
-  },
-)
+  })
 
 export const DeclarationQueryParentComposition =
   DeclarationQueryParentDefinition.makeComposition({

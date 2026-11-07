@@ -88,9 +88,12 @@ export const ParentDefinition = Block.makeDefinition('QueryPolicyParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-export const QuotesBinding = ParentDefinition.makeBinding(QuoteWindows, {
-  field: 'quotes',
-}).withOutMessagePolicy({
+export const QuotesBinding = ParentDefinition.makeRequiredFieldBinding(
+  QuoteWindows,
+  {
+    field: 'quotes',
+  },
+).withOutMessagePolicy({
   fold: ParentDefinition.makeOutMessageFold(QuoteWindows, {
     CompletedFetch: ({ args, result }) =>
       ParentDefinition.makeFieldsStep(() => ({
@@ -127,7 +130,7 @@ const PlainParent = Block.makeDefinition('PlainQueryPolicyParent', {
   Model: Schema.Struct({ quotes: PlainWindows.Model }),
   Message: Schema.Never,
 })
-export const PlainBinding = PlainParent.makeBinding(PlainWindows, {
+export const PlainBinding = PlainParent.makeRequiredFieldBinding(PlainWindows, {
   field: 'quotes',
 })
 export const PlainComposition = PlainParent.makeComposition({

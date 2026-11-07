@@ -42,13 +42,14 @@ export const makeUpdateHandlers = <
   ParentOutMessageSchema extends Schema.Top,
   ParentOwner,
 >(
-  bindChild: Block.MakeBinding<
+  makeRequiredFieldBinding: Block.MakeSingularBinding<
     typeof BaseModel,
     MessageSchema<Value, ValueEncoded>,
     ParentOutMessageSchema,
     typeof InitConfig,
     'Provided',
-    ParentOwner
+    ParentOwner,
+    'Required'
   >,
   makeOutMessageFold: Block.MakeDescriptorOutMessageFold<
     BaseModel,
@@ -78,7 +79,7 @@ export const makeUpdateHandlers = <
     TransitionedOut: stepNoop,
   })
 
-  const AnimationBinding = bindChild(AnimationBlock, {
+  const AnimationBinding = makeRequiredFieldBinding(AnimationBlock, {
     field: 'animation',
     init: { contextToArgs: config => [{ id: `${config.id}-listbox` }] },
   }).withOutMessagePolicy({ fold: foldAnimationOutMessage })

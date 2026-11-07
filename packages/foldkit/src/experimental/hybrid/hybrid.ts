@@ -5,6 +5,7 @@ import type {
   BindableBlock,
   BlockOfBinding,
 } from '../../block/binding.js'
+import type { NativeRelationshipConstructors } from '../../block/bindingAuthoring.js'
 import {
   type BindingConnection,
   ConnectBindingTypeId,
@@ -14,6 +15,10 @@ import {
   makeConstructedChild,
   reconnectBinding,
 } from '../../block/bindingConnection.js'
+import {
+  bindingLowerersOf,
+  makeBindingConstructors,
+} from '../../block/bindingConstructors.js'
 import { copyBindingOutMessagePolicy } from '../../block/bindingOutMessagePolicy.js'
 import {
   canonicalBindingOf,
@@ -48,7 +53,7 @@ import {
   makeAuthoringComposition,
   planComposition,
 } from './authoring.js'
-import type { ConnectableBindChild, ConnectableMapBinding } from './binding.js'
+import type { ConnectableRelationshipConstructors } from './binding.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
 type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
@@ -346,26 +351,24 @@ export type Definition<
     true,
     ChildInitContextSchema
   >,
-  'makeComposition' | 'makeBinding' | 'makeMapBinding'
+  | 'makeComposition'
+  | keyof NativeRelationshipConstructors<
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      never
+    >
 > &
+  ConnectableRelationshipConstructors<
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    ChildInitContextSchema extends AnySchema
+      ? ChildInitContextSchema['Type']
+      : never
+  > &
   Readonly<{
     makeBlock: MakeBlockFromDefinition<Id, ModelSchema>
-    makeBinding: ConnectableBindChild<
-      ModelSchema,
-      MessageSchema,
-      OutMessageSchema,
-      ChildInitContextSchema extends AnySchema
-        ? ChildInitContextSchema['Type']
-        : never
-    >
-    makeMapBinding: ConnectableMapBinding<
-      ModelSchema,
-      MessageSchema,
-      OutMessageSchema,
-      ChildInitContextSchema extends AnySchema
-        ? ChildInitContextSchema['Type']
-        : never
-    >
     makeComposition: MakeComposition<
       Id,
       ModelSchema,
@@ -602,15 +605,23 @@ export const makeDefinition = <
     }),
   })
 
-  return {
+  const lowerers = bindingLowerersOf(definition)
+  const authored = {
     ...definition,
-    makeBinding: (...args: ReadonlyArray<unknown>) =>
-      withConnection(Reflect.apply(definition.makeBinding, definition, args)),
-    makeMapBinding: (...args: ReadonlyArray<unknown>) =>
-      withConnection(
-        Reflect.apply(definition.makeMapBinding, definition, args),
-      ),
     makeComposition,
     makeBlock,
   }
+
+  return Object.assign(
+    authored,
+    makeBindingConstructors(
+      authored,
+      (child, config) =>
+        Reflect.apply(withConnection, undefined, [
+          lowerers.direct(child, config),
+        ]),
+      (child, config) =>
+        Reflect.apply(withConnection, undefined, [lowerers.map(child, config)]),
+    ),
+  )
 }

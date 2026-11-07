@@ -93,14 +93,14 @@ const foldQuotesOutMessage = ApplicationBlock.makeOutMessageFold(Quotes, {
       accepted: Array.append(acceptedText('quote', result)),
     })),
 })
-const QuotesBinding = ApplicationBlock.makeBinding(Quotes, {
+const QuotesBinding = ApplicationBlock.makeKeyedArrayBinding(Quotes, {
   field: 'quotes',
   key: 'key',
   childField: 'model',
 }).withOutMessagePolicy({
   fold: (_key, outMessage) => foldQuotesOutMessage(outMessage),
 })
-const WindowsBinding = ApplicationBlock.makeBinding(Windows, {
+const WindowsBinding = ApplicationBlock.makeRequiredFieldBinding(Windows, {
   field: 'windows',
 }).withOutMessagePolicy({
   fold: ApplicationBlock.makeOutMessageFold(Windows, {

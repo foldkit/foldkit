@@ -31,8 +31,12 @@ export const PlanPickerBlock = Block.make('PlanPicker', {
   Message,
 })
 
-const { makeFieldsStep, makeOutMessageFold, makeBinding, makeComposition } =
-  PlanPickerBlock
+const {
+  makeFieldsStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = PlanPickerBlock
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
@@ -55,7 +59,7 @@ const foldPlanRadioGroupOutMessage = makeOutMessageFold(PlanRadioGroup, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const PlanRadioGroupBinding = makeBinding(PlanRadioGroup, {
+const PlanRadioGroupBinding = makeRequiredFieldBinding(PlanRadioGroup, {
   field: 'planRadioGroup',
   init: { contextToArgs: () => [{ id: 'plan' }] },
 }).withOutMessagePolicy({ fold: foldPlanRadioGroupOutMessage })

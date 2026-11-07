@@ -2,9 +2,9 @@ import { Array } from 'effect'
 import type { Block } from 'foldkit'
 
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
+  makeKeyedArrayBinding,
   makeOutMessageFold,
 } from './block'
 import { EducationEntryBlock } from './blocks/educationEntry'
@@ -17,7 +17,7 @@ const foldEntryOutMessage = (entryId: string) =>
       })),
   })
 
-export const EntriesBinding = makeBinding(EducationEntryBlock, {
+export const EntriesBinding = makeKeyedArrayBinding(EducationEntryBlock, {
   field: 'entries',
   key: 'id',
   init: {

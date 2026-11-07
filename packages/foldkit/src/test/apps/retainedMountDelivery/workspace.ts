@@ -17,7 +17,7 @@ export const WorkspaceBlock = Block.make('Workspace', {
     Inputs: Schema.Struct({ form: Schema.Literals(['nested', 'published']) }),
   },
 })
-const ApplicationBinding = WorkspaceBlock.makeBinding(
+const ApplicationBinding = WorkspaceBlock.makeRequiredFieldBinding(
   Application.ApplicationBlock,
   { field: 'application', init: { contextToArgs: () => [false] } },
 ).withOutMessagePolicy({

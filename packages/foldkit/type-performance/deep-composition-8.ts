@@ -87,11 +87,14 @@ const TypePerformanceLevel001Definition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-const Child001Binding = TypePerformanceLevel001Definition.makeBinding(Leaf, {
-  placement: 'child001',
-  read: model => Option.some(model),
-  write: (_model, nextChild) => nextChild,
-})
+const Child001Binding = TypePerformanceLevel001Definition.makeCustomBinding(
+  Leaf,
+  {
+    placement: 'child001',
+    read: model => Option.some(model),
+    write: (_model, nextChild) => nextChild,
+  },
+)
 const TypePerformanceLevel001Composition =
   TypePerformanceLevel001Definition.makeComposition({
     bindings: [Child001Binding],
@@ -116,7 +119,7 @@ const TypePerformanceLevel002Definition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-const Child002Binding = TypePerformanceLevel002Definition.makeBinding(
+const Child002Binding = TypePerformanceLevel002Definition.makeCustomBinding(
   Level001,
   {
     placement: 'child002',
@@ -148,7 +151,7 @@ const TypePerformanceLevel003Definition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-const Child003Binding = TypePerformanceLevel003Definition.makeBinding(
+const Child003Binding = TypePerformanceLevel003Definition.makeCustomBinding(
   Level002,
   {
     placement: 'child003',
@@ -180,7 +183,7 @@ const TypePerformanceLevel004Definition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-const Child004Binding = TypePerformanceLevel004Definition.makeBinding(
+const Child004Binding = TypePerformanceLevel004Definition.makeCustomBinding(
   Level003,
   {
     placement: 'child004',
@@ -212,7 +215,7 @@ const TypePerformanceLevel005Definition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-const Child005Binding = TypePerformanceLevel005Definition.makeBinding(
+const Child005Binding = TypePerformanceLevel005Definition.makeCustomBinding(
   Level004,
   {
     placement: 'child005',
@@ -244,7 +247,7 @@ const TypePerformanceLevel006Definition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-const Child006Binding = TypePerformanceLevel006Definition.makeBinding(
+const Child006Binding = TypePerformanceLevel006Definition.makeCustomBinding(
   Level005,
   {
     placement: 'child006',
@@ -276,7 +279,7 @@ const TypePerformanceLevel007Definition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-const Child007Binding = TypePerformanceLevel007Definition.makeBinding(
+const Child007Binding = TypePerformanceLevel007Definition.makeCustomBinding(
   Level006,
   {
     placement: 'child007',
@@ -308,7 +311,7 @@ const TypePerformanceLevel008Definition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-const Child008Binding = TypePerformanceLevel008Definition.makeBinding(
+const Child008Binding = TypePerformanceLevel008Definition.makeCustomBinding(
   Level007,
   {
     placement: 'child008',
@@ -338,7 +341,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: LeafModel,
   Message: ApplicationMessage,
 })
-const Child008RootBinding = ApplicationDefinition.makeBinding(Level008, {
+const Child008RootBinding = ApplicationDefinition.makeCustomBinding(Level008, {
   placement: 'child008Root',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,

@@ -60,13 +60,13 @@ The returned `postsQuery` is the public contract for a viewless Block. It expose
 
 ### Bind the Query to Its Parent
 
-Composition derives delivery for the Query's Messages from its registered Binding. `makeBinding` also projects the loading operations so they read and write the Query field inside the parent Model:
+Composition derives delivery for the Query's Messages from its registered Binding. The Binding also projects the loading operations so they read and write the Query field inside the parent Model:
 
 ::Snippet{name="queryLift" label="Binding Query to its parent"}
 
 #### Binding Configuration
 
-The `field` form tells `makeBinding` which exact field contains the Query Model or `Option<QueryModel>`. Composition derives a `Got*Message` envelope carrying the Binding's placement and originating instance generation; parents do not declare a wrapper or supply a Message mapper. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. Its projected operations return connected Steps whose Model input requires the registering Composition's graph. Apply them inside `makeUpdate`, include them in `makeInit` startup, or preserve them through a Block-owned Step. Return or compose their opaque results intact; the Composition consumes them during checked execution. They do not perform Effects.
+Use `makeRequiredFieldBinding` for the Query Model field or `makeOptionalFieldBinding` for an `Option<QueryModel>` field. Composition derives a `Got*Message` envelope carrying the Binding's placement and originating instance generation; parents do not declare a wrapper or supply a Message mapper. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. Its projected operations return connected Steps whose Model input requires the registering Composition's graph. Apply them inside `makeUpdate`, include them in `makeInit` startup, or preserve them through a Block-owned Step. Return or compose their opaque results intact; the Composition consumes them during checked execution. They do not perform Effects.
 
 #### Bound Operations
 
@@ -78,7 +78,7 @@ The `field` form tells `makeBinding` which exact field contains the Query Model 
 
 #### Optional and Nested Queries
 
-Use `field` when an optional Query occupies an exact Option field. After checked execution, its bound operations produce the unchanged parent Model and no Commands while the field is `None`; they never insert a missing Query Model. Add `presentWhen` when a parent condition governs the whole direct child while retaining its stored Model. Use explicit `read` and `write` when the Query is nested, spans tagged parent variants, or needs a custom write. When `read` returns `None`, it has the same absent behavior.
+Use `makeOptionalFieldBinding(QueryBlock, { field })` when the Query occupies an exact Option field. After checked execution, its bound operations produce the unchanged parent Model and no Commands while the field is `None`; they never insert a missing Query Model. Add `activeWhen` when a parent condition governs the whole direct child while retaining its stored Model. Use `makeCustomBinding` with explicit `read` and `write` when the Query is nested, spans tagged parent variants, or needs a custom write. When `read` returns `None`, it has the same absent behavior.
 
 #### Starting a Load
 

@@ -60,4 +60,6 @@ const WrongFieldDefinition = Block.makeDefinition('PublicModelWrongField', {
   Message: Schema.Never,
 })
 // @ts-expect-error An early Schema export does not permit an incompatible child field.
-WrongFieldDefinition.makeBinding(Child.ChildBlock, { field: 'child' })
+WrongFieldDefinition.makeRequiredFieldBinding(Child.ChildBlock, {
+  field: 'child',
+})

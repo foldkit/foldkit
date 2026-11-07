@@ -1,0 +1,67 @@
+{
+  "6.0.3": {
+    "emit": {
+      "exitCode": 0,
+      "command": [
+        "/private/tmp/foldkit-unified-recovery-20261103/node_modules/typescript/bin/tsc6",
+        "-p",
+        "/private/tmp/foldkit-binding-rel-ts6.MiB2Bi/emitter/tsconfig.json",
+        "--pretty",
+        "false"
+      ]
+    },
+    "relocated-consumer": {
+      "exitCode": 0,
+      "command": [
+        "/private/tmp/foldkit-unified-recovery-20261103/node_modules/typescript/bin/tsc6",
+        "-p",
+        "/private/tmp/foldkit-binding-rel-ts6.MiB2Bi/consumer/tsconfig.json",
+        "--pretty",
+        "false"
+      ]
+    },
+    "negativeControl": {
+      "exitCode": 2,
+      "removedExpectation": "// @ts-expect-error Completion rejects child Command Services and errors omitted by the parent contract."
+    },
+    "restoredConsumer": {
+      "exitCode": 0
+    },
+    "case": "/private/tmp/foldkit-binding-rel-ts6.MiB2Bi"
+  },
+  "7.1.0-beta": {
+    "emit": {
+      "exitCode": 0,
+      "command": [
+        "/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/node_modules/.bin/tsc",
+        "-p",
+        "/private/tmp/foldkit-binding-rel-ts7.hqX14P/emitter/tsconfig.json",
+        "--pretty",
+        "false"
+      ]
+    },
+    "relocated-consumer": {
+      "exitCode": 0,
+      "command": [
+        "/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit/node_modules/.bin/tsc",
+        "-p",
+        "/private/tmp/foldkit-binding-rel-ts7.hqX14P/consumer/tsconfig.json",
+        "--pretty",
+        "false"
+      ]
+    },
+    "negativeControl": {
+      "exitCode": 2,
+      "removedExpectation": "// @ts-expect-error Completion rejects child Command Services and errors omitted by the parent contract."
+    },
+    "restoredConsumer": {
+      "exitCode": 0
+    },
+    "case": "/private/tmp/foldkit-binding-rel-ts7.hqX14P"
+  },
+  "sourceFiles": {
+    "packages/foldkit/declaration-tests/binding-relationships.accepted.ts": "9cd7963f261e675c4304659e7ddaeda357b6fef1c351f6b184071689d2d3b5dc",
+    "packages/foldkit/declaration-tests/binding-relationships.rejected.ts": "133491c2b26e33c24d3dd44532be9c89b121fddff60570c9370098afa479de3d",
+    "packages/foldkit/declaration-tests/binding-relationships.consume.ts": "d7c6630778b92a9925fecebe8967fd9477ed9e837c751101b8de36cc6021eb1a"
+  }
+}

@@ -131,12 +131,15 @@ export const KeyedDefinition = Block.makeDefinition('UnionKeyedServiceProof', {
   Model: KeyedModel,
   Message: ResourceMessage,
 })
-export const RegisteredBinding = KeyedDefinition.makeBinding(RegisteredBlock, {
-  field: 'sessions',
-  key: 'id',
-  childField: 'model',
-})
-export const UnregisteredBinding = KeyedDefinition.makeBinding(
+export const RegisteredBinding = KeyedDefinition.makeKeyedArrayBinding(
+  RegisteredBlock,
+  {
+    field: 'sessions',
+    key: 'id',
+    childField: 'model',
+  },
+)
+export const UnregisteredBinding = KeyedDefinition.makeKeyedArrayBinding(
   UnregisteredBlock,
   {
     field: 'sessions',
@@ -144,7 +147,7 @@ export const UnregisteredBinding = KeyedDefinition.makeBinding(
     childField: 'model',
   },
 )
-export const OtherPlacementBinding = KeyedDefinition.makeBinding(
+export const OtherPlacementBinding = KeyedDefinition.makeKeyedArrayBinding(
   RegisteredBlock,
   {
     field: 'sessions',
@@ -153,7 +156,7 @@ export const OtherPlacementBinding = KeyedDefinition.makeBinding(
     placement: 'otherSessions',
   },
 )
-export const RenamedRegisteredBinding = KeyedDefinition.makeBinding(
+export const RenamedRegisteredBinding = KeyedDefinition.makeKeyedArrayBinding(
   RenamedRegistrationBlock,
   {
     field: 'sessions',

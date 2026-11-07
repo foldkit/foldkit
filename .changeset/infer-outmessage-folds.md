@@ -32,7 +32,7 @@ const foldTabsOutMessage = TabsBlock.OutMessage.match<
 import { ApplicationDefinition } from './definition'
 import { TabsBlock } from './tabs'
 
-const TabsBinding = ApplicationDefinition.makeBinding(TabsBlock, {
+const TabsBinding = ApplicationDefinition.makeRequiredFieldBinding(TabsBlock, {
   field: 'tabs',
 }).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(TabsBlock, {
@@ -48,6 +48,6 @@ A variant that lifts child Commands receives its typed `FoldContext` as a second
 
 Definitions that declare OutMessages also expose `makeOutMessageForward`. Inline `makeOutMessageForward(handlers)` under an unkeyed Binding's `withOutMessagePolicy({ forward })`; pass the completed child explicitly when extracting the callable forward or adapting keyed policy. Each named child variant returns a declared parent OutMessage or `undefined`, and at least one handler must forward. Missing or extra variants and widened `any`, `unknown`, or `never` returns are rejected.
 
-Select policy through `makeBinding(...).withOutMessagePolicy({ fold?, forward? })` and register that full Binding. Keep an ordinary one-way policy fluent. For a self-referential or reciprocal policy, declare the original Bindings first, author helpers against their operations, then select and register `<Child>BindingWithOutMessagePolicy`. Policy selection retains the same child Binding identity and is passive.
+Select policy through the storage-specific Binding's `.withOutMessagePolicy({ fold?, forward? })` and register that full Binding. The required-field example above keeps an ordinary one-way policy fluent. For a self-referential or reciprocal policy, declare the original Bindings first, author helpers against their operations, then select and register `<Child>BindingWithOutMessagePolicy`. Policy selection retains the same child Binding identity and is passive.
 
 This also rejects mixed update branches that return an unapplied Step or an incompatible result beside a valid result. Apply a connected operation to the provided Model before returning it from `Composition.makeUpdate`, or compose it through the existing Step APIs. An OutMessage fold returns a Step because its Binding applies that Step after writing the next child Model. That Step must return a result or connected result recipe. Use the owning `Definition.makeStep` when delegating to another Step or returning a Binding init recipe, so its normalization happens before the Binding consumes the result.

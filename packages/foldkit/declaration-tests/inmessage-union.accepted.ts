@@ -98,9 +98,12 @@ export const ParentDefinition = Block.makeDefinition('InMessageUnionParent', {
   Message: ParentMessage,
   Init: Schema.Tuple([]),
 })
-export const InputBinding = ParentDefinition.makeBinding(InputContract, {
-  field: 'input',
-})
+export const InputBinding = ParentDefinition.makeRequiredFieldBinding(
+  InputContract,
+  {
+    field: 'input',
+  },
+)
 export const requestSet = InputBinding.requestSet({ count: 2 })
 export const informOfReset = InputBinding.informOfReset()
 export const ParentComposition = ParentDefinition.makeComposition({

@@ -252,11 +252,14 @@ it('keeps constructed executables alive while Model-owned engine lifecycles stop
     Model,
     Message,
   })
-  const EngineBinding = ApplicationDefinition.makeBinding(EngineBlock, {
-    placement: 'engine',
-    field: 'maybeEngine',
-    init: { contextToArgs: () => Option.some([]) },
-  })
+  const EngineBinding = ApplicationDefinition.makeOptionalFieldBinding(
+    EngineBlock,
+    {
+      placement: 'engine',
+      field: 'maybeEngine',
+      init: { contextToArgs: () => Option.some([]) },
+    },
+  )
   const ApplicationComposition = ApplicationDefinition.makeComposition({
     bindings: [EngineBinding],
   })

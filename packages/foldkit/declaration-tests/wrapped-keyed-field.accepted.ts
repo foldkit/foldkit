@@ -220,7 +220,7 @@ export const makePayloadParent = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       Message: ParentMessage,
     })
   const Binding =
-    DeclarationWrappedKeyedFieldPayloadParentDefinition.makeBinding(
+    DeclarationWrappedKeyedFieldPayloadParentDefinition.makeKeyedArrayBinding(
       PlainChoiceBlock,
       {
         field: 'entries',
@@ -274,29 +274,32 @@ export const choiceOutMessagePolicy = {
 }
 
 export const ChoicesBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    field: 'choices',
-    key: 'id',
-    childField: 'choice',
-    subscriptions: {
-      when: (model, id) => {
-        expectNotAnyOrUnknown(model)
-        expectNotAnyOrUnknown(id)
-        type ParentModelContextIsExact = Expect<
-          MutuallyAssignable<typeof model, typeof ParentModel.Type>
-        >
-        type KeyContextIsExact = Expect<
-          MutuallyAssignable<typeof id, typeof ChoiceId.Type>
-        >
-        const parentModelContextIsExact: ParentModelContextIsExact = true
-        const keyContextIsExact: KeyContextIsExact = true
-        void parentModelContextIsExact
-        void keyContextIsExact
+  DeclarationWrappedKeyedFieldParentDefinition.makeKeyedArrayBinding(
+    Choice.block,
+    {
+      field: 'choices',
+      key: 'id',
+      childField: 'choice',
+      subscriptions: {
+        when: (model, id) => {
+          expectNotAnyOrUnknown(model)
+          expectNotAnyOrUnknown(id)
+          type ParentModelContextIsExact = Expect<
+            MutuallyAssignable<typeof model, typeof ParentModel.Type>
+          >
+          type KeyContextIsExact = Expect<
+            MutuallyAssignable<typeof id, typeof ChoiceId.Type>
+          >
+          const parentModelContextIsExact: ParentModelContextIsExact = true
+          const keyContextIsExact: KeyContextIsExact = true
+          void parentModelContextIsExact
+          void keyContextIsExact
 
-        return true
+          return true
+        },
       },
     },
-  }).withOutMessagePolicy(choiceOutMessagePolicy)
+  ).withOutMessagePolicy(choiceOutMessagePolicy)
 
 export type InitializationContext = Readonly<{
   id: typeof ChoiceId.Type
@@ -304,90 +307,99 @@ export type InitializationContext = Readonly<{
 }>
 
 export const InitializedChoicesBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    field: 'choices',
-    key: 'id',
-    childField: 'choice',
-    init: {
-      instances: (context: InitializationContext) => {
-        expectNotAnyOrUnknown(context)
-        type ContextIsExact = Expect<
-          MutuallyAssignable<typeof context, InitializationContext>
-        >
-        const contextIsExact: ContextIsExact = true
-        void contextIsExact
+  DeclarationWrappedKeyedFieldParentDefinition.makeKeyedArrayBinding(
+    Choice.block,
+    {
+      field: 'choices',
+      key: 'id',
+      childField: 'choice',
+      init: {
+        instances: (context: InitializationContext) => {
+          expectNotAnyOrUnknown(context)
+          type ContextIsExact = Expect<
+            MutuallyAssignable<typeof context, InitializationContext>
+          >
+          const contextIsExact: ContextIsExact = true
+          void contextIsExact
 
-        return [{ key: context.id, args: [context.value] }]
-      },
-      toItem: ({ key }, choice) => {
-        expectNotAnyOrUnknown(key)
-        expectNotAnyOrUnknown(choice)
-        type KeyContextIsExact = Expect<
-          MutuallyAssignable<typeof key, typeof ChoiceId.Type>
-        >
-        type ChildModelContextIsExact = Expect<
-          MutuallyAssignable<typeof choice, typeof Choice.block.Model.Type>
-        >
-        const keyContextIsExact: KeyContextIsExact = true
-        const childModelContextIsExact: ChildModelContextIsExact = true
-        void keyContextIsExact
-        void childModelContextIsExact
+          return [{ key: context.id, args: [context.value] }]
+        },
+        toItem: ({ key }, choice) => {
+          expectNotAnyOrUnknown(key)
+          expectNotAnyOrUnknown(choice)
+          type KeyContextIsExact = Expect<
+            MutuallyAssignable<typeof key, typeof ChoiceId.Type>
+          >
+          type ChildModelContextIsExact = Expect<
+            MutuallyAssignable<typeof choice, typeof Choice.block.Model.Type>
+          >
+          const keyContextIsExact: KeyContextIsExact = true
+          const childModelContextIsExact: ChildModelContextIsExact = true
+          void keyContextIsExact
+          void childModelContextIsExact
 
-        return ChoiceEntry.make({ id: key, choice })
+          return ChoiceEntry.make({ id: key, choice })
+        },
       },
     },
-  }).withOutMessagePolicy(choiceOutMessagePolicy)
+  ).withOutMessagePolicy(choiceOutMessagePolicy)
 
 export const LiteralInitializedChoicesBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    field: 'choices',
-    key: 'id',
-    childField: 'choice',
-    placement: 'literalInitializedChoices',
-    init: {
-      instances: () => [{ key: firstChoiceId, args: ['One'] }],
-      toItem: ({ key, args }, choice) => {
-        expectNotAnyOrUnknown(key)
-        expectNotAnyOrUnknown(args)
-        expectNotAnyOrUnknown(choice)
-        type ArgumentsAreExact = Expect<
-          MutuallyAssignable<typeof args, readonly [value: 'One' | 'Two']>
-        >
-        const argumentsAreExact: ArgumentsAreExact = true
-        void argumentsAreExact
+  DeclarationWrappedKeyedFieldParentDefinition.makeKeyedArrayBinding(
+    Choice.block,
+    {
+      field: 'choices',
+      key: 'id',
+      childField: 'choice',
+      placement: 'literalInitializedChoices',
+      init: {
+        instances: () => [{ key: firstChoiceId, args: ['One'] }],
+        toItem: ({ key, args }, choice) => {
+          expectNotAnyOrUnknown(key)
+          expectNotAnyOrUnknown(args)
+          expectNotAnyOrUnknown(choice)
+          type ArgumentsAreExact = Expect<
+            MutuallyAssignable<typeof args, readonly [value: 'One' | 'Two']>
+          >
+          const argumentsAreExact: ArgumentsAreExact = true
+          void argumentsAreExact
 
-        return ChoiceEntry.make({ id: key, choice })
+          return ChoiceEntry.make({ id: key, choice })
+        },
       },
     },
-  }).withOutMessagePolicy(choiceOutMessagePolicy)
+  ).withOutMessagePolicy(choiceOutMessagePolicy)
 
 export const GeneralChoicesBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    placement: 'generalChoices',
-    readAll: model => model.choices,
-    key: item => item.id,
-    keySchema: ChoiceEntry.fields.id,
-    read: item => item.choice,
-    writeAt: model => model,
-    subscriptions: {
-      when: (model, key) => {
-        expectNotAnyOrUnknown(model)
-        expectNotAnyOrUnknown(key)
-        type ModelIsExact = Expect<
-          MutuallyAssignable<typeof model, typeof ParentModel.Type>
-        >
-        type KeyIsExact = Expect<
-          MutuallyAssignable<typeof key, typeof ChoiceId.Type>
-        >
-        const modelIsExact: ModelIsExact = true
-        const keyIsExact: KeyIsExact = true
-        void modelIsExact
-        void keyIsExact
+  DeclarationWrappedKeyedFieldParentDefinition.makeCustomKeyedBinding(
+    Choice.block,
+    {
+      placement: 'generalChoices',
+      readAll: model => model.choices,
+      key: item => item.id,
+      keySchema: ChoiceEntry.fields.id,
+      read: item => item.choice,
+      writeAt: model => model,
+      subscriptions: {
+        when: (model, key) => {
+          expectNotAnyOrUnknown(model)
+          expectNotAnyOrUnknown(key)
+          type ModelIsExact = Expect<
+            MutuallyAssignable<typeof model, typeof ParentModel.Type>
+          >
+          type KeyIsExact = Expect<
+            MutuallyAssignable<typeof key, typeof ChoiceId.Type>
+          >
+          const modelIsExact: ModelIsExact = true
+          const keyIsExact: KeyIsExact = true
+          void modelIsExact
+          void keyIsExact
 
-        return true
+          return true
+        },
       },
     },
-  }).withOutMessagePolicy({
+  ).withOutMessagePolicy({
     fold: (key, outMessage, context) => {
       expectNotAnyOrUnknown(key)
       expectNotAnyOrUnknown(outMessage)
@@ -411,29 +423,38 @@ export const GeneralChoicesBinding =
   })
 
 export const GeneralExtractedPolicyChoicesBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    placement: 'generalExtractedPolicyChoices',
-    readAll: model => model.choices,
-    key: item => item.id,
-    keySchema: ChoiceEntry.fields.id,
-    read: item => item.choice,
-    writeAt: model => model,
-  }).withOutMessagePolicy(choiceOutMessagePolicy)
+  DeclarationWrappedKeyedFieldParentDefinition.makeCustomKeyedBinding(
+    Choice.block,
+    {
+      placement: 'generalExtractedPolicyChoices',
+      readAll: model => model.choices,
+      key: item => item.id,
+      keySchema: ChoiceEntry.fields.id,
+      read: item => item.choice,
+      writeAt: model => model,
+    },
+  ).withOutMessagePolicy(choiceOutMessagePolicy)
 
 export const PlainChoicesBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(PlainChoiceBlock, {
-    field: 'plainChoices',
-    key: 'id',
-    childField: 'choice',
-  })
+  DeclarationWrappedKeyedFieldParentDefinition.makeKeyedArrayBinding(
+    PlainChoiceBlock,
+    {
+      field: 'plainChoices',
+      key: 'id',
+      childField: 'choice',
+    },
+  )
 
 export const LiteralChoicesBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    placement: 'literalChoices',
-    field: 'literalChoices',
-    key: 'kind',
-    childField: 'choice',
-  }).withOutMessagePolicy({
+  DeclarationWrappedKeyedFieldParentDefinition.makeKeyedArrayBinding(
+    Choice.block,
+    {
+      placement: 'literalChoices',
+      field: 'literalChoices',
+      key: 'kind',
+      childField: 'choice',
+    },
+  ).withOutMessagePolicy({
     fold: (kind, outMessage) => {
       const exactKind: 'Primary' | 'Secondary' = kind
       const exactOutMessage: typeof Choice.OutMessage.Type = outMessage
@@ -447,11 +468,14 @@ export const LiteralChoicesBinding =
   })
 
 export const TextEntriesBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(TextBlock, {
-    field: 'textEntries',
-    key: 'id',
-    childField: 'text',
-  })
+  DeclarationWrappedKeyedFieldParentDefinition.makeKeyedArrayBinding(
+    TextBlock,
+    {
+      field: 'textEntries',
+      key: 'id',
+      childField: 'text',
+    },
+  )
 
 export const choiceInspection = Block.inspectBinding(ChoicesBinding)
 

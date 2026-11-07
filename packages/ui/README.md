@@ -18,7 +18,7 @@ yarn add @foldkit/ui
 
 ## Usage
 
-Import a component namespace by name. Stateful components are completed Blocks: `Application.makeBinding(Dialog.block, config)` connects their state, Messages, public operations, view, and lifecycle effects to the parent. Stateless render helpers such as Button expose a view function.
+Import a component namespace by name. Stateful components expose passive Block contracts and construction Layers: `ApplicationBlock.makeRequiredFieldBinding(Dialog.DialogBlock, config)` connects their state, Messages, public operations, view, and lifecycle effects to the parent. Stateless render helpers such as Button expose a view function.
 
 ```typescript
 import type { HtmlBuilder } from 'foldkit/html'
@@ -42,9 +42,9 @@ const view = (h: HtmlBuilder<Message>) =>
 Components come in two shapes:
 
 - **Render helpers** (Button, Input, Textarea, Select, Checkbox, Switch, Disclosure, Fieldset) are stateless. Call their `view` directly with a typed config. The controlled helpers (Checkbox, Switch, Disclosure) take the current value in through their config and dispatch a parent Message when the user changes it; you store that value in your own Model.
-- **Blocks** (Combobox, Dialog, Listbox, Menu, Popover, RadioGroup, and the like) own a Model. Create a Binding through the parent authoring value, such as `const DialogBinding = Application.makeBinding(Dialog.block, config)`, include it in the Composition's `bindings`, and render its `embedView(...)` descriptor with `h.block`. The Binding also folds the child's Messages and OutMessages into the parent.
+- **Blocks** (Combobox, Dialog, Listbox, Menu, Popover, RadioGroup, and the like) own a Model. Create a Binding through the parent authoring value, such as `const DialogBinding = ApplicationBlock.makeRequiredFieldBinding(Dialog.DialogBlock, config)`, include it in the Composition's `bindings`, and render its `embedView(...)` descriptor with `h.block`. Select the child's OutMessage policy with `withOutMessagePolicy`. Yield the Binding in the parent constructor and provide `Dialog.layer` through ordinary Layer composition.
 
-Component subpaths also expose domain helpers and types. Generic factories are separate exports: `Combobox.makeBlock(City)` returns a completed Block with Schema-refined payloads, and `Tabs.makeBlock<Tab>()` refines a type-only tab value. Import component ViewInputs and other helper types from their subpaths.
+Component subpaths also expose domain helpers and types. Generic factories are separate exports: `Combobox.makeBlock(City)` returns a passive Block contract with Schema-refined payloads, and `Tabs.makeBlock<Tab>()` refines a type-only tab value. Provide the component namespace's construction `layer`. Import component ViewInputs and other helper types from their subpaths.
 
 Stateless render helpers are also available as subpath namespaces:
 

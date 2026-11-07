@@ -66,10 +66,10 @@ export const TransformPayload = ParentBlock.makeCommand('TransformPayload', {
   messages: [Message.ChangedCount],
 })
 
-export const ChildBinding = ParentBlock.makeBinding(ChildBlock, {
+export const ChildBinding = ParentBlock.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
 })
-export const ChildrenBinding = ParentBlock.makeBinding(ChildBlock, {
+export const ChildrenBinding = ParentBlock.makeCustomKeyedBinding(ChildBlock, {
   placement: 'children',
   readAll: model => model.children,
   key: child => child.id,

@@ -38,7 +38,7 @@ export const PairedDefinition = Block.makeDefinition('PairedCounterFields', {
   effects: { services: [CounterSource] },
 })
 const { makeFieldsStep, makeStep } = PairedDefinition
-export const PrimaryCountersBinding = PairedDefinition.makeBinding(
+export const PrimaryCountersBinding = PairedDefinition.makeKeyedArrayBinding(
   CounterBlock,
   {
     field: 'primaryCounters',
@@ -53,7 +53,7 @@ export const PrimaryCountersBinding = PairedDefinition.makeBinding(
         makeFieldsStep(() => ({ primaryCount: () => count })),
     })(outMessage),
 })
-export const SecondaryCountersBinding = PairedDefinition.makeBinding(
+export const SecondaryCountersBinding = PairedDefinition.makeKeyedArrayBinding(
   CounterBlock,
   {
     field: 'secondaryCounters',

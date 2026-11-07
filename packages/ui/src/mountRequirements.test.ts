@@ -44,7 +44,7 @@ const foldComboboxOutMessage =
     ClearedSelection: () => model => ({ model }),
   })
 
-const ComboboxBinding = ComboboxMountRequirementsBlock.makeBinding(
+const ComboboxBinding = ComboboxMountRequirementsBlock.makeCustomBinding(
   TestCombobox,
   {
     read: model => Option.some(model),
@@ -77,10 +77,13 @@ const foldListboxOutMessage = ListboxMountRequirementsBlock.makeOutMessageFold(
   },
 )
 
-const ListboxBinding = ListboxMountRequirementsBlock.makeBinding(TestListbox, {
-  read: model => Option.some(model),
-  write: (_model, nextListbox) => nextListbox,
-}).withOutMessagePolicy({ fold: foldListboxOutMessage })
+const ListboxBinding = ListboxMountRequirementsBlock.makeCustomBinding(
+  TestListbox,
+  {
+    read: model => Option.some(model),
+    write: (_model, nextListbox) => nextListbox,
+  },
+).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
 const embedListbox = (
   model: typeof TestListbox.Model.Type,
@@ -108,7 +111,7 @@ const foldMenuOutMessage = MenuMountRequirementsBlock.makeOutMessageFold(
   },
 )
 
-const MenuBinding = MenuMountRequirementsBlock.makeBinding(TestMenu, {
+const MenuBinding = MenuMountRequirementsBlock.makeCustomBinding(TestMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })

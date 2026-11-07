@@ -66,16 +66,19 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message: Schema.Never,
 })
-const LeftBinding = ApplicationDefinition.makeBinding(childBlock, {
+const LeftBinding = ApplicationDefinition.makeRequiredFieldBinding(childBlock, {
   placement: 'Left',
   field: 'left',
   init: { contextToArgs: () => ['left'] },
 })
-const RightBinding = ApplicationDefinition.makeBinding(childBlock, {
-  placement: 'Right',
-  field: 'right',
-  init: { contextToArgs: () => ['right'] },
-})
+const RightBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  childBlock,
+  {
+    placement: 'Right',
+    field: 'right',
+    init: { contextToArgs: () => ['right'] },
+  },
+)
 const composition = ApplicationDefinition.makeComposition({
   bindings: [LeftBinding, RightBinding],
 })
@@ -147,7 +150,7 @@ const HostParentDefinition = Block.makeDefinition('Application', {
   Model: HostParentModel,
   Message: Schema.Never,
 })
-const UnresolvedHostBinding = HostParentDefinition.makeBinding(
+const UnresolvedHostBinding = HostParentDefinition.makeCustomBinding(
   unresolvedHostChild,
   {
     read: (model: HostParentModel) => Option.some(model.child),
@@ -155,7 +158,7 @@ const UnresolvedHostBinding = HostParentDefinition.makeBinding(
       modifyFields(model, { child: () => nextChild }),
   },
 )
-const ResolvedHostBinding = HostParentDefinition.makeBinding(
+const ResolvedHostBinding = HostParentDefinition.makeCustomBinding(
   resolvedHostChild,
   {
     read: (model: HostParentModel) => Option.some(model.child),
@@ -497,7 +500,7 @@ describe('completed root Block hosting', () => {
       Model: MiddleModel,
       Message: Schema.Never,
     })
-    const LeafBinding = MiddleDefinition.makeBinding(leafBlock, {
+    const LeafBinding = MiddleDefinition.makeCustomBinding(leafBlock, {
       read: model => Option.some(model.leaf),
       write: (model, nextLeaf) => modifyFields(model, { leaf: () => nextLeaf }),
     })
@@ -531,7 +534,7 @@ describe('completed root Block hosting', () => {
       Model: RootModel,
       Message: Schema.Never,
     })
-    const MiddleBinding = RootDefinition.makeBinding(middleBlock, {
+    const MiddleBinding = RootDefinition.makeCustomBinding(middleBlock, {
       read: model => Option.some(model.middle),
       write: (model, nextMiddle) =>
         modifyFields(model, { middle: () => nextMiddle }),
@@ -668,7 +671,7 @@ describe('completed root Block hosting', () => {
       Model: ServiceRootModel,
       Message: ServiceRootMessage,
     })
-    const ServiceChildBinding = ServiceRootDefinition.makeBinding(
+    const ServiceChildBinding = ServiceRootDefinition.makeCustomBinding(
       serviceChildBlock,
       {
         read: model => model.maybeChild,
@@ -904,12 +907,12 @@ describe('completed root Block hosting', () => {
             return { model }
           },
       })
-    const LeftBinding = RootDefinition.makeBinding(featureBlock, {
+    const LeftBinding = RootDefinition.makeCustomBinding(featureBlock, {
       placement: 'Left',
       read: (model: RootModel) => Option.some(model.left),
       write: (model, nextLeft) => modifyFields(model, { left: () => nextLeft }),
     }).withOutMessagePolicy({ fold: foldFeatureOutMessage('GotLeft') })
-    const RightBinding = RootDefinition.makeBinding(featureBlock, {
+    const RightBinding = RootDefinition.makeCustomBinding(featureBlock, {
       placement: 'Right',
       read: (model: RootModel) => Option.some(model.right),
       write: (model, nextRight) =>

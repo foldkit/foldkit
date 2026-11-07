@@ -105,30 +105,33 @@ DeclarationStartupGenericParentComposition.makeInit(() => ({
   model: {},
 }))
 
-DeclarationStartupGenericParentDefinition.makeBinding(ChildBlock, {
+DeclarationStartupGenericParentDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
   placement: 'external',
 
   init: { contextToArgs: _childInitContext => [] },
 })
-ApplicationDefinition.makeBinding(ChildBlock, {
+ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
   placement: 'external',
 
   init: { contextToArgs: _childInitContext => [] },
 })
-DeclarationStartupDefaultsParentDefinition.makeBinding(RequiredChildBlock, {
-  field: 'automatic',
-  placement: 'externalOptOut',
+DeclarationStartupDefaultsParentDefinition.makeRequiredFieldBinding(
+  RequiredChildBlock,
+  {
+    field: 'automatic',
+    placement: 'externalOptOut',
 
-  init: false,
-})
+    init: false,
+  },
+)
 
 // @ts-expect-error The emitted required child still requires args or opt out.
 // oxfmt-ignore
-DeclarationStartupDefaultsParentDefinition.makeBinding(RequiredChildBlock, { field: 'automatic', placement: 'externalMissingArgs',   })
+DeclarationStartupDefaultsParentDefinition.makeRequiredFieldBinding(RequiredChildBlock, { field: 'automatic', placement: 'externalMissingArgs',   })
 
-DeclarationStartupGenericParentDefinition.makeBinding(ChildBlock, {
+DeclarationStartupGenericParentDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
   placement: 'externalMutation',
 

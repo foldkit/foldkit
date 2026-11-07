@@ -19,10 +19,13 @@ const HostBlock = Block.make('RetainedMountGeneration', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const ApplicationBinding = HostBlock.makeBinding(Application.ApplicationBlock, {
-  field: 'application',
-  init: { contextToArgs: () => [false] },
-}).withOutMessagePolicy({
+const ApplicationBinding = HostBlock.makeRequiredFieldBinding(
+  Application.ApplicationBlock,
+  {
+    field: 'application',
+    init: { contextToArgs: () => [false] },
+  },
+).withOutMessagePolicy({
   fold: HostBlock.makeOutMessageFold(Application.ApplicationBlock, {
     MeasuredSurface: () => HostBlock.makeNoopStep(),
   }),

@@ -86,7 +86,7 @@ export const ApplicationBlock = Block.make('Application', {
   Model,
   Message,
 })
-const PinsBinding = ApplicationBlock.makeBinding(PinsBlock, {
+const PinsBinding = ApplicationBlock.makeRequiredFieldBinding(PinsBlock, {
   field: 'pins',
 })
 

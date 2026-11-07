@@ -118,11 +118,11 @@ const Parent = makeDefinition('KeyedFieldConnectionParent', {
   Model: ParentModel,
   Message: Schema.Never,
 })
-const ChildrenBinding = Parent.makeBinding(childBlock, {
+const ChildrenBinding = Parent.makeKeyedArrayBinding(childBlock, {
   field: 'entries',
   key: 'id',
 })
-const ArrayChildBinding = Parent.makeBinding(arrayChildBlock, {
+const ArrayChildBinding = Parent.makeRequiredFieldBinding(arrayChildBlock, {
   field: 'arrayChild',
   init: false,
 })
@@ -172,10 +172,13 @@ const CallableParent = makeDefinition('KeyedFieldConnectionCallableParent', {
   Model: CallableParentModel,
   Message: Schema.Never,
 })
-const CallableChildrenBinding = CallableParent.makeBinding(callableChildBlock, {
-  field: 'entries',
-  key: 'id',
-})
+const CallableChildrenBinding = CallableParent.makeKeyedArrayBinding(
+  callableChildBlock,
+  {
+    field: 'entries',
+    key: 'id',
+  },
+)
 const CallableComposition = CallableParent.makeComposition({
   bindings: [CallableChildrenBinding],
 })
@@ -400,11 +403,11 @@ it('rejects invalid fields and adapter conflicts before binding', () => {
     'read',
     'write',
     'writeAt',
-    'presentWhen',
+    'activeWhen',
     'parentMessage',
   ]) {
     expect(() => normalize({ [conflict]: () => undefined })).toThrow(
-      'cannot also supply custom accessors, presentWhen, or a parentMessage mapping',
+      'cannot also supply custom accessors, activeWhen, or a parentMessage mapping',
     )
   }
 
@@ -494,16 +497,16 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
   )
 
   expect(() =>
-    Reflect.apply(Parent.makeBinding, undefined, [
+    Reflect.apply(Parent.makeKeyedArrayBinding, undefined, [
       childBlock,
       {
         field: 'entries',
       },
     ]),
-  ).toThrow('requires a derivable key Schema')
+  ).toThrow('makeKeyedArrayBinding must select a declared required key field')
 
   expect(() =>
-    Reflect.apply(Parent.makeBinding, undefined, [
+    Reflect.apply(Parent.makeCustomKeyedBinding, undefined, [
       childBlock,
       {
         field: 'entries',
@@ -513,10 +516,12 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
         writeAt: (model: ParentModel) => model,
       },
     ]),
-  ).toThrow('cannot supply field or presentWhen')
+  ).toThrow(
+    'makeCustomKeyedBinding does not support the field configuration field',
+  )
 
   expect(() =>
-    Reflect.apply(Parent.makeBinding, undefined, [
+    Reflect.apply(Parent.makeCustomKeyedBinding, undefined, [
       childBlock,
       {
         readAll: (model: ParentModel) => model.entries,
@@ -527,7 +532,7 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
   ).toThrow('requires a read function')
 
   expect(() =>
-    Reflect.apply(Parent.makeBinding, undefined, [
+    Reflect.apply(Parent.makeCustomKeyedBinding, undefined, [
       childBlock,
       {
         readAll: (model: ParentModel) => model.entries,

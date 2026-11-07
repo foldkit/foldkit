@@ -419,9 +419,12 @@ declare const ErasedCounterBlock: Omit<typeof CounterBlock, 'operations'> &
     operations: Omit<typeof CounterBlock.operations, 'quiet'> &
       Readonly<{ quiet: typeof erasedQuietOperation }>
   }>
-const ErasedChildBinding = ParentDefinition.makeBinding(ErasedCounterBlock, {
-  field: 'child',
-}).withOutMessagePolicy({
+const ErasedChildBinding = ParentDefinition.makeRequiredFieldBinding(
+  ErasedCounterBlock,
+  {
+    field: 'child',
+  },
+).withOutMessagePolicy({
   forward: ParentDefinition.makeOutMessageForward(ErasedCounterBlock, {
     ReportedCount: ({ count }) => OutMessage.ReportedCount({ count }),
   }),
@@ -439,9 +442,12 @@ ErasedParentComposition.makeUpdate({
     ]),
 })
 
-const DecoratedBinding = ParentDefinition.makeBinding(DecoratedCounterBlock, {
-  field: 'child',
-}).withOutMessagePolicy({
+const DecoratedBinding = ParentDefinition.makeRequiredFieldBinding(
+  DecoratedCounterBlock,
+  {
+    field: 'child',
+  },
+).withOutMessagePolicy({
   forward: ParentDefinition.makeOutMessageForward(DecoratedCounterBlock, {
     ReportedCount: ({ count }) => OutMessage.ReportedCount({ count }),
   }),

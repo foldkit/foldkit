@@ -14,7 +14,7 @@ export const RunParentWork = ParentDefinition.makeCommand('RunParentWork', {
   },
 })
 
-export const ChildBinding = ParentDefinition.makeBinding(Child.block, {
+export const ChildBinding = ParentDefinition.makeRequiredFieldBinding(Child.block, {
   field: 'child',
   toParentMessage: message => ChildMessage.GotChildMessage({ message }),
 })

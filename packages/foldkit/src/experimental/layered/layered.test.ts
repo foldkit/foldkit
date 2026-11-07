@@ -119,11 +119,11 @@ const makeFixture = (
     Read: ({ value }) =>
       Definition.makeFieldsStep(() => ({ received: Array.append(value) })),
   })
-  const FirstBinding = Definition.makeBinding(ChildBlock, {
+  const FirstBinding = Definition.makeRequiredFieldBinding(ChildBlock, {
     field: 'first',
     init: { contextToArgs: () => [] },
   }).withOutMessagePolicy({ fold: foldRead })
-  const SecondBinding = Definition.makeBinding(ChildBlock, {
+  const SecondBinding = Definition.makeRequiredFieldBinding(ChildBlock, {
     field: 'second',
     init: { contextToArgs: () => [] },
   })
@@ -279,9 +279,12 @@ const makeLifecycleFixture = (events: Array<string>) => {
       Message: ContainerMessage,
     },
   )
-  const ChildBinding = ContainerDefinition.makeBinding(ChildBlock, {
-    field: 'maybeChild',
-  })
+  const ChildBinding = ContainerDefinition.makeOptionalFieldBinding(
+    ChildBlock,
+    {
+      field: 'maybeChild',
+    },
+  )
   const ContainerComposition = ContainerDefinition.makeComposition({
     bindings: [ChildBinding],
   })
@@ -338,10 +341,13 @@ const makeLifecycleFixture = (events: Array<string>) => {
     Model: Schema.Struct({ lifecycle: LifecycleBlock.Model }),
     Message: defineMessageUnion({}),
   })
-  const LifecycleBinding = RootDefinition.makeBinding(LifecycleBlock, {
-    field: 'lifecycle',
-    init: { contextToArgs: () => [] },
-  })
+  const LifecycleBinding = RootDefinition.makeRequiredFieldBinding(
+    LifecycleBlock,
+    {
+      field: 'lifecycle',
+      init: { contextToArgs: () => [] },
+    },
+  )
   const RootComposition = RootDefinition.makeComposition({
     bindings: [LifecycleBinding],
   })

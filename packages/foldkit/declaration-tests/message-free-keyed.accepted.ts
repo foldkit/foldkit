@@ -70,43 +70,46 @@ export const ParentDefinition = Block.makeDefinition(
   },
 )
 
-export const GeneralKeyedBinding = ParentDefinition.makeBinding(SilentBlock, {
-  placement: 'general-silent',
-  readAll: model => {
-    const proof: Expect<Equal<typeof model, typeof ParentModel.Type>> = true
-    void proof
-    return model.entries
-  },
-  key: entry => {
-    const proof: Expect<Equal<typeof entry, typeof Entry.Type>> = true
-    void proof
-    return entry.key
-  },
-  read: entry => {
-    const proof: Expect<Equal<typeof entry, typeof Entry.Type>> = true
-    void proof
-    return entry.silent
-  },
-  writeAt: (model, key, nextSilent) => {
-    const modelProof: Expect<Equal<typeof model, typeof ParentModel.Type>> =
-      true
-    const keyProof: Expect<Equal<typeof key, string>> = true
-    const childProof: Expect<
-      Equal<typeof nextSilent, typeof SilentModel.Type>
-    > = true
-    void modelProof
-    void keyProof
-    void childProof
+export const GeneralKeyedBinding = ParentDefinition.makeCustomKeyedBinding(
+  SilentBlock,
+  {
+    placement: 'general-silent',
+    readAll: model => {
+      const proof: Expect<Equal<typeof model, typeof ParentModel.Type>> = true
+      void proof
+      return model.entries
+    },
+    key: entry => {
+      const proof: Expect<Equal<typeof entry, typeof Entry.Type>> = true
+      void proof
+      return entry.key
+    },
+    read: entry => {
+      const proof: Expect<Equal<typeof entry, typeof Entry.Type>> = true
+      void proof
+      return entry.silent
+    },
+    writeAt: (model, key, nextSilent) => {
+      const modelProof: Expect<Equal<typeof model, typeof ParentModel.Type>> =
+        true
+      const keyProof: Expect<Equal<typeof key, string>> = true
+      const childProof: Expect<
+        Equal<typeof nextSilent, typeof SilentModel.Type>
+      > = true
+      void modelProof
+      void keyProof
+      void childProof
 
-    return modifyFields(model, {
-      entries: Array.map(entry =>
-        entry.key === key
-          ? modifyFields(entry, { silent: () => nextSilent })
-          : entry,
-      ),
-    })
+      return modifyFields(model, {
+        entries: Array.map(entry =>
+          entry.key === key
+            ? modifyFields(entry, { silent: () => nextSilent })
+            : entry,
+        ),
+      })
+    },
   },
-})
+)
 
 export const FieldParentModel = Schema.Struct({
   children: Schema.Array(SilentModel),
@@ -118,23 +121,21 @@ export const FieldParentDefinition = Block.makeDefinition('FieldParent', {
   Model: FieldParentModel,
   Message: Schema.Never,
 })
-export const DirectFieldBinding = FieldParentDefinition.makeBinding(
+export const DirectFieldBinding = FieldParentDefinition.makeKeyedArrayBinding(
   SilentBlock,
   { placement: 'children', field: 'children', key: 'id' },
 )
-export const WrappedFieldBinding = FieldParentDefinition.makeBinding(
+export const WrappedFieldBinding = FieldParentDefinition.makeKeyedArrayBinding(
   SilentBlock,
   { placement: 'entries', field: 'entries', key: 'key', childField: 'silent' },
 )
-export const OptionalFieldBinding = FieldParentDefinition.makeBinding(
-  SilentBlock,
-  {
+export const OptionalFieldBinding =
+  FieldParentDefinition.makeOptionalKeyedFieldBinding(SilentBlock, {
     placement: 'maybeEntry',
     field: 'maybeEntry',
     key: 'key',
     childField: 'silent',
-  },
-)
+  })
 export const FieldParentComposition = FieldParentDefinition.makeComposition({
   bindings: [DirectFieldBinding, WrappedFieldBinding, OptionalFieldBinding],
 })

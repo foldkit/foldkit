@@ -76,12 +76,15 @@ describe('Composition update delivery', () => {
       Model: ParentModel,
       Message: Schema.Never,
     })
-    const ReaderBinding = ParentDefinition.makeBinding(ReaderBlock, {
-      field: 'reader',
-      delivery: {
-        toUpdateContext: model => [model.isInteractionAllowed],
+    const ReaderBinding = ParentDefinition.makeRequiredFieldBinding(
+      ReaderBlock,
+      {
+        field: 'reader',
+        delivery: {
+          toUpdateContext: model => [model.isInteractionAllowed],
+        },
       },
-    })
+    )
     const ParentComposition = ParentDefinition.makeComposition({
       bindings: [ReaderBinding],
     })
@@ -157,7 +160,7 @@ describe('Composition update delivery', () => {
 
     expect(contextualBlock.update.length).toBe(2)
     expect(() =>
-      Reflect.apply(ContextualParent.makeBinding, undefined, [
+      Reflect.apply(ContextualParent.makeRequiredFieldBinding, undefined, [
         contextualBlock,
         {
           field: 'child',
@@ -242,7 +245,7 @@ describe('Composition update delivery', () => {
       Model: ParentModel,
       Message: Schema.Never,
     })
-    const CounterBinding = Parent.makeBinding(counterBlock, {
+    const CounterBinding = Parent.makeCustomKeyedBinding(counterBlock, {
       readAll: model => model.counters,
       key: instance => instance.id,
       read: instance => instance.counter,

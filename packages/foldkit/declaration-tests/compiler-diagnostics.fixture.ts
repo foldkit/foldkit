@@ -35,7 +35,9 @@ export const Definition = Block.makeDefinition('DiagnosticParent', {
   Message: ParentMessage,
   OutMessage,
 })
-export const Binding = Definition.makeBinding(ChildBlock, { field: 'child' })
+export const Binding = Definition.makeRequiredFieldBinding(ChildBlock, {
+  field: 'child',
+})
 export const Composition = Definition.makeComposition({ bindings: [Binding] })
 export const model = Model.make({ child: { count: 0 } })
 export const init = Composition.makeInit(() => ({ model: {} }))

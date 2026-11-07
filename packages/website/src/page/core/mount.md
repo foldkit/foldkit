@@ -188,7 +188,7 @@ Registering a Mount that the view never renders starts no element lifecycle, lis
 
 Create local Mounts through the owning Block and register them in its Composition. Return the authored view and local handler recipes from `FeatureBlock.makeLayer`. A parent declares its Binding against the public contract, then supplies the child implementation Layer. Each connected placement retains the Mount registrations and handler identities.
 
-For a direct array of child Models with declared Struct key fields, use `ParentBlock.makeBinding` with `field` and a string-valued `key`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration retain general keyed accessors. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `bindings`.
+For a direct array of child Models with declared Struct key fields, use `ParentBlock.makeKeyedArrayBinding` with `field` and a string-valued `key`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration use `makeCustomKeyedBinding`. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `bindings`.
 
 ### Mount Requirements in Reusable Views
 

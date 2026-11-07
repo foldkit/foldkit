@@ -1,8 +1,8 @@
 // ❌ Bad
 // The authored update receives a wrapper that belongs to the child Binding.
-import { makeBinding, makeNoopStep } from './block'
+import { makeRequiredFieldBinding, makeNoopStep } from './block'
 
-const BadDialogBinding = makeBinding(Dialog.block, {
+const BadDialogBinding = makeRequiredFieldBinding(Dialog.block, {
   field: 'dialog',
   toParentMessage: message => Message.GotDialogMessage({ message }),
   fromParentMessage: false,
@@ -16,7 +16,7 @@ const badUpdate = ApplicationComposition.makeUpdate({
 
 // ✅ Good
 // Composition derives delivery from the registered Binding.
-const DialogBinding = makeBinding(Dialog.DialogBlock, {
+const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
 })
 

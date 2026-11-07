@@ -5,7 +5,7 @@ import {
   initAndInsert,
   initAndSet,
   makeInitIfMissingStep,
-} from 'foldkit/bindingInit'
+} from 'foldkit/binding'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const FirstComposition = Block.makeDefinition('FirstUnionInitChild', {
@@ -53,12 +53,12 @@ const model = Model.make({
   entries: [],
   mapped: {},
 })
-const FirstDirect = Definition.makeBinding(FirstBlock, {
+const FirstDirect = Definition.makeRequiredFieldBinding(FirstBlock, {
   field: 'child',
   placement: 'same',
   init: false,
 })
-const SecondDirect = Definition.makeBinding(SecondBlock, {
+const SecondDirect = Definition.makeRequiredFieldBinding(SecondBlock, {
   field: 'child',
   placement: 'same',
   init: false,
@@ -66,13 +66,13 @@ const SecondDirect = Definition.makeBinding(SecondBlock, {
 const selectedDirect = Math.random() > 0.5 ? FirstDirect : SecondDirect
 // @ts-expect-error Identical storage and placement do not identify one init signature.
 initAndSet(selectedDirect, model, { args: [1] })
-const FirstOptional = Definition.makeBinding(FirstBlock, {
+const FirstOptional = Definition.makeOptionalKeyedFieldBinding(FirstBlock, {
   field: 'maybeEntry',
   key: 'id',
   childField: 'child',
   placement: 'same',
 })
-const SecondOptional = Definition.makeBinding(SecondBlock, {
+const SecondOptional = Definition.makeOptionalKeyedFieldBinding(SecondBlock, {
   field: 'maybeEntry',
   key: 'id',
   childField: 'child',
@@ -81,13 +81,13 @@ const SecondOptional = Definition.makeBinding(SecondBlock, {
 const selectedOptional = Math.random() > 0.5 ? FirstOptional : SecondOptional
 // @ts-expect-error Option storage must retain one exact child initializer.
 initAndSet(selectedOptional, model, { key: 'one', args: [1] })
-const FirstProjected = Definition.makeBinding(FirstBlock, {
+const FirstProjected = Definition.makeCustomBinding(FirstBlock, {
   placement: 'same',
   read: model => Option.some(model.child),
   write: (model, child) => Struct.modifyFields(model, { child: () => child }),
   init: { contextToArgs: () => [0], toParentFields: child => ({ child }) },
 })
-const SecondProjected = Definition.makeBinding(SecondBlock, {
+const SecondProjected = Definition.makeCustomBinding(SecondBlock, {
   placement: 'same',
   read: model => Option.some(model.child),
   write: (model, child) => Struct.modifyFields(model, { child: () => child }),
@@ -96,7 +96,7 @@ const SecondProjected = Definition.makeBinding(SecondBlock, {
 const selectedProjected = Math.random() > 0.5 ? FirstProjected : SecondProjected
 // @ts-expect-error Projection evidence does not make different init signatures interchangeable.
 initAndSet(selectedProjected, model, { args: [1] })
-const FirstArray = Definition.makeBinding(FirstBlock, {
+const FirstArray = Definition.makeKeyedArrayBinding(FirstBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -106,7 +106,7 @@ const FirstArray = Definition.makeBinding(FirstBlock, {
     toItem: ({ key }, child) => ({ id: key, child }),
   },
 })
-const SecondArray = Definition.makeBinding(SecondBlock, {
+const SecondArray = Definition.makeKeyedArrayBinding(SecondBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -119,11 +119,11 @@ const SecondArray = Definition.makeBinding(SecondBlock, {
 const selectedArray = Math.random() > 0.5 ? FirstArray : SecondArray
 // @ts-expect-error Append must select one exact Binding even when its storage is identical.
 initAndAppend(selectedArray, model, { key: 'one', args: [1] })
-const FirstMap = Definition.makeMapBinding(FirstBlock, {
+const FirstMap = Definition.makeRecordBinding(FirstBlock, {
   field: 'mapped',
   placement: 'same',
 })
-const SecondMap = Definition.makeMapBinding(SecondBlock, {
+const SecondMap = Definition.makeRecordBinding(SecondBlock, {
   field: 'mapped',
   placement: 'same',
 })

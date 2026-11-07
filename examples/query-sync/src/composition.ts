@@ -2,50 +2,55 @@ import { Option } from 'effect'
 import type { Block } from 'foldkit'
 
 import {
-  makeBinding,
   makeCommandsStep,
   makeComposition,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 import { ReplaceFilters } from './command'
 import { DietListboxBlock, PeriodListboxBlock } from './model'
 import { routeToBrowseFields } from './route'
 
-const foldDietListboxOutMessage = makeOutMessageFold(DietListboxBlock, {
-  Selected: ({ value }) =>
-    makeCommandsStep(model => {
-      const fields = routeToBrowseFields(model.route)
-      return [
-        ReplaceFilters({
-          ...fields,
-          diet: value === 'All' ? Option.none() : Option.some(value),
-        }),
-      ]
-    }),
-})
-
-export const DietListboxBinding = makeBinding(DietListboxBlock, {
+export const DietListboxBinding = makeRequiredFieldBinding(DietListboxBlock, {
   field: 'dietListbox',
   init: { contextToArgs: () => [{ id: 'diet-filter' }] },
-}).withOutMessagePolicy({ fold: foldDietListboxOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(DietListboxBlock, {
+    Selected: ({ value }) =>
+      makeCommandsStep(model => {
+        const fields = routeToBrowseFields(model.route)
 
-const foldPeriodListboxOutMessage = makeOutMessageFold(PeriodListboxBlock, {
-  Selected: ({ value }) =>
-    makeCommandsStep(model => {
-      const fields = routeToBrowseFields(model.route)
-      return [
-        ReplaceFilters({
-          ...fields,
-          period: value === 'All' ? Option.none() : Option.some(value),
-        }),
-      ]
-    }),
+        return [
+          ReplaceFilters({
+            ...fields,
+            diet: value === 'All' ? Option.none() : Option.some(value),
+          }),
+        ]
+      }),
+  }),
 })
 
-export const PeriodListboxBinding = makeBinding(PeriodListboxBlock, {
-  field: 'periodListbox',
-  init: { contextToArgs: () => [{ id: 'period-filter' }] },
-}).withOutMessagePolicy({ fold: foldPeriodListboxOutMessage })
+export const PeriodListboxBinding = makeRequiredFieldBinding(
+  PeriodListboxBlock,
+  {
+    field: 'periodListbox',
+    init: { contextToArgs: () => [{ id: 'period-filter' }] },
+  },
+).withOutMessagePolicy({
+  fold: makeOutMessageFold(PeriodListboxBlock, {
+    Selected: ({ value }) =>
+      makeCommandsStep(model => {
+        const fields = routeToBrowseFields(model.route)
+
+        return [
+          ReplaceFilters({
+            ...fields,
+            period: value === 'All' ? Option.none() : Option.some(value),
+          }),
+        ]
+      }),
+  }),
+})
 
 export const ApplicationComposition = makeComposition({
   bindings: [DietListboxBinding, PeriodListboxBinding],

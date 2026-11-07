@@ -207,40 +207,58 @@ export const FinishStep =
     },
   })
 export const AutomaticBinding =
-  DeclarationStartupDefaultsParentDefinition.makeBinding(ChildBlock, {
-    field: 'automatic',
-  })
-export const DefaultArgumentBinding =
-  DeclarationStartupDefaultsParentDefinition.makeBinding(DefaultChildBlock, {
-    field: 'defaultArgument',
-  })
-export const OptionalArgumentBinding =
-  DeclarationStartupDefaultsParentDefinition.makeBinding(OptionalChildBlock, {
-    field: 'optionalArgument',
-  })
-export const RequiredRestBinding =
-  DeclarationStartupDefaultsParentDefinition.makeBinding(RestChildBlock, {
-    field: 'requiredRest',
-
-    init: { contextToArgs: childInitContext => [childInitContext.count] },
-  })
-export const OptedOutBinding =
-  DeclarationStartupDefaultsParentDefinition.makeBinding(ChildBlock, {
-    field: 'optedOut',
-
-    init: false,
-  })
-export const OptionalBinding =
-  DeclarationStartupDefaultsParentDefinition.makeBinding(ChildBlock, {
-    field: 'maybeChild',
-
-    init: {
-      contextToArgs: childInitContext =>
-        childInitContext.includeOptional ? Option.some([]) : Option.none(),
+  DeclarationStartupDefaultsParentDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'automatic',
     },
-  })
+  )
+export const DefaultArgumentBinding =
+  DeclarationStartupDefaultsParentDefinition.makeRequiredFieldBinding(
+    DefaultChildBlock,
+    {
+      field: 'defaultArgument',
+    },
+  )
+export const OptionalArgumentBinding =
+  DeclarationStartupDefaultsParentDefinition.makeRequiredFieldBinding(
+    OptionalChildBlock,
+    {
+      field: 'optionalArgument',
+    },
+  )
+export const RequiredRestBinding =
+  DeclarationStartupDefaultsParentDefinition.makeRequiredFieldBinding(
+    RestChildBlock,
+    {
+      field: 'requiredRest',
+
+      init: { contextToArgs: childInitContext => [childInitContext.count] },
+    },
+  )
+export const OptedOutBinding =
+  DeclarationStartupDefaultsParentDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'optedOut',
+
+      init: false,
+    },
+  )
+export const OptionalBinding =
+  DeclarationStartupDefaultsParentDefinition.makeOptionalFieldBinding(
+    ChildBlock,
+    {
+      field: 'maybeChild',
+
+      init: {
+        contextToArgs: childInitContext =>
+          childInitContext.includeOptional ? Option.some([]) : Option.none(),
+      },
+    },
+  )
 export const EntriesBinding =
-  DeclarationStartupDefaultsParentDefinition.makeBinding(ChildBlock, {
+  DeclarationStartupDefaultsParentDefinition.makeKeyedArrayBinding(ChildBlock, {
     field: 'entries',
     placement: 'entries',
     key: 'id',
@@ -314,18 +332,24 @@ export const DeclarationStartupGenericParentDefinition =
     ChildInitContext,
   })
 export const GenericBinding =
-  DeclarationStartupGenericParentDefinition.makeBinding(ChildBlock, {
-    field: 'child',
+  DeclarationStartupGenericParentDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'child',
 
-    init: { contextToArgs: _childInitContext => [] },
-  })
+      init: { contextToArgs: _childInitContext => [] },
+    },
+  )
 export const WiderBinding =
-  DeclarationStartupGenericParentDefinition.makeBinding(ChildBlock, {
-    field: 'child',
-    placement: 'wider',
+  DeclarationStartupGenericParentDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'child',
+      placement: 'wider',
 
-    init: { contextToArgs: (_childInitContext: object) => [] },
-  })
+      init: { contextToArgs: (_childInitContext: object) => [] },
+    },
+  )
 export const DeclarationStartupGenericParentComposition =
   DeclarationStartupGenericParentDefinition.makeComposition({
     bindings: [WiderBinding],
@@ -333,11 +357,14 @@ export const DeclarationStartupGenericParentComposition =
 export const initWithoutSelectorStartup =
   DeclarationStartupGenericParentDefinition.makeComposition({
     bindings: [
-      DeclarationStartupGenericParentDefinition.makeBinding(ChildBlock, {
-        field: 'child',
+      DeclarationStartupGenericParentDefinition.makeRequiredFieldBinding(
+        ChildBlock,
+        {
+          field: 'child',
 
-        init: { contextToArgs: () => [] },
-      }),
+          init: { contextToArgs: () => [] },
+        },
+      ),
     ],
   }).makeInit(() => ({ model: {} }))
 
@@ -349,28 +376,24 @@ export const ForeignGenericParentDefinition =
     Message: SingleChildParentMessage,
     ChildInitContext: ForeignChildInitContext,
   })
-export const ForeignGenericBinding = ForeignGenericParentDefinition.makeBinding(
-  ChildBlock,
-  {
+export const ForeignGenericBinding =
+  ForeignGenericParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
 
     init: { contextToArgs: _childInitContext => [] },
-  },
-)
+  })
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: Schema.Struct({ child: ChildModel }),
   Message: SingleChildParentMessage,
   ChildInitContext,
 })
-export const ApplicationBinding = ApplicationDefinition.makeBinding(
-  ChildBlock,
-  {
+export const ApplicationBinding =
+  ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
 
     init: { contextToArgs: _childInitContext => [] },
-  },
-)
+  })
 
 export const DeclarationStartupOrdinaryParentDefinition = Block.makeDefinition(
   'DeclarationStartupOrdinaryParent',
@@ -380,9 +403,12 @@ export const DeclarationStartupOrdinaryParentDefinition = Block.makeDefinition(
   },
 )
 export const OrdinaryBinding =
-  DeclarationStartupOrdinaryParentDefinition.makeBinding(ChildBlock, {
-    field: 'child',
-  })
+  DeclarationStartupOrdinaryParentDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'child',
+    },
+  )
 
 const SharedStartupModel = Schema.Struct({
   first: ChildModel,
@@ -397,21 +423,27 @@ const DeclarationCompatibleStartupParentDefinition = Block.makeDefinition(
   },
 )
 const CountStartupBinding =
-  DeclarationCompatibleStartupParentDefinition.makeBinding(ChildBlock, {
-    field: 'first',
+  DeclarationCompatibleStartupParentDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'first',
 
-    init: {
-      contextToArgs: (_childInitContext: Readonly<{ count: number }>) => [],
+      init: {
+        contextToArgs: (_childInitContext: Readonly<{ count: number }>) => [],
+      },
     },
-  })
+  )
 const LabelStartupBinding =
-  DeclarationCompatibleStartupParentDefinition.makeBinding(ChildBlock, {
-    field: 'second',
+  DeclarationCompatibleStartupParentDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'second',
 
-    init: {
-      contextToArgs: (_childInitContext: Readonly<{ label: string }>) => [],
+      init: {
+        contextToArgs: (_childInitContext: Readonly<{ label: string }>) => [],
+      },
     },
-  })
+  )
 export const DeclarationCompatibleStartupParentComposition =
   DeclarationCompatibleStartupParentDefinition.makeComposition({
     bindings: [CountStartupBinding, LabelStartupBinding],
@@ -431,24 +463,20 @@ const DeclarationMixedStartupParentDefinition = Block.makeDefinition(
     Message: CompatibleParentMessage,
   },
 )
-const NoInputBinding = DeclarationMixedStartupParentDefinition.makeBinding(
-  ChildBlock,
-  {
+const NoInputBinding =
+  DeclarationMixedStartupParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'first',
 
     init: { contextToArgs: () => [] },
-  },
-)
-const ContextInputBinding = DeclarationMixedStartupParentDefinition.makeBinding(
-  ChildBlock,
-  {
+  })
+const ContextInputBinding =
+  DeclarationMixedStartupParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'second',
 
     init: {
       contextToArgs: (_childInitContext: Readonly<{ count: number }>) => [],
     },
-  },
-)
+  })
 export const DeclarationMixedStartupParentComposition =
   DeclarationMixedStartupParentDefinition.makeComposition({
     bindings: [NoInputBinding, ContextInputBinding],

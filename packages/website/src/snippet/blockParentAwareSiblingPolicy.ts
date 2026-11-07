@@ -2,7 +2,8 @@ import { Option } from 'effect'
 
 import {
   makeOutMessageFold,
-  makeBinding,
+  makeOptionalFieldBinding,
+  makeRequiredFieldBinding,
   makeComposition,
 } from './application/block'
 import { DetailsBlock } from './details'
@@ -15,11 +16,11 @@ const foldSearchOutMessage = makeOutMessageFold(SearchBlock, {
       : MaybeDetailsBinding.requestOpen({ resultId }),
 })
 
-export const SearchBinding = makeBinding(SearchBlock, {
+export const SearchBinding = makeRequiredFieldBinding(SearchBlock, {
   field: 'search',
 }).withOutMessagePolicy({ fold: foldSearchOutMessage })
 
-export const MaybeDetailsBinding = makeBinding(DetailsBlock, {
+export const MaybeDetailsBinding = makeOptionalFieldBinding(DetailsBlock, {
   field: 'maybeDetails',
 })
 

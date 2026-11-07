@@ -811,7 +811,7 @@ describe('completed Block bindings', () => {
     callee: {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('makeBinding'),
+      property: Testing.id('makeCustomBinding'),
       computed: false,
     },
     arguments: [
@@ -828,7 +828,7 @@ describe('completed Block bindings', () => {
     callee: {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('makeBinding'),
+      property: Testing.id('makeRequiredFieldBinding'),
       computed: false,
     },
     arguments: [
@@ -875,7 +875,7 @@ describe('completed Block bindings', () => {
       callee: {
         type: 'MemberExpression',
         object: Testing.id('Application'),
-        property: Testing.id('makeBinding'),
+        property: Testing.id('makeKeyedArrayBinding'),
         computed: false,
       },
       arguments: [
@@ -892,7 +892,7 @@ describe('completed Block bindings', () => {
     callee: {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('makeBinding'),
+      property: Testing.id('makeKeyedArrayBinding'),
       computed: false,
     },
     arguments: [
@@ -910,7 +910,7 @@ describe('completed Block bindings', () => {
     callee: {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('makeBinding'),
+      property: Testing.id('makeCustomKeyedBinding'),
       computed: false,
     },
     arguments: [
@@ -1339,9 +1339,25 @@ describe('completed Block bindings', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('does not recognize keyField as direct keyed shorthand', () => {
+  it('does not infer a keyed relationship from a required constructor config', () => {
+    const requiredEntriesBinding = Testing.varDecl('const', 'entries', {
+      type: 'CallExpression',
+      callee: {
+        type: 'MemberExpression',
+        object: Testing.id('Application'),
+        property: Testing.id('makeRequiredFieldBinding'),
+        computed: false,
+      },
+      arguments: [
+        Testing.id('Entry'),
+        objectExpression([
+          property('field', Testing.strLiteral('entries')),
+          property('key', Testing.strLiteral('id')),
+        ]),
+      ],
+    })
     const result = runRule([
-      directEntriesBinding('keyField'),
+      requiredEntriesBinding,
       Testing.callOfMember('entries', 'fold', [
         Testing.id('model'),
         Testing.strLiteral('first'),
@@ -1439,7 +1455,7 @@ describe('completed Block bindings', () => {
       callee: {
         type: 'MemberExpression',
         object: namespacedApplication,
-        property: Testing.id('makeBinding'),
+        property: Testing.id('makeRequiredFieldBinding'),
         computed: false,
       },
       arguments: [
@@ -1545,7 +1561,7 @@ describe('completed Block bindings', () => {
       callee: {
         type: 'MemberExpression',
         object: Testing.id('OtherApplication'),
-        property: Testing.id('makeBinding'),
+        property: Testing.id('makeRequiredFieldBinding'),
         computed: false,
       },
       arguments: [

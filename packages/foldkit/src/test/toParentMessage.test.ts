@@ -134,15 +134,19 @@ const ParentDefinition = makeDefinition('TestParentMessageParent', {
   Model: ParentModel,
   Message: Schema.Never,
 })
-const ChildBindingWithoutPolicy = ParentDefinition.makeBinding(ChildBlock, {
-  placement: 'primary',
-  read: model => Option.some(model.child),
-  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
-  delivery: {
-    when: model => model.isEnabled,
-    toUpdateContext: model => [model.multiplier],
+const ChildBindingWithoutPolicy = ParentDefinition.makeCustomBinding(
+  ChildBlock,
+  {
+    placement: 'primary',
+    read: model => Option.some(model.child),
+    write: (model, nextChild) =>
+      modifyFields(model, { child: () => nextChild }),
+    delivery: {
+      when: model => model.isEnabled,
+      toUpdateContext: model => [model.multiplier],
+    },
   },
-})
+)
 const ChildBinding = ChildBindingWithoutPolicy.withOutMessagePolicy({
   fold: ParentDefinition.makeOutMessageFold(ChildBlock, {
     ChangedCount: ({ count }) =>
@@ -158,66 +162,82 @@ const ForeignParentDefinition = makeDefinition(
     Message: Schema.Never,
   },
 )
-const ForeignChildBinding = ForeignParentDefinition.makeBinding(ChildBlock, {
-  placement: 'primary',
-  read: model => Option.some(model.child),
-  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
-  delivery: { toUpdateContext: model => [model.multiplier] },
-})
-const OptionalBinding = ParentDefinition.makeBinding(PlainChildBlock, {
-  field: 'maybeChild',
-  placement: 'optional',
-  delivery: { toUpdateContext: model => [model.multiplier] },
-})
-const MessageFreeBinding = ParentDefinition.makeBinding(MessageFreeChildBlock, {
-  field: 'maybeSilentChild',
-  placement: 'silent',
-})
-const KeyedBinding = ParentDefinition.makeBinding(PlainChildBlock, {
+const ForeignChildBinding = ForeignParentDefinition.makeCustomBinding(
+  ChildBlock,
+  {
+    placement: 'primary',
+    read: model => Option.some(model.child),
+    write: (model, nextChild) =>
+      modifyFields(model, { child: () => nextChild }),
+    delivery: { toUpdateContext: model => [model.multiplier] },
+  },
+)
+const OptionalBinding = ParentDefinition.makeOptionalFieldBinding(
+  PlainChildBlock,
+  {
+    field: 'maybeChild',
+    placement: 'optional',
+    delivery: { toUpdateContext: model => [model.multiplier] },
+  },
+)
+const MessageFreeBinding = ParentDefinition.makeOptionalFieldBinding(
+  MessageFreeChildBlock,
+  {
+    field: 'maybeSilentChild',
+    placement: 'silent',
+  },
+)
+const KeyedBinding = ParentDefinition.makeKeyedArrayBinding(PlainChildBlock, {
   field: 'children',
   key: 'id',
   placement: 'entries',
   delivery: { toUpdateContext: model => [model.multiplier] },
 })
-const WrappedBinding = ParentDefinition.makeBinding(PlainChildBlock, {
+const WrappedBinding = ParentDefinition.makeKeyedArrayBinding(PlainChildBlock, {
   field: 'wrappedChildren',
   key: 'entryId',
   childField: 'child',
   placement: 'wrapped',
   delivery: { toUpdateContext: model => [model.multiplier] },
 })
-const NumericBinding = ParentDefinition.makeBinding(PlainChildBlock, {
-  readAll: model => model.numericChildren,
-  key: item => item.order,
-  keySchema: Schema.NumberFromString.check(Schema.isGreaterThan(0)),
-  read: item => item.child,
-  writeAt: (model, order, nextChild) =>
-    modifyFields(model, {
-      numericChildren: Array.map(item =>
-        item.order === order
-          ? modifyFields(item, { child: () => nextChild })
-          : item,
-      ),
-    }),
-  placement: 'numeric',
-  delivery: { toUpdateContext: model => [model.multiplier] },
-})
-const LiteralBinding = ParentDefinition.makeBinding(PlainChildBlock, {
-  readAll: model => model.literalChildren,
-  key: item => item.slot,
-  keySchema: LiteralChild.fields.slot,
-  read: item => item.child,
-  writeAt: (model, slot, nextChild) =>
-    modifyFields(model, {
-      literalChildren: Array.map(item =>
-        item.slot === slot
-          ? modifyFields(item, { child: () => nextChild })
-          : item,
-      ),
-    }),
-  placement: 'literal',
-  delivery: { toUpdateContext: model => [model.multiplier] },
-})
+const NumericBinding = ParentDefinition.makeCustomKeyedBinding(
+  PlainChildBlock,
+  {
+    readAll: model => model.numericChildren,
+    key: item => item.order,
+    keySchema: Schema.NumberFromString.check(Schema.isGreaterThan(0)),
+    read: item => item.child,
+    writeAt: (model, order, nextChild) =>
+      modifyFields(model, {
+        numericChildren: Array.map(item =>
+          item.order === order
+            ? modifyFields(item, { child: () => nextChild })
+            : item,
+        ),
+      }),
+    placement: 'numeric',
+    delivery: { toUpdateContext: model => [model.multiplier] },
+  },
+)
+const LiteralBinding = ParentDefinition.makeCustomKeyedBinding(
+  PlainChildBlock,
+  {
+    readAll: model => model.literalChildren,
+    key: item => item.slot,
+    keySchema: LiteralChild.fields.slot,
+    read: item => item.child,
+    writeAt: (model, slot, nextChild) =>
+      modifyFields(model, {
+        literalChildren: Array.map(item =>
+          item.slot === slot
+            ? modifyFields(item, { child: () => nextChild })
+            : item,
+        ),
+      }),
+    placement: 'literal',
+    delivery: { toUpdateContext: model => [model.multiplier] },
+  },
+)
 const ParentComposition = ParentDefinition.makeComposition({
   bindings: [
     ChildBinding,

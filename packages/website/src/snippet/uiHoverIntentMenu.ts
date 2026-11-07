@@ -24,8 +24,12 @@ export const HoverMenuBlock = Block.make('HoverMenu', {
   Message,
 })
 
-const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
-  HoverMenuBlock
+const {
+  makeNoopStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = HoverMenuBlock
 
 const foldHoverMenuOutMessage = makeOutMessageFold(
   HoverIntent.HoverIntentBlock,
@@ -35,9 +39,12 @@ const foldHoverMenuOutMessage = makeOutMessageFold(
   },
 )
 
-const HoverMenuBinding = makeBinding(HoverIntent.HoverIntentBlock, {
-  field: 'hoverMenu',
-}).withOutMessagePolicy({ fold: foldHoverMenuOutMessage })
+const HoverMenuBinding = makeRequiredFieldBinding(
+  HoverIntent.HoverIntentBlock,
+  {
+    field: 'hoverMenu',
+  },
+).withOutMessagePolicy({ fold: foldHoverMenuOutMessage })
 
 const HoverMenuComposition = makeComposition({
   bindings: [HoverMenuBinding],

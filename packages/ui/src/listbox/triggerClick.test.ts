@@ -26,10 +26,13 @@ const foldListboxOutMessage = ListboxTriggerClickTestBlock.makeOutMessageFold(
     Selected: () => ListboxTriggerClickTestBlock.makeNoopStep(),
   },
 )
-const ListboxBinding = ListboxTriggerClickTestBlock.makeBinding(TestListbox, {
-  field: 'listbox',
-  init: { contextToArgs: config => [config] },
-}).withOutMessagePolicy({ fold: foldListboxOutMessage })
+const ListboxBinding = ListboxTriggerClickTestBlock.makeRequiredFieldBinding(
+  TestListbox,
+  {
+    field: 'listbox',
+    init: { contextToArgs: config => [config] },
+  },
+).withOutMessagePolicy({ fold: foldListboxOutMessage })
 const ListboxTriggerClickTestComposition =
   ListboxTriggerClickTestBlock.makeComposition({
     bindings: [ListboxBinding],

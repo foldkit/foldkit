@@ -69,7 +69,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const ChildBinding = ApplicationDefinition.makeBinding(childBlock, {
+const ChildBinding = ApplicationDefinition.makeCustomBinding(childBlock, {
   read: model => Option.some(model.child),
   write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
 })

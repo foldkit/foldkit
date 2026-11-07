@@ -220,7 +220,7 @@ const RootBaseDefinition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: RootMessage,
 })
-const EntriesBinding = RootBaseDefinition.makeBinding(itemBlock, {
+const EntriesBinding = RootBaseDefinition.makeKeyedArrayBinding(itemBlock, {
   field: 'entries',
   key: 'id',
 })

@@ -69,10 +69,13 @@ export const ParentDefinition = Block.makeDefinition('EmittedPickerConsumer', {
   Model: ParentModel,
   Message: Schema.Never,
 })
-export const PickerBinding = ParentDefinition.makeBinding(Numeric.PickerBlock, {
-  field: 'picker',
-  init: false,
-}).withOutMessagePolicy({
+export const PickerBinding = ParentDefinition.makeRequiredFieldBinding(
+  Numeric.PickerBlock,
+  {
+    field: 'picker',
+    init: false,
+  },
+).withOutMessagePolicy({
   fold: Numeric.PickerBlock.OutMessage.match({
     Selected: () => ParentDefinition.makeStep(model => ({ model })),
   }),

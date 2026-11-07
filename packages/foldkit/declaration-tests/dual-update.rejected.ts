@@ -166,17 +166,19 @@ update(message, { multiplier: 2 })
 // @ts-expect-error The data-first form retains the required context.
 update(model, message)
 
-RequiredRestParentDefinition.makeBinding(RequiredRestBlock, {
-  // @ts-expect-error A required-rest contextual child must provide generated delivery context.
+RequiredRestParentDefinition.makeRequiredFieldBinding(RequiredRestBlock, {
   field: 'child',
   // @ts-expect-error A required-rest contextual child must provide generated delivery context.
   delivery: {},
 })
 
-const AlternativeChildBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-  placement: 'alternative',
-})
+const AlternativeChildBinding = ParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
+    placement: 'alternative',
+  },
+)
 const OmittedComposition = ParentDefinition.makeComposition({
   bindings: [AlternativeChildBinding],
 })

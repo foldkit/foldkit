@@ -20,10 +20,8 @@ import type { Owner } from '../../block/owner.js'
 import type { HandlerOfHostDefinition } from '../../block/requirements.js'
 import type {
   ConstructorBody,
-  MakeBinding,
   MakeDescriptorOutMessageFold,
   MakeDescriptorOutMessageForward,
-  MakeMapBinding,
   SourceOf,
   Validate,
 } from '../constructed/authoring.js'
@@ -32,6 +30,7 @@ import type {
   DescriptorTypeId,
   PublicFacts,
 } from '../constructed/contract.js'
+import type { RelationshipConstructors } from '../constructed/relationshipAuthoring.js'
 import type {
   ActualFacts,
   Block,
@@ -330,7 +329,15 @@ export interface UnifiedBlockFields<
       >,
       typeof DescriptorTypeId
     >,
-    Primitives<NominalId<Id, Config['key']>, MessageSchema['Type']> {
+    Primitives<NominalId<Id, Config['key']>, MessageSchema['Type']>,
+    RelationshipConstructors<
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      ChildInitContextSchema,
+      'Provided',
+      Owner<NominalId<Id, Config['key']>, true>
+    > {
   readonly [DeclaredBlockReaderTypeId]: Effect.Effect<
     object,
     never,
@@ -374,22 +381,6 @@ export interface UnifiedBlockFields<
     NominalId<Id, Config['key']>,
     ModelSchema['Type'],
     MessageSchema['Type']
-  >
-  readonly makeBinding: MakeBinding<
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    ChildInitContextSchema,
-    'Provided',
-    Owner<NominalId<Id, Config['key']>, true>
-  >
-  readonly makeMapBinding: MakeMapBinding<
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    ChildInitContextSchema,
-    'Provided',
-    Owner<NominalId<Id, Config['key']>, true>
   >
   readonly makeOutMessageFold: MakeDescriptorOutMessageFold<
     ModelSchema['Type'],

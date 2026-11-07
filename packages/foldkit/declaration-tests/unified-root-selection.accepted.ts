@@ -221,7 +221,7 @@ export const ParentBlock = Block.make('KeyedProbeParent', {
   effects: { services: [Store] },
   view: { kind: 'Element' },
 })
-export const ChildrenBinding = ParentBlock.makeBinding(
+export const ChildrenBinding = ParentBlock.makeKeyedArrayBinding(
   DeclaredStoreChildBlock,
   {
     field: 'children',
@@ -291,11 +291,14 @@ export const ClosedParentBlock = Block.make('ClosedParent', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const ClosedChildrenBinding = ClosedParentBlock.makeBinding(ClosedChildBlock, {
-  field: 'children',
-  key: 'id',
-  childField: 'model',
-})
+const ClosedChildrenBinding = ClosedParentBlock.makeKeyedArrayBinding(
+  ClosedChildBlock,
+  {
+    field: 'children',
+    key: 'id',
+    childField: 'model',
+  },
+)
 const ClosedParentComposition = ClosedParentBlock.makeComposition({
   bindings: [ClosedChildrenBinding],
 })

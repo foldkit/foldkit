@@ -942,49 +942,6 @@ export const firstCommandNameArgument = (
   return isStringLiteral(name) ? name : undefined
 }
 
-const bindingConfigHasProperties = (
-  node: ESTree.CallExpression,
-  names: ReadonlyArray<string>,
-  references?: WeakMap<ESTree.Node, Reference>,
-  importerFilename?: string,
-): boolean => {
-  const config = blockBindingConfiguration(node, references, importerFilename)
-  if (!isObjectExpression(config)) {
-    return false
-  }
-
-  const properties = new Set(
-    config.properties.flatMap(property =>
-      isObjectProperty(property)
-        ? Option.match(staticPropertyName(property), {
-            onNone: () => [],
-            onSome: name => [name],
-          })
-        : [],
-    ),
-  )
-  return names.every(name => properties.has(name))
-}
-
-const bindingConfigHasStaticStringProperty = (
-  node: ESTree.CallExpression,
-  name: string,
-  references?: WeakMap<ESTree.Node, Reference>,
-  importerFilename?: string,
-): boolean => {
-  const config = blockBindingConfiguration(node, references, importerFilename)
-  if (!isObjectExpression(config)) {
-    return false
-  }
-
-  return config.properties.some(
-    property =>
-      isObjectProperty(property) &&
-      Option.contains(staticPropertyName(property), name) &&
-      Option.isSome(staticStringValue(property.value)),
-  )
-}
-
 const directBindingCall = (
   node: ESTree.CallExpression,
 ): ESTree.CallExpression => {
@@ -1004,6 +961,34 @@ export const blockBindingSourceCall = (
   node: ESTree.CallExpression,
 ): ESTree.CallExpression => directBindingCall(node)
 
+type BindingMethod =
+  | 'makeRequiredFieldBinding'
+  | 'makeOptionalFieldBinding'
+  | 'makeOptionalKeyedFieldBinding'
+  | 'makeKeyedArrayBinding'
+  | 'makeRecordBinding'
+  | 'makeHashMapBinding'
+  | 'makeCustomBinding'
+  | 'makeCustomKeyedBinding'
+  | 'makeVariantBinding'
+
+const staticBindingMethods: ReadonlyArray<BindingMethod> = [
+  'makeRequiredFieldBinding',
+  'makeOptionalFieldBinding',
+  'makeCustomBinding',
+  'makeVariantBinding',
+]
+
+const keyedBindingMethods: ReadonlyArray<BindingMethod> = [
+  'makeOptionalKeyedFieldBinding',
+  'makeKeyedArrayBinding',
+  'makeRecordBinding',
+  'makeHashMapBinding',
+  'makeCustomKeyedBinding',
+]
+
+const bindingMethods = [...staticBindingMethods, ...keyedBindingMethods]
+
 /** Resolves a Binding constructor to its Definition owner. */
 export const blockBindingOwner = (
   node: ESTree.CallExpression,
@@ -1011,17 +996,21 @@ export const blockBindingOwner = (
   importerFilename?: string,
 ): Option.Option<DefinitionMethodOwner> => {
   const bindingCall = directBindingCall(node)
-  return Option.orElse(
-    ownedDefinitionMethodOwner(
-      bindingCall.callee,
-      'makeMapBinding',
-      references,
-      importerFilename,
+  return Option.flatMap(
+    Array.findFirst(bindingMethods, method =>
+      Option.isSome(
+        ownedDefinitionMethodOwner(
+          bindingCall.callee,
+          method,
+          references,
+          importerFilename,
+        ),
+      ),
     ),
-    () =>
+    method =>
       ownedDefinitionMethodOwner(
         bindingCall.callee,
-        'makeBinding',
+        method,
         references,
         importerFilename,
       ),
@@ -1064,7 +1053,7 @@ export const blockBindingChild = (
     : undefined
 }
 
-/** Recognizes static and keyed parent-owned child Bindings from their configuration. */
+/** Recognizes static and keyed parent-owned child Binding constructors. */
 export const blockBindingMethod = (
   node: ESTree.CallExpression,
   references?: WeakMap<ESTree.Node, Reference>,
@@ -1072,62 +1061,16 @@ export const blockBindingMethod = (
 ): Option.Option<'Static' | 'Keyed'> => {
   const bindingCall = directBindingCall(node)
   if (
-    isOwnedDefinitionCall(
-      bindingCall,
-      'makeMapBinding',
-      references,
-      importerFilename,
+    Array.some(keyedBindingMethods, method =>
+      isOwnedDefinitionCall(bindingCall, method, references, importerFilename),
     )
   ) {
     return Option.some('Keyed')
   }
   if (
-    !isOwnedDefinitionCall(
-      bindingCall,
-      'makeBinding',
-      references,
-      importerFilename,
+    Array.some(staticBindingMethods, method =>
+      isOwnedDefinitionCall(bindingCall, method, references, importerFilename),
     )
-  ) {
-    return Option.none()
-  }
-
-  if (
-    bindingConfigHasProperties(
-      node,
-      ['field', 'key'],
-      references,
-      importerFilename,
-    ) &&
-    bindingConfigHasStaticStringProperty(
-      node,
-      'key',
-      references,
-      importerFilename,
-    )
-  ) {
-    return Option.some('Keyed')
-  }
-
-  if (
-    bindingConfigHasProperties(
-      node,
-      ['readAll', 'key', 'read', 'writeAt'],
-      references,
-      importerFilename,
-    )
-  ) {
-    return Option.some('Keyed')
-  }
-
-  if (
-    bindingConfigHasProperties(
-      node,
-      ['read', 'write'],
-      references,
-      importerFilename,
-    ) ||
-    bindingConfigHasProperties(node, ['field'], references, importerFilename)
   ) {
     return Option.some('Static')
   }

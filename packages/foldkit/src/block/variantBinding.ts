@@ -3,7 +3,6 @@ import { type Effect, Option, Predicate, Schema, SchemaAST } from 'effect'
 import type {
   AnyDescriptor,
   BindingParent,
-  MakeBinding,
   YieldableBinding,
 } from '../experimental/constructed/authoring.js'
 import type {
@@ -11,7 +10,6 @@ import type {
   CoreContract,
 } from '../experimental/constructed/contract.js'
 import type {
-  BindChild,
   BindChildConstructorResult,
   PlacementOfConfig,
 } from './bindChild.js'
@@ -121,13 +119,6 @@ type ChildInitContextOf<Definition> =
   }>
     ? Context['Type']
     : never
-
-type BindingMethod<Definition extends VariantDefinition> = BindChild<
-  Definition['Model'],
-  Definition['Message'],
-  OutMessageOf<Definition>,
-  ChildInitContextOf<Definition>
->
 
 type UpdateContext<BlockValue extends BindableBlock> =
   Parameters<BlockValue['update']> extends readonly [
@@ -265,58 +256,8 @@ type VariantBinding<
   ChildInitContextOf<Definition>
 >
 
-/** Binds a completed child whose Model Schema is one complete tagged member
- * of the parent's Schema.Union. Other variants remain parent-owned. */
-interface MakeNativeVariantBinding {
-  <
-    const Definition extends VariantDefinition,
-    const BlockValue extends BindableBlock,
-  >(
-    definition: Definition &
-      Readonly<{ makeBinding: BindingMethod<Definition> }>,
-    block: BlockValue,
-    ...validation: readonly [
-      ...Validate<Definition, BlockValue>,
-      ...([UpdateContext<BlockValue>] extends [readonly []]
-        ? readonly []
-        : Invalid<'This child requires delivery.toUpdateContext'>),
-    ]
-  ): VariantBinding<Definition, BlockValue, Readonly<{}>>
-  <
-    const Definition extends VariantDefinition,
-    const BlockValue extends BindableBlock,
-    const Config extends object,
-  >(
-    definition: Definition &
-      Readonly<{ makeBinding: BindingMethod<Definition> }>,
-    block: BlockValue,
-    config: Config & Options<BlockValue, Definition['Model']['Type']>,
-    ...validation: readonly [
-      ...Validate<Definition, BlockValue>,
-      ...ValidateOptions<Config, BlockValue, Definition['Model']['Type']>,
-    ]
-  ): VariantBinding<Definition, BlockValue, Config>
-}
-
 type ContractVariantDefinition = VariantDefinition &
   Readonly<{ owner: Owner<string> }>
-
-type ChildInitContextSchemaOf<Definition> =
-  Definition extends Readonly<{
-    ChildInitContext: infer Context extends AnySchema
-  }>
-    ? Context
-    : undefined
-
-type ContractBindingMethod<Definition extends ContractVariantDefinition> =
-  MakeBinding<
-    Definition['Model'],
-    Definition['Message'],
-    OutMessageOf<Definition>,
-    ChildInitContextSchemaOf<Definition>,
-    'Provided',
-    Definition['owner']
-  >
 
 type ChildContract = AnyDescriptor &
   Readonly<{
@@ -350,13 +291,11 @@ type ContractVariantBinding<
     >
 >
 
-interface MakeContractVariantBinding {
-  <
-    const Definition extends ContractVariantDefinition,
-    const Child extends ChildContract,
-  >(
-    definition: Definition &
-      Readonly<{ makeBinding: ContractBindingMethod<Definition> }>,
+/** @internal Names the bound whole-variant method in consumer declarations. */
+export interface OwnedContractVariantBinding<
+  Definition extends ContractVariantDefinition,
+> {
+  <const Child extends ChildContract>(
     child: Child,
     ...validation: readonly [
       ...Validate<Definition, CoreContract<Child>>,
@@ -365,13 +304,7 @@ interface MakeContractVariantBinding {
         : Invalid<'This child requires delivery.toUpdateContext'>),
     ]
   ): ContractVariantBinding<Definition, Child, Readonly<{}>>
-  <
-    const Definition extends ContractVariantDefinition,
-    const Child extends ChildContract,
-    const Config extends object,
-  >(
-    definition: Definition &
-      Readonly<{ makeBinding: ContractBindingMethod<Definition> }>,
+  <const Child extends ChildContract, const Config extends object>(
     child: Child,
     config: Config & Options<CoreContract<Child>, Definition['Model']['Type']>,
     ...validation: readonly [
@@ -385,9 +318,69 @@ interface MakeContractVariantBinding {
   ): ContractVariantBinding<Definition, Child, Config>
 }
 
-/** Binds an exact complete tagged child Model with native or Layer-owned construction. */
-export type MakeVariantBinding = MakeContractVariantBinding &
-  MakeNativeVariantBinding
+/** @internal Names the native whole-variant method in consumer declarations. */
+export interface OwnedNativeVariantBinding<
+  Definition extends VariantDefinition,
+> {
+  <const Child extends BindableBlock>(
+    child: Child,
+    ...validation: readonly [
+      ...Validate<Definition, Child>,
+      ...([UpdateContext<Child>] extends [readonly []]
+        ? readonly []
+        : Invalid<'This child requires delivery.toUpdateContext'>),
+    ]
+  ): VariantBinding<Definition, Child, Readonly<{}>>
+  <const Child extends BindableBlock, const Config extends object>(
+    child: Child,
+    config: Config & Options<Child, Definition['Model']['Type']>,
+    ...validation: readonly [
+      ...Validate<Definition, Child>,
+      ...ValidateOptions<Config, Child, Definition['Model']['Type']>,
+    ]
+  ): VariantBinding<Definition, Child, Config>
+}
+
+/** Parent-owned whole-variant constructor for a completed native child. */
+export type MakeNativeOwnedVariantBinding<
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutMessageSchema extends AnySchema | undefined,
+  ChildInitContext,
+> = ModelSchema extends VariantDefinition['Model']
+  ? MessageSchema extends AnySelfContainedSchema
+    ? OwnedNativeVariantBinding<
+        Readonly<{
+          Model: ModelSchema
+          Message: MessageSchema
+          OutMessage: OutMessageSchema
+          ChildInitContext: Schema.Schema<ChildInitContext>
+        }>
+      >
+    : (child: never) => never
+  : (child: never) => never
+
+/** A parent-owned whole-variant constructor retaining exact child contracts. */
+export type MakeOwnedVariantBinding<
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
+  OutMessageSchema extends AnySchema | undefined,
+  ChildInitContextSchema extends AnySchema | undefined,
+  ParentOwner,
+> =
+  ModelSchema extends Readonly<{ members: ReadonlyArray<Schema.Top> }>
+    ? OwnedContractVariantBinding<
+        Readonly<{
+          Model: ModelSchema
+          Message: MessageSchema
+          OutMessage: OutMessageSchema
+          owner: Extract<ParentOwner, Owner<string>>
+        }> &
+          (ChildInitContextSchema extends AnySchema
+            ? Readonly<{ ChildInitContext: ChildInitContextSchema }>
+            : {})
+      >
+    : (child: never) => never
 
 const tagOf = (ast: SchemaAST.AST): string | undefined => {
   if (!SchemaAST.isObjects(ast) || ast.indexSignatures.length !== 0) {
@@ -459,85 +452,77 @@ const assertOptionsRecord: (
   }
 }
 
-/** Creates a static Binding for exact whole-variant child storage.
- * Include the child Block.Model Schema directly in the parent Schema.Union.
- * Its tag controls presence. Subscription gates only control Streams.
- * Initialization and changing the active variant remain parent-owned. */
-export const makeVariantBinding = ((): MakeVariantBinding =>
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  ((definition: object, block: BindableBlock, config: object = {}): unknown => {
-    assertOptionsRecord(
-      config,
-      ['placement', 'subscriptions', 'delivery'],
-      'options',
+/** @internal Lowers a parent-owned exact whole-variant relationship. */
+export const makeVariantBindingRuntime = (
+  parentModel: unknown,
+  lower: (child: object, config: object) => unknown,
+  block: object,
+  config: object = {},
+): unknown => {
+  assertOptionsRecord(
+    config,
+    ['placement', 'subscriptions', 'delivery'],
+    'options',
+  )
+  const childModel = Reflect.get(block, 'Model')
+  if (!Schema.isSchema(parentModel) || !Schema.isSchema(childModel)) {
+    throw new Error(
+      '[foldkit] makeVariantBinding requires a union parent Model and a child Block.',
     )
-    const makeBinding = Reflect.get(definition, 'makeBinding')
-    const parentModel = Reflect.get(definition, 'Model')
+  }
+  const subscriptions = Reflect.get(config, 'subscriptions')
+  if (subscriptions !== undefined) {
+    assertOptionsRecord(subscriptions, ['when'], 'subscriptions')
+  }
+  const delivery = Reflect.get(config, 'delivery')
+  if (delivery !== undefined) {
+    assertOptionsRecord(delivery, ['when', 'toUpdateContext'], 'delivery')
+    for (const key of ['when', 'toUpdateContext']) {
+      const value = Reflect.get(delivery, key)
+      if (value !== undefined && !Predicate.isFunction(value)) {
+        throw new Error(
+          `[foldkit] Variant Binding delivery.${key} must be a function.`,
+        )
+      }
+    }
+  }
+  const gates = Predicate.isObject(subscriptions)
+    ? Reflect.get(subscriptions, 'when')
+    : undefined
+  if (gates !== undefined && !Predicate.isFunction(gates)) {
+    assertOptionsRecord(
+      gates,
+      Reflect.get(block, 'subscriptions') === undefined
+        ? undefined
+        : Object.keys(Reflect.get(block, 'subscriptions')),
+      'Subscription gates',
+    )
     if (
-      !Predicate.isFunction(makeBinding) ||
-      !Schema.isSchema(parentModel) ||
-      !Schema.isSchema(block.Model)
+      Reflect.ownKeys(gates).some(
+        key => !Predicate.isFunction(Reflect.get(gates, key)),
+      )
     ) {
       throw new Error(
-        '[foldkit] makeVariantBinding requires a parent authoring contract and a child Block.',
+        '[foldkit] Variant Binding Subscription gates must name declared child Subscriptions.',
       )
     }
-    const subscriptions = Reflect.get(config, 'subscriptions')
-    if (subscriptions !== undefined) {
-      assertOptionsRecord(subscriptions, ['when'], 'subscriptions')
-    }
-    const delivery = Reflect.get(config, 'delivery')
-    if (delivery !== undefined) {
-      assertOptionsRecord(delivery, ['when', 'toUpdateContext'], 'delivery')
-      for (const key of ['when', 'toUpdateContext']) {
-        const value = Reflect.get(delivery, key)
-        if (value !== undefined && !Predicate.isFunction(value)) {
-          throw new Error(
-            `[foldkit] Variant Binding delivery.${key} must be a function.`,
-          )
-        }
-      }
-    }
-    const gates = Predicate.isObject(subscriptions)
-      ? Reflect.get(subscriptions, 'when')
-      : undefined
-    if (gates !== undefined && !Predicate.isFunction(gates)) {
-      assertOptionsRecord(
-        gates,
-        block.subscriptions === undefined
-          ? undefined
-          : Object.keys(block.subscriptions),
-        'Subscription gates',
-      )
-      if (
-        Reflect.ownKeys(gates).some(
-          key => !Predicate.isFunction(Reflect.get(gates, key)),
-        )
-      ) {
-        throw new Error(
-          '[foldkit] Variant Binding Subscription gates must name declared child Subscriptions.',
-        )
-      }
-    }
-    const tag = variantTag(parentModel, block.Model)
-    const read = (model: object): Option.Option<unknown> =>
-      Reflect.get(model, '_tag') === tag ? Option.some(model) : Option.none()
-    const binding = Reflect.apply(makeBinding, definition, [
-      block,
-      {
-        ...config,
-        read,
-        write: (model: object, nextChild: unknown) =>
-          Option.isSome(read(model)) ? nextChild : model,
-      },
-    ])
-    if (!Predicate.isObject(binding)) {
-      throw new Error(
-        '[foldkit] makeVariantBinding requires a native child Binding.',
-      )
-    }
-    if (bindingResolverOf(binding) === undefined) {
-      runtimeBindingOf(binding)
-    }
-    return binding
-  }) as unknown as MakeVariantBinding)()
+  }
+  const tag = variantTag(parentModel, childModel)
+  const read = (model: object): Option.Option<unknown> =>
+    Reflect.get(model, '_tag') === tag ? Option.some(model) : Option.none()
+  const binding = lower(block, {
+    ...config,
+    read,
+    write: (model: object, nextChild: unknown) =>
+      Option.isSome(read(model)) ? nextChild : model,
+  })
+  if (!Predicate.isObject(binding)) {
+    throw new Error(
+      '[foldkit] makeVariantBinding requires a native child Binding.',
+    )
+  }
+  if (bindingResolverOf(binding) === undefined) {
+    runtimeBindingOf(binding)
+  }
+  return binding
+}

@@ -15,9 +15,12 @@ const RootDefinition = Block.makeDefinition('GenericPolicyRoot', {
   Model: Schema.Struct({ feature: CityFeature.block.Model }),
   Message: Schema.Never,
 })
-const FeatureBinding = RootDefinition.makeBinding(CityFeature.block, {
-  field: 'feature',
-}).withOutMessagePolicy({
+const FeatureBinding = RootDefinition.makeRequiredFieldBinding(
+  CityFeature.block,
+  {
+    field: 'feature',
+  },
+).withOutMessagePolicy({
   fold: RootDefinition.makeOutMessageFold(CityFeature.block, {
     ChoseItem: RootDefinition.makeNoopStep,
   }),

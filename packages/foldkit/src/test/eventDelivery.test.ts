@@ -100,7 +100,7 @@ const ParentDefinition = Block.makeDefinition('TestingFollowupsParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+const ChildBinding = ParentDefinition.makeCustomKeyedBinding(ChildBlock, {
   placement: 'Children',
   readAll: model => model.children,
   key: instance => instance.id,

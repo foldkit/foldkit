@@ -74,7 +74,7 @@ const Parent = makeDefinition('CompositionSafetyRuntimeParent', {
 
 describe('Composition safety', () => {
   it('automatically routes a canonical child Message with no update context', () => {
-    const binding = Reflect.apply(Parent.makeBinding, undefined, [
+    const binding = Reflect.apply(Parent.makeRequiredFieldBinding, undefined, [
       PlainBlock,
       {
         field: 'child',
@@ -107,7 +107,7 @@ describe('Composition safety', () => {
 
   it('rejects an omitted route for an observable optional update context', () => {
     expect(() =>
-      Reflect.apply(Parent.makeBinding, undefined, [
+      Reflect.apply(Parent.makeRequiredFieldBinding, undefined, [
         OptionalContextBlock,
         {
           field: 'child',

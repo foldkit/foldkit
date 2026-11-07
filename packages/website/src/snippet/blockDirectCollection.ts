@@ -13,9 +13,9 @@ const TableBlock = Block.make('Table', {
   Message,
 })
 
-const { makeBinding } = TableBlock
+const { makeKeyedArrayBinding } = TableBlock
 
-export const RowsBinding = makeBinding(Row.RowBlock, {
+export const RowsBinding = makeKeyedArrayBinding(Row.RowBlock, {
   field: 'rows',
   key: 'id',
 })

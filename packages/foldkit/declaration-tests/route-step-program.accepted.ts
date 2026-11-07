@@ -235,10 +235,13 @@ export const ParentDefinition = Block.makeDefinition('RouteStepProgramParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-export const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-  init: false,
-})
+export const ChildBinding = ParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
+    init: false,
+  },
+)
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })

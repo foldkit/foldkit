@@ -37,9 +37,12 @@ export const RoutedBlock = Block.make('RoutedComposition', {
   Message: Schema.Never,
   Init: Schema.Tuple([]),
 })
-const RoutedEditorBinding = RoutedBlock.makeBinding(Editor.EditorBlock, {
-  field: 'editor',
-}).withOutMessagePolicy({
+const RoutedEditorBinding = RoutedBlock.makeRequiredFieldBinding(
+  Editor.EditorBlock,
+  {
+    field: 'editor',
+  },
+).withOutMessagePolicy({
   fold: RoutedBlock.makeOutMessageFold(Editor.EditorBlock, {
     Edited: RoutedBlock.makeNoopStep,
   }),

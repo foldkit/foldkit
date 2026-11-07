@@ -105,9 +105,12 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const PostsBinding = ApplicationDefinition.makeBinding(postsQuery, {
-  field: 'posts',
-})
+const PostsBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  postsQuery,
+  {
+    field: 'posts',
+  },
+)
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [PostsBinding],
 })

@@ -53,7 +53,7 @@ const ParentDefinition = makeDefinition('OriginViewParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+const ChildBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
 })
 const ParentComposition = ParentDefinition.makeComposition({

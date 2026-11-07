@@ -39,14 +39,20 @@ export const DeclarationCanonicalConstructorParentDefinition =
     Message: ParentMessage,
   })
 export const CanonicalBinding =
-  DeclarationCanonicalConstructorParentDefinition.makeBinding(ChildBlock, {
-    field: 'child',
-  })
+  DeclarationCanonicalConstructorParentDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'child',
+    },
+  )
 export const AlternativeBinding =
-  DeclarationCanonicalConstructorParentDefinition.makeBinding(ChildBlock, {
-    field: 'child',
-    placement: 'other',
-  })
+  DeclarationCanonicalConstructorParentDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'child',
+      placement: 'other',
+    },
+  )
 export const DeclarationCanonicalConstructorParentComposition =
   DeclarationCanonicalConstructorParentDefinition.makeComposition({
     bindings: [CanonicalBinding],

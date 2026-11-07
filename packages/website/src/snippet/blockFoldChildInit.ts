@@ -72,12 +72,15 @@ const ProfileBlock = Block.make('Profile', {
   ChildInitContext: ProfileChildInitContext,
 })
 
-const ThemePickerBinding = ProfileBlock.makeBinding(ThemePickerBlock, {
-  field: 'themePicker',
-  init: {
-    contextToArgs: ({ savedTheme }) => [savedTheme],
+const ThemePickerBinding = ProfileBlock.makeRequiredFieldBinding(
+  ThemePickerBlock,
+  {
+    field: 'themePicker',
+    init: {
+      contextToArgs: ({ savedTheme }) => [savedTheme],
+    },
   },
-})
+)
 
 const ProfileComposition = ProfileBlock.makeComposition({
   bindings: [ThemePickerBinding],

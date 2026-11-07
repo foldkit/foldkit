@@ -97,18 +97,24 @@ export const ParentDefinition = Block.makeDefinition('StrictRoutingParent', {
   Message: ParentMessage,
 })
 
-export const CanonicalBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-})
-
-export const ContextBinding = ParentDefinition.makeBinding(ContextChildBlock, {
-  field: 'contextualChild',
-  delivery: {
-    toUpdateContext: model => [{ multiplier: model.multiplier }],
+export const CanonicalBinding = ParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
   },
-})
+)
 
-export const KeyedBinding = ParentDefinition.makeBinding(ChildBlock, {
+export const ContextBinding = ParentDefinition.makeRequiredFieldBinding(
+  ContextChildBlock,
+  {
+    field: 'contextualChild',
+    delivery: {
+      toUpdateContext: model => [{ multiplier: model.multiplier }],
+    },
+  },
+)
+
+export const KeyedBinding = ParentDefinition.makeKeyedArrayBinding(ChildBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -238,9 +244,12 @@ export const SilentParentDefinition = Block.makeDefinition(
   },
 )
 
-export const SilentBinding = SilentParentDefinition.makeBinding(SilentBlock, {
-  field: 'silent',
-})
+export const SilentBinding = SilentParentDefinition.makeRequiredFieldBinding(
+  SilentBlock,
+  {
+    field: 'silent',
+  },
+)
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 export const SilentParentComposition = SilentParentDefinition.makeComposition({

@@ -135,10 +135,11 @@ export const GeneratedDispatchParentDefinition = Block.makeDefinition(
   'GeneratedDispatchParent',
   { Model: ParentModel, Message: ParentMessage },
 )
-export const ChildBinding = GeneratedDispatchParentDefinition.makeBinding(
-  GeneratedDispatchChildBlock,
-  { field: 'child' },
-)
+export const ChildBinding =
+  GeneratedDispatchParentDefinition.makeRequiredFieldBinding(
+    GeneratedDispatchChildBlock,
+    { field: 'child' },
+  )
 export const GeneratedDispatchParentComposition =
   GeneratedDispatchParentDefinition.makeComposition({
     bindings: [ChildBinding],
@@ -208,7 +209,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-export const ParentBinding = ApplicationDefinition.makeBinding(
+export const ParentBinding = ApplicationDefinition.makeRequiredFieldBinding(
   GeneratedDispatchParentBlock,
   { field: 'parent' },
 )

@@ -9,10 +9,10 @@ import {
   StatusFilterValue,
 } from '../../listbox'
 import {
-  makeBinding,
   makeComposition,
   makeOutMessageFold,
   makeOutMessageStep,
+  makeRequiredFieldBinding,
 } from './block'
 import { OutMessage } from './outMessage'
 
@@ -38,18 +38,21 @@ const changeSort = (value: Issue.SortBy) =>
 const changeGrouping = (value: Issue.GroupBy) =>
   makeOutMessageStep(() => OutMessage.ChangedGrouping({ groupBy: value }))
 
-export const StatusListboxBinding = makeBinding(StatusFilterListboxBlock, {
-  field: 'statusListbox',
-  init: {
-    contextToArgs: () => [{ id: 'issue-list-filter-by-status' }],
+export const StatusListboxBinding = makeRequiredFieldBinding(
+  StatusFilterListboxBlock,
+  {
+    field: 'statusListbox',
+    init: {
+      contextToArgs: () => [{ id: 'issue-list-filter-by-status' }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: makeOutMessageFold(StatusFilterListboxBlock, {
     Selected: ({ value }) => changeStatusFilter(value),
   }),
 })
 
-export const SortListboxBinding = makeBinding(SortListboxBlock, {
+export const SortListboxBinding = makeRequiredFieldBinding(SortListboxBlock, {
   field: 'sortListbox',
   init: { contextToArgs: () => [{ id: 'issue-list-sort-issues' }] },
 }).withOutMessagePolicy({
@@ -58,7 +61,7 @@ export const SortListboxBinding = makeBinding(SortListboxBlock, {
   }),
 })
 
-export const GroupListboxBinding = makeBinding(GroupListboxBlock, {
+export const GroupListboxBinding = makeRequiredFieldBinding(GroupListboxBlock, {
   field: 'groupListbox',
   init: { contextToArgs: () => [{ id: 'issue-list-group-issues' }] },
 }).withOutMessagePolicy({

@@ -52,15 +52,15 @@ const makeFixture = () => {
     Model: Schema.Struct({ child: declaration.Model }),
     Message: ParentMessage,
   })
-  const ChildBinding = ParentDefinition.makeBinding(declaration, {
+  const ChildBinding = ParentDefinition.makeRequiredFieldBinding(declaration, {
     field: 'child',
     init: { contextToArgs: () => [] },
   })
   if (false) {
     // @ts-expect-error Provided Bindings select an independent contract, not an implementation descriptor.
-    ParentDefinition.makeBinding(inferred, { field: 'child' })
+    ParentDefinition.makeRequiredFieldBinding(inferred, { field: 'child' })
     // @ts-expect-error A default graph Layer must not become the provided child contract.
-    ParentDefinition.makeBinding(
+    ParentDefinition.makeRequiredFieldBinding(
       { ...declaration, layer: Layer.empty },
       { field: 'child' },
     )
@@ -72,15 +72,18 @@ const makeFixture = () => {
     }),
     Message: ParentMessage,
   })
-  const CollectionBinding = CollectionDefinition.makeMapBinding(declaration, {
-    field: 'children',
-  })
+  const CollectionBinding = CollectionDefinition.makeRecordBinding(
+    declaration,
+    {
+      field: 'children',
+    },
+  )
 
   if (false) {
     // @ts-expect-error Map Bindings also reject an implementation descriptor.
-    CollectionDefinition.makeMapBinding(inferred, { field: 'children' })
+    CollectionDefinition.makeRecordBinding(inferred, { field: 'children' })
     // @ts-expect-error Map Bindings require a get-only independent declaration.
-    CollectionDefinition.makeMapBinding(
+    CollectionDefinition.makeRecordBinding(
       { ...declaration, layer: Layer.empty },
       { field: 'children' },
     )

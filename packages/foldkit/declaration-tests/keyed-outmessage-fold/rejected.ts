@@ -12,7 +12,7 @@ import {
   update,
 } from './parent.js'
 
-const entries = ParentBlock.makeMapBinding(ChildBlock, { field: 'entries' })
+const entries = ParentBlock.makeRecordBinding(ChildBlock, { field: 'entries' })
 
 entries.withOutMessagePolicy({
   // @ts-expect-error The occurrence key is a branded string, not a number.
@@ -136,7 +136,7 @@ const wrongModel = entries.withOutMessagePolicy({
 // @ts-expect-error A produced fold's Step must receive and return the parent Model.
 ParentBlock.makeComposition({ bindings: [wrongModel] })
 
-const missingBinding = ParentBlock.makeMapBinding(ChildBlock, {
+const missingBinding = ParentBlock.makeRecordBinding(ChildBlock, {
   field: 'entries',
   placement: 'unregisteredEntries',
 }).withOutMessagePolicy({ fold: foldSelection })
@@ -195,7 +195,7 @@ const SingleBlock = Block.make('SingleFoldParent', {
   Message: Schema.Never,
   Init: Schema.Tuple([]),
 })
-const unkeyed = SingleBlock.makeBinding(ChildBlock, {
+const unkeyed = SingleBlock.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
 }).withOutMessagePolicy({
   fold: () =>

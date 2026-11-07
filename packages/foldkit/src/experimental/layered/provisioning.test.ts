@@ -50,10 +50,13 @@ describe('graph construction providers', () => {
       Model: ContainerModel,
       Message: ContainerMessage,
     })
-    const ChildBinding = ContainerDefinition.makeBinding(ChildBlock, {
-      field: 'child',
-      init: { contextToArgs: () => ['Project'] },
-    })
+    const ChildBinding = ContainerDefinition.makeRequiredFieldBinding(
+      ChildBlock,
+      {
+        field: 'child',
+        init: { contextToArgs: () => ['Project'] },
+      },
+    )
     const ContainerComposition = ContainerDefinition.makeComposition({
       bindings: [ChildBinding],
     })
@@ -82,10 +85,10 @@ describe('graph construction providers', () => {
     })
     const Message = defineMessageUnion({ ClickedRefresh: {} })
     const Definition = makeDefinition('ProvidedChildren', { Model, Message })
-    const FirstBinding = Definition.makeBinding(FirstBlock, {
+    const FirstBinding = Definition.makeRequiredFieldBinding(FirstBlock, {
       field: 'first',
     })
-    const SecondBinding = Definition.makeBinding(SecondBlock, {
+    const SecondBinding = Definition.makeRequiredFieldBinding(SecondBlock, {
       field: 'second',
     })
     const Composition = Definition.makeComposition({
@@ -184,7 +187,7 @@ describe('graph construction providers', () => {
       Model,
       Message,
     })
-    const ChildrenBinding = Definition.makeMapBinding(ChildBlock, {
+    const ChildrenBinding = Definition.makeHashMapBinding(ChildBlock, {
       field: 'children',
     })
     const Composition = Definition.makeComposition({

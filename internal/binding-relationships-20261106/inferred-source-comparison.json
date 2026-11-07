@@ -1,0 +1,84 @@
+{
+  "new": [
+    {
+      "name": "WorkspaceGroup001ControlBinding",
+      "alias": "BindingWithoutOutMessagePolicy",
+      "args": [
+        "ControlBlock",
+        "Schema.Struct<{ readonly groupId: Schema.Literals<readonly [\"WorkspaceGroup001\"]>; readonly control: Schema.Struct<{ readonly query: Schema.String; }>; readonly maybeEditor: Schema.Option<Schema.Struct<{ readonly issueId: Schema.String; readonly model: Schema.Struct<{ readonly issueId: Schema.String; readonly title: Schema.String; readonly revision: Schema.Number; }>; }>>; readonly rows: Schema.$Array<Schema.Struct<{ readonly issueId: Schema.String; readonly model: Schema.Struct<{ readonly issueId: Schema.String; readonly title: Schema.String; readonly revision: Schema.Number; }>; readonly label: Schema.String; }>>; readonly lastSavedTitle: Schema.String; }>",
+        "import(\"foldkit/message\").MessageUnion<{ readonly RequestedOpenEditor: { readonly issueId: Schema.String; }; readonly RequestedSaveEditor: {}; readonly CompletedPersistGroup: {}; readonly CompletedObserveGroup: {}; }>",
+        "import(\"foldkit/message\").MessageUnion<{ readonly SavedIssue: { readonly groupId: Schema.Literals<readonly [\"WorkspaceGroup001\"]>; readonly issueId: Schema.String; readonly title: Schema.String; }; }>",
+        "{ readonly field: \"control\"; }",
+        "never",
+        "{}"
+      ]
+    },
+    {
+      "name": "WorkspaceGroup001EditorBinding",
+      "alias": "BindingWithoutOutMessagePolicy",
+      "args": [
+        "EditorBlock",
+        "Schema.Struct<{ readonly groupId: Schema.Literals<readonly [\"WorkspaceGroup001\"]>; readonly control: Schema.Struct<{ readonly query: Schema.String; }>; readonly maybeEditor: Schema.Option<Schema.Struct<{ readonly issueId: Schema.String; readonly model: Schema.Struct<{ readonly issueId: Schema.String; readonly title: Schema.String; readonly revision: Schema.Number; }>; }>>; readonly rows: Schema.$Array<Schema.Struct<{ readonly issueId: Schema.String; readonly model: Schema.Struct<{ readonly issueId: Schema.String; readonly title: Schema.String; readonly revision: Schema.Number; }>; readonly label: Schema.String; }>>; readonly lastSavedTitle: Schema.String; }>",
+        "import(\"foldkit/message\").MessageUnion<{ readonly RequestedOpenEditor: { readonly issueId: Schema.String; }; readonly RequestedSaveEditor: {}; readonly CompletedPersistGroup: {}; readonly CompletedObserveGroup: {}; }>",
+        "import(\"foldkit/message\").MessageUnion<{ readonly SavedIssue: { readonly groupId: Schema.Literals<readonly [\"WorkspaceGroup001\"]>; readonly issueId: Schema.String; readonly title: Schema.String; }; }>",
+        "{ readonly field: \"maybeEditor\"; readonly key: \"issueId\"; readonly childField: \"model\"; readonly placement: \"editor\"; }",
+        "never",
+        "{}"
+      ]
+    },
+    {
+      "name": "WorkspaceGroup001RowsBinding",
+      "alias": "BindingWithoutOutMessagePolicy",
+      "args": [
+        "EditorBlock",
+        "Schema.Struct<{ readonly groupId: Schema.Literals<readonly [\"WorkspaceGroup001\"]>; readonly control: Schema.Struct<{ readonly query: Schema.String; }>; readonly maybeEditor: Schema.Option<Schema.Struct<{ readonly issueId: Schema.String; readonly model: Schema.Struct<{ readonly issueId: Schema.String; readonly title: Schema.String; readonly revision: Schema.Number; }>; }>>; readonly rows: Schema.$Array<Schema.Struct<{ readonly issueId: Schema.String; readonly model: Schema.Struct<{ readonly issueId: Schema.String; readonly title: Schema.String; readonly revision: Schema.Number; }>; readonly label: Schema.String; }>>; readonly lastSavedTitle: Schema.String; }>",
+        "import(\"foldkit/message\").MessageUnion<{ readonly RequestedOpenEditor: { readonly issueId: Schema.String; }; readonly RequestedSaveEditor: {}; readonly CompletedPersistGroup: {}; readonly CompletedObserveGroup: {}; }>",
+        "import(\"foldkit/message\").MessageUnion<{ readonly SavedIssue: { readonly groupId: Schema.Literals<readonly [\"WorkspaceGroup001\"]>; readonly issueId: Schema.String; readonly title: Schema.String; }; }>",
+        "{ readonly field: \"rows\"; readonly key: \"issueId\"; readonly childField: \"model\"; readonly placement: \"rows\"; readonly init: { readonly instances: () => { key: \"WorkspaceGroup001-row\"; args: readonly [\"WorkspaceGroup001-row\"]; }[]; readonly toItem: ({ key }: Readonly<{ key: string; args: readonly [issueId: string]; }>, model: { readonly issueId: string; readonly title: string; readonly revision: number; }) => { readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; readonly label: string; }; }; }",
+        "never",
+        "{}"
+      ]
+    }
+  ],
+  "old": [
+    {
+      "name": "WorkspaceGroup001ControlBinding",
+      "alias": "BindingWithoutOutMessagePolicy",
+      "args": [
+        "ControlBlock",
+        "Schema.Struct<{ readonly groupId: Schema.Literals<readonly [\"WorkspaceGroup001\"]>; readonly control: Schema.Struct<{ readonly query: Schema.String; }>; readonly maybeEditor: Schema.Option<Schema.Struct<{ readonly issueId: Schema.String; readonly model: Schema.Struct<{ readonly issueId: Schema.String; readonly title: Schema.String; readonly revision: Schema.Number; }>; }>>; readonly rows: Schema.$Array<Schema.Struct<{ readonly issueId: Schema.String; readonly model: Schema.Struct<{ readonly issueId: Schema.String; readonly title: Schema.String; readonly revision: Schema.Number; }>; readonly label: Schema.String; }>>; readonly lastSavedTitle: Schema.String; }>",
+        "import(\"foldkit/message\").MessageUnion<{ readonly RequestedOpenEditor: { readonly issueId: Schema.String; }; readonly RequestedSaveEditor: {}; readonly CompletedPersistGroup: {}; readonly CompletedObserveGroup: {}; }>",
+        "import(\"foldkit/message\").MessageUnion<{ readonly SavedIssue: { readonly groupId: Schema.Literals<readonly [\"WorkspaceGroup001\"]>; readonly issueId: Schema.String; readonly title: Schema.String; }; }>",
+        "{ readonly field: \"control\"; }",
+        "never",
+        "{}"
+      ]
+    },
+    {
+      "name": "WorkspaceGroup001EditorBinding",
+      "alias": "BindingWithoutOutMessagePolicy",
+      "args": [
+        "EditorBlock",
+        "Schema.Struct<{ readonly groupId: Schema.Literals<readonly [\"WorkspaceGroup001\"]>; readonly control: Schema.Struct<{ readonly query: Schema.String; }>; readonly maybeEditor: Schema.Option<Schema.Struct<{ readonly issueId: Schema.String; readonly model: Schema.Struct<{ readonly issueId: Schema.String; readonly title: Schema.String; readonly revision: Schema.Number; }>; }>>; readonly rows: Schema.$Array<Schema.Struct<{ readonly issueId: Schema.String; readonly model: Schema.Struct<{ readonly issueId: Schema.String; readonly title: Schema.String; readonly revision: Schema.Number; }>; readonly label: Schema.String; }>>; readonly lastSavedTitle: Schema.String; }>",
+        "import(\"foldkit/message\").MessageUnion<{ readonly RequestedOpenEditor: { readonly issueId: Schema.String; }; readonly RequestedSaveEditor: {}; readonly CompletedPersistGroup: {}; readonly CompletedObserveGroup: {}; }>",
+        "import(\"foldkit/message\").MessageUnion<{ readonly SavedIssue: { readonly groupId: Schema.Literals<readonly [\"WorkspaceGroup001\"]>; readonly issueId: Schema.String; readonly title: Schema.String; }; }>",
+        "{ readonly field: \"maybeEditor\"; readonly key: \"issueId\"; readonly childField: \"model\"; readonly placement: \"editor\"; }",
+        "never",
+        "{}"
+      ]
+    },
+    {
+      "name": "WorkspaceGroup001RowsBinding",
+      "alias": "BindingWithoutOutMessagePolicy",
+      "args": [
+        "EditorBlock",
+        "Schema.Struct<{ readonly groupId: Schema.Literals<readonly [\"WorkspaceGroup001\"]>; readonly control: Schema.Struct<{ readonly query: Schema.String; }>; readonly maybeEditor: Schema.Option<Schema.Struct<{ readonly issueId: Schema.String; readonly model: Schema.Struct<{ readonly issueId: Schema.String; readonly title: Schema.String; readonly revision: Schema.Number; }>; }>>; readonly rows: Schema.$Array<Schema.Struct<{ readonly issueId: Schema.String; readonly model: Schema.Struct<{ readonly issueId: Schema.String; readonly title: Schema.String; readonly revision: Schema.Number; }>; readonly label: Schema.String; }>>; readonly lastSavedTitle: Schema.String; }>",
+        "import(\"foldkit/message\").MessageUnion<{ readonly RequestedOpenEditor: { readonly issueId: Schema.String; }; readonly RequestedSaveEditor: {}; readonly CompletedPersistGroup: {}; readonly CompletedObserveGroup: {}; }>",
+        "import(\"foldkit/message\").MessageUnion<{ readonly SavedIssue: { readonly groupId: Schema.Literals<readonly [\"WorkspaceGroup001\"]>; readonly issueId: Schema.String; readonly title: Schema.String; }; }>",
+        "{ readonly field: \"rows\"; readonly key: \"issueId\"; readonly childField: \"model\"; readonly placement: \"rows\"; readonly init: { readonly instances: () => { key: \"WorkspaceGroup001-row\"; args: readonly [\"WorkspaceGroup001-row\"]; }[]; readonly toItem: ({ key }: Readonly<{ key: string; args: readonly [issueId: string]; }>, model: { readonly issueId: string; readonly title: string; readonly revision: number; }) => { readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; readonly label: string; }; }; }",
+        "never",
+        "{}"
+      ]
+    }
+  ]
+}

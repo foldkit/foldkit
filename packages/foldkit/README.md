@@ -39,11 +39,11 @@ npx create-foldkit-app@latest
 
 ## Counter
 
-A complete Foldkit program. State lives in a single Model, events become Messages, and a pure function handles every transition. `application.ts` exports `ApplicationComposition`, `ApplicationBlock`, and its implementation. `entry.ts` supplies the browser container and boots the Runtime, so importing the application from a test has no startup side effect.
+A complete Foldkit program. State lives in a single Model, events become Messages, and a pure function handles every transition. `block.ts` exports `ApplicationComposition`, `ApplicationBlock`, and its implementation. `entry.ts` supplies the browser container and boots the Runtime, so importing the application from a test has no startup side effect.
 
 ```ts
-// src/application.ts
-import { Schema } from 'effect'
+// src/block.ts
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -58,10 +58,16 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationComposition = Block.makeDefinition('Application', {
+const ApplicationKey = Symbol('Application')
+export const ApplicationBlock = Block.make('Application', {
+  key: ApplicationKey,
   Model,
   Message,
-}).makeComposition()
+  Init: Schema.Tuple([]),
+  view: { kind: 'Document' },
+})
+
+export const ApplicationComposition = ApplicationBlock.makeComposition()
 
 export const update = ApplicationComposition.makeUpdate({
   ClickedDecrement: model => ({
@@ -90,35 +96,36 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const layer = ApplicationBlock.makeLayer(
+  Effect.gen(function* () {
+    return {
+      children: [],
+      init,
+      update,
+      view,
+    }
+  }),
+)
 ```
 
 ```ts
 // src/entry.ts
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock } from './application'
+import { ApplicationBlock, layer } from './block'
 
 const program = Program.make({
   block: ApplicationBlock,
+  layer,
   container: document.getElementById('root'),
 })
 
 Runtime.run(program)
 ```
 
-The root is an ordinary Block. `Block.makeDefinition('Application', ...)` owns effect constructors, Steps, lifecycle definitions, and child Bindings. Retain that result as `ApplicationDefinition` when those authoring methods use it. This graphless application chains the top-level factory directly into `makeComposition()` and names the result `ApplicationComposition`. Author init, update, and the primary view through that Composition. Call `prepareBlock` inside the private `prepare` function, then assemble `ApplicationBlock` with its matching `FromAssembly` annotation and `Block.assemble(prepare)`. The explicit Model Schema in that annotation reduces the inference work needed when a parent Schema reads the Block's `Model`. Pass root-owned handler recipes to `prepareBlock` as `EffectsLayer`.
+The root is an ordinary Block. `Block.make` declares its public contracts once and supplies typed authoring helpers. Its Composition supplies init, update and view builders. `ApplicationBlock.makeLayer` checks the effectful constructor without running it; the host acquires that Layer before applying the pure init and update functions. The public Block contract is bounded independently of the implementation graph, so ordinary app code needs no preparation function or assembly annotation.
 
-A feature follows the same passive Definition → Composition → assembly sequence. Create `FeatureDefinition` with `Block.makeDefinition('Feature', { Model, Message, OutMessage })` and author effects and Steps through that Definition. Name `FeatureComposition = FeatureDefinition.makeComposition({ bindings, mounts })`, using `FeatureDefinition.makeComposition()` for an empty graph, then author init, update, and the primary view. Prepare and assemble the completed `FeatureBlock` using the checked pattern above. A parent imports that Block, creates a Binding with `const FeatureBinding = ParentDefinition.makeBinding(FeatureBlock, config)`, and includes that Binding in its Composition's child graph. Only the Runtime starts the assembled program.
+A parent declares a relationship through the constructor matching the child Model's storage, such as `ParentBlock.makeRequiredFieldBinding(FeatureBlock, { field: 'feature' })`. It registers that Binding in its Composition, yields it inside its constructor, and returns the acquired connection under `children`. Supply the child's implementation through ordinary `Layer.provide(Feature.layer)`. Optional fields, keyed arrays, Records, HashMaps, custom accessors and whole tagged variants have their own checked [Binding constructors](https://foldkit.dev/core/block#binding-constructors).
 
 When local view helpers need the Composition's exact builder capabilities, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` immediately after the Composition and export it only for cross-file use. The owner prefix identifies that specific Composition; structural contracts keep the standard `Model`, `Message`, and `OutMessage` names and normally travel through the feature namespace.
 
@@ -130,7 +137,7 @@ Runtime.run(program.provide(ApplicationLayer))
 
 `program.provide(ApplicationLayer)` returns another passive program. The Runtime builds the Layer only when it starts that program.
 
-Source: [examples/counter](https://github.com/foldkit/foldkit/blob/main/examples/counter/src/application.ts).
+Source: [examples/counter](https://github.com/foldkit/foldkit/blob/d782b73e62c95a1bfba60c11bbfdaf99c496b153/examples/counter/src/block.ts).
 
 ## What Ships With Foldkit
 

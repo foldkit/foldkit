@@ -23,14 +23,14 @@ const ConversationBlock = Block.make('Conversation', {
 })
 
 const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeOutMessageFold,
   makeFieldsStep,
   makeComposition,
   makeStep,
 } = ConversationBlock
 
-export const ComposerBinding = makeBinding(MessageComposerBlock, {
+export const ComposerBinding = makeRequiredFieldBinding(MessageComposerBlock, {
   field: 'composer',
   init: { contextToArgs: () => ['message'] },
 }).withOutMessagePolicy({

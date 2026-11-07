@@ -241,7 +241,7 @@ it('does not evaluate context factories for generated child-envelope delivery', 
     Model: ParentModel,
     Message: ParentMessage,
   })
-  const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+  const ChildBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
   })
   const ParentComposition = ParentDefinition.makeComposition({
@@ -361,7 +361,7 @@ it('runs a silent child combination while retaining an emitting operation direct
     Message: ParentMessage,
     OutMessage,
   })
-  const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+  const ChildBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
   }).withOutMessagePolicy({
     forward: ParentDefinition.makeOutMessageForward(ChildBlock, {

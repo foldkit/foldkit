@@ -74,9 +74,12 @@ const ParentDefinition = Block.makeDefinition('PublishedViewMountParent', {
   Message: Schema.Never,
   view: { kind: 'Element' },
 })
-const ChildBinding = ParentDefinition.makeBinding(Definition.contract, {
-  field: 'child',
-})
+const ChildBinding = ParentDefinition.makeRequiredFieldBinding(
+  Definition.contract,
+  {
+    field: 'child',
+  },
+)
 const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })

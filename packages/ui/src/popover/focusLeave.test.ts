@@ -23,10 +23,13 @@ const foldPopoverOutMessage = PopoverFocusLeaveTestBlock.makeOutMessageFold(
     Closed: () => PopoverFocusLeaveTestBlock.makeNoopStep(),
   },
 )
-const PopoverBinding = PopoverFocusLeaveTestBlock.makeBinding(PopoverBlock, {
-  field: 'popover',
-  init: false,
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+const PopoverBinding = PopoverFocusLeaveTestBlock.makeRequiredFieldBinding(
+  PopoverBlock,
+  {
+    field: 'popover',
+    init: false,
+  },
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 const PopoverFocusLeaveTestComposition =
   PopoverFocusLeaveTestBlock.makeComposition({
     bindings: [PopoverBinding],

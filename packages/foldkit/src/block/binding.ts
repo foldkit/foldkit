@@ -368,7 +368,7 @@ export const assertValidBindingOperationNames = (
 }
 
 /**
- * Structural portion of a complete Block accepted by `Definition.makeBinding`.
+ * Structural portion of a complete Block accepted by `Block relationship constructors`.
  * It preserves every channel collected by parents without introducing a
  * recursive complete Block constraint.
  */
@@ -1452,7 +1452,7 @@ export const blockOf = (binding: AnyBinding): BindableBlock => {
   const block = runtimeBindingOf(binding).block
   if (block === undefined) {
     throw new Error(
-      '[foldkit] Block Binding metadata is unavailable. Create Bindings through the parent Definition.makeBinding method.',
+      '[foldkit] Block Binding metadata is unavailable. Create Bindings through the parent Block relationship constructor.',
     )
   }
 

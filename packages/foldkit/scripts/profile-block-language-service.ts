@@ -588,13 +588,17 @@ const requestTarget = (
 })
 
 const bindingFactoryMarker = (text: string): string => {
-  if (text.includes('.makeBinding')) {
+  if (text.includes('makeRequiredFieldBinding(')) {
+    return 'makeRequiredFieldBinding'
+  } else if (text.includes('.makeBinding')) {
     return 'makeBinding'
   } else if (text.includes('.bindChild')) {
     return 'bindChild'
   }
 
-  return fail(`Could not find makeBinding or bindChild in Website composition.`)
+  return fail(
+    `Could not find a supported Binding constructor in Website composition.`,
+  )
 }
 
 const openDocument = async (
@@ -1048,6 +1052,7 @@ const definitionScenario = (timeoutMs: number): Promise<ScenarioResult> =>
       { method: 'textDocument/definition' },
       composition,
       marker,
+      'SearchBinding',
     )
     const measurements = [
       ...(await measurePair(

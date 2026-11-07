@@ -121,9 +121,12 @@ const DeclarationGenericViewInputsParentDefinition = Block.makeDefinition(
   },
 )
 const CallbackItemBinding =
-  DeclarationGenericViewInputsParentDefinition.makeBinding(callbackItemBlock, {
-    field: 'child',
-  })
+  DeclarationGenericViewInputsParentDefinition.makeRequiredFieldBinding(
+    callbackItemBlock,
+    {
+      field: 'child',
+    },
+  )
 
 const callbackItemConfig = {
   slotId: 'callback-child',

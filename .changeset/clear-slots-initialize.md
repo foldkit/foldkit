@@ -3,7 +3,7 @@
 'create-foldkit-app': patch
 ---
 
-Add dynamic child storage helpers to `foldkit/bindingInit`:
+Add dynamic child storage helpers to `foldkit/binding`:
 
 - `initAndSet` replaces a required or optional direct child field, or an Option wrapper containing only its key and child fields. Custom unkeyed accessors may reuse an existing `init.toParentFields` projection.
 - `initAndInsert` inserts an absent key into a Record or Effect HashMap storing child Models directly.

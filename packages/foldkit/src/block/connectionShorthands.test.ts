@@ -154,24 +154,24 @@ const foldChildOutMessage = OutMessage.match<
     model: modifyFields(model, { requests: requests => requests + 1 }),
   }),
 })
-const PrimaryBinding = Parent.makeBinding(block, {
+const PrimaryBinding = Parent.makeRequiredFieldBinding(block, {
   field: 'primary',
 }).withOutMessagePolicy({ fold: foldChildOutMessage })
 const primaryInspection = inspectBinding(PrimaryBinding)
-const SecondaryBinding = Parent.makeBinding(block, {
+const SecondaryBinding = Parent.makeRequiredFieldBinding(block, {
   field: 'secondary',
 }).withOutMessagePolicy({ fold: foldChildOutMessage })
-const OverriddenBinding = Parent.makeBinding(block, {
+const OverriddenBinding = Parent.makeRequiredFieldBinding(block, {
   field: 'secondary',
   placement: 'alternate',
 }).withOutMessagePolicy({ fold: foldChildOutMessage })
-const AccessorBinding = Parent.makeBinding(block, {
+const AccessorBinding = Parent.makeCustomBinding(block, {
   read: model => Option.some(model.primary),
   write: (model, nextPrimary) =>
     modifyFields(model, { primary: () => nextPrimary }),
 }).withOutMessagePolicy({ fold: foldChildOutMessage })
 const entryKey = (entry: Entry): string => entry.id
-const KeyedBinding = Parent.makeBinding(block, {
+const KeyedBinding = Parent.makeCustomKeyedBinding(block, {
   placement: 'entries',
   readAll: (model: ParentModel) => model.entries,
   key: entryKey,

@@ -32,9 +32,10 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeBinding, makeComposition, makeFieldsStep } = ApplicationBlock
+const { makeKeyedArrayBinding, makeComposition, makeFieldsStep } =
+  ApplicationBlock
 
-export const CountersBinding = makeBinding(Counter.CounterBlock, {
+export const CountersBinding = makeKeyedArrayBinding(Counter.CounterBlock, {
   field: 'counters',
   key: 'key',
   childField: 'model',

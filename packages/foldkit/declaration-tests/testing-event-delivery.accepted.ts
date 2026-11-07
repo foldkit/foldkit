@@ -73,21 +73,24 @@ const ParentDefinition = Block.makeDefinition('TestingFixtureParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-export const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
-  placement: 'Children',
-  readAll: model => model.children,
-  key: instance => instance.id,
-  read: instance => instance.child,
-  writeAt: (model, id, nextChild) =>
-    modifyFields(model, {
-      children: Array.map(instance =>
-        instance.id === id
-          ? modifyFields(instance, { child: () => nextChild })
-          : instance,
-      ),
-    }),
-  keySchema: Schema.String,
-})
+export const ChildBinding = ParentDefinition.makeCustomKeyedBinding(
+  ChildBlock,
+  {
+    placement: 'Children',
+    readAll: model => model.children,
+    key: instance => instance.id,
+    read: instance => instance.child,
+    writeAt: (model, id, nextChild) =>
+      modifyFields(model, {
+        children: Array.map(instance =>
+          instance.id === id
+            ? modifyFields(instance, { child: () => nextChild })
+            : instance,
+        ),
+      }),
+    keySchema: Schema.String,
+  },
+)
 const parentSubscriptions = ParentDefinition.makeSubscriptions(entry => ({
   activity: entry('Activity', {
     messages: [ParentMessage.ReceivedActivity],

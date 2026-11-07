@@ -168,7 +168,7 @@ export const OperationConstructorProofParentDefinition = Block.makeDefinition(
   },
 )
 export const ChildBinding =
-  OperationConstructorProofParentDefinition.makeBinding(ChildBlock, {
+  OperationConstructorProofParentDefinition.makeCustomBinding(ChildBlock, {
     placement: 'child',
     read: model => model.maybeChild,
     write: (model, nextChild) =>
@@ -184,7 +184,7 @@ export const ChildBinding =
     ),
   })
 export const EntryBinding =
-  OperationConstructorProofParentDefinition.makeBinding(ChildBlock, {
+  OperationConstructorProofParentDefinition.makeCustomKeyedBinding(ChildBlock, {
     placement: 'entries',
     readAll: model => model.entries,
     key: entry => entry.id,

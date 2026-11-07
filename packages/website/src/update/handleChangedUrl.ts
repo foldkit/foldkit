@@ -1,6 +1,6 @@
 import { Array, Option, Record } from 'effect'
 import { Update } from 'foldkit'
-import { initAndSet } from 'foldkit/bindingInit'
+import { initAndSet } from 'foldkit/binding'
 import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 import { type Url } from 'foldkit/url'

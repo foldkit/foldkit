@@ -85,10 +85,13 @@ if (false) {
   )
 }
 
-const UnregisteredBinding = ApplicationBlock.makeBinding(EditorBlock, {
-  field: 'editor',
-  placement: 'unregistered',
-}).withOutMessagePolicy({
+const UnregisteredBinding = ApplicationBlock.makeRequiredFieldBinding(
+  EditorBlock,
+  {
+    field: 'editor',
+    placement: 'unregistered',
+  },
+).withOutMessagePolicy({
   fold: ApplicationBlock.makeOutMessageFold(EditorBlock, {
     Edited: () => Update.defineStep((model: Model) => ({ model })),
   }),
@@ -142,7 +145,7 @@ if (false) {
   makeInMessageUpdate.each(() => wrongModelStep)
 }
 
-const EmittingBinding = ApplicationBlock.makeBinding(EditorBlock, {
+const EmittingBinding = ApplicationBlock.makeRequiredFieldBinding(EditorBlock, {
   field: 'editor',
   placement: 'emitting',
 }).withOutMessagePolicy({

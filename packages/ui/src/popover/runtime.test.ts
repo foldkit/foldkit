@@ -37,7 +37,7 @@ const foldPopoverOutMessage = PopoverSiblingRuntimeTestBlock.makeOutMessageFold(
   },
 )
 
-const PopoverBinding = PopoverSiblingRuntimeTestBlock.makeBinding(
+const PopoverBinding = PopoverSiblingRuntimeTestBlock.makeRequiredFieldBinding(
   PopoverBlock,
   {
     field: 'popover',

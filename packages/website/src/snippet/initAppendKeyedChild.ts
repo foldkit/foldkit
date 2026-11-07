@@ -1,5 +1,5 @@
 import { Array } from 'effect'
-import { initAndAppend } from 'foldkit/bindingInit'
+import { initAndAppend } from 'foldkit/binding'
 
 import { makeStep } from './block'
 import { ProjectSettingsBinding } from './composition'

@@ -15,13 +15,13 @@ export type Contracts = readonly [
   ExactLayerRequirements,
 ]
 
-export const entries = ParentBlock.makeMapBinding(ChildBlock, {
+export const entries = ParentBlock.makeRecordBinding(ChildBlock, {
   field: 'entries',
 }).withOutMessagePolicy({ fold: foldSelection })
-export const curriedEntries = ParentBlock.makeMapBinding(ChildBlock, {
+export const curriedEntries = ParentBlock.makeRecordBinding(ChildBlock, {
   field: 'entries',
 }).withOutMessagePolicy({ fold: foldForEntry })
-export const inlineEntries = ParentBlock.makeMapBinding(ChildBlock, {
+export const inlineEntries = ParentBlock.makeRecordBinding(ChildBlock, {
   field: 'entries',
 }).withOutMessagePolicy({
   fold: key =>

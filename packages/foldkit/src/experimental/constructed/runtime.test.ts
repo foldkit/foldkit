@@ -42,7 +42,7 @@ const makeFixture = () => {
   const initPolicy: { contextToArgs: () => [count: number] } = {
     contextToArgs: () => [2],
   }
-  const ChildBinding = Definition.makeBinding(ChildBlock, {
+  const ChildBinding = Definition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     init: initPolicy,
   })

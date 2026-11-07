@@ -43,10 +43,13 @@ const foldDialogOutMessage = ApplicationBlock.makeOutMessageFold(
   },
 )
 
-const DialogBinding = ApplicationBlock.makeBinding(Dialog.DialogBlock, {
-  field: 'dialog',
-  init: { contextToArgs: () => [{ id: dialogId }] },
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
+const DialogBinding = ApplicationBlock.makeRequiredFieldBinding(
+  Dialog.DialogBlock,
+  {
+    field: 'dialog',
+    init: { contextToArgs: () => [{ id: dialogId }] },
+  },
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [DialogBinding],

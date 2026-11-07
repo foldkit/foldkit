@@ -27,7 +27,7 @@ quotes.operations.requestCancel(quotes.init().model, { label: 'devin' })
 // @ts-expect-error An unkeyed Query has no keyed cancellation argument.
 ordinary.operations.requestCancel(ordinary.init().model, { label: 'devin' })
 
-const WithoutPolicy = ParentDefinition.makeBinding(QuoteWindows, {
+const WithoutPolicy = ParentDefinition.makeRequiredFieldBinding(QuoteWindows, {
   field: 'quotes',
 })
 // @ts-expect-error Notifying Queries require an explicit OutMessage policy.
@@ -102,7 +102,7 @@ const DynamicParent = Block.makeDefinition('DynamicOrdinaryPolicyParent', {
   Model: Schema.Struct({ query: dynamicOrdinary.Model }),
   Message: Schema.Never,
 })
-const DynamicBinding = DynamicParent.makeBinding(dynamicOrdinary, {
+const DynamicBinding = DynamicParent.makeRequiredFieldBinding(dynamicOrdinary, {
   field: 'query',
 })
 // @ts-expect-error A possibly notifying Query requires a completion policy.

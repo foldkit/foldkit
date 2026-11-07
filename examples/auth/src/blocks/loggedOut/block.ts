@@ -16,5 +16,8 @@ export const LoggedOutBlock = Block.make('LoggedOut', {
   OutMessage,
 })
 
-export const { makeBinding, makeComposition, makeOutMessageForward } =
-  LoggedOutBlock
+export const {
+  makeRequiredFieldBinding,
+  makeComposition,
+  makeOutMessageForward,
+} = LoggedOutBlock

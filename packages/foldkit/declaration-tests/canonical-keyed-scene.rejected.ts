@@ -84,7 +84,7 @@ const ForeignCanonicalParentBlock = Block.make(
   },
 )
 const ForeignCanonicalChildrenBinding =
-  ForeignCanonicalParentBlock.makeMapBinding(CanonicalChildBlock, {
+  ForeignCanonicalParentBlock.makeRecordBinding(CanonicalChildBlock, {
     field: 'children',
   })
 const foreignCanonicalTicks = Scene.Subscription.at(

@@ -319,12 +319,18 @@ const ParentDefinition = makeNamespace(
   Model: ParentModel,
   Message: Schema.Never,
 })
-const CallbackItemBinding = ParentDefinition.makeBinding(callbackItemBlock, {
-  field: 'child',
-})
-const StringItemBinding = ParentDefinition.makeBinding(stringItemBlock, {
-  field: 'child',
-})
+const CallbackItemBinding = ParentDefinition.makeRequiredFieldBinding(
+  callbackItemBlock,
+  {
+    field: 'child',
+  },
+)
+const StringItemBinding = ParentDefinition.makeRequiredFieldBinding(
+  stringItemBlock,
+  {
+    field: 'child',
+  },
+)
 
 const acceptedGenericConfig = StringItemBinding.embedView({
   slotId: 'string-child',

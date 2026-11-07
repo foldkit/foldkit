@@ -52,7 +52,7 @@ export const EducationEntryBlock = Block.make('EducationEntry', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
   makeFieldsStep,
   makeOutMessageFold,

@@ -17,8 +17,11 @@ export const ApplicationBlock = Block.make('Application', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const { makeBinding, makeComposition, makeNoopStep } = ApplicationBlock
-const EditorBinding = makeBinding(LabelEditorBlock, { field: 'editor' })
+const { makeRequiredFieldBinding, makeComposition, makeNoopStep } =
+  ApplicationBlock
+const EditorBinding = makeRequiredFieldBinding(LabelEditorBlock, {
+  field: 'editor',
+})
 const ApplicationComposition = makeComposition({ bindings: [EditorBinding] })
 
 export const layer = ApplicationBlock.makeLayer(

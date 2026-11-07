@@ -79,12 +79,15 @@ const OmittedParentDefinition = makeNamespace(
   Model: ParentModel,
   Message: ParentMessage,
 })
-const OmittedChildBinding = OmittedParentDefinition.makeBinding(ChildBlock, {
-  placement: 'omitted-child',
-  read: (model: ParentModel) => Option.some(model.primary),
-  write: (model, nextChild) =>
-    modifyFields(model, { primary: () => nextChild }),
-})
+const OmittedChildBinding = OmittedParentDefinition.makeCustomBinding(
+  ChildBlock,
+  {
+    placement: 'omitted-child',
+    read: (model: ParentModel) => Option.some(model.primary),
+    write: (model, nextChild) =>
+      modifyFields(model, { primary: () => nextChild }),
+  },
+)
 
 const initOmittedChild = OmittedParentDefinition.makeStep(model =>
   OmittedChildBinding.init({
@@ -117,7 +120,7 @@ const OmittedParent: Block.FromAssemblyWithView<
   typeof prepareOmittedParent
 > = Block.assemble(prepareOmittedParent)
 
-const ForeignOmittedChildBinding = OmittedParentDefinition.makeBinding(
+const ForeignOmittedChildBinding = OmittedParentDefinition.makeCustomBinding(
   ChildBlock,
   {
     placement: 'foreign-child',
@@ -290,9 +293,8 @@ const ExactParentBaseDefinition = makeNamespace(
   Model: ParentModel,
   Message: ParentMessage,
 })
-const RegisteredPlacementBinding = ExactParentBaseDefinition.makeBinding(
-  ChildBlock,
-  {
+const RegisteredPlacementBinding =
+  ExactParentBaseDefinition.makeCustomKeyedBinding(ChildBlock, {
     placement: 'same-placement',
     readAll: (model: ParentModel) => [model.primary],
     key: () => 'only',
@@ -300,9 +302,8 @@ const RegisteredPlacementBinding = ExactParentBaseDefinition.makeBinding(
     read: (child: ChildModel) => child,
     writeAt: (model, _key, nextChild) =>
       modifyFields(model, { primary: () => nextChild }),
-  },
-)
-const WrongPlacementBinding = ExactParentBaseDefinition.makeBinding(
+  })
+const WrongPlacementBinding = ExactParentBaseDefinition.makeCustomKeyedBinding(
   ChildBlock,
   {
     placement: 'same-placement',
@@ -380,7 +381,7 @@ const PendingParent = makeDefinition('PendingParent', {
   Model: PendingParentModel,
   Message: ParentMessage,
 })
-const PendingChildBinding = PendingParent.makeBinding(ChildBlock, {
+const PendingChildBinding = PendingParent.makeKeyedArrayBinding(ChildBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -518,18 +519,24 @@ const PolicyParentBaseDefinition = makeNamespace(
   Model: ParentModel,
   Message: PolicyParentMessage,
 })
-const SiblingChildBinding = PolicyParentBaseDefinition.makeBinding(ChildBlock, {
-  placement: 'sibling-child',
-  read: (model: ParentModel) => Option.some(model.sibling),
-  write: (model, nextChild) =>
-    modifyFields(model, { sibling: () => nextChild }),
-})
-const PolicyChildBinding = PolicyParentBaseDefinition.makeBinding(PolicyChild, {
-  placement: 'policy-child',
-  read: (model: ParentModel) => Option.some(model.primary),
-  write: (model, nextChild) =>
-    modifyFields(model, { primary: () => nextChild }),
-}).withOutMessagePolicy({
+const SiblingChildBinding = PolicyParentBaseDefinition.makeCustomBinding(
+  ChildBlock,
+  {
+    placement: 'sibling-child',
+    read: (model: ParentModel) => Option.some(model.sibling),
+    write: (model, nextChild) =>
+      modifyFields(model, { sibling: () => nextChild }),
+  },
+)
+const PolicyChildBinding = PolicyParentBaseDefinition.makeCustomBinding(
+  PolicyChild,
+  {
+    placement: 'policy-child',
+    read: (model: ParentModel) => Option.some(model.primary),
+    write: (model, nextChild) =>
+      modifyFields(model, { primary: () => nextChild }),
+  },
+).withOutMessagePolicy({
   fold: (_outMessage: PolicyOutMessage) => SiblingChildBinding.reset(),
 })
 

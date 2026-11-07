@@ -35,7 +35,7 @@ export const SkillsBlock = Block.make('Skills', {
 })
 
 export const {
-  makeBinding,
+  makeKeyedArrayBinding,
   makeCommand,
   makeCommandsStep,
   makeComposition,

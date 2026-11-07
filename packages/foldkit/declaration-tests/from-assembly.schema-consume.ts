@@ -22,7 +22,7 @@ export const ParentDefinition = Block.makeDefinition(
   'BlockOnlyHeaderConsumer',
   { Model: ParentModel, Message: Schema.Never },
 )
-export const ChildBinding = ParentDefinition.makeBinding(Viewed, {
+export const ChildBinding = ParentDefinition.makeRequiredFieldBinding(Viewed, {
   field: 'child',
   init: false,
 })

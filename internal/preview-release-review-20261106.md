@@ -22,6 +22,10 @@ held. No release has been dispatched.
   including generated child envelopes. The former `codec` configuration is
   removed. Pure transformations, Option and Date remain supported; explicitly
   effectful APIs such as Commands retain Effect Schema capabilities.
+- Parent-owned Binding constructors name required, optional, optional keyed,
+  keyed-array, Record, HashMap, custom and whole-variant storage explicitly.
+  `activeWhen` replaces the direct-field `presentWhen` gate while retaining its
+  occurrence semantics. Initialization helpers now share `foldkit/binding`.
 - Child initialization has less manual placement wiring, including passive
   creation requests and Model-produced `makeInitIfMissingStep` selections.
   Keyed OutMessage folds can be passed directly or returned by a key-dependent
@@ -188,3 +192,26 @@ and concrete exposure are [assessed separately](layered-constructor/dependency-a
 No audit exclusion or incompatible override hides them. The DevTools overlay's
 warning for opaque inspected values during development Model preservation is
 inherited; failed persistence leaves its live Model unchanged.
+
+## Additional Binding request
+
+The user requested explicit storage relationship constructors after the reviewed
+preparation snapshot. The [prototype report](binding-relationships-20261106/README.md)
+records its consumer and source/emitted proofs. The user approved the API and
+only the two measured Workspace instantiation/type ceiling revisions. All eight
+unchanged workloads pass those approved limits. Repository-wide adoption and
+source/emitted/runtime verification pass on `codex/explicit-binding-adoption-20261106`.
+The [new frozen rendering comparison](binding-relationships-20261106/rendering/README.md)
+is complete. All 32 samples, four functional preflights and analysis mutation
+controls pass. Its naive medians are 637.0 ms main and 596.0 ms candidate
+(−6.44%); optimized medians are 230.9 ms and 370.1 ms (+60.29%). The wide
+ranges, including one faster optimized candidate round, preclude treating these
+percentages as stable performance estimates or attributing the change to the
+Binding API. The optimized workload remains a release-review concern. Whole-
+candidate JavaScript adds 47,673/48,331 gzip bytes. Earlier evidence above remains
+unchanged. Package push gates and exact-commit review remain pending.
+
+This work does not inherit the prior Daybreak verdict. Resolve its adoption
+gate, complete migration and verification, then freeze and review the complete
+candidate before requesting publication approval. Nothing in the preparation
+PR or its successful merge authorizes publishing this prototype.

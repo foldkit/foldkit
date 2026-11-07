@@ -17,4 +17,4 @@ const writer = {
 }
 
 // @ts-expect-error Map storage rejects this low-level writer independently of the ownership lint.
-AliasedHelpers.makeMapBinding(Helpers.ChildBlock, writer)
+AliasedHelpers.makeRecordBinding(Helpers.ChildBlock, writer)

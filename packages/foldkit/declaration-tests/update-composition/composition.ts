@@ -1,9 +1,12 @@
 import { ApplicationBlock, makeFieldsStep } from './definition.js'
 import { EditorBlock } from './editor.js'
 
-export const EditorBinding = ApplicationBlock.makeBinding(EditorBlock, {
-  field: 'editor',
-}).withOutMessagePolicy({
+export const EditorBinding = ApplicationBlock.makeRequiredFieldBinding(
+  EditorBlock,
+  {
+    field: 'editor',
+  },
+).withOutMessagePolicy({
   fold: ApplicationBlock.makeOutMessageFold(EditorBlock, {
     Edited: () =>
       makeFieldsStep(() => ({ editCount: editCount => editCount + 1 })),

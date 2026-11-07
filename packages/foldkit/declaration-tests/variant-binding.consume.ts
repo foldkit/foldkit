@@ -1,5 +1,4 @@
 import { Block } from 'foldkit'
-import { makeVariantBinding } from 'foldkit/variantBinding'
 
 import {
   Active,
@@ -26,7 +25,7 @@ export type ExactPlacement = Assert<
 export type ExactCustomPlacement = Assert<
   Equal<typeof GatedBinding.placement, 'gatedActive'>
 >
-export const RecreatedBinding = makeVariantBinding(ParentDefinition, ChildBlock)
+export const RecreatedBinding = ParentDefinition.makeVariantBinding(ChildBlock)
 export const updated = ParentBlock.operations.setCount(
   Active.make({ _tag: 'Active', count: 0 }),
   4,

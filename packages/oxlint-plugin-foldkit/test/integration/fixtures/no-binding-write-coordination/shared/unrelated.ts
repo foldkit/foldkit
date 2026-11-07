@@ -1,1 +1,1 @@
-export const makeMapBinding = (_child: unknown, config: unknown) => config
+export const makeRecordBinding = (_child: unknown, config: unknown) => config

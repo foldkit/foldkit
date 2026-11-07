@@ -1,6 +1,8 @@
 import { Array, Option, Schema, Tuple } from 'effect'
 import { Block, Message, Struct } from 'foldkit'
-import { initAndAppend } from 'foldkit/bindingInit'
+import { initAndAppend } from 'foldkit/binding'
+// @ts-expect-error Binding initialization helpers moved to foldkit/binding.
+import { initAndAppend as legacyInitAndAppend } from 'foldkit/bindingInit'
 
 import {
   ChildBlock,
@@ -13,6 +15,8 @@ import {
   firstId,
   model,
 } from './append-initialization.accepted.js'
+
+void legacyInitAndAppend
 
 // @ts-expect-error The exact branded occurrence key is required.
 initAndAppend(EntriesBinding, model, { key: 'first', args: [1] })
@@ -55,7 +59,7 @@ MissingComposition.prepareBlock({
   init: MissingComposition.makeInit(() => ({ model })),
   update: missingUpdate,
 })
-const ForeignBinding = ParentDefinition.makeBinding(ChildBlock, {
+const ForeignBinding = ParentDefinition.makeKeyedArrayBinding(ChildBlock, {
   placement: 'foreign',
   field: 'entries',
   key: 'id',
@@ -76,11 +80,14 @@ ForeignComposition.prepareBlock({
   init: ForeignComposition.makeInit(() => ({ model: { label: 'foreign' } })),
   update: foreignUpdate,
 })
-const UninitializedBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'entries',
-  key: 'id',
-  childField: 'child',
-})
+const UninitializedBinding = ParentDefinition.makeKeyedArrayBinding(
+  ChildBlock,
+  {
+    field: 'entries',
+    key: 'id',
+    childField: 'child',
+  },
+)
 // @ts-expect-error Dynamic append requires the existing startup toItem policy.
 initAndAppend(UninitializedBinding, model, { key: firstId, args: [1] })
 const maybeBinding = Math.random() > 0.5 ? EntriesBinding : ForeignBinding
@@ -108,32 +115,35 @@ const otherModel = OtherModel.make({
   otherEntries: [],
   mapped: {},
 })
-const DirectBinding = OtherDefinition.makeBinding(ChildBlock, {
+const DirectBinding = OtherDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
   init: { contextToArgs: () => [1] },
 })
 // @ts-expect-error Direct child fields do not support append.
 initAndAppend(DirectBinding, otherModel, { key: firstId, args: [1] })
-const OptionalBinding = OtherDefinition.makeBinding(ChildBlock, {
+const OptionalBinding = OtherDefinition.makeOptionalFieldBinding(ChildBlock, {
   field: 'maybeChild',
 })
 // @ts-expect-error Optional direct storage does not support append.
 initAndAppend(OptionalBinding, otherModel, { key: firstId, args: [1] })
-const OptionalEntryBinding = OtherDefinition.makeBinding(ChildBlock, {
-  field: 'maybeEntry',
-  key: 'id',
-  childField: 'child',
-})
+const OptionalEntryBinding = OtherDefinition.makeOptionalKeyedFieldBinding(
+  ChildBlock,
+  {
+    field: 'maybeEntry',
+    key: 'id',
+    childField: 'child',
+  },
+)
 // @ts-expect-error Wrapped Option storage cannot be appended to.
 initAndAppend(OptionalEntryBinding, otherModel, { key: firstId, args: [1] })
-const AccessorBinding = OtherDefinition.makeBinding(ChildBlock, {
+const AccessorBinding = OtherDefinition.makeCustomBinding(ChildBlock, {
   read: model => Option.some(model.child),
   write: (model, child) => Struct.modifyFields(model, { child: () => child }),
   init: { contextToArgs: () => [1], toParentFields: child => ({ child }) },
 })
 // @ts-expect-error Accessor projection does not authorize array insertion.
 initAndAppend(AccessorBinding, otherModel, { key: firstId, args: [1] })
-const GeneralBinding = OtherDefinition.makeBinding(ChildBlock, {
+const GeneralBinding = OtherDefinition.makeCustomKeyedBinding(ChildBlock, {
   readAll: model => model.entries,
   key: entry => entry.id,
   read: entry => entry.child,
@@ -142,13 +152,13 @@ const GeneralBinding = OtherDefinition.makeBinding(ChildBlock, {
 })
 // @ts-expect-error General keyed accessors do not declare a stored insertion policy.
 initAndAppend(GeneralBinding, otherModel, { key: firstId, args: [1] })
-const MapBinding = OtherDefinition.makeMapBinding(ChildBlock, {
+const MapBinding = OtherDefinition.makeRecordBinding(ChildBlock, {
   field: 'mapped',
 })
 // @ts-expect-error Map storage has no array append policy.
 initAndAppend(MapBinding, otherModel, { key: firstId, args: [1] })
 
-const FirstArrayBinding = OtherDefinition.makeBinding(ChildBlock, {
+const FirstArrayBinding = OtherDefinition.makeKeyedArrayBinding(ChildBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -157,7 +167,7 @@ const FirstArrayBinding = OtherDefinition.makeBinding(ChildBlock, {
     toItem: ({ key }, child) => ({ id: key, child, label: 'first' }),
   },
 })
-const SecondArrayBinding = OtherDefinition.makeBinding(ChildBlock, {
+const SecondArrayBinding = OtherDefinition.makeKeyedArrayBinding(ChildBlock, {
   field: 'otherEntries',
   key: 'id',
   childField: 'child',

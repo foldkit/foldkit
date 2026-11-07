@@ -145,7 +145,9 @@ describe('Checked Block completion', () => {
       Reflect.apply(assemble, undefined, [() => copiedDraft]),
     ).toThrow('original Composition.prepareBlock draft')
     expect(() =>
-      ParentDefinition.makeBinding(copiedBlock, { field: 'child' }),
+      ParentDefinition.makeRequiredFieldBinding(copiedBlock, {
+        field: 'child',
+      }),
     ).toThrow('Block.assemble(prepare)')
     expect(() =>
       Program.makeElement({
@@ -227,7 +229,9 @@ describe('Checked Block completion', () => {
 
   it('preserves completion when replacing local handler recipes', () => {
     const replaced = Viewed.replaceEffectsLayer(Observe.layer)
-    const binding = ParentDefinition.makeBinding(replaced, { field: 'child' })
+    const binding = ParentDefinition.makeRequiredFieldBinding(replaced, {
+      field: 'child',
+    })
 
     expect(binding.placement).toBe('child')
     expect(replaced.Model).toBe(Model)
@@ -247,7 +251,9 @@ describe('Checked Block completion', () => {
         Effect.succeed(() => Effect.succeed(Message.CompletedObserve())),
       ),
     )
-    const binding = ParentDefinition.makeBinding(provided, { field: 'child' })
+    const binding = ParentDefinition.makeRequiredFieldBinding(provided, {
+      field: 'child',
+    })
 
     expect(binding.placement).toBe('child')
     expect(provided.hostHandlers).toEqual([])
@@ -281,7 +287,7 @@ describe('Checked Block completion', () => {
       Reflect.apply(assemble, undefined, [() => ({ Model })]),
     ).toThrow('original Composition.prepareBlock draft')
     expect(() =>
-      Reflect.apply(ParentDefinition.makeBinding, undefined, [
+      Reflect.apply(ParentDefinition.makeRequiredFieldBinding, undefined, [
         draft,
         { field: 'child' },
       ]),
@@ -309,7 +315,7 @@ if (false) {
   // @ts-expect-error The checked header requires the finishing call.
   const rawAsHeader: ViewedHeader = prepareViewed()
   // @ts-expect-error Bindings accept only completed Blocks.
-  ParentDefinition.makeBinding(draft, { field: 'child' })
+  ParentDefinition.makeRequiredFieldBinding(draft, { field: 'child' })
   // @ts-expect-error Programs accept only completed Blocks.
   Program.makeElement({ block: draft, container: null })
   // @ts-expect-error A draft cannot bypass completion through a handler transform.

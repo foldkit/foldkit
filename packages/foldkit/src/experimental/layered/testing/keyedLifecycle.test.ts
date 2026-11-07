@@ -144,7 +144,7 @@ const foldChildOutMessage = ParentBlock.makeOutMessageFold(ChildBlock, {
       sessionOpens: count => count + 1,
     })),
 })
-const ChildrenBinding = ParentBlock.makeMapBinding(ChildBlock, {
+const ChildrenBinding = ParentBlock.makeRecordBinding(ChildBlock, {
   field: 'children',
   subscriptions: { when: (_model, key) => key !== 'paused' },
 }).withOutMessagePolicy({ fold: foldChildOutMessage })

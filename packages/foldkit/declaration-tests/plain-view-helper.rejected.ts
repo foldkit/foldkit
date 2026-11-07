@@ -15,7 +15,7 @@ import {
 } from './plain-view-helper.accepted.js'
 
 const AlternativeChildBinding =
-  DeclarationViewHelperParentDefinition.makeBinding(ChildBlock, {
+  DeclarationViewHelperParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     placement: 'alternativeChild',
     init: false,
@@ -79,14 +79,12 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const AlternativeApplicationChildBinding = ApplicationDefinition.makeBinding(
-  ChildBlock,
-  {
+const AlternativeApplicationChildBinding =
+  ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     placement: 'alternativeApplicationChild',
     init: false,
-  },
-)
+  })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [AlternativeApplicationChildBinding],
 })

@@ -96,10 +96,12 @@ const ParentWork = ParentDefinition.makeCommand('ParentWork', {
     return () => Effect.succeed(ParentMessage.CompletedParentWork())
   },
 })
-const AlphaBinding = ParentDefinition.makeBinding(AlphaBlock, {
+const AlphaBinding = ParentDefinition.makeRequiredFieldBinding(AlphaBlock, {
   field: 'alpha',
 })
-const BetaBinding = ParentDefinition.makeBinding(BetaBlock, { field: 'beta' })
+const BetaBinding = ParentDefinition.makeRequiredFieldBinding(BetaBlock, {
+  field: 'beta',
+})
 const ConfiguredAlphaBinding = AlphaBinding.withOutMessagePolicy({
   fold: ParentDefinition.makeOutMessageFold(AlphaBlock, {
     Pinged: () => BetaBinding.ping(),

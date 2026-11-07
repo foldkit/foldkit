@@ -220,10 +220,13 @@ const foldRoomOutMessage = ApplicationDefinition.makeOutMessageFold(RoomBlock, {
     ]),
 })
 
-export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
-  field: 'home',
-  presentWhen: model => model.route._tag === 'Home',
-}).withOutMessagePolicy({
+export const HomeBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  HomeBlock,
+  {
+    field: 'home',
+    activeWhen: model => model.route._tag === 'Home',
+  },
+).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(HomeBlock, {
     JoinedRoom: ({ roomId, username }) => {
       return Update.combineSteps([
@@ -249,25 +252,28 @@ export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
   }),
 })
 
-export const RoomBinding = ApplicationDefinition.makeBinding(RoomBlock, {
-  readAll: model => Option.toArray(model.maybeRoomInstance),
-  key: instance => instance.roomId,
-  keySchema: RoomInstance.fields.roomId,
-  read: instance => instance.model,
-  writeAt: (model, roomId, nextRoom) =>
-    Struct.modifyFields(model, {
-      maybeRoomInstance: Option.map(instance =>
-        instance.roomId === roomId
-          ? Struct.modifyFields(instance, { model: () => nextRoom })
-          : instance,
-      ),
-    }),
-  delivery: {
-    when: (model, roomId) =>
-      model.route._tag === 'Room' && model.route.roomId === roomId,
-    toUpdateContext: (_model, roomId) => [{ roomId }],
+export const RoomBinding = ApplicationDefinition.makeCustomKeyedBinding(
+  RoomBlock,
+  {
+    readAll: model => Option.toArray(model.maybeRoomInstance),
+    key: instance => instance.roomId,
+    keySchema: RoomInstance.fields.roomId,
+    read: instance => instance.model,
+    writeAt: (model, roomId, nextRoom) =>
+      Struct.modifyFields(model, {
+        maybeRoomInstance: Option.map(instance =>
+          instance.roomId === roomId
+            ? Struct.modifyFields(instance, { model: () => nextRoom })
+            : instance,
+        ),
+      }),
+    delivery: {
+      when: (model, roomId) =>
+        model.route._tag === 'Room' && model.route.roomId === roomId,
+      toUpdateContext: (_model, roomId) => [{ roomId }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: (_roomId, outMessage) => foldRoomOutMessage(outMessage),
 })
 
@@ -432,7 +438,7 @@ export const DirectReciprocalApplicationDefinition = Block.makeDefinition(
 )
 
 export const LeftHomeBinding =
-  DirectReciprocalApplicationDefinition.makeBinding(HomeBlock, {
+  DirectReciprocalApplicationDefinition.makeRequiredFieldBinding(HomeBlock, {
     field: 'leftHome',
   }).withOutMessagePolicy({
     fold: HomeOutMessage.match({
@@ -441,7 +447,7 @@ export const LeftHomeBinding =
   })
 
 export const RightHomeBinding =
-  DirectReciprocalApplicationDefinition.makeBinding(HomeBlock, {
+  DirectReciprocalApplicationDefinition.makeRequiredFieldBinding(HomeBlock, {
     field: 'rightHome',
   }).withOutMessagePolicy({
     fold: HomeOutMessage.match({
@@ -497,7 +503,7 @@ export const KeyedReciprocalApplicationDefinition = Block.makeDefinition(
 )
 
 export const LeftKeyedHomeBinding =
-  KeyedReciprocalApplicationDefinition.makeBinding(HomeBlock, {
+  KeyedReciprocalApplicationDefinition.makeKeyedArrayBinding(HomeBlock, {
     field: 'leftHomes',
     placement: 'leftHomes',
     key: 'id',
@@ -505,7 +511,7 @@ export const LeftKeyedHomeBinding =
   }).withOutMessagePolicy({ fold: foldLeftKeyedHomeOutMessage })
 
 export const RightKeyedHomeBinding =
-  KeyedReciprocalApplicationDefinition.makeBinding(HomeBlock, {
+  KeyedReciprocalApplicationDefinition.makeKeyedArrayBinding(HomeBlock, {
     field: 'rightHomes',
     placement: 'rightHomes',
     key: 'id',
@@ -656,14 +662,14 @@ export const NestedPolicy = (() => {
     OutMessage: ParentOutMessage,
   })
 
-  const HomeBinding = ParentDefinition.makeBinding(HomeBlock, {
+  const HomeBinding = ParentDefinition.makeRequiredFieldBinding(HomeBlock, {
     field: 'home',
   }).withOutMessagePolicy({
     fold: HomeOutMessage.match({
       RequestedRoomWork: () => RoomBinding.runRoomWork(),
     }),
   })
-  const RoomBinding = ParentDefinition.makeBinding(RoomBlock, {
+  const RoomBinding = ParentDefinition.makeRequiredFieldBinding(RoomBlock, {
     field: 'room',
   }).withOutMessagePolicy({
     fold: RoomOutMessage.match({

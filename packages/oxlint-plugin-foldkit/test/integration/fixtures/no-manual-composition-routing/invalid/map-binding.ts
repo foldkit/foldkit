@@ -1,9 +1,9 @@
 import * as MapHelpers from '../shared/definition'
-import { ParentDefinition, makeMapBinding as importedBindMap } from '../shared/definition'
+import { ParentDefinition, makeHashMapBinding as importedBindMap } from '../shared/definition'
 
-const { makeMapBinding: bindMap } = ParentDefinition
+const { makeHashMapBinding: bindMap } = ParentDefinition
 
-ParentDefinition.makeMapBinding(ChildBlock, {
+ParentDefinition.makeHashMapBinding(ChildBlock, {
   field: 'childrenById',
   parentMessage: ParentMessage.GotChildMessage,
 })
@@ -18,21 +18,21 @@ importedBindMap(ChildBlock, {
   fromParentMessage: message => message,
 })
 
-MapHelpers.makeMapBinding(ChildBlock, {
+MapHelpers.makeHashMapBinding(ChildBlock, {
   field: 'childrenById',
   parentMessage: ParentMessage.GotChildMessage,
 })
 
-const namespaceMethodAlias = MapHelpers.makeMapBinding
+const namespaceMethodAlias = MapHelpers.makeHashMapBinding
 const namespaceMethodAliasAgain = namespaceMethodAlias
-const { makeMapBinding: namespaceDestructuredMap } = MapHelpers
+const { makeHashMapBinding: namespaceDestructuredMap } = MapHelpers
 const namespaceAlias = MapHelpers
 const namespaceAliasAgain = namespaceAlias
-const { makeMapBinding: namespaceAliasDestructuredMap } = namespaceAliasAgain
+const { makeHashMapBinding: namespaceAliasDestructuredMap } = namespaceAliasAgain
 const importedHelperAlias = importedBindMap
 
 namespaceMethodAliasAgain(ChildBlock, { parentMessage: ParentMessage.GotChildMessage })
 namespaceDestructuredMap(ChildBlock, { toParentMessage: ParentMessage.GotChildMessage })
-namespaceAliasAgain.makeMapBinding(ChildBlock, { fromParentMessage: message => message })
+namespaceAliasAgain.makeHashMapBinding(ChildBlock, { fromParentMessage: message => message })
 namespaceAliasDestructuredMap(ChildBlock, { parentMessage: ParentMessage.GotChildMessage })
 importedHelperAlias(ChildBlock, { toParentMessage: ParentMessage.GotChildMessage })

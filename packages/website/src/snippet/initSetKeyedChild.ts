@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { initAndSet } from 'foldkit/bindingInit'
+import { initAndSet } from 'foldkit/binding'
 
 import { makeStep } from './block'
 import { RoomBinding } from './composition'

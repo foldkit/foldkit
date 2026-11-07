@@ -80,16 +80,16 @@ const Parent = makeDefinition('StrictRoutingRuntimeParent', {
   Message: ParentMessage,
 })
 
-const ChildBinding = Parent.makeBinding(ChildBlock, {
+const ChildBinding = Parent.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
 })
-const ContextBinding = Parent.makeBinding(ContextChildBlock, {
+const ContextBinding = Parent.makeRequiredFieldBinding(ContextChildBlock, {
   field: 'contextualChild',
   delivery: {
     toUpdateContext: model => [{ multiplier: model.multiplier }],
   },
 })
-const EntryBinding = Parent.makeBinding(ChildBlock, {
+const EntryBinding = Parent.makeCustomKeyedBinding(ChildBlock, {
   readAll: model => model.entries,
   key: entry => entry.id,
   read: entry => entry.child,
@@ -197,7 +197,7 @@ it('does not wrap an update authored by the same Composition twice', () => {
 })
 
 it('rejects duplicate generated delivery placements for erased callers', () => {
-  const duplicateBinding = Parent.makeBinding(ChildBlock, {
+  const duplicateBinding = Parent.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     placement: 'child',
     init: false,

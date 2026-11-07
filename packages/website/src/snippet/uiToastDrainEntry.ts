@@ -23,13 +23,17 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
-  ApplicationBlock
+const {
+  makeNoopStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = ApplicationBlock
 
 const foldToastOutMessage = makeOutMessageFold(ToastBlock, {
   DismissedToast: makeNoopStep,
 })
-const ToastBinding = makeBinding(ToastBlock, {
+const ToastBinding = makeRequiredFieldBinding(ToastBlock, {
   field: 'toast',
   init: {
     contextToArgs: () => [{ id: 'notifications' }],

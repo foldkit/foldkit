@@ -4,28 +4,36 @@ import { Update } from 'foldkit'
 import { DatePicker } from '@foldkit/ui'
 
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 
-export const StartDateBinding = makeBinding(DatePicker.DatePickerBlock, {
-  field: 'startDate',
-  init: {
-    contextToArgs: ({ entryId, today }) => [{ id: `${entryId}-start`, today }],
+export const StartDateBinding = makeRequiredFieldBinding(
+  DatePicker.DatePickerBlock,
+  {
+    field: 'startDate',
+    init: {
+      contextToArgs: ({ entryId, today }) => [
+        { id: `${entryId}-start`, today },
+      ],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: outMessage => foldStartDateOutMessage(outMessage),
 })
 
-export const EndDateBinding = makeBinding(DatePicker.DatePickerBlock, {
-  field: 'endDate',
-  init: {
-    contextToArgs: ({ entryId, today }) => [{ id: `${entryId}-end`, today }],
+export const EndDateBinding = makeRequiredFieldBinding(
+  DatePicker.DatePickerBlock,
+  {
+    field: 'endDate',
+    init: {
+      contextToArgs: ({ entryId, today }) => [{ id: `${entryId}-end`, today }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: outMessage => foldEndDateOutMessage(outMessage),
 })
 

@@ -51,10 +51,13 @@ const foldRadioGroupOutMessage = RadioGroupSceneBlock.makeOutMessageFold(
   },
 )
 
-const RadioGroupBinding = RadioGroupSceneBlock.makeBinding(TestRadioGroup, {
-  field: 'radioGroup',
-  init: { contextToArgs: id => [{ id }] },
-}).withOutMessagePolicy({ fold: foldRadioGroupOutMessage })
+const RadioGroupBinding = RadioGroupSceneBlock.makeRequiredFieldBinding(
+  TestRadioGroup,
+  {
+    field: 'radioGroup',
+    init: { contextToArgs: id => [{ id }] },
+  },
+).withOutMessagePolicy({ fold: foldRadioGroupOutMessage })
 
 const RadioGroupSceneComposition = RadioGroupSceneBlock.makeComposition({
   bindings: [RadioGroupBinding],

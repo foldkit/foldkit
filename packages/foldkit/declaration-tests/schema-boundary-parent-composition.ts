@@ -6,9 +6,12 @@ export const ParentDefinition = Block.makeDefinition('PublicModelParent', {
   Model,
   Message: Message.defineMessageUnion({ RequestedLoad: {} }),
 })
-export const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-})
+export const ChildBinding = ParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
+  },
+)
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })

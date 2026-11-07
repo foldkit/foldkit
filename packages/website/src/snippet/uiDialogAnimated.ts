@@ -25,8 +25,12 @@ export const AnimatedDialogExampleBlock = Block.make('AnimatedDialogExample', {
   Message,
 })
 
-const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
-  AnimatedDialogExampleBlock
+const {
+  makeNoopStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = AnimatedDialogExampleBlock
 
 const foldDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
   Opened: makeNoopStep,
@@ -34,7 +38,7 @@ const foldDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
   CompletedClose: makeNoopStep,
 })
 
-const DialogBinding = makeBinding(Dialog.DialogBlock, {
+const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: {
     contextToArgs: () => [{ id: 'confirm', isAnimated: true }],

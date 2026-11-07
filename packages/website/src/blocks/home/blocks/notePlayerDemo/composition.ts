@@ -2,14 +2,14 @@ import type { Block } from 'foldkit'
 
 import {
   NoteDurationRadioGroupBlock,
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 import { prependToLog } from './messageLog'
 
-export const NoteDurationRadioGroupBinding = makeBinding(
+export const NoteDurationRadioGroupBinding = makeRequiredFieldBinding(
   NoteDurationRadioGroupBlock,
   {
     field: 'noteDurationRadioGroup',

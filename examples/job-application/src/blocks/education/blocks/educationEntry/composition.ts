@@ -2,13 +2,13 @@ import { Option } from 'effect'
 
 import {
   GraduationYearListboxBlock,
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 
-export const GraduationYearListboxBinding = makeBinding(
+export const GraduationYearListboxBinding = makeRequiredFieldBinding(
   GraduationYearListboxBlock,
   {
     field: 'graduationYearListbox',

@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { Update } from 'foldkit'
-import { initAndSet } from 'foldkit/bindingInit'
+import { initAndSet } from 'foldkit/binding'
 import { modifyFields } from 'foldkit/struct'
 
 import { makeStep } from '../block'

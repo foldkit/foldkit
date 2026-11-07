@@ -31,8 +31,12 @@ export const TabsExampleBlock = Block.make('TabsExample', {
   Message,
 })
 
-const { makeFieldsStep, makeOutMessageFold, makeBinding, makeComposition } =
-  TabsExampleBlock
+const {
+  makeFieldsStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = TabsExampleBlock
 
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
@@ -61,7 +65,7 @@ const foldTabsOutMessage = makeOutMessageFold(FrameworkTabs, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const TabsBinding = makeBinding(FrameworkTabs, {
+const TabsBinding = makeRequiredFieldBinding(FrameworkTabs, {
   field: 'tabs',
   init: { contextToArgs: () => [{ id: 'framework-tabs' }] },
 }).withOutMessagePolicy({ fold: foldTabsOutMessage })

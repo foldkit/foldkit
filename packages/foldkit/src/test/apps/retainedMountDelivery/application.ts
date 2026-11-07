@@ -96,7 +96,7 @@ export const RecreateMountedOwner = ApplicationBlock.makeMount(
     },
   },
 )
-export const SurfacesBinding = ApplicationBlock.makeBinding(
+export const SurfacesBinding = ApplicationBlock.makeKeyedArrayBinding(
   Surface.SurfaceBlock,
   {
     field: 'surfaces',

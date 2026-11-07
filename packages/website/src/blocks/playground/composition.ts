@@ -1,18 +1,21 @@
 import type { Block } from 'foldkit'
 
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 import { PlaygroundFileTabsBlock } from './fileTabs'
 import { MountPlaygroundEditor } from './mount'
 
-export const FileTabsBinding = makeBinding(PlaygroundFileTabsBlock, {
-  field: 'fileTabs',
-  init: { contextToArgs: () => [{ id: 'playground-files' }] },
-}).withOutMessagePolicy({
+export const FileTabsBinding = makeRequiredFieldBinding(
+  PlaygroundFileTabsBlock,
+  {
+    field: 'fileTabs',
+    init: { contextToArgs: () => [{ id: 'playground-files' }] },
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(PlaygroundFileTabsBlock, {
     Selected: ({ value }) =>
       makeFieldsStep(() => ({

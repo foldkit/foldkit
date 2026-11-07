@@ -1,7 +1,7 @@
 import {
   makeFieldsStep,
   makeOutMessageFold,
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
 } from './block'
 
@@ -19,11 +19,11 @@ const foldEditorOutMessage = makeOutMessageFold(Editor.EditorBlock, {
     })),
 })
 
-const SearchBinding = makeBinding(Search.SearchBlock, {
+const SearchBinding = makeRequiredFieldBinding(Search.SearchBlock, {
   field: 'search',
 }).withOutMessagePolicy({ fold: foldSearchOutMessage })
 
-const EditorBinding = makeBinding(Editor.EditorBlock, {
+const EditorBinding = makeRequiredFieldBinding(Editor.EditorBlock, {
   field: 'editor',
 }).withOutMessagePolicy({ fold: foldEditorOutMessage })
 

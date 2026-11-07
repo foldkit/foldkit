@@ -354,18 +354,15 @@ describe('update', () => {
       }) => {
         const modelWithMultipleEntries = modifyFields(initialModel, {
           currentStep: () => 'Review',
-          workHistory: workHistory =>
-            modifyFields(workHistory, {
-              entries: Array.append(secondWorkHistoryEntry),
-            }),
-          education: education =>
-            modifyFields(education, {
-              entries: Array.append(secondEducationEntry),
-            }),
-          skills: skills =>
-            modifyFields(skills, {
-              entries: Array.append(secondSkillsEntry),
-            }),
+          workHistory: modifyFields({
+            entries: Array.append(secondWorkHistoryEntry),
+          }),
+          education: modifyFields({
+            entries: Array.append(secondEducationEntry),
+          }),
+          skills: modifyFields({
+            entries: Array.append(secondSkillsEntry),
+          }),
         })
 
         return Story.story(

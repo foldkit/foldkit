@@ -49,17 +49,23 @@ const EmittingChildBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildModel,
   typeof prepareEmittingChild
 > = Block.assemble(prepareEmittingChild)
-const EmittingLeftBinding = ParentDefinition.makeBinding(EmittingChildBlock, {
-  field: 'left',
-}).withOutMessagePolicy({
+const EmittingLeftBinding = ParentDefinition.makeRequiredFieldBinding(
+  EmittingChildBlock,
+  {
+    field: 'left',
+  },
+).withOutMessagePolicy({
   forward: ParentDefinition.makeOutMessageForward(EmittingChildBlock, {
     Selected: ({ value }) => ParentOutMessage.ForwardedSelection({ value }),
     Closed: () => undefined,
   }),
 })
-const EmittingRightBinding = ParentDefinition.makeBinding(EmittingChildBlock, {
-  field: 'right',
-})
+const EmittingRightBinding = ParentDefinition.makeRequiredFieldBinding(
+  EmittingChildBlock,
+  {
+    field: 'right',
+  },
+)
 
 const combineForwardingPolicyOperation = ParentDefinition.makeStep(() =>
   Update.combineSteps([

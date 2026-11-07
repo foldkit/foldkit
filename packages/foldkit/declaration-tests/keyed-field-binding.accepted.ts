@@ -264,7 +264,7 @@ export const DeclarationCallableKeyedFieldParentDefinition =
     Message: CallableParentMessage,
   })
 export const CallableEntriesBinding =
-  DeclarationCallableKeyedFieldParentDefinition.makeBinding(
+  DeclarationCallableKeyedFieldParentDefinition.makeKeyedArrayBinding(
     CallableChildBlock,
     {
       field: 'entries',
@@ -286,9 +286,8 @@ export const callableInitialParentModel = CallableParentModel({
   entries: [CallableChildModel({ id: 'first', count: 1 })],
 })
 
-export const EntriesBinding = DeclarationKeyedFieldParentDefinition.makeBinding(
-  ChildBlock,
-  {
+export const EntriesBinding =
+  DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(ChildBlock, {
     field: 'entries',
     key: 'id',
     subscriptions: {
@@ -307,8 +306,7 @@ export const EntriesBinding = DeclarationKeyedFieldParentDefinition.makeBinding(
         return id !== ''
       },
     },
-  },
-)
+  })
 
 const InitializedParentModel = Schema.Struct({
   entries: Schema.Array(ChildModel),
@@ -322,14 +320,17 @@ const DeclarationInitializedKeyedFieldParentDefinition = Block.makeDefinition(
   },
 )
 export const InitializedEntriesBinding =
-  DeclarationInitializedKeyedFieldParentDefinition.makeBinding(ChildBlock, {
-    field: 'entries',
-    key: 'id',
-    init: {
-      instances: (_status: 'Ready') => [{ key: 'initial', args: [] }],
-      toItem: (_occurrence, child) => child,
+  DeclarationInitializedKeyedFieldParentDefinition.makeKeyedArrayBinding(
+    ChildBlock,
+    {
+      field: 'entries',
+      key: 'id',
+      init: {
+        instances: (_status: 'Ready') => [{ key: 'initial', args: [] }],
+        toItem: (_occurrence, child) => child,
+      },
     },
-  })
+  )
 const DeclarationInitializedKeyedFieldParentComposition =
   DeclarationInitializedKeyedFieldParentDefinition.makeComposition({
     bindings: [InitializedEntriesBinding],
@@ -343,37 +344,40 @@ export const initKeyedParent =
   )
 
 export const EquivalentEntriesBinding =
-  DeclarationKeyedFieldParentDefinition.makeBinding(ChildBlock, {
+  DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(ChildBlock, {
     field: 'equivalentEntries',
     key: 'id',
   })
 
 export const SuspendedEntriesBinding =
-  DeclarationKeyedFieldParentDefinition.makeBinding(ChildBlock, {
+  DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(ChildBlock, {
     field: 'suspendedEntries',
     key: 'id',
   })
 
 export const BrandedEntriesBinding =
-  DeclarationKeyedFieldParentDefinition.makeBinding(RefinedKeyBlock, {
+  DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(RefinedKeyBlock, {
     field: 'brandedEntries',
     key: 'id',
   })
 
 export const LiteralEntriesBinding =
-  DeclarationKeyedFieldParentDefinition.makeBinding(RefinedKeyBlock, {
+  DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(RefinedKeyBlock, {
     placement: 'literalEntries',
     field: 'literalEntries',
     key: 'kind',
   })
 
 export const ArrayChildBinding =
-  DeclarationKeyedFieldParentDefinition.makeBinding(ArrayChildBlock, {
-    field: 'arrayChild',
-  })
+  DeclarationKeyedFieldParentDefinition.makeRequiredFieldBinding(
+    ArrayChildBlock,
+    {
+      field: 'arrayChild',
+    },
+  )
 
 export const OutEntriesBinding =
-  DeclarationKeyedFieldParentDefinition.makeBinding(OutChildBlock, {
+  DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(OutChildBlock, {
     field: 'outEntries',
     key: 'id',
   }).withOutMessagePolicy({
@@ -397,7 +401,7 @@ export const OutEntriesBinding =
 export const outEntriesInspection = Block.inspectBinding(OutEntriesBinding)
 
 export const WrappedRowsBinding =
-  DeclarationKeyedFieldParentDefinition.makeBinding(ChildBlock, {
+  DeclarationKeyedFieldParentDefinition.makeCustomKeyedBinding(ChildBlock, {
     placement: 'wrappedRows',
     readAll: model => model.wrappedRows,
     key: row => row.rowId,
@@ -413,9 +417,8 @@ export const WrappedRowsBinding =
       }),
   })
 
-export const RoomBinding = DeclarationKeyedFieldParentDefinition.makeBinding(
-  ChildBlock,
-  {
+export const RoomBinding =
+  DeclarationKeyedFieldParentDefinition.makeCustomKeyedBinding(ChildBlock, {
     placement: 'room',
     readAll: model => Option.toArray(model.maybeRoom),
     key: child => child.id,
@@ -423,8 +426,7 @@ export const RoomBinding = DeclarationKeyedFieldParentDefinition.makeBinding(
     read: child => child,
     writeAt: (model, _roomId, nextRoom) =>
       Struct.modifyFields(model, { maybeRoom: () => Option.some(nextRoom) }),
-  },
-)
+  })
 
 export const DeclarationKeyedFieldParentComposition =
   DeclarationKeyedFieldParentDefinition.makeComposition({

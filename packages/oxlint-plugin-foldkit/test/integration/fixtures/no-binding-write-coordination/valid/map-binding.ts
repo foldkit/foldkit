@@ -14,37 +14,37 @@ const ParentDefinition = Block.makeDefinition('MapWriterParent', {
   Message: Schema.Never,
 })
 
-const { makeMapBinding: bindMap } = ParentDefinition
+const { makeRecordBinding: bindMap } = ParentDefinition
 bindMap(ChildBlock, { field: 'childrenById' })
-ParentDefinition.makeMapBinding(ChildBlock, {
+ParentDefinition.makeRecordBinding(ChildBlock, {
   field: 'moreChildrenById',
 })
 
-const makeMapBinding = (
+const makeRecordBinding = (
   _child: unknown,
   config: unknown,
 ) => config
 
-makeMapBinding(ChildBlock, {
+makeRecordBinding(ChildBlock, {
   field: 'childrenById',
   write: 'unrelated',
 })
 
 export const callShadowed = (
-  makeMapBinding: (...args: ReadonlyArray<unknown>) => unknown,
-) => makeMapBinding(ChildBlock, { write: 'shadowed' })
+  makeRecordBinding: (...args: ReadonlyArray<unknown>) => unknown,
+) => makeRecordBinding(ChildBlock, { write: 'shadowed' })
 
 const unrelatedDefinition = {
-  makeMapBinding: (_child: unknown, config: unknown) => config,
+  makeRecordBinding: (_child: unknown, config: unknown) => config,
 }
-const { makeMapBinding: unrelatedBindMap } = unrelatedDefinition
-unrelatedDefinition.makeMapBinding(ChildBlock, { write: 'unrelated method' })
+const { makeRecordBinding: unrelatedBindMap } = unrelatedDefinition
+unrelatedDefinition.makeRecordBinding(ChildBlock, { write: 'unrelated method' })
 unrelatedBindMap(ChildBlock, { write: 'unrelated extracted method' })
 
 const unrelatedNamespaceAlias = UnrelatedHelpers
 const unrelatedNamespaceAliasAgain = unrelatedNamespaceAlias
-const unrelatedMethodAlias = unrelatedNamespaceAliasAgain.makeMapBinding
-const { makeMapBinding: unrelatedDestructuredMap } = unrelatedNamespaceAliasAgain
+const unrelatedMethodAlias = unrelatedNamespaceAliasAgain.makeRecordBinding
+const { makeRecordBinding: unrelatedDestructuredMap } = unrelatedNamespaceAliasAgain
 const writer = {
   field: 'child',
   read: (model: typeof Helpers.ParentDefinition.Model.Type) => Option.some(model.child),
@@ -57,4 +57,4 @@ const writer = {
 
 unrelatedMethodAlias(ChildBlock, writer)
 unrelatedDestructuredMap(ChildBlock, writer)
-unrelatedNamespaceAliasAgain.makeMapBinding(ChildBlock, writer)
+unrelatedNamespaceAliasAgain.makeRecordBinding(ChildBlock, writer)

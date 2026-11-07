@@ -17,7 +17,7 @@ export const IssueListBlock = Block.make('IssueList', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,

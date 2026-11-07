@@ -182,7 +182,7 @@ it('preserves a child transition when an OutMessage policy has no parent transit
     ChildOutMessage.match<Update.Step<ParentModel, ParentMessage>>(outMessage, {
       Incremented: () => ParentDefinition.makeNoopStep(),
     })
-  const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+  const ChildBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
   }).withOutMessagePolicy({ fold: foldChildOutMessage })
   const ParentComposition = ParentDefinition.makeComposition({

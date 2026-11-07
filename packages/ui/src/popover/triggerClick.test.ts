@@ -23,10 +23,13 @@ const foldPopoverOutMessage = PopoverTriggerClickTestBlock.makeOutMessageFold(
     Closed: () => PopoverTriggerClickTestBlock.makeNoopStep(),
   },
 )
-const PopoverBinding = PopoverTriggerClickTestBlock.makeBinding(PopoverBlock, {
-  field: 'popover',
-  init: false,
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+const PopoverBinding = PopoverTriggerClickTestBlock.makeRequiredFieldBinding(
+  PopoverBlock,
+  {
+    field: 'popover',
+    init: false,
+  },
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 const PopoverTriggerClickTestComposition =
   PopoverTriggerClickTestBlock.makeComposition({
     bindings: [PopoverBinding],

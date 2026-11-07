@@ -23,9 +23,9 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeBinding, makeComposition } = ApplicationBlock
+const { makeRequiredFieldBinding, makeComposition } = ApplicationBlock
 
-const PostsBinding = makeBinding(postsQuery, {
+const PostsBinding = makeRequiredFieldBinding(postsQuery, {
   field: 'posts',
 })
 

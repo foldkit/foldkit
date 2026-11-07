@@ -27,10 +27,13 @@ const foldDragAndDropOutMessage = DragAndDropSceneBlock.makeOutMessageFold(
   },
 )
 
-const DragAndDropBinding = DragAndDropSceneBlock.makeBinding(DragAndDropBlock, {
-  field: 'dragAndDrop',
-  init: { contextToArgs: () => [{ id: 'board' }] },
-}).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
+const DragAndDropBinding = DragAndDropSceneBlock.makeRequiredFieldBinding(
+  DragAndDropBlock,
+  {
+    field: 'dragAndDrop',
+    init: { contextToArgs: () => [{ id: 'board' }] },
+  },
+).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
 
 const DragAndDropSceneComposition = DragAndDropSceneBlock.makeComposition({
   bindings: [DragAndDropBinding],

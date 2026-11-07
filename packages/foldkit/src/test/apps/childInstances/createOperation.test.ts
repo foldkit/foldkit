@@ -39,9 +39,12 @@ const ApplicationDefinition = makeDefinition('OccurrenceOperationParent', {
   Message,
   Init: Schema.Tuple([]),
 })
-const CreatorBinding = ApplicationDefinition.makeBinding(CreatorBlock, {
-  field: 'creator',
-})
+const CreatorBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  CreatorBlock,
+  {
+    field: 'creator',
+  },
+)
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [CreatorBinding],
 })

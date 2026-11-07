@@ -79,7 +79,7 @@ const CompleteParent = makeDefinition('GenericCompleteParent', {
   Model: CompleteParentModel,
   Message: Schema.Never,
 })
-const CompleteBinding = CompleteParent.makeBinding(complete, {
+const CompleteBinding = CompleteParent.makeRequiredFieldBinding(complete, {
   placement: 'GenericComplete',
   field: 'child',
 })
@@ -98,7 +98,7 @@ if (false) {
   })
 
   // @ts-expect-error Concrete Bindings validate deferred generic handler coverage.
-  MissingParent.makeBinding(missing, {
+  MissingParent.makeRequiredFieldBinding(missing, {
     placement: 'GenericMissing',
     field: 'child',
   })

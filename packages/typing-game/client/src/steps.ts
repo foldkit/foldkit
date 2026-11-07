@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { initAndSet } from 'foldkit/bindingInit'
+import { initAndSet } from 'foldkit/binding'
 
 import { MaybeRoomInstanceBinding } from './composition/room'
 import { type Model } from './model'

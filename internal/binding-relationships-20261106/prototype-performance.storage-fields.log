@@ -1,0 +1,54 @@
+$ node scripts/check-block-type-performance.ts
+[block-type-performance] TypeScript 7.1.0-beta; --singleThreaded diagnostics
+[block-type-performance] Measuring baseline...
+[block-type-performance] Measuring deep-composition-8...
+[block-type-performance] Measuring wide-composition-100...
+[block-type-performance] Measuring command-requirements-200...
+[block-type-performance] Measuring wide-subscriptions-100...
+[block-type-performance] Measuring workspace-composition-4...
+type-performance/workspace-groups-4.ts(93,46): error TS2554: Expected 3 arguments, but got 2.
+type-performance/workspace-groups-4.ts(156,49): error TS2739: Type 'FoldContext<{ readonly _tag: "RequestedSave"; } | { readonly _tag: "CompletedSaveIssue"; readonly issueId: string; readonly title: string; } | { readonly _tag: "UpdatedTitle"; readonly value: string; }, ... | ... 2 more ... | ..., ...>' is missing the following properties from type '{ readonly _tag: "Saved"; readonly issueId: string; readonly title: string; }': _tag, issueId, title
+type-performance/workspace-groups-4.ts(191,13): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'key' does not exist in type 'Omit<BoundBlockFields<OwnedAuthoredView<BlockView<{ readonly issueId: string; readonly title: string; readonly revision: number; }, { readonly _tag: "RequestedSave"; } | { readonly _tag: "CompletedSaveIssue"; readonly issueId: string; readonly title: string; } | ..., void, never>, Owner<...>, ..., ... | ... 1 more ....'.
+type-performance/workspace-groups-4.ts(220,5): error TS2322: Type '{ groupId: "WorkspaceGroup001"; maybeEditor: Option.Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; lastSavedTitle: string; }' is not assignable to type 'Omit<{ readonly groupId: "WorkspaceGroup001"; readonly control: { readonly query: string; }; readonly maybeEditor: Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; readonly rows: ...; readonly lastSavedTitle: string; }, "control"...'.
+  Property 'rows' is missing in type '{ groupId: "WorkspaceGroup001"; maybeEditor: Option.Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; lastSavedTitle: string; }' but required in type 'Omit<{ readonly groupId: "WorkspaceGroup001"; readonly control: { readonly query: string; }; readonly maybeEditor: Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; readonly rows: ...; readonly lastSavedTitle: string; }, "control">'.
+type-performance/workspace-groups-4.ts(378,46): error TS2554: Expected 3 arguments, but got 2.
+type-performance/workspace-groups-4.ts(441,49): error TS2739: Type 'FoldContext<{ readonly _tag: "RequestedSave"; } | { readonly _tag: "CompletedSaveIssue"; readonly issueId: string; readonly title: string; } | { readonly _tag: "UpdatedTitle"; readonly value: string; }, ... | ... 2 more ... | ..., ...>' is missing the following properties from type '{ readonly _tag: "Saved"; readonly issueId: string; readonly title: string; }': _tag, issueId, title
+type-performance/workspace-groups-4.ts(476,13): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'key' does not exist in type 'Omit<BoundBlockFields<OwnedAuthoredView<BlockView<{ readonly issueId: string; readonly title: string; readonly revision: number; }, { readonly _tag: "RequestedSave"; } | { readonly _tag: "CompletedSaveIssue"; readonly issueId: string; readonly title: string; } | ..., void, never>, Owner<...>, ..., ... | ... 1 more ....'.
+type-performance/workspace-groups-4.ts(505,5): error TS2322: Type '{ groupId: "WorkspaceGroup002"; maybeEditor: Option.Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; lastSavedTitle: string; }' is not assignable to type 'Omit<{ readonly groupId: "WorkspaceGroup002"; readonly control: { readonly query: string; }; readonly maybeEditor: Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; readonly rows: ...; readonly lastSavedTitle: string; }, "control"...'.
+  Property 'rows' is missing in type '{ groupId: "WorkspaceGroup002"; maybeEditor: Option.Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; lastSavedTitle: string; }' but required in type 'Omit<{ readonly groupId: "WorkspaceGroup002"; readonly control: { readonly query: string; }; readonly maybeEditor: Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; readonly rows: ...; readonly lastSavedTitle: string; }, "control">'.
+type-performance/workspace-groups-4.ts(663,46): error TS2554: Expected 3 arguments, but got 2.
+type-performance/workspace-groups-4.ts(726,49): error TS2739: Type 'FoldContext<{ readonly _tag: "RequestedSave"; } | { readonly _tag: "CompletedSaveIssue"; readonly issueId: string; readonly title: string; } | { readonly _tag: "UpdatedTitle"; readonly value: string; }, ... | ... 2 more ... | ..., ...>' is missing the following properties from type '{ readonly _tag: "Saved"; readonly issueId: string; readonly title: string; }': _tag, issueId, title
+type-performance/workspace-groups-4.ts(761,13): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'key' does not exist in type 'Omit<BoundBlockFields<OwnedAuthoredView<BlockView<{ readonly issueId: string; readonly title: string; readonly revision: number; }, { readonly _tag: "RequestedSave"; } | { readonly _tag: "CompletedSaveIssue"; readonly issueId: string; readonly title: string; } | ..., void, never>, Owner<...>, ..., ... | ... 1 more ....'.
+type-performance/workspace-groups-4.ts(790,5): error TS2322: Type '{ groupId: "WorkspaceGroup003"; maybeEditor: Option.Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; lastSavedTitle: string; }' is not assignable to type 'Omit<{ readonly groupId: "WorkspaceGroup003"; readonly control: { readonly query: string; }; readonly maybeEditor: Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; readonly rows: ...; readonly lastSavedTitle: string; }, "control"...'.
+  Property 'rows' is missing in type '{ groupId: "WorkspaceGroup003"; maybeEditor: Option.Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; lastSavedTitle: string; }' but required in type 'Omit<{ readonly groupId: "WorkspaceGroup003"; readonly control: { readonly query: string; }; readonly maybeEditor: Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; readonly rows: ...; readonly lastSavedTitle: string; }, "control">'.
+type-performance/workspace-groups-4.ts(948,46): error TS2554: Expected 3 arguments, but got 2.
+type-performance/workspace-groups-4.ts(1011,49): error TS2739: Type 'FoldContext<{ readonly _tag: "RequestedSave"; } | { readonly _tag: "CompletedSaveIssue"; readonly issueId: string; readonly title: string; } | { readonly _tag: "UpdatedTitle"; readonly value: string; }, ... | ... 2 more ... | ..., ...>' is missing the following properties from type '{ readonly _tag: "Saved"; readonly issueId: string; readonly title: string; }': _tag, issueId, title
+type-performance/workspace-groups-4.ts(1046,13): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'key' does not exist in type 'Omit<BoundBlockFields<OwnedAuthoredView<BlockView<{ readonly issueId: string; readonly title: string; readonly revision: number; }, { readonly _tag: "RequestedSave"; } | { readonly _tag: "CompletedSaveIssue"; readonly issueId: string; readonly title: string; } | ..., void, never>, Owner<...>, ..., ... | ... 1 more ....'.
+type-performance/workspace-groups-4.ts(1075,5): error TS2322: Type '{ groupId: "WorkspaceGroup004"; maybeEditor: Option.Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; lastSavedTitle: string; }' is not assignable to type 'Omit<{ readonly groupId: "WorkspaceGroup004"; readonly control: { readonly query: string; }; readonly maybeEditor: Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; readonly rows: ...; readonly lastSavedTitle: string; }, "control"...'.
+  Property 'rows' is missing in type '{ groupId: "WorkspaceGroup004"; maybeEditor: Option.Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; lastSavedTitle: string; }' but required in type 'Omit<{ readonly groupId: "WorkspaceGroup004"; readonly control: { readonly query: string; }; readonly maybeEditor: Option<{ readonly issueId: string; readonly model: { readonly issueId: string; readonly title: string; readonly revision: number; }; }>; readonly rows: ...; readonly lastSavedTitle: string; }, "control">'.
+Files:              529
+Lines:           330885
+Identifiers:     278339
+Symbols:         297283
+Types:           121039
+Instantiations: 1570658
+Memory used:    170631K
+Memory allocs:  2196000
+Config time:     0.000s
+Parse time:      0.125s
+Bind time:       0.032s
+Check time:      0.473s
+Emit time:       0.000s
+Total time:      0.631s
+[block-type-performance] Compiler failed for workspace-composition-4.
+/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] foldkit@0.170.0 check:block-type-performance: `node scripts/check-block-type-performance.ts`
+Exit status 1

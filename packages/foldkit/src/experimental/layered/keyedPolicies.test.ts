@@ -68,8 +68,10 @@ it('resolves a keyed OutMessage policy against the same acquired graph when it i
     ClickedIncrement: { key: Schema.String },
   })
   const Definition = makeDefinition('KeyedPolicyParent', { Model, Message })
-  const TotalBinding = Definition.makeBinding(TotalBlock, { field: 'total' })
-  const CountersBinding = Definition.makeMapBinding(ChildBlock, {
+  const TotalBinding = Definition.makeRequiredFieldBinding(TotalBlock, {
+    field: 'total',
+  })
+  const CountersBinding = Definition.makeHashMapBinding(ChildBlock, {
     field: 'counters',
   }).withOutMessagePolicy({
     fold: (_key, outMessage) =>

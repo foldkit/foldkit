@@ -142,7 +142,7 @@ type ChildInitContext = Readonly<{
   maybeSecondCount: Option.Option<number>
 }>
 
-const FirstBinding = Parent.makeBinding(ChildBlock, {
+const FirstBinding = Parent.makeRequiredFieldBinding(ChildBlock, {
   field: 'first',
   init: {
     contextToArgs: (childInitContext: ChildInitContext) => {
@@ -151,7 +151,7 @@ const FirstBinding = Parent.makeBinding(ChildBlock, {
     },
   },
 })
-const SecondBinding = Parent.makeBinding(ChildBlock, {
+const SecondBinding = Parent.makeOptionalFieldBinding(ChildBlock, {
   field: 'maybeSecond',
   init: {
     contextToArgs: (childInitContext: ChildInitContext) => {
@@ -563,7 +563,7 @@ it('initializes a projected accessor child and verifies Schema reconstruction', 
     Model: AccessorParentModel,
     Message: Schema.Never,
   })
-  const AccessorBinding = AccessorParent.makeBinding(ChildBlock, {
+  const AccessorBinding = AccessorParent.makeCustomBinding(ChildBlock, {
     placement: 'selectedChild',
     read: (model: AccessorParentModel) => Option.some(model.second),
     write: (model, nextSecond) =>
@@ -600,7 +600,7 @@ it('rejects a projected field that the accessor does not select', () => {
     Model: AccessorParentModel,
     Message: Schema.Never,
   })
-  const InvalidAccessorBinding = AccessorParent.makeBinding(ChildBlock, {
+  const InvalidAccessorBinding = AccessorParent.makeCustomBinding(ChildBlock, {
     placement: 'invalidSelectedChild',
     read: (model: AccessorParentModel) => Option.some(model.first),
     write: (model, nextFirst) =>
@@ -629,12 +629,12 @@ it('runs initialization callbacks and Steps under the exact registered operation
       maybeSecond: Option.none(),
       status: 'Ready',
     })
-  const ForeignBinding = Parent.makeBinding(ChildBlock, {
+  const ForeignBinding = Parent.makeRequiredFieldBinding(ChildBlock, {
     field: 'first',
     placement: 'foreignFirst',
     init: false,
   })
-  const SelectorBinding = Parent.makeBinding(ChildBlock, {
+  const SelectorBinding = Parent.makeRequiredFieldBinding(ChildBlock, {
     field: 'first',
     placement: 'selectorFirst',
     init: {
@@ -645,7 +645,7 @@ it('runs initialization callbacks and Steps under the exact registered operation
       },
     },
   })
-  const SelectorSecondBinding = Parent.makeBinding(ChildBlock, {
+  const SelectorSecondBinding = Parent.makeOptionalFieldBinding(ChildBlock, {
     field: 'maybeSecond',
     init: false,
   })
@@ -661,12 +661,15 @@ it('runs initialization callbacks and Steps under the exact registered operation
     Model: ProjectedParentModel,
     Message: Schema.Never,
   })
-  const ForeignProjectedBinding = ProjectedParent.makeBinding(ChildBlock, {
-    field: 'first',
-    placement: 'foreignProjectedFirst',
-    init: false,
-  })
-  const ProjectedBinding = ProjectedParent.makeBinding(ChildBlock, {
+  const ForeignProjectedBinding = ProjectedParent.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'first',
+      placement: 'foreignProjectedFirst',
+      init: false,
+    },
+  )
+  const ProjectedBinding = ProjectedParent.makeCustomBinding(ChildBlock, {
     placement: 'projectedSecond',
     read: (model: ProjectedParentModel) => Option.some(model.second),
     write: (model, nextSecond) =>
@@ -870,14 +873,20 @@ it('omits startup when every child selector has no input', () => {
     Model: ParentModel,
     Message: ParentMessage,
   })
-  const FirstBinding = ConstantStartupParent.makeBinding(ChildBlock, {
-    field: 'first',
-    init: { contextToArgs: () => [3] },
-  })
-  const SecondBinding = ConstantStartupParent.makeBinding(ChildBlock, {
-    field: 'maybeSecond',
-    init: { contextToArgs: () => Option.some([4]) },
-  })
+  const FirstBinding = ConstantStartupParent.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'first',
+      init: { contextToArgs: () => [3] },
+    },
+  )
+  const SecondBinding = ConstantStartupParent.makeOptionalFieldBinding(
+    ChildBlock,
+    {
+      field: 'maybeSecond',
+      init: { contextToArgs: () => Option.some([4]) },
+    },
+  )
   const ConstantStartupParentComposition =
     ConstantStartupParent.makeComposition({
       bindings: [FirstBinding, SecondBinding],

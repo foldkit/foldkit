@@ -126,7 +126,7 @@ const ToastFixtureBlock = Block.make('ToastFixture', {
   Model: ToastFixtureModel,
   Message: Schema.Never,
 })
-export const ToastBinding = ToastFixtureBlock.makeBinding(ToastBlock, {
+export const ToastBinding = ToastFixtureBlock.makeCustomBinding(ToastBlock, {
   placement: 'Toast',
   read: model => Option.some(model.toast),
   write: (model, toast) => Struct.modifyFields(model, { toast: () => toast }),
@@ -135,7 +135,7 @@ export const ToastBinding = ToastFixtureBlock.makeBinding(ToastBlock, {
     DismissedToast: () => ToastFixtureBlock.makeNoopStep(),
   }),
 })
-export const OtherToastBinding = ToastFixtureBlock.makeBinding(
+export const OtherToastBinding = ToastFixtureBlock.makeCustomBinding(
   OtherToastBlock,
   {
     placement: 'OtherToast',
@@ -168,7 +168,7 @@ const foldKeyedToastOutMessage = KeyedToastFixtureBlock.makeOutMessageFold(
     DismissedToast: () => KeyedToastFixtureBlock.makeNoopStep(),
   },
 )
-export const KeyedToastBinding = KeyedToastFixtureBlock.makeBinding(
+export const KeyedToastBinding = KeyedToastFixtureBlock.makeKeyedArrayBinding(
   ToastBlock,
   {
     field: 'toasts',
@@ -201,7 +201,7 @@ const foldDragAndDropOutMessage = DragAndDropFixtureBlock.makeOutMessageFold(
     Cancelled: () => DragAndDropFixtureBlock.makeNoopStep(),
   },
 )
-export const DragAndDropBinding = DragAndDropFixtureBlock.makeBinding(
+export const DragAndDropBinding = DragAndDropFixtureBlock.makeCustomBinding(
   DragAndDrop.DragAndDropBlock,
   {
     placement: 'DragAndDrop',
@@ -244,26 +244,27 @@ const foldKeyedDragAndDropOutMessage =
       Cancelled: () => KeyedDragAndDropFixtureBlock.makeNoopStep(),
     },
   )
-export const KeyedDragAndDropBinding = KeyedDragAndDropFixtureBlock.makeBinding(
-  DragAndDrop.DragAndDropBlock,
-  {
-    placement: 'DragAndDrops',
-    keySchema: Schema.Literal('Primary'),
-    readAll: model => model.dragAndDrops,
-    key: instance => instance.id,
-    read: instance => instance.model,
-    writeAt: (model, key, nextDragAndDrop) =>
-      Struct.modifyFields(model, {
-        dragAndDrops: Array.map(instance =>
-          instance.id === key
-            ? DragAndDropInstance.make({ id: key, model: nextDragAndDrop })
-            : instance,
-        ),
-      }),
-  },
-).withOutMessagePolicy({
-  fold: (_key, outMessage) => foldKeyedDragAndDropOutMessage(outMessage),
-})
+export const KeyedDragAndDropBinding =
+  KeyedDragAndDropFixtureBlock.makeCustomKeyedBinding(
+    DragAndDrop.DragAndDropBlock,
+    {
+      placement: 'DragAndDrops',
+      keySchema: Schema.Literal('Primary'),
+      readAll: model => model.dragAndDrops,
+      key: instance => instance.id,
+      read: instance => instance.model,
+      writeAt: (model, key, nextDragAndDrop) =>
+        Struct.modifyFields(model, {
+          dragAndDrops: Array.map(instance =>
+            instance.id === key
+              ? DragAndDropInstance.make({ id: key, model: nextDragAndDrop })
+              : instance,
+          ),
+        }),
+    },
+  ).withOutMessagePolicy({
+    fold: (_key, outMessage) => foldKeyedDragAndDropOutMessage(outMessage),
+  })
 export const settleKeyedDragAndDropFocus = DragAndDrop.test.settleFocus({
   binding: KeyedDragAndDropBinding,
   key: 'Primary',
@@ -289,14 +290,12 @@ const KeyedAnimationFixtureBlock = Block.make('KeyedAnimationFixture', {
   Model: Schema.Struct({ animations: Schema.Array(AnimationInstance) }),
   Message: Schema.Never,
 })
-export const KeyedAnimationBinding = KeyedAnimationFixtureBlock.makeBinding(
-  Animation.AnimationBlock,
-  {
+export const KeyedAnimationBinding =
+  KeyedAnimationFixtureBlock.makeKeyedArrayBinding(Animation.AnimationBlock, {
     field: 'animations',
     key: 'id',
     childField: 'model',
-  },
-)
+  })
 const makeKeyedAnimationOutMessageFold = (key: 'Primary') =>
   KeyedAnimationFixtureBlock.makeOutMessageFold(Animation.AnimationBlock, {
     StartedLeaveAnimating: () =>
@@ -332,7 +331,7 @@ export const ApplicationBlock = Block.make('Application', {
   Message: ParentMessage,
 })
 
-export const AnimationBinding = ApplicationBlock.makeBinding(
+export const AnimationBinding = ApplicationBlock.makeRequiredFieldBinding(
   Animation.AnimationBlock,
   {
     field: 'animation',
@@ -350,10 +349,13 @@ const foldAnimationOutMessage = ApplicationBlock.makeOutMessageFold(
 export const AnimationBindingWithOutMessagePolicy =
   AnimationBinding.withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
-export const DialogBinding = ApplicationBlock.makeBinding(Dialog.DialogBlock, {
-  field: 'dialog',
-  init: { contextToArgs: () => [{ id: 'details' }] },
-}).withOutMessagePolicy({
+export const DialogBinding = ApplicationBlock.makeRequiredFieldBinding(
+  Dialog.DialogBlock,
+  {
+    field: 'dialog',
+    init: { contextToArgs: () => [{ id: 'details' }] },
+  },
+).withOutMessagePolicy({
   fold: ApplicationBlock.makeOutMessageFold(Dialog.DialogBlock, {
     Opened: () => ApplicationBlock.makeNoopStep(),
     Closed: () => ApplicationBlock.makeNoopStep(),
@@ -361,7 +363,7 @@ export const DialogBinding = ApplicationBlock.makeBinding(Dialog.DialogBlock, {
   }),
 })
 
-export const PickerBinding = ApplicationBlock.makeBinding(Picker, {
+export const PickerBinding = ApplicationBlock.makeRequiredFieldBinding(Picker, {
   field: 'picker',
   init: { contextToArgs: () => [{ id: 'fruit' }] },
 }).withOutMessagePolicy({
@@ -381,7 +383,7 @@ export const PickerBinding = ApplicationBlock.makeBinding(Picker, {
   }),
 })
 
-export const PopoverBinding = ApplicationBlock.makeBinding(
+export const PopoverBinding = ApplicationBlock.makeRequiredFieldBinding(
   Popover.PopoverBlock,
   {
     field: 'popover',

@@ -205,15 +205,15 @@ const buildGraph = (
   })
   const ChildBinding = (() => {
     if (mode === 'Route') {
-      return ParentBaseDefinition.makeBinding(Child, {
+      return ParentBaseDefinition.makeOptionalFieldBinding(Child, {
         placement: 'child',
         field: 'maybeChild',
-        presentWhen: (model: ParentModel) => model.route === 'Home',
+        activeWhen: (model: ParentModel) => model.route === 'Home',
       })
     }
 
     if (mode === 'Subscriptions') {
-      return ParentBaseDefinition.makeBinding(Child, {
+      return ParentBaseDefinition.makeOptionalFieldBinding(Child, {
         placement: 'child',
         field: 'maybeChild',
         subscriptions: {
@@ -222,7 +222,7 @@ const buildGraph = (
       })
     }
 
-    return ParentBaseDefinition.makeBinding(Child, {
+    return ParentBaseDefinition.makeOptionalFieldBinding(Child, {
       placement: 'child',
       field: 'maybeChild',
     })

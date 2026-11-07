@@ -62,7 +62,9 @@ export interface InstanceSchema<
 export type { AssemblyDraft } from './assemblyState.js'
 export type { MakeMapBinding, MapBindingResultConfig } from './mapBinding.js'
 export type {
-  BindChild,
+  BindSingularChild,
+  BindFieldChild,
+  BindCustomKeyedChild,
   BindingWithoutOutMessagePolicy,
   SelectedChildBinding,
   UnselectedOutMessagePolicy,
@@ -198,7 +200,9 @@ export type {
 } from '../experimental/constructed/contract.js'
 export type {
   BindingParent,
-  MakeBinding,
+  MakeSingularBinding,
+  MakeFieldBinding,
+  MakeCustomKeyedBinding,
   MakeDescriptorOutMessageFold,
   MakeDescriptorOutMessageForward,
   StaticSource,
@@ -356,3 +360,13 @@ export type {
 
 export type { AuthoredInitPlan } from '../experimental/contracted/contract.js'
 export type { AuthoredUpdatePlan } from '../experimental/hybrid/authoring.js'
+
+/** @internal Names the parent-specialized relationship authoring contracts. */
+export type { NativeRelationshipConstructors } from './bindingAuthoring.js'
+/** @internal Names portable constructor-authored relationship methods. */
+export type { RelationshipConstructors } from '../experimental/constructed/relationshipAuthoring.js'
+/** @internal Names inferred whole-variant callables without exposing private module paths. */
+export type {
+  OwnedContractVariantBinding,
+  OwnedNativeVariantBinding,
+} from './variantBinding.js'

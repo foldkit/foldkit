@@ -45,7 +45,7 @@ describe('ordinary Layer prototype', () => {
     const Message = Schema.Never
     const Definition = makeDefinition('DirectLayerRoot', { Model, Message })
     let initArgumentReads = 0
-    const Child = Definition.makeBinding(leaf.Block, {
+    const Child = Definition.makeRequiredFieldBinding(leaf.Block, {
       field: 'child',
       init: {
         contextToArgs: () => {

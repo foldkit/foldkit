@@ -38,8 +38,12 @@ export const ActivityListExampleBlock = Block.make('ActivityListExample', {
   Message,
 })
 
-const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
-  ActivityListExampleBlock
+const {
+  makeNoopStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = ActivityListExampleBlock
 
 const foldActivityListOutMessage = makeOutMessageFold(ActivityList, {
   ObservedContainerScroll: makeNoopStep,
@@ -47,7 +51,7 @@ const foldActivityListOutMessage = makeOutMessageFold(ActivityList, {
   EndedContainerScroll: makeNoopStep,
 })
 
-const ActivityListBinding = makeBinding(ActivityList, {
+const ActivityListBinding = makeRequiredFieldBinding(ActivityList, {
   field: 'activityList',
   init: {
     contextToArgs: () => [{ id: 'activity-list', rowHeightPx: 56 }],

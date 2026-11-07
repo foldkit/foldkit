@@ -1,6 +1,6 @@
 import { Context, Effect, HashMap, Layer, Schema, Stream } from 'effect'
 import { Block, Message, Struct } from 'foldkit'
-import { initAndInsert } from 'foldkit/bindingInit'
+import { initAndInsert } from 'foldkit/binding'
 
 import type { Assert, Equal } from './from-assembly.assertions.js'
 import { createPicker } from './from-assembly.generic.js'
@@ -104,9 +104,9 @@ export const ParentDefinition = Block.makeDefinition('MapMethodParent', {
   OutMessage: ParentOutMessage,
   ChildInitContext,
 })
-export const { makeMapBinding } = ParentDefinition
+export const { makeRecordBinding } = ParentDefinition
 
-export const ChildrenBinding = makeMapBinding(ChildBlock, {
+export const ChildrenBinding = makeRecordBinding(ChildBlock, {
   field: 'children',
   subscriptions: {
     when: {
@@ -139,7 +139,7 @@ export const ChildrenBinding = makeMapBinding(ChildBlock, {
         ),
     }),
 })
-export const FiniteBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+export const FiniteBinding = ParentDefinition.makeHashMapBinding(ChildBlock, {
   field: 'finiteChildren',
   subscriptions: {
     when: (model, key) => {
@@ -153,7 +153,7 @@ export const FiniteBinding = ParentDefinition.makeMapBinding(ChildBlock, {
     toUpdateContext: model => [{ multiplier: model.multiplier }],
   },
 })
-export const RowsBinding = makeMapBinding(ChildBlock, {
+export const RowsBinding = makeRecordBinding(ChildBlock, {
   field: 'rows',
   childField: 'child',
   delivery: {
@@ -195,7 +195,7 @@ export const PickerDefinition = Block.makeDefinition('MapMethodPickerParent', {
   Model: PickerModel,
   Message: Schema.Never,
 })
-export const PickerBinding = PickerDefinition.makeMapBinding(PickerBlock, {
+export const PickerBinding = PickerDefinition.makeRecordBinding(PickerBlock, {
   field: 'pickers',
 }).withOutMessagePolicy({
   fold: (_key, outMessage) =>
@@ -223,7 +223,9 @@ export const createMappedPicker = <Item, Encoded>(
     Model,
     Message: Schema.Never,
   })
-  const Binding = Definition.makeMapBinding(PickerBlock, { field: 'pickers' })
+  const Binding = Definition.makeRecordBinding(PickerBlock, {
+    field: 'pickers',
+  })
 
   return { PickerBlock, Model, Definition, Binding }
 }

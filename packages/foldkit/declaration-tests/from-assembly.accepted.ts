@@ -169,7 +169,7 @@ export const RawParentDefinition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-export const RawParentBinding = RawParentDefinition.makeBinding(
+export const RawParentBinding = RawParentDefinition.makeRequiredFieldBinding(
   OriginalViewed,
   {
     field: 'child',
@@ -201,12 +201,15 @@ export const ParentDefinition = Block.makeDefinition('FromAssemblyParent', {
   Model: Schema.Struct({ child: Viewed.Model }),
   Message: Schema.Never,
 })
-export const ParentBinding = ParentDefinition.makeBinding(Viewed, {
+export const ParentBinding = ParentDefinition.makeRequiredFieldBinding(Viewed, {
   field: 'child',
 })
-export const HeadlessBinding = ParentDefinition.makeBinding(Headless, {
-  field: 'child',
-})
+export const HeadlessBinding = ParentDefinition.makeRequiredFieldBinding(
+  Headless,
+  {
+    field: 'child',
+  },
+)
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ParentBinding],
 })

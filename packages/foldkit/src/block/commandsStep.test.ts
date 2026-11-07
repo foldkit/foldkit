@@ -141,7 +141,7 @@ it('retains registration obligations carried by a Command collection', () => {
     Model: ParentModel,
     Message,
   })
-  const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+  const ChildBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
   })
   const ParentComposition = ParentDefinition.makeComposition({

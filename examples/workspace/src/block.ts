@@ -17,12 +17,12 @@ export const ApplicationBlock = Block.make('Application', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeCommand,
   makeCommandsStep,
   makeComposition,
   makeFieldsStep,
-  makeMapBinding,
+  makeRecordBinding,
   makeNoopStep,
   makeOutMessageFold,
   makeStep,

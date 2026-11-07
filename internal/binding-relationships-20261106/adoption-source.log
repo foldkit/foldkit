@@ -1,0 +1,4 @@
+Command: packages/foldkit/node_modules/.bin/tsc -p packages/foldkit/declaration-tests/tsconfig.binding-relationships.source.json
+Compiler: Version 7.1.0-beta
+Started: 2026-11-07T00:52:25.349652+00:00
+Exit code: 0

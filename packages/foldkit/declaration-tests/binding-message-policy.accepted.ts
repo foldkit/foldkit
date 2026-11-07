@@ -69,50 +69,50 @@ export const BindingMessagePolicyParentDefinition = Block.makeDefinition(
   },
 )
 
-export const ContextBinding = BindingMessagePolicyParentDefinition.makeBinding(
-  ContextChildBlock,
-  {
+export const ContextBinding =
+  BindingMessagePolicyParentDefinition.makeCustomBinding(ContextChildBlock, {
     placement: 'child',
     read: model => Option.some(model.child),
     write: (model, _nextChild) => model,
     delivery: {
       toUpdateContext: () => [{ roomId: 'room' }],
     },
-  },
-)
+  })
 
-export const KeyedBinding = BindingMessagePolicyParentDefinition.makeBinding(
-  ContextChildBlock,
-  {
-    placement: 'entries',
-    readAll: model => model.entries,
-    key: entry => entry.id,
-    keySchema: Schema.String,
-    read: entry => entry.child,
-    writeAt: (model, _id, _nextChild) => model,
-    delivery: {
-      toUpdateContext: (_model, id) => [{ roomId: id }],
+export const KeyedBinding =
+  BindingMessagePolicyParentDefinition.makeCustomKeyedBinding(
+    ContextChildBlock,
+    {
+      placement: 'entries',
+      readAll: model => model.entries,
+      key: entry => entry.id,
+      keySchema: Schema.String,
+      read: entry => entry.child,
+      writeAt: (model, _id, _nextChild) => model,
+      delivery: {
+        toUpdateContext: (_model, id) => [{ roomId: id }],
+      },
     },
-  },
-)
+  )
 
-export const SilentBinding = BindingMessagePolicyParentDefinition.makeBinding(
-  SilentChildBlock,
-  {
+export const SilentBinding =
+  BindingMessagePolicyParentDefinition.makeCustomBinding(SilentChildBlock, {
     placement: 'silent',
     read: model => Option.some(model.silent),
     write: (model, _nextChild) => model,
-  },
-)
+  })
 
 export const SilentKeyedBinding =
-  BindingMessagePolicyParentDefinition.makeBinding(SilentChildBlock, {
-    placement: 'silentEntries',
-    readAll: model => model.silentEntries,
-    key: entry => entry.id,
-    read: entry => entry.child,
-    writeAt: (model, _id, _nextChild) => model,
-  })
+  BindingMessagePolicyParentDefinition.makeCustomKeyedBinding(
+    SilentChildBlock,
+    {
+      placement: 'silentEntries',
+      readAll: model => model.silentEntries,
+      key: entry => entry.id,
+      read: entry => entry.child,
+      writeAt: (model, _id, _nextChild) => model,
+    },
+  )
 
 export const BindingMessagePolicyParentComposition =
   BindingMessagePolicyParentDefinition.makeComposition({

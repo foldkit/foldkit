@@ -1,19 +1,19 @@
-import { makeMapBinding as unrelatedMapBinding } from 'third-party'
+import { makeHashMapBinding as unrelatedMapBinding } from 'third-party'
 import * as MapHelpers from '../shared/definition'
 import * as UnrelatedHelpers from '../shared/unrelated'
 
-import { ParentDefinition, makeMapBinding as importedBindMap } from '../shared/definition'
+import { ParentDefinition, makeHashMapBinding as importedBindMap } from '../shared/definition'
 
-const { makeMapBinding: bindMap } = ParentDefinition
+const { makeHashMapBinding: bindMap } = ParentDefinition
 bindMap(ChildBlock, { field: 'childrenById' })
-ParentDefinition.makeMapBinding(ChildBlock, {
+ParentDefinition.makeHashMapBinding(ChildBlock, {
   field: 'rowsById',
   childField: 'child',
 })
 importedBindMap(ChildBlock, { field: 'childrenById' })
-MapHelpers.makeMapBinding(ChildBlock, { field: 'childrenById' })
+MapHelpers.makeHashMapBinding(ChildBlock, { field: 'childrenById' })
 
-UnrelatedHelpers.makeMapBinding(ChildBlock, {
+UnrelatedHelpers.makeHashMapBinding(ChildBlock, {
   parentMessage: ParentMessage.GotChildMessage,
 })
 
@@ -23,10 +23,10 @@ unrelatedMapBinding(ChildBlock, {
 })
 
 const unrelatedDefinition = {
-  makeMapBinding: (_child: unknown, config: unknown) => config,
+  makeHashMapBinding: (_child: unknown, config: unknown) => config,
 }
-const { makeMapBinding: unrelatedBindMap } = unrelatedDefinition
-unrelatedDefinition.makeMapBinding(ChildBlock, {
+const { makeHashMapBinding: unrelatedBindMap } = unrelatedDefinition
+unrelatedDefinition.makeHashMapBinding(ChildBlock, {
   parentMessage: ParentMessage.GotChildMessage,
 })
 unrelatedBindMap(ChildBlock, {
@@ -34,18 +34,18 @@ unrelatedBindMap(ChildBlock, {
 })
 
 export const callShadowed = (
-  makeMapBinding: (...args: ReadonlyArray<unknown>) => unknown,
+  makeHashMapBinding: (...args: ReadonlyArray<unknown>) => unknown,
 ) =>
-  makeMapBinding(ChildBlock, {
+  makeHashMapBinding(ChildBlock, {
     field: 'childrenById',
     toParentMessage: ParentMessage.GotChildMessage,
   })
 
 const unrelatedNamespaceAlias = UnrelatedHelpers
 const unrelatedNamespaceAliasAgain = unrelatedNamespaceAlias
-const unrelatedMethodAlias = unrelatedNamespaceAliasAgain.makeMapBinding
-const { makeMapBinding: unrelatedDestructuredMap } = unrelatedNamespaceAliasAgain
+const unrelatedMethodAlias = unrelatedNamespaceAliasAgain.makeHashMapBinding
+const { makeHashMapBinding: unrelatedDestructuredMap } = unrelatedNamespaceAliasAgain
 const unrelatedMethodAliasAgain = unrelatedMethodAlias
 unrelatedMethodAliasAgain(ChildBlock, { parentMessage: ParentMessage.GotChildMessage })
 unrelatedDestructuredMap(ChildBlock, { toParentMessage: ParentMessage.GotChildMessage })
-unrelatedNamespaceAliasAgain.makeMapBinding(ChildBlock, { fromParentMessage: message => message })
+unrelatedNamespaceAliasAgain.makeHashMapBinding(ChildBlock, { fromParentMessage: message => message })

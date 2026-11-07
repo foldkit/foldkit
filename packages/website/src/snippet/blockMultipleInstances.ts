@@ -14,13 +14,16 @@ const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeBinding, makeComposition } = ApplicationBlock
+const { makeKeyedArrayBinding, makeComposition } = ApplicationBlock
 
-export const ApplicantsBinding = makeBinding(Applicant.ApplicantBlock, {
-  field: 'applicants',
-  key: 'id',
-  childField: 'entry',
-})
+export const ApplicantsBinding = makeKeyedArrayBinding(
+  Applicant.ApplicantBlock,
+  {
+    field: 'applicants',
+    key: 'id',
+    childField: 'entry',
+  },
+)
 
 const ApplicationComposition = makeComposition({
   bindings: [ApplicantsBinding],

@@ -212,7 +212,7 @@ export const CompleteParentInitialization =
   )
 
 export const StableProjectedBinding =
-  CompositionSafetyParentDefinition.makeBinding(PlainBlock, {
+  CompositionSafetyParentDefinition.makeCustomBinding(PlainBlock, {
     placement: 'stableProjected',
     read: model => Option.some(model.first),
     write: (model, nextChild) =>
@@ -223,48 +223,45 @@ export const StableProjectedBinding =
       toParentFields: child => ({ first: child }),
     },
   })
-export const PlainBinding = CompositionSafetyParentDefinition.makeBinding(
-  PlainBlock,
-  {
+export const PlainBinding =
+  CompositionSafetyParentDefinition.makeRequiredFieldBinding(PlainBlock, {
     field: 'plain',
 
     init: false,
-  },
-)
+  })
 export const ParentCommandsBinding =
-  CompositionSafetyParentDefinition.makeBinding(PlainBlock, {
+  CompositionSafetyParentDefinition.makeCustomBinding(PlainBlock, {
     placement: 'parentCommands',
     read: model => Option.some(model.plain),
     write: (model, nextChild) =>
       Struct.modifyFields(model, { plain: () => nextChild }),
   })
 export const OptionalContextBinding =
-  CompositionSafetyParentDefinition.makeBinding(OptionalContextBlock, {
-    field: 'optionalContext',
+  CompositionSafetyParentDefinition.makeRequiredFieldBinding(
+    OptionalContextBlock,
+    {
+      field: 'optionalContext',
 
-    delivery: {
-      toUpdateContext: () => [],
+      delivery: {
+        toUpdateContext: () => [],
+      },
     },
-  })
-export const RestContextBinding = CompositionSafetyParentDefinition.makeBinding(
-  RestContextBlock,
-  {
+  )
+export const RestContextBinding =
+  CompositionSafetyParentDefinition.makeRequiredFieldBinding(RestContextBlock, {
     field: 'restContext',
 
     delivery: {
       toUpdateContext: () => [{ amount: 1 }],
     },
-  },
-)
-export const EntryBinding = CompositionSafetyParentDefinition.makeBinding(
-  ParameterizedBlock,
-  {
+  })
+export const EntryBinding =
+  CompositionSafetyParentDefinition.makeKeyedArrayBinding(ParameterizedBlock, {
     field: 'entries',
     placement: 'entries',
     key: 'id',
     childField: 'child',
-  },
-)
+  })
 
 export const initialParentModel = ParentModel.make({
   route: 'Home',

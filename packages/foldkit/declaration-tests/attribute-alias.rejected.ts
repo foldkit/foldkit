@@ -88,7 +88,9 @@ const OtherBlock = Block.make('AttributeAliasOther', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element', mounts: [ObserveOther] },
 })
-const OtherBinding = ParentBlock.makeBinding(OtherBlock, { field: 'origin' })
+const OtherBinding = ParentBlock.makeRequiredFieldBinding(OtherBlock, {
+  field: 'origin',
+})
 const OtherComposition = ParentBlock.makeComposition({
   bindings: [OtherBinding],
 })

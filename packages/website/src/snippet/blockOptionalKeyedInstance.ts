@@ -64,11 +64,14 @@ const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const MaybeRoomInstanceBinding = ApplicationBlock.makeBinding(RoomBlock, {
-  field: 'maybeRoomInstance',
-  key: 'roomId',
-  childField: 'model',
-})
+const MaybeRoomInstanceBinding = ApplicationBlock.makeOptionalKeyedFieldBinding(
+  RoomBlock,
+  {
+    field: 'maybeRoomInstance',
+    key: 'roomId',
+    childField: 'model',
+  },
+)
 const ApplicationComposition = ApplicationBlock.makeComposition({
   bindings: [MaybeRoomInstanceBinding],
 })

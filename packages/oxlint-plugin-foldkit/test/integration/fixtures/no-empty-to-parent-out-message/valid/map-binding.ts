@@ -2,22 +2,22 @@ import { Block } from 'foldkit'
 import * as UnrelatedHelpers from '../shared/unrelated'
 
 const ParentDefinition = Block.makeDefinition('MapPolicyParent', { Model, Message })
-const { makeMapBinding } = ParentDefinition
+const { makeHashMapBinding } = ParentDefinition
 
-makeMapBinding(ChildBlock, { field: 'children' }).withOutMessagePolicy({
+makeHashMapBinding(ChildBlock, { field: 'children' }).withOutMessagePolicy({
   forward: outMessage => ParentOutMessage.ReportedChild({ outMessage }),
 })
 
-const unrelated = { makeMapBinding: (_child: unknown, config: unknown) => config }
-const { makeMapBinding: unrelatedBindMap } = unrelated
+const unrelated = { makeHashMapBinding: (_child: unknown, config: unknown) => config }
+const { makeHashMapBinding: unrelatedBindMap } = unrelated
 unrelatedBindMap(ChildBlock, { field: 'children' }).withOutMessagePolicy({
   forward: () => undefined,
 })
 
 const namespaceAlias = UnrelatedHelpers
-const namespaceMethodAlias = namespaceAlias.makeMapBinding
-const { makeMapBinding: namespaceDestructuredMap } = namespaceAlias
+const namespaceMethodAlias = namespaceAlias.makeHashMapBinding
+const { makeHashMapBinding: namespaceDestructuredMap } = namespaceAlias
 
 namespaceMethodAlias(ChildBlock, { field: 'children' }).withOutMessagePolicy({ forward: () => undefined })
 namespaceDestructuredMap(ChildBlock, { field: 'children' }).withOutMessagePolicy({ forward: () => undefined })
-namespaceAlias.makeMapBinding(ChildBlock, { field: 'children' }).withOutMessagePolicy({ forward: () => undefined })
+namespaceAlias.makeHashMapBinding(ChildBlock, { field: 'children' }).withOutMessagePolicy({ forward: () => undefined })

@@ -639,7 +639,7 @@ describe('KeyedQuery accepted completion notifications', () => {
       Model: ParentModel,
       Message: ParentMessage,
     })
-    const BaseBinding = ParentDefinition.makeBinding(reporting, {
+    const BaseBinding = ParentDefinition.makeRequiredFieldBinding(reporting, {
       field: 'windows',
     })
     const WindowsBinding = BaseBinding.withOutMessagePolicy({

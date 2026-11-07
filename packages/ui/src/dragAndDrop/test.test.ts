@@ -44,15 +44,21 @@ const foldDragAndDropOutMessage = DragAndDropTestParentBlock.makeOutMessageFold(
   },
 )
 
-const LeftBinding = DragAndDropTestParentBlock.makeBinding(DragAndDropBlock, {
-  field: 'left',
-  init: false,
-}).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
+const LeftBinding = DragAndDropTestParentBlock.makeRequiredFieldBinding(
+  DragAndDropBlock,
+  {
+    field: 'left',
+    init: false,
+  },
+).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
 
-const RightBinding = DragAndDropTestParentBlock.makeBinding(DragAndDropBlock, {
-  field: 'right',
-  init: false,
-}).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
+const RightBinding = DragAndDropTestParentBlock.makeRequiredFieldBinding(
+  DragAndDropBlock,
+  {
+    field: 'right',
+    init: false,
+  },
+).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
 
 const DragAndDropTestParentComposition =
   DragAndDropTestParentBlock.makeComposition({
@@ -338,7 +344,7 @@ const NestedDragAndDropTestParentBlock = Block.make(
   },
 )
 
-const NestedBinding = NestedDragAndDropTestParentBlock.makeBinding(
+const NestedBinding = NestedDragAndDropTestParentBlock.makeCustomKeyedBinding(
   NestedParentBlock,
   {
     placement: 'parents',
@@ -460,7 +466,7 @@ const foldKeyedDragAndDropOutMessage =
     Cancelled: () => model => ({ model }),
   })
 
-const KeyedBinding = KeyedDragAndDropTestParentBlock.makeBinding(
+const KeyedBinding = KeyedDragAndDropTestParentBlock.makeCustomKeyedBinding(
   DragAndDropBlock,
   {
     placement: 'boards',

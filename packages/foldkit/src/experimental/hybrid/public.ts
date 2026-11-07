@@ -11,7 +11,12 @@ export type {
   MakeBlockFromDefinition,
 } from './hybrid.js'
 export type { Plan, PlanOutput, ViewPlan } from './authoring.js'
-export type { ConnectableBindChild, ConnectableMapBinding } from './binding.js'
+export type {
+  ConnectableCustomKeyedChild,
+  ConnectableFieldChild,
+  ConnectableMapBinding,
+  ConnectableRelationshipConstructors,
+} from './binding.js'
 export type {
   BindingConnection,
   ConnectExecutable,

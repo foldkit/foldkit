@@ -1,9 +1,9 @@
 import { Option } from 'effect'
 
 import {
-  makeBinding,
   makeCommandsStep,
   makeFieldsStep,
+  makeOptionalFieldBinding,
   makeOutMessageFold,
 } from '../block'
 import { HomeBlock } from '../blocks'
@@ -19,7 +19,7 @@ const foldHomeOutMessage = makeOutMessageFold(HomeBlock, {
     })),
 })
 
-export const MaybeHomeBinding = makeBinding(HomeBlock, {
+export const MaybeHomeBinding = makeOptionalFieldBinding(HomeBlock, {
   field: 'maybeHome',
   init: {
     contextToArgs: ({ route }) =>

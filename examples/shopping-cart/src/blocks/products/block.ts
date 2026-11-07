@@ -31,7 +31,6 @@ export const ProductsBlock = Block.make('Products', {
   key: ProductsKey,
   Init: Schema.Tuple([Schema.Array(Item.Item)]),
   view: { kind: 'Element', Inputs: Schema.Struct({ cart: Cart.Cart }) },
-
   Model,
   Message,
   OutMessage,

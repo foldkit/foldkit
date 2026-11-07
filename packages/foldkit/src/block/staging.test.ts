@@ -80,11 +80,11 @@ const Parent = makeDefinition('StagedParent', {
   Message: Schema.Never,
 })
 
-const DirectChildBinding = Parent.makeBinding(Child, {
+const DirectChildBinding = Parent.makeRequiredFieldBinding(Child, {
   field: 'child',
 })
 
-const ExplicitChildBinding = Parent.makeBinding(Child, {
+const ExplicitChildBinding = Parent.makeCustomBinding(Child, {
   read: model => Option.some(model.child),
   write: (_model, child) => ParentModel.make({ child }),
 })

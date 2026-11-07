@@ -68,7 +68,7 @@ const ApplicationBlock = Block.make('CodecContractApplication', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const EditorBinding = ApplicationBlock.makeBinding(EditorBlock, {
+const EditorBinding = ApplicationBlock.makeRequiredFieldBinding(EditorBlock, {
   field: 'editor',
 })
 const composition = ApplicationBlock.makeComposition({

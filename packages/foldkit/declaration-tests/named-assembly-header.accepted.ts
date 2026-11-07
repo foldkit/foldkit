@@ -149,9 +149,12 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ApplicationModel,
   Message: ApplicationMessage,
 })
-const ChildBinding = ApplicationDefinition.makeBinding(ViewedBlock, {
-  field: 'child',
-})
+const ChildBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  ViewedBlock,
+  {
+    field: 'child',
+  },
+)
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [ChildBinding],
 })

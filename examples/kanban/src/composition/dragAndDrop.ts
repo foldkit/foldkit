@@ -4,9 +4,9 @@ import { modifyFields } from 'foldkit/struct'
 import { DragAndDrop } from '@foldkit/ui'
 
 import {
-  makeBinding,
   makeFieldsStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
   makeStep,
 } from '../block'
 import { SaveBoard } from '../command'
@@ -90,7 +90,10 @@ const foldDragAndDropOutMessage = makeOutMessageFold(
   },
 )
 
-export const DragAndDropBinding = makeBinding(DragAndDrop.DragAndDropBlock, {
-  field: 'dragAndDrop',
-  init: { contextToArgs: () => [{ id: 'kanban' }] },
-}).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
+export const DragAndDropBinding = makeRequiredFieldBinding(
+  DragAndDrop.DragAndDropBlock,
+  {
+    field: 'dragAndDrop',
+    init: { contextToArgs: () => [{ id: 'kanban' }] },
+  },
+).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })

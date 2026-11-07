@@ -251,7 +251,8 @@ const isHashMapSchema = (
   )
 }
 
-type RuntimeStorage = Readonly<{
+/** @internal Passive Schema metadata for a Record or HashMap relationship. */
+export type KeyedMapFieldRelationshipStorage = Readonly<{
   childField?: string
   field: string
   keySchema: Schema.Top
@@ -273,12 +274,14 @@ export const keyedMapBindingStorageOf = (
   config: object,
 ): KeyedMapBindingStorage | undefined => keyedMapBindingStorages.get(config)
 
-const storageOf = (
+/** @internal Classifies Record and HashMap field storage without reading a
+ * Model value or invoking any Binding callbacks. */
+export const keyedMapFieldRelationshipOf = (
   parentModel: unknown,
   childModel: unknown,
   field: string,
   childField: unknown,
-): RuntimeStorage => {
+): KeyedMapFieldRelationshipStorage => {
   const parentFields = Schema.isSchema(parentModel)
     ? Reflect.get(parentModel, 'fields')
     : undefined
@@ -445,7 +448,12 @@ export const normalizeKeyedMapFieldConfig = (
     }
   }
 
-  const storage = storageOf(Model, ChildModel, field, childField)
+  const storage = keyedMapFieldRelationshipOf(
+    Model,
+    ChildModel,
+    field,
+    childField,
+  )
   const isKey = Reflect.apply(Schema.is, undefined, [storage.keySchema])
   const readKey = (key: unknown): InstanceKey => {
     if (!isKey(key)) {

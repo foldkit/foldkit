@@ -52,7 +52,7 @@ export type Message = typeof Message.Type
 import { ApplicationDefinition } from './definition'
 import { SettingsBlock } from './settings'
 
-export const SettingsBinding = ApplicationDefinition.makeBinding(
+export const SettingsBinding = ApplicationDefinition.makeRequiredFieldBinding(
   SettingsBlock,
   {
     field: 'settings',
@@ -71,7 +71,7 @@ export const update = ApplicationComposition.makeUpdate({
 })
 ```
 
-Remove `parentMessage`, `toParentMessage`, and `fromParentMessage` from Binding configuration. Use `delivery.when` to gate incoming child delivery and `delivery.toUpdateContext` to provide the child's exact additional update arguments. General keyed accessors also supply `keySchema`; direct array adapters derive it from their key field.
+Remove `parentMessage`, `toParentMessage`, and `fromParentMessage` from Binding configuration. Use `delivery.when` to gate incoming child delivery and `delivery.toUpdateContext` to provide the child's exact additional update arguments. General keyed accessors for Message-bearing children also supply `keySchema`; a Message-free child omits it, and direct array adapters derive the key Schema from their key field.
 
 Use `ApplicationComposition.Message` or a completed `FooBlock.Message` for complete serialization, validation, and replay. These are complete Message Codecs: they combine the local Message Codec with the generated child-envelope Codecs while preserving the local constructors. Generated envelopes have no public constructors and carry the captured placement, occurrence generation, child Message, and a key for keyed delivery. Removing and recreating a child cannot retarget its old results to the replacement.
 
@@ -248,19 +248,22 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
-  field: 'home',
-})
+export const HomeBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  HomeBlock,
+  {
+    field: 'home',
+  },
+)
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [HomeBinding],
 })
 ```
 
-The direct field form infers the parent Model and child Model relationship for exact `ChildModel` and `Option<ChildModel>` fields. An unkeyed field uses its field name as the default placement. Every keyed form and an unkeyed accessor use the child Block ID. An explicit `placement` overrides either default. `None` makes an optional field absent, and a fold or operation never creates it. Optionality does not require a placement override. Add `presentWhen` when parent policy gates that whole direct child. Use `makeVariantBinding` from `foldkit/variantBinding` when the child occupies one complete tagged member of the parent `Schema.Union`, including the actual child Model Schema. Use explicit `read` and `write` for nested, wrapped, or custom storage. Foldkit compares decoded built-in Schema shapes; reuse the same Schema instance for an opaque declaration or keep custom accessors. Composition generates child delivery; remove authored `Got*` wrappers and mapper fields. Do not pass a redundant Model Schema. A child with OutMessages selects an immutable policy through `.withOutMessagePolicy({ fold?, forward? })`; Composition rejects a missing policy and registers the selected full Binding without changing its child identity or lifecycle scopes. Binding and policy construction remain passive.
+`makeRequiredFieldBinding` and `makeOptionalFieldBinding` infer the relationship for exact child and Option fields, respectively. An unkeyed field uses its field name as the default placement. Every keyed form and an unkeyed accessor use the child Block ID. An explicit `placement` overrides either default. `None` makes an optional field absent, and a fold or operation never creates it. Optionality does not require a placement override. Add `activeWhen` when parent policy gates that whole direct child. Use `ParentBlock.makeVariantBinding(ChildBlock)` when the child occupies one complete tagged member of the parent `Schema.Union`, including the actual child Model Schema. Use `makeCustomBinding` with explicit `read` and `write` for nested, wrapped, or custom storage. Foldkit compares decoded built-in Schema shapes; reuse the same Schema instance for an opaque declaration or keep custom accessors. Composition generates child delivery; remove authored `Got*` wrappers and mapper fields. Do not pass a redundant Model Schema. A child with OutMessages selects an immutable policy through `.withOutMessagePolicy({ fold?, forward? })`; Composition rejects a missing policy and registers the selected full Binding without changing its child identity or lifecycle scopes. Binding and policy construction remain passive.
 
 Placement identifies one child Binding within the parent's composition graph. It does not identify a DOM position and need not match a Model field. Unkeyed direct fields default placement to the field. Accessor Bindings and all keyed Bindings default to the child Block ID, including direct and wrapped array adapters. For keyed Bindings, `key` identifies dynamic occurrences under that one placement. Supply an explicit placement only when sibling defaults collide or an established graph identity must deliberately remain different from the new default.
 
-A split feature without a `composition/` directory uses `composition.ts` for straightforward Bindings, its complete `makeComposition({ bindings, mounts })` registration, Composition and an optional owner-specific ViewBuilder alias. When `composition/` exists, `composition/composition.ts` owns that assembly and `composition/index.ts` exports it. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial one-way policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. Assembly imports actual policy exports directly from sibling modules, and the barrel re-exports intended values such as `HomeBinding`, `RoomBinding`, and `ApplicationComposition`. External consumers import from `composition.ts` or that barrel, never from a policy or assembly implementation path. Use a factory only when Binding construction needs caller-owned configuration. Keep reciprocal sibling policies together in the same parent assembly and defer sibling Binding calls through policy callbacks; a callback may close over a Binding declared later without a circular import. Internal implementation modules may use direct relative sibling imports to avoid barrel cycles. This assembly module is also required for a split graphless feature. Retain `definition.ts` and `FooDefinition` when authoring methods use that value; otherwise put the top-level Definition factory and contract imports in `composition.ts` and chain `makeComposition()` directly. Never put a Composition or owner-specific ViewBuilder in a retained `definition.ts`. A compact graphless feature keeps all stages beside its cohesive implementation. A genuinely compact root keeps Model, Message, init, update, view, `ApplicationDefinition`, and `ApplicationComposition` together in `application.ts`. A split root always uses `composition.ts` or `composition/composition.ts`, including when graphless, and removes the emptied `application.ts`. `makeBinding` only configures the relationship; including its result under `bindings` registers it. Neither step constructs Layers or starts effects.
+A split feature without a `composition/` directory uses `composition.ts` for straightforward Bindings, its complete `makeComposition({ bindings, mounts })` registration, Composition and an optional owner-specific ViewBuilder alias. When `composition/` exists, `composition/composition.ts` owns that assembly and `composition/index.ts` exports it. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial one-way policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. Assembly imports actual policy exports directly from sibling modules, and the barrel re-exports intended values such as `HomeBinding`, `RoomBinding`, and `ApplicationComposition`. External consumers import from `composition.ts` or that barrel, never from a policy or assembly implementation path. Use a factory only when Binding construction needs caller-owned configuration. Keep reciprocal sibling policies together in the same parent assembly and defer sibling Binding calls through policy callbacks; a callback may close over a Binding declared later without a circular import. Internal implementation modules may use direct relative sibling imports to avoid barrel cycles. This assembly module is also required for a split graphless feature. Retain `definition.ts` and `FooDefinition` when authoring methods use that value; otherwise put the top-level Definition factory and contract imports in `composition.ts` and chain `makeComposition()` directly. Never put a Composition or owner-specific ViewBuilder in a retained `definition.ts`. A compact graphless feature keeps all stages beside its cohesive implementation. A genuinely compact root keeps Model, Message, init, update, view, `ApplicationDefinition`, and `ApplicationComposition` together in `application.ts`. A split root always uses `composition.ts` or `composition/composition.ts`, including when graphless, and removes the emptied `application.ts`. The storage-specific Binding constructor only configures the relationship; including its result under `bindings` registers it. Neither step constructs Layers or starts effects.
 
 The Binding projects `init`, `fold`, `embedView`, and operations selected under `operations`. Every registered child routes through `fold` automatically, so the Composition update record handles only local facts:
 
@@ -294,9 +297,12 @@ const foldDialogOutMessage = ApplicationDefinition.makeOutMessageFold(
     CompletedClose: () => resetSearch,
   },
 )
-const DialogBinding = ApplicationDefinition.makeBinding(DialogBlock, {
-  field: 'dialog',
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
+const DialogBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  DialogBlock,
+  {
+    field: 'dialog',
+  },
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [DialogBinding],
 })
@@ -330,16 +336,19 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
 const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
   SelectedArticle: ({ articleId }) => openArticle(articleId),
 })
-export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
-  field: 'home',
-}).withOutMessagePolicy({ fold: foldHomeOutMessage })
+export const HomeBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  HomeBlock,
+  {
+    field: 'home',
+  },
+).withOutMessagePolicy({ fold: foldHomeOutMessage })
 ```
 
 `withOutMessagePolicy({ fold })` handles variants locally. Inline `Definition.makeOutMessageForward(handlers)` under an unkeyed Binding's `forward` field when at least one variant continues through the current Block's OutMessage; pass the completed child explicitly when extracting the callable forward or adapting keyed policy. A derived OutMessage takes precedence over forwarding for the same dispatch; local handling still runs.
 
 An OutMessage policy may call a parent Step or a registered sibling Binding operation. This supports parent-owned coordination in either direction between siblings. Composition validates the policy's output and the captured sibling evidence when the graph is registered. Keep policy chains synchronous and finite because a sibling operation may run another policy before the original update returns.
 
-A keyed Binding uses the same parent-owned method. When a field is an array of child Models, a string-valued `key` names their stable identity field:
+A keyed array uses the parent-owned `makeKeyedArrayBinding` method. When a field is an array of child Models, a string-valued `key` names their stable identity field:
 
 ```ts
 import { Block } from 'foldkit'
@@ -347,7 +356,7 @@ import { Message } from './message'
 import { Model } from './model'
 import { RowBlock } from './row'
 const TableDefinition = Block.makeDefinition('Table', { Model, Message })
-export const RowsBinding = TableDefinition.makeBinding(RowBlock, {
+export const RowsBinding = TableDefinition.makeKeyedArrayBinding(RowBlock, {
   field: 'rows',
   key: 'id',
 })
@@ -363,7 +372,7 @@ A required `Schema.Array` field on a parent Struct can store closed Struct wrapp
 Configure the wrapper field on the parent-owned Binding:
 
 ```ts
-export const ApplicantsBinding = ApplicationDefinition.makeBinding(
+export const ApplicantsBinding = ApplicationDefinition.makeKeyedArrayBinding(
   ApplicantBlock,
   {
     field: 'applicants',
@@ -375,9 +384,9 @@ export const ApplicantsBinding = ApplicationDefinition.makeBinding(
 
 `key` must name a required string or finite-number wrapper field, and `childField` must name a different required field whose Schema has exactly the same decoded shape as the child Model. The child Model may be a primitive or union because its identity stays on the wrapper. A child write replaces only the matching wrapper's child field, preserving its metadata, array position, and every unmatched wrapper reference. It does not insert a wrapper after parent update has removed that key. Placement defaults to the child Block ID.
 
-An exact required `Schema.Option` field can store zero or one closed keyed wrapper with the same `field`, `key`, and `childField` shorthand. `None` is absent. A child write replaces only the matching wrapper's child field and preserves its metadata; `None` or another key leaves the exact parent Model unchanged. The Binding defaults placement to the child Block ID. Create the occurrence through `Binding.init({ key, args, toParentModel })`; automatic `init.instances` accepts keyed arrays only.
+An exact required `Schema.Option` field can store zero or one closed keyed wrapper using `makeOptionalKeyedFieldBinding` with `field`, `key`, and `childField`. `None` is absent. A child write replaces only the matching wrapper's child field and preserves its metadata; `None` or another key leaves the exact parent Model unchanged. The Binding defaults placement to the child Block ID. Create the occurrence through `Binding.init({ key, args, toParentModel })`; automatic `init.instances` accepts keyed arrays only.
 
-Use `readAll`, function-valued `key`, `read`, and `writeAt` for custom parent writes, opaque, union, or open/index-signature wrappers, and every other zero-or-one storage representation. These explicit accessors continue to define application-specific storage and enumeration policy. Supply a `keySchema` Codec whose decoded value is the selected string or finite-number key. Generated envelope encoding preserves that Codec's encoded key type. Field adapters derive the key Codec from their declared Schema fields.
+Use `makeCustomKeyedBinding` with `readAll`, function-valued `key`, `read`, and `writeAt` for custom parent writes, opaque, union, or open/index-signature wrappers, and every other zero-or-one storage representation. These explicit accessors continue to define application-specific storage and enumeration policy. For a Message-bearing child, supply a `keySchema` Codec whose decoded value is the selected string or finite-number key. Generated envelope encoding preserves that Codec's encoded key type. A Message-free child omits `keySchema` because it has no delivery envelope. Field adapters derive the key Codec from their declared Schema fields.
 
 Use a keyed Binding for a routed child when its domain ID changes, even if only one instance is present at a time. Generated delivery captures the key and generation for delayed Command results and Subscription emissions. Add `delivery.when` for a parent-owned route condition and `delivery.toUpdateContext` for the child update context. Replacing the key retires that occurrence and its dispatchers; reusing the key later creates a new occurrence. Running Commands retain application lifetime, so isolate external writes by domain ID when their completion must not overwrite another instance's data.
 
@@ -405,9 +414,12 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-export const PostsBinding = ApplicationDefinition.makeBinding(postsQuery, {
-  field: 'posts',
-})
+export const PostsBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  postsQuery,
+  {
+    field: 'posts',
+  },
+)
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [PostsBinding],
 })
@@ -435,9 +447,12 @@ import type { Block } from 'foldkit'
 import { HomeBlock } from './page'
 import { ApplicationDefinition } from './definition'
 import { mounts } from './mount'
-export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
-  field: 'home',
-})
+export const HomeBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  HomeBlock,
+  {
+    field: 'home',
+  },
+)
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [HomeBinding],
   mounts,

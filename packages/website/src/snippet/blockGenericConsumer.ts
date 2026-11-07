@@ -25,10 +25,14 @@ export const FruitSelectionBlock = Block.make('FruitSelection', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const { makeFieldsStep, makeBinding, makeOutMessageFold, makeComposition } =
-  FruitSelectionBlock
+const {
+  makeFieldsStep,
+  makeRequiredFieldBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = FruitSelectionBlock
 
-const PickerBinding = makeBinding(FruitPicker, {
+const PickerBinding = makeRequiredFieldBinding(FruitPicker, {
   field: 'picker',
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(FruitPicker, {

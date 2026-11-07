@@ -27,10 +27,13 @@ const foldMenuOutMessage = MenuTriggerClickTestBlock.makeOutMessageFold(
     Closed: () => MenuTriggerClickTestBlock.makeNoopStep(),
   },
 )
-const MenuBinding = MenuTriggerClickTestBlock.makeBinding(TestMenu, {
-  field: 'menu',
-  init: { contextToArgs: config => [config] },
-}).withOutMessagePolicy({ fold: foldMenuOutMessage })
+const MenuBinding = MenuTriggerClickTestBlock.makeRequiredFieldBinding(
+  TestMenu,
+  {
+    field: 'menu',
+    init: { contextToArgs: config => [config] },
+  },
+).withOutMessagePolicy({ fold: foldMenuOutMessage })
 const MenuTriggerClickTestComposition =
   MenuTriggerClickTestBlock.makeComposition({
     bindings: [MenuBinding],

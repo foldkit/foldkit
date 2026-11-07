@@ -152,13 +152,13 @@ const foldChildOutMessage = ChildOutMessage.match<
 })
 
 export const DirectChildBinding =
-  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     init: false,
   }).withOutMessagePolicy({ fold: foldChildOutMessage })
 export const directChildInspection = Block.inspectBinding(DirectChildBinding)
 export const ForwardingChildBinding =
-  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     placement: 'forwardingChild',
   }).withOutMessagePolicy({
@@ -170,7 +170,7 @@ export const ForwardingChildBinding =
   })
 
 export const OptionalChildBinding =
-  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeOptionalFieldBinding(ChildBlock, {
     placement: 'optionalChild',
     field: 'maybeChild',
   }).withOutMessagePolicy({
@@ -189,7 +189,7 @@ export const OptionalChildBinding =
   })
 
 export const TaggedChildBinding =
-  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeCustomBinding(ChildBlock, {
     placement: 'taggedChild',
     read: model =>
       model.slot._tag === 'Child'
@@ -202,7 +202,7 @@ export const TaggedChildBinding =
   }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
 export const KeyedChildBinding =
-  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeCustomKeyedBinding(ChildBlock, {
     placement: 'entries',
     readAll: model => model.entries,
     key: entry => entry.id,
@@ -229,60 +229,36 @@ export const KeyedChildBinding =
 const readNamedEntries = (model: typeof ParentModel.Type) => model.namedEntries
 
 export const KeyedChildWithoutOutMessageBinding =
-  DeclarationParentOwnedParentDefinition.makeBinding(PlainChildBlock, {
-    placement: 'namedEntries',
-    readAll: readNamedEntries,
-    key: entry => {
-      const exactEntry: typeof NamedEntry.Type = entry
-      void exactEntry
+  DeclarationParentOwnedParentDefinition.makeCustomKeyedBinding(
+    PlainChildBlock,
+    {
+      placement: 'namedEntries',
+      readAll: readNamedEntries,
+      key: entry => {
+        const exactEntry: typeof NamedEntry.Type = entry
+        void exactEntry
 
-      return entry.id
-    },
-    keySchema: NamedEntry.fields.id,
-    read: entry => {
-      const exactEntry: typeof NamedEntry.Type = entry
-      void exactEntry
+        return entry.id
+      },
+      keySchema: NamedEntry.fields.id,
+      read: entry => {
+        const exactEntry: typeof NamedEntry.Type = entry
+        void exactEntry
 
-      return entry.child
-    },
-    writeAt: (model, id, nextChild) => {
-      const exactModel: typeof ParentModel.Type = model
-      const exactId: string = id
-      const exactChild: typeof ChildModel.Type = nextChild
-      void exactModel
-      void exactId
-      void exactChild
-
-      return model
-    },
-    subscriptions: {
-      when: (model, id) => {
+        return entry.child
+      },
+      writeAt: (model, id, nextChild) => {
         const exactModel: typeof ParentModel.Type = model
         const exactId: string = id
+        const exactChild: typeof ChildModel.Type = nextChild
         void exactModel
         void exactId
+        void exactChild
 
-        return true
+        return model
       },
-    },
-  })
-
-export const InlineKeyedChildWithoutOutMessageBinding =
-  DeclarationParentOwnedParentDefinition.makeBinding(PlainChildBlock, {
-    placement: 'inlineNamedEntries',
-    readAll: model => {
-      const exactModel: typeof ParentModel.Type = model
-      void exactModel
-
-      return model.namedEntries
-    },
-    key: entry => entry.id,
-    keySchema: NamedEntry.fields.id,
-    read: entry => entry.child,
-    writeAt: model => model,
-    subscriptions: {
-      when: {
-        values: (model, id) => {
+      subscriptions: {
+        when: (model, id) => {
           const exactModel: typeof ParentModel.Type = model
           const exactId: string = id
           void exactModel
@@ -292,7 +268,37 @@ export const InlineKeyedChildWithoutOutMessageBinding =
         },
       },
     },
-  })
+  )
+
+export const InlineKeyedChildWithoutOutMessageBinding =
+  DeclarationParentOwnedParentDefinition.makeCustomKeyedBinding(
+    PlainChildBlock,
+    {
+      placement: 'inlineNamedEntries',
+      readAll: model => {
+        const exactModel: typeof ParentModel.Type = model
+        void exactModel
+
+        return model.namedEntries
+      },
+      key: entry => entry.id,
+      keySchema: NamedEntry.fields.id,
+      read: entry => entry.child,
+      writeAt: model => model,
+      subscriptions: {
+        when: {
+          values: (model, id) => {
+            const exactModel: typeof ParentModel.Type = model
+            const exactId: string = id
+            void exactModel
+            void exactId
+
+            return true
+          },
+        },
+      },
+    },
+  )
 
 export const DeclarationParentOwnedParentComposition =
   DeclarationParentOwnedParentDefinition.makeComposition({
@@ -331,16 +337,14 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: ApplicationMessage,
 })
-export const ApplicationChildBinding = ApplicationDefinition.makeBinding(
-  ChildBlock,
-  {
+export const ApplicationChildBinding =
+  ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
-  },
-).withOutMessagePolicy({
-  fold: ChildOutMessage.match<
-    Update.Step<typeof ParentModel.Type, typeof ApplicationMessage.Type>
-  >({ SelectedValue: () => model => ({ model }) }),
-})
+  }).withOutMessagePolicy({
+    fold: ChildOutMessage.match<
+      Update.Step<typeof ParentModel.Type, typeof ApplicationMessage.Type>
+    >({ SelectedValue: () => model => ({ model }) }),
+  })
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [ApplicationChildBinding],
 })
@@ -402,9 +406,8 @@ export const makeGenericKeyedBinding = <const Value extends string, Encoded>(
         })),
     })
   }
-  const ChildBinding = DeclarationGenericKeyedParentDefinition.makeBinding(
-    ChildBlock,
-    {
+  const ChildBinding =
+    DeclarationGenericKeyedParentDefinition.makeCustomKeyedBinding(ChildBlock, {
       readAll: model => model.entries,
       key: entry => {
         const payload: Value = entry.payload
@@ -421,8 +424,7 @@ export const makeGenericKeyedBinding = <const Value extends string, Encoded>(
               : entry,
           ),
         }),
-    },
-  ).withOutMessagePolicy({ fold: foldOutMessage })
+    }).withOutMessagePolicy({ fold: foldOutMessage })
 
   const Composition = DeclarationGenericKeyedParentDefinition.makeComposition({
     bindings: [ChildBinding],

@@ -5,11 +5,11 @@ import { modifyFields } from 'foldkit/struct'
 import { Dialog } from '@foldkit/ui'
 
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
   makeStep,
 } from './block'
 import { saveCanvas } from './command'
@@ -27,7 +27,7 @@ import { paletteIndexFromValue } from './model'
 import { PALETTE_THEMES } from './palette'
 import { changeGridSize, selectColor, selectTool } from './steps'
 
-export const ErrorDialogBinding = makeBinding(Dialog.DialogBlock, {
+export const ErrorDialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'errorDialog',
   init: { contextToArgs: () => [{ id: 'export-error-dialog' }] },
 }).withOutMessagePolicy({
@@ -41,10 +41,13 @@ export const ErrorDialogBinding = makeBinding(Dialog.DialogBlock, {
   }),
 })
 
-export const GridSizeConfirmDialogBinding = makeBinding(Dialog.DialogBlock, {
-  field: 'gridSizeConfirmDialog',
-  init: { contextToArgs: () => [{ id: 'grid-size-confirm-dialog' }] },
-}).withOutMessagePolicy({
+export const GridSizeConfirmDialogBinding = makeRequiredFieldBinding(
+  Dialog.DialogBlock,
+  {
+    field: 'gridSizeConfirmDialog',
+    init: { contextToArgs: () => [{ id: 'grid-size-confirm-dialog' }] },
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(Dialog.DialogBlock, {
     Opened: makeNoopStep,
     Closed: () =>
@@ -55,28 +58,37 @@ export const GridSizeConfirmDialogBinding = makeBinding(Dialog.DialogBlock, {
   }),
 })
 
-export const ToolRadioGroupBinding = makeBinding(ToolRadioGroupBlock, {
-  field: 'toolRadioGroup',
-  init: { contextToArgs: () => [{ id: TOOL_RADIO_GROUP_ID }] },
-}).withOutMessagePolicy({
+export const ToolRadioGroupBinding = makeRequiredFieldBinding(
+  ToolRadioGroupBlock,
+  {
+    field: 'toolRadioGroup',
+    init: { contextToArgs: () => [{ id: TOOL_RADIO_GROUP_ID }] },
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(ToolRadioGroupBlock, {
     Selected: ({ value }) => selectTool(value),
   }),
 })
 
-export const GridSizeRadioGroupBinding = makeBinding(GridSizeRadioGroupBlock, {
-  field: 'gridSizeRadioGroup',
-  init: { contextToArgs: () => [{ id: GRID_SIZE_RADIO_GROUP_ID }] },
-}).withOutMessagePolicy({
+export const GridSizeRadioGroupBinding = makeRequiredFieldBinding(
+  GridSizeRadioGroupBlock,
+  {
+    field: 'gridSizeRadioGroup',
+    init: { contextToArgs: () => [{ id: GRID_SIZE_RADIO_GROUP_ID }] },
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(GridSizeRadioGroupBlock, {
     Selected: ({ value }) => changeGridSize(Number(value)),
   }),
 })
 
-export const PaletteRadioGroupBinding = makeBinding(PaletteRadioGroupBlock, {
-  field: 'paletteRadioGroup',
-  init: { contextToArgs: () => [{ id: PALETTE_RADIO_GROUP_ID }] },
-}).withOutMessagePolicy({
+export const PaletteRadioGroupBinding = makeRequiredFieldBinding(
+  PaletteRadioGroupBlock,
+  {
+    field: 'paletteRadioGroup',
+    init: { contextToArgs: () => [{ id: PALETTE_RADIO_GROUP_ID }] },
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(PaletteRadioGroupBlock, {
     Selected: ({ value }) =>
       makeStep(model =>
@@ -103,7 +115,7 @@ const foldThemeListboxOutMessage = makeOutMessageFold(ThemeListboxBlock, {
     }),
 })
 
-export const ThemeListboxBinding = makeBinding(ThemeListboxBlock, {
+export const ThemeListboxBinding = makeRequiredFieldBinding(ThemeListboxBlock, {
   field: 'themeListbox',
   init: { contextToArgs: () => [{ id: 'theme-picker' }] },
 }).withOutMessagePolicy({ fold: foldThemeListboxOutMessage })

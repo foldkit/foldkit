@@ -22,10 +22,14 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeBinding, makeComposition, makeCommand, makeCommandsStep } =
-  ApplicationBlock
+const {
+  makeRequiredFieldBinding,
+  makeComposition,
+  makeCommand,
+  makeCommandsStep,
+} = ApplicationBlock
 
-const PostsBinding = makeBinding(postsQuery, {
+const PostsBinding = makeRequiredFieldBinding(postsQuery, {
   field: 'posts',
 })
 

@@ -2,24 +2,24 @@ import { Match } from 'effect'
 import { type Block, Update } from 'foldkit'
 
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
   makeStep,
 } from './block'
 import { AppTabsBlock, TABS_ID, type Tab } from './model'
 import { postQuery, postsQuery, statsQuery } from './query'
 
-export const PostsBinding = makeBinding(postsQuery, {
+export const PostsBinding = makeRequiredFieldBinding(postsQuery, {
   field: 'posts',
 })
 
-export const StatsBinding = makeBinding(statsQuery, {
+export const StatsBinding = makeRequiredFieldBinding(statsQuery, {
   field: 'stats',
 })
 
-export const PostDetailsBinding = makeBinding(postQuery, {
+export const PostDetailsBinding = makeRequiredFieldBinding(postQuery, {
   field: 'postDetails',
 })
 
@@ -37,7 +37,7 @@ const activateTab = (tab: Tab) => {
   return makeStep(() => Update.combineSteps([selectTab, loadTab]))
 }
 
-export const TabsBinding = makeBinding(AppTabsBlock, {
+export const TabsBinding = makeRequiredFieldBinding(AppTabsBlock, {
   field: 'tabs',
   init: { contextToArgs: () => [{ id: TABS_ID }] },
 }).withOutMessagePolicy({

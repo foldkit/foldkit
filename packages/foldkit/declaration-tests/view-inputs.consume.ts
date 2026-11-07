@@ -34,7 +34,7 @@ const EmittedGenericViewInputsParentDefinition = Block.makeDefinition(
   },
 )
 const GenericStringBinding =
-  EmittedGenericViewInputsParentDefinition.makeBinding(
+  EmittedGenericViewInputsParentDefinition.makeRequiredFieldBinding(
     makeGenericBlock<string>(),
     { field: 'child' },
   )
@@ -48,10 +48,11 @@ export const emittedGenericConfig = GenericStringBinding.embedView({
   },
 })
 
-const DateBinding = EmittedGenericViewInputsParentDefinition.makeBinding(
-  DateInputBlock,
-  { field: 'child' },
-)
+const DateBinding =
+  EmittedGenericViewInputsParentDefinition.makeRequiredFieldBinding(
+    DateInputBlock,
+    { field: 'child' },
+  )
 const date = new Date('2026-10-21T12:00:00.000Z')
 const utc = DateTime.makeUnsafe('2026-10-21T12:00:00.000Z')
 const timeZone = DateTime.zoneMakeNamedUnsafe('America/New_York')

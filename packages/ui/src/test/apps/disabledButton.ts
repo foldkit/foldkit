@@ -42,10 +42,13 @@ const foldDialogOutMessage = DisabledButtonTestBlock.makeOutMessageFold(
   },
 )
 
-const DialogBinding = DisabledButtonTestBlock.makeBinding(Dialog.DialogBlock, {
-  field: 'dialog',
-  init: { contextToArgs: () => [{ id: 'test-dialog' }] },
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
+const DialogBinding = DisabledButtonTestBlock.makeRequiredFieldBinding(
+  Dialog.DialogBlock,
+  {
+    field: 'dialog',
+    init: { contextToArgs: () => [{ id: 'test-dialog' }] },
+  },
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const DisabledButtonTestComposition = DisabledButtonTestBlock.makeComposition({
   bindings: [DialogBinding],

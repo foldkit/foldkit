@@ -25,10 +25,13 @@ const foldTooltipOutMessage = TooltipSceneBlock.makeOutMessageFold(
   },
 )
 
-const TooltipBinding = TooltipSceneBlock.makeBinding(TooltipBlock, {
-  field: 'tooltip',
-  init: { contextToArgs: () => [{ id: 'test' }] },
-}).withOutMessagePolicy({ fold: foldTooltipOutMessage })
+const TooltipBinding = TooltipSceneBlock.makeRequiredFieldBinding(
+  TooltipBlock,
+  {
+    field: 'tooltip',
+    init: { contextToArgs: () => [{ id: 'test' }] },
+  },
+).withOutMessagePolicy({ fold: foldTooltipOutMessage })
 
 const TooltipSceneComposition = TooltipSceneBlock.makeComposition({
   bindings: [TooltipBinding],

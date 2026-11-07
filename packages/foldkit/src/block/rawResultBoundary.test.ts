@@ -82,7 +82,7 @@ const LocalSave = ParentDefinition.makeCommand('LocalSave', {
     return () => Effect.succeed(ParentMessage.CompletedLocalSave())
   },
 })
-const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+const ChildBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
 })
 const ParentComposition = ParentDefinition.makeComposition({

@@ -4,17 +4,20 @@ import type { Block } from 'foldkit'
 import { FileDrop } from '@foldkit/ui'
 
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 
-export const ResumeDropBinding = makeBinding(FileDrop.FileDropBlock, {
-  field: 'resumeDrop',
-  init: { contextToArgs: () => [{ id: 'attachments-resume' }] },
-}).withOutMessagePolicy({
+export const ResumeDropBinding = makeRequiredFieldBinding(
+  FileDrop.FileDropBlock,
+  {
+    field: 'resumeDrop',
+    init: { contextToArgs: () => [{ id: 'attachments-resume' }] },
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(FileDrop.FileDropBlock, {
     ReceivedFiles: ({ files }) =>
       makeFieldsStep(() => ({
@@ -25,10 +28,13 @@ export const ResumeDropBinding = makeBinding(FileDrop.FileDropBlock, {
   }),
 })
 
-export const AdditionalFilesDropBinding = makeBinding(FileDrop.FileDropBlock, {
-  field: 'additionalFilesDrop',
-  init: { contextToArgs: () => [{ id: 'attachments-additional' }] },
-}).withOutMessagePolicy({
+export const AdditionalFilesDropBinding = makeRequiredFieldBinding(
+  FileDrop.FileDropBlock,
+  {
+    field: 'additionalFilesDrop',
+    init: { contextToArgs: () => [{ id: 'attachments-additional' }] },
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(FileDrop.FileDropBlock, {
     ReceivedFiles: ({ files }) =>
       makeFieldsStep(() => ({

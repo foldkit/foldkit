@@ -2279,7 +2279,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: WorkerModel,
   Message: ApplicationMessage,
 })
-const WorkerBinding = ApplicationDefinition.makeBinding(Worker, {
+const WorkerBinding = ApplicationDefinition.makeCustomBinding(Worker, {
   placement: 'worker',
   read: model => Option.some(model),
   write: (_model, nextWorker) => nextWorker,

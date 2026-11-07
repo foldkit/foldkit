@@ -51,7 +51,7 @@ const Parent = makeDefinition('NumericIdentityParent', {
   Model,
   Message: Schema.Never,
 })
-const EntriesBinding = Parent.makeBinding(child, {
+const EntriesBinding = Parent.makeKeyedArrayBinding(child, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -117,7 +117,7 @@ it('rejects zero and negative zero as duplicate occurrences of the requested key
 })
 
 it('retains automatic startup Commands when Schema storage normalizes a zero key', () => {
-  const StartupBinding = Parent.makeBinding(child, {
+  const StartupBinding = Parent.makeKeyedArrayBinding(child, {
     field: 'entries',
     key: 'id',
     childField: 'child',
@@ -135,7 +135,7 @@ it('retains automatic startup Commands when Schema storage normalizes a zero key
 })
 
 it('rejects duplicate signed-zero startup keys before initializing either occurrence', () => {
-  const StartupBinding = Parent.makeBinding(child, {
+  const StartupBinding = Parent.makeKeyedArrayBinding(child, {
     field: 'entries',
     key: 'id',
     childField: 'child',

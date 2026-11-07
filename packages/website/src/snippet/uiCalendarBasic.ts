@@ -45,7 +45,7 @@ const {
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
 } = CalendarExampleBlock
 
@@ -72,7 +72,7 @@ const foldCalendarOutMessage = makeOutMessageFold(UiCalendar.CalendarBlock, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const CalendarDemoBinding = makeBinding(UiCalendar.CalendarBlock, {
+const CalendarDemoBinding = makeRequiredFieldBinding(UiCalendar.CalendarBlock, {
   field: 'calendarDemo',
   init: {
     contextToArgs: flags => [

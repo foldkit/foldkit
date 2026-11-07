@@ -118,18 +118,18 @@ const Parent = makeDefinition('WrappedKeyedFieldParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const CountersBinding = Parent.makeBinding(counterBlock, {
+const CountersBinding = Parent.makeKeyedArrayBinding(counterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
 })
-const AlternateCountersBinding = Parent.makeBinding(counterBlock, {
+const AlternateCountersBinding = Parent.makeKeyedArrayBinding(counterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
   placement: 'alternateCounters',
 })
-const TextEntriesBinding = Parent.makeBinding(textBlock, {
+const TextEntriesBinding = Parent.makeKeyedArrayBinding(textBlock, {
   field: 'textEntries',
   key: 'id',
   childField: 'text',
@@ -387,14 +387,14 @@ const invalidConfig = (
   childField,
 })
 const bindInvalid = (field: string, key?: string, childField?: string) =>
-  Reflect.apply(InvalidParent.makeBinding, undefined, [
+  Reflect.apply(InvalidParent.makeKeyedArrayBinding, undefined, [
     counterBlock,
     invalidConfig(field, key, childField),
   ])
 
 it('rejects unsupported wrapper storage Schemas at runtime', () => {
   expect(() => bindInvalid('missingEntries')).toThrow(
-    'requires a string or finite-number key Schema',
+    'makeKeyedArrayBinding does not match its declared storage relationship',
   )
   for (const field of [
     'opaqueEntries',
@@ -411,13 +411,13 @@ it('rejects unsupported wrapper storage Schemas at runtime', () => {
 
 it('rejects invalid wrapper key and child fields at runtime', () => {
   expect(() => bindInvalid('missingKeyEntries')).toThrow(
-    'requires a string or finite-number key Schema',
+    'makeKeyedArrayBinding must select a declared required key field',
   )
   expect(() => bindInvalid('optionalKeyEntries')).toThrow(
-    'key field must be required',
+    'makeKeyedArrayBinding requires a required key field',
   )
   expect(() => bindInvalid('booleanKeyEntries')).toThrow(
-    'requires a string or finite-number key Schema',
+    'makeKeyedArrayBinding requires a key Schema that decodes to a string or number',
   )
   expect(() => bindInvalid('missingChildEntries')).toThrow(
     'declared childField',
@@ -441,7 +441,7 @@ it('rejects invalid wrapper key and child fields at runtime', () => {
   })
 
   expect(() =>
-    Reflect.apply(SameFieldParent.makeBinding, undefined, [
+    Reflect.apply(SameFieldParent.makeKeyedArrayBinding, undefined, [
       textBlock,
       {
         field: 'values',
@@ -449,13 +449,13 @@ it('rejects invalid wrapper key and child fields at runtime', () => {
         childField: 'value',
       },
     ]),
-  ).toThrow('key and childField must be distinct')
+  ).toThrow('makeKeyedArrayBinding requires distinct key and childField fields')
 })
 
 it('rejects Schema and custom adapter conflicts at runtime', () => {
   for (const schemaField of ['Model', 'ChildModel']) {
     expect(() =>
-      Reflect.apply(Parent.makeBinding, undefined, [
+      Reflect.apply(Parent.makeKeyedArrayBinding, undefined, [
         counterBlock,
         { ...invalidConfig('counters'), [schemaField]: CounterModel },
       ]),
@@ -467,15 +467,15 @@ it('rejects Schema and custom adapter conflicts at runtime', () => {
     'read',
     'write',
     'writeAt',
-    'presentWhen',
+    'activeWhen',
   ]) {
     expect(() =>
-      Reflect.apply(Parent.makeBinding, undefined, [
+      Reflect.apply(Parent.makeKeyedArrayBinding, undefined, [
         counterBlock,
         { ...invalidConfig('counters'), [conflict]: () => undefined },
       ]),
     ).toThrow(
-      /cannot supply (field|childField)|cannot also supply custom accessors/,
+      `makeKeyedArrayBinding does not support the ${conflict} configuration field`,
     )
   }
 })

@@ -42,7 +42,7 @@ describe('Query freshness and cancellation', () => {
       Model,
       Message,
     })
-    const Binding = Definition.makeBinding(finiteQuery, {
+    const Binding = Definition.makeRequiredFieldBinding(finiteQuery, {
       field: 'query',
       init: false,
     })

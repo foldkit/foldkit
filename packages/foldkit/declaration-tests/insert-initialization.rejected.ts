@@ -1,6 +1,6 @@
 import { Array, Effect, HashMap, Option, Record, Schema, Tuple } from 'effect'
 import { Block, Message, Struct } from 'foldkit'
-import { initAndInsert, makeInitIfMissingStep } from 'foldkit/bindingInit'
+import { initAndInsert, makeInitIfMissingStep } from 'foldkit/binding'
 
 import {
   ChildBlock,
@@ -65,7 +65,7 @@ MissingComposition.prepareBlock({
   init: MissingComposition.makeInit(() => ({ model })),
   update: missingUpdate,
 })
-const ForeignBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+const ForeignBinding = ParentDefinition.makeRecordBinding(ChildBlock, {
   field: 'childrenById',
   placement: 'foreign',
 }).withOutMessagePolicy({ fold: () => ParentDefinition.makeNoopStep() })
@@ -100,24 +100,24 @@ const otherModel = OtherModel.make({
   children: {},
   otherChildren: {},
 })
-const DirectBinding = OtherDefinition.makeBinding(ChildBlock, {
+const DirectBinding = OtherDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
   init: { contextToArgs: () => [1] },
 })
 // @ts-expect-error Singular child fields do not support map insertion.
 initAndInsert(DirectBinding, otherModel, { key: firstId, args: [1] })
-const OptionalBinding = OtherDefinition.makeBinding(ChildBlock, {
+const OptionalBinding = OtherDefinition.makeOptionalFieldBinding(ChildBlock, {
   field: 'maybeChild',
 })
 // @ts-expect-error Option storage does not support map insertion.
 initAndInsert(OptionalBinding, otherModel, { key: firstId, args: [1] })
-const AccessorBinding = OtherDefinition.makeBinding(ChildBlock, {
+const AccessorBinding = OtherDefinition.makeCustomBinding(ChildBlock, {
   read: model => Option.some(model.child),
   write: (model, child) => Struct.modifyFields(model, { child: () => child }),
 })
 // @ts-expect-error Custom accessors do not declare direct map storage.
 initAndInsert(AccessorBinding, otherModel, { key: firstId, args: [1] })
-const GeneralBinding = OtherDefinition.makeBinding(ChildBlock, {
+const GeneralBinding = OtherDefinition.makeCustomKeyedBinding(ChildBlock, {
   readAll: model =>
     Array.map(Record.toEntries(model.children), ([key, child]) => ({
       key,
@@ -130,10 +130,10 @@ const GeneralBinding = OtherDefinition.makeBinding(ChildBlock, {
 })
 // @ts-expect-error General keyed accessors do not declare map storage.
 initAndInsert(GeneralBinding, otherModel, { key: firstId, args: [1] })
-const FirstMapBinding = OtherDefinition.makeMapBinding(ChildBlock, {
+const FirstMapBinding = OtherDefinition.makeRecordBinding(ChildBlock, {
   field: 'children',
 })
-const SecondMapBinding = OtherDefinition.makeMapBinding(ChildBlock, {
+const SecondMapBinding = OtherDefinition.makeRecordBinding(ChildBlock, {
   field: 'otherChildren',
 })
 const ambiguousBinding =
@@ -151,7 +151,7 @@ const HashDefinition = Block.makeDefinition('HashInsertParent', {
   Model: HashModel,
   Message: Message.defineMessageUnion({}),
 })
-const HashBinding = HashDefinition.makeMapBinding(ChildBlock, {
+const HashBinding = HashDefinition.makeHashMapBinding(ChildBlock, {
   field: 'children',
 })
 const hashModel = HashModel.make({ children: HashMap.empty() })

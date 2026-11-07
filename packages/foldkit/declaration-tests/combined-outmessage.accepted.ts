@@ -91,9 +91,12 @@ export const EditorDefinition = Block.makeDefinition(
     OutMessage,
   },
 )
-export const DialogBinding = EditorDefinition.makeBinding(DialogBlock, {
-  field: 'dialog',
-})
+export const DialogBinding = EditorDefinition.makeRequiredFieldBinding(
+  DialogBlock,
+  {
+    field: 'dialog',
+  },
+)
 export const EditorComposition = EditorDefinition.makeComposition({
   bindings: [DialogBinding],
 })
@@ -343,9 +346,12 @@ export const ReportDefinition = Block.makeDefinition(
     OutMessage: ReportOutMessage,
   },
 )
-export const ReportDialogBinding = ReportDefinition.makeBinding(DialogBlock, {
-  field: 'dialog',
-})
+export const ReportDialogBinding = ReportDefinition.makeRequiredFieldBinding(
+  DialogBlock,
+  {
+    field: 'dialog',
+  },
+)
 export const ReportComposition = ReportDefinition.makeComposition({
   bindings: [ReportDialogBinding],
 })
@@ -400,29 +406,32 @@ export const foldEditorOutMessage = ParentDefinition.makeOutMessageFold(
     Plain: ParentDefinition.makeNoopStep,
   },
 )
-export const EditorBinding = ParentDefinition.makeBinding(EditorBlock, {
-  field: 'editor',
-}).withOutMessagePolicy({ fold: foldEditorOutMessage })
+export const EditorBinding = ParentDefinition.makeRequiredFieldBinding(
+  EditorBlock,
+  {
+    field: 'editor',
+  },
+).withOutMessagePolicy({ fold: foldEditorOutMessage })
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [EditorBinding],
 })
 export const parentUpdate = ParentComposition.makeUpdate({
   RequestedSave: model => EditorBinding.save()(model),
 })
-export const ForwardingEditorBinding = ParentDefinition.makeBinding(
-  EditorBlock,
-  { field: 'editor' },
-).withOutMessagePolicy({
-  forward: ParentDefinition.makeOutMessageForward(EditorBlock, {
-    Saved: () => ParentOutMessage.ObservedSave(),
-    SavedTuple: () => undefined,
-    SavedCurriedArray: () => undefined,
-    SavedCurriedTuple: () => undefined,
-    SavedNestedArray: () => undefined,
-    SavedNestedTuple: () => undefined,
-    Plain: () => undefined,
-  }),
-})
+export const ForwardingEditorBinding =
+  ParentDefinition.makeRequiredFieldBinding(EditorBlock, {
+    field: 'editor',
+  }).withOutMessagePolicy({
+    forward: ParentDefinition.makeOutMessageForward(EditorBlock, {
+      Saved: () => ParentOutMessage.ObservedSave(),
+      SavedTuple: () => undefined,
+      SavedCurriedArray: () => undefined,
+      SavedCurriedTuple: () => undefined,
+      SavedNestedArray: () => undefined,
+      SavedNestedTuple: () => undefined,
+      Plain: () => undefined,
+    }),
+  })
 export const ForwardingComposition = ParentDefinition.makeComposition({
   bindings: [ForwardingEditorBinding],
 })

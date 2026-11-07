@@ -424,7 +424,7 @@ describe('ordinary Block host-handler selection', () => {
       Init: Schema.Tuple([]),
       effects: { services: [HostValue] },
     })
-    const ChildBinding = ParentDefinition.makeBinding(
+    const ChildBinding = ParentDefinition.makeRequiredFieldBinding(
       ChildDefinition.contract,
       { field: 'child', init: { contextToArgs: () => [] } },
     )

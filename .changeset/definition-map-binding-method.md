@@ -4,8 +4,6 @@
 'create-foldkit-app': patch
 ---
 
-Create Record and HashMap child Bindings with the owning Definition's `makeMapBinding` method, consistently with `makeBinding`. The method can also be destructured and exported from a feature's `definition.ts` without losing parent ownership or contextual typing.
+Create Record and HashMap child Bindings through the owning Block's `makeRecordBinding` and `makeHashMapBinding` methods. These constructors retain exact parent ownership and contextual typing when destructured and imported from the feature's `block.ts`.
 
-Replace `makeMapBinding(ParentDefinition, ChildBlock, config)` from `foldkit/mapBinding` with `ParentDefinition.makeMapBinding(ChildBlock, config)`, then remove the standalone import. The `foldkit/mapBinding` entry point is removed. Advanced public type references use `Block.MakeMapBinding` from `foldkit/block`; ordinary consumers need no additional annotations.
-
-Update lint ownership recognition, active guides, scaffolds and skills for both qualified and extracted Definition methods. Storage, key validation, parent-owned membership, initialization and lifecycle contracts are unchanged.
+Replace standalone `makeMapBinding(ParentBlock, ChildBlock, config)` from `foldkit/mapBinding` with the appropriate parent method, then remove the standalone import. The `foldkit/mapBinding` entry point is removed. Advanced native type references use `Block.MakeMapBinding` from `foldkit/block`; ordinary consumers need no additional annotations.

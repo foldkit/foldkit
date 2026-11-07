@@ -15,6 +15,10 @@ import {
   registerBindingDeclaration,
   registerExecutableHandle,
 } from '../../block/bindingConnection.js'
+import {
+  bindingLowerersOf,
+  makeBindingConstructors,
+} from '../../block/bindingConstructors.js'
 import type { ValidateSelfContainedDefinitionCodecs } from '../../block/childEnvelope.js'
 import { canonicalBindingOf } from '../../block/composition.js'
 import { defaultViewOf, registerDefaultView } from '../../block/defaultView.js'
@@ -502,15 +506,20 @@ const constructImplementation = <const Body extends ConstructorBody>(
       )
     }
 
-    const makeBinding =
-      declaration.kind === 'Map'
-        ? definition.makeMapBinding
-        : definition.makeBinding
-    const initial = makeBinding(acquisition.block, declaration.config)
+    const lowerers = bindingLowerersOf(definition)
+    const lower = declaration.kind === 'Map' ? lowerers.map : lowerers.direct
+    const initial = lower(acquisition.block, declaration.config)
     const selected =
       declaration.policy === undefined
         ? initial
-        : initial.withOutMessagePolicy(declaration.policy)
+        : Reflect.apply(Reflect.get(initial, 'withOutMessagePolicy'), initial, [
+            declaration.policy,
+          ])
+
+    if (!Predicate.isObject(selected)) {
+      throw new Error('[foldkit] A Binding constructor must return a Binding.')
+    }
+
     const actual = canonicalBindingOf(selected)
 
     registerBindingDeclaration(actual, declaration.original)
@@ -830,41 +839,34 @@ export const makeDefinitionFactory =
       return makeAuthoringComposition(source)
     }
 
-    return {
+    const assertChild = (child: object): void => {
+      if (!descriptors.has(child)) {
+        throw new Error(
+          '[foldkit] A Binding requires an original registered Block contract.',
+        )
+      }
+
+      if (kind === 'Layer' && !Layer.isLayer(Reflect.get(child, 'layer'))) {
+        throw new Error(
+          '[foldkit] Layer-owned Bindings require a child graph Layer.',
+        )
+      }
+    }
+
+    const direct = (child: object, config: Readonly<Record<string, any>>) => {
+      assertChild(child)
+
+      return makeSymbolicBinding(definition, child, config)
+    }
+
+    const map = (child: object, config: Readonly<Record<string, any>>) => {
+      assertChild(child)
+
+      return makeSymbolicBinding(definition, child, config, 'Map')
+    }
+
+    const authored = {
       ...definition,
-      makeBinding: (child: object, config: Readonly<Record<string, any>>) => {
-        if (!descriptors.has(child)) {
-          throw new Error(
-            '[foldkit] A Binding requires an original registered Block contract.',
-          )
-        }
-
-        if (kind === 'Layer' && !Layer.isLayer(Reflect.get(child, 'layer'))) {
-          throw new Error(
-            '[foldkit] Layer-owned Bindings require a child graph Layer.',
-          )
-        }
-
-        return makeSymbolicBinding(definition, child, config)
-      },
-      makeMapBinding: (
-        child: object,
-        config: Readonly<Record<string, any>>,
-      ) => {
-        if (!descriptors.has(child)) {
-          throw new Error(
-            '[foldkit] A map Binding requires a constructor descriptor.',
-          )
-        }
-
-        if (kind === 'Layer' && !Layer.isLayer(Reflect.get(child, 'layer'))) {
-          throw new Error(
-            '[foldkit] Layer-owned Bindings require a child graph Layer.',
-          )
-        }
-
-        return makeSymbolicBinding(definition, child, config, 'Map')
-      },
       makeComposition,
       makeBlock: (constructor: Effect.Effect<any, any, any>) =>
         makeDescriptor(
@@ -876,6 +878,11 @@ export const makeDefinitionFactory =
           kind,
         ),
     }
+
+    return Object.assign(
+      authored,
+      makeBindingConstructors(authored, direct, map, assertChild),
+    )
   }
 
 /** Extends the current Definition with passive typed builders and explicit graph construction. */

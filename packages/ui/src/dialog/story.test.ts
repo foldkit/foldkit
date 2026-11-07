@@ -104,10 +104,13 @@ const loadParentData = DialogParentTestBlock.makeCommandsStep(() => [
   LoadParentData(),
 ])
 
-const DialogBinding = DialogParentTestBlock.makeBinding(DialogBlock, {
-  field: 'dialog',
-  init: { contextToArgs: () => [{ id: 'initial-dialog' }] },
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
+const DialogBinding = DialogParentTestBlock.makeRequiredFieldBinding(
+  DialogBlock,
+  {
+    field: 'dialog',
+    init: { contextToArgs: () => [{ id: 'initial-dialog' }] },
+  },
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const DialogParentTestComposition = DialogParentTestBlock.makeComposition({
   bindings: [DialogBinding],

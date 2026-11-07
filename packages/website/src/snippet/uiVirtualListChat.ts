@@ -58,7 +58,7 @@ const {
   makeNoopStep,
   makeStep,
   makeCommand,
-  makeBinding,
+  makeRequiredFieldBinding,
   makeOutMessageFold,
   makeComposition,
 } = MessageListExampleBlock
@@ -110,7 +110,7 @@ const requestHistory = makeStep(model => {
   }
 })
 
-const MessageListBinding = makeBinding(MessageListBlock, {
+const MessageListBinding = makeRequiredFieldBinding(MessageListBlock, {
   field: 'messageList',
   init: {
     contextToArgs: () => [

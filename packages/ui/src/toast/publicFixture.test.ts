@@ -52,23 +52,32 @@ const foldSecondToastOutMessage = ToastFixtureParentBlock.makeOutMessageFold(
   },
 )
 
-const LeftBinding = ToastFixtureParentBlock.makeBinding(FirstToast, {
-  placement: 'LeftToast',
-  field: 'left',
-  init: { contextToArgs: id => [{ id }] },
-}).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
+const LeftBinding = ToastFixtureParentBlock.makeRequiredFieldBinding(
+  FirstToast,
+  {
+    placement: 'LeftToast',
+    field: 'left',
+    init: { contextToArgs: id => [{ id }] },
+  },
+).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
 
-const RightBinding = ToastFixtureParentBlock.makeBinding(FirstToast, {
-  placement: 'RightToast',
-  field: 'right',
-  init: { contextToArgs: id => [{ id }] },
-}).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
+const RightBinding = ToastFixtureParentBlock.makeRequiredFieldBinding(
+  FirstToast,
+  {
+    placement: 'RightToast',
+    field: 'right',
+    init: { contextToArgs: id => [{ id }] },
+  },
+).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
 
-const OtherBinding = ToastFixtureParentBlock.makeBinding(SecondToast, {
-  placement: 'OtherToast',
-  field: 'other',
-  init: { contextToArgs: id => [{ id }] },
-}).withOutMessagePolicy({ fold: foldSecondToastOutMessage })
+const OtherBinding = ToastFixtureParentBlock.makeRequiredFieldBinding(
+  SecondToast,
+  {
+    placement: 'OtherToast',
+    field: 'other',
+    init: { contextToArgs: id => [{ id }] },
+  },
+).withOutMessagePolicy({ fold: foldSecondToastOutMessage })
 
 const ToastFixtureParentComposition = ToastFixtureParentBlock.makeComposition({
   bindings: [LeftBinding, RightBinding, OtherBinding],
@@ -137,16 +146,19 @@ const foldKeyedToastOutMessage =
   KeyedToastFixtureParentBlock.makeOutMessageFold(FirstToast, {
     DismissedToast: () => model => ({ model }),
   })
-const SlotsToastBinding = KeyedToastFixtureParentBlock.makeBinding(FirstToast, {
-  placement: 'KeyedToast',
-  field: 'slots',
-  key: 'key',
-  childField: 'toast',
-  init: {
-    instances: id => [{ key: 'selected', args: [{ id }] }],
-    toItem: ({ key }, toast) => ({ key, toast }),
+const SlotsToastBinding = KeyedToastFixtureParentBlock.makeKeyedArrayBinding(
+  FirstToast,
+  {
+    placement: 'KeyedToast',
+    field: 'slots',
+    key: 'key',
+    childField: 'toast',
+    init: {
+      instances: id => [{ key: 'selected', args: [{ id }] }],
+      toItem: ({ key }, toast) => ({ key, toast }),
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: foldKeyedToastOutMessage,
 })
 const KeyedToastFixtureParentComposition =

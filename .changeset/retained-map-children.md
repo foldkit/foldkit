@@ -3,7 +3,7 @@
 'create-foldkit-app': patch
 ---
 
-Add `makeInitIfMissingStep` to `foldkit/bindingInit` for retained children in direct-value Record and Effect HashMap Bindings:
+Add `makeInitIfMissingStep` to `foldkit/binding` for retained children in direct-value Record and Effect HashMap Bindings:
 
 ```ts
 const initEditor = (issue: Issue) =>

@@ -50,7 +50,7 @@ const Parent = makeDefinition('BindingInitParent', {
   Message: Schema.Never,
 })
 
-const AccessorBinding = Parent.makeBinding(ChildBlock, {
+const AccessorBinding = Parent.makeCustomBinding(ChildBlock, {
   placement: 'accessor',
   read: model => Option.some(model.first),
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
@@ -71,12 +71,12 @@ expectTypeOf<
   AccessorInitialEvidence['childInitContext']
 >().toEqualTypeOf<never>()
 
-Parent.makeBinding(ChildBlock, {
+Parent.makeRequiredFieldBinding(ChildBlock, {
   field: 'first',
   init: { contextToArgs: () => [{ count: 3 }] },
 })
 
-Parent.makeBinding(ChildBlock, {
+Parent.makeOptionalFieldBinding(ChildBlock, {
   field: 'maybeChild',
   init: {
     contextToArgs: (context: Readonly<{ count: number }>) =>
@@ -84,50 +84,42 @@ Parent.makeBinding(ChildBlock, {
   },
 })
 
-Parent.makeBinding(ChildBlock, {
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
+Parent.makeCustomBinding(ChildBlock, {
   read: model => Option.some(model.first),
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
-  // @ts-expect-error A projected init field must have the exact child Model type.
   init: {
     contextToArgs: () => [{ count: 1 }],
+    // @ts-expect-error A projected init field must have the exact child Model type.
     toParentFields: childModel => ({ label: childModel }),
   },
 })
 
-Parent.makeBinding(ChildBlock, {
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
+Parent.makeCustomBinding(ChildBlock, {
   read: model => Option.some(model.first),
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
-  // @ts-expect-error Option storage is not one exact required child Model field.
   init: {
     contextToArgs: () => [{ count: 1 }],
+    // @ts-expect-error Option storage is not one exact required child Model field.
     toParentFields: childModel => ({ maybeChild: Option.some(childModel) }),
   },
 })
 
-Parent.makeBinding(ChildBlock, {
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
+Parent.makeCustomBinding(ChildBlock, {
   read: model => Option.some(model.first),
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
-  // @ts-expect-error Optional storage is not one exact required child Model field.
   init: {
     contextToArgs: () => [{ count: 1 }],
+    // @ts-expect-error Optional storage is not one exact required child Model field.
     toParentFields: childModel => ({ optionalChild: childModel }),
   },
 })
 
-Parent.makeBinding(ChildBlock, {
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
+Parent.makeCustomBinding(ChildBlock, {
   read: model => Option.some(model.first),
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
-  // @ts-expect-error A projected init contributes exactly one parent Model field.
   init: {
     contextToArgs: () => [{ count: 1 }],
+    // @ts-expect-error A projected init contributes exactly one parent Model field.
     toParentFields: childModel => ({
       first: childModel,
       second: childModel,
@@ -135,12 +127,10 @@ Parent.makeBinding(ChildBlock, {
   },
 })
 
-Parent.makeBinding(ChildBlock, {
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
+// @ts-expect-error A projected init cannot contribute an undeclared field.
+Parent.makeCustomBinding(ChildBlock, {
   read: model => Option.some(model.first),
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
-  // @ts-expect-error A projected init cannot contribute an undeclared field.
   init: {
     contextToArgs: () => [{ count: 1 }],
     toParentFields: childModel => ({
@@ -153,7 +143,7 @@ Parent.makeBinding(ChildBlock, {
 const runtimeAccessorBinding = (
   toParentFields: (childModel: ChildModel) => unknown,
 ) =>
-  Reflect.apply(Parent.makeBinding, undefined, [
+  Reflect.apply(Parent.makeCustomBinding, undefined, [
     ChildBlock,
     {
       placement: 'runtimeAccessor',
@@ -229,7 +219,7 @@ it('rejects invalid accessor child init projections at runtime', () => {
 
 it('rejects the removed initial configuration field at runtime', () => {
   expect(() =>
-    Reflect.apply(Parent.makeBinding, undefined, [
+    Reflect.apply(Parent.makeRequiredFieldBinding, undefined, [
       ChildBlock,
       {
         field: 'first',

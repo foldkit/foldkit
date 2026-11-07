@@ -26,15 +26,22 @@ export const AnimationExampleBlock = Block.make('AnimationExample', {
   Message,
 })
 
-const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
-  AnimationExampleBlock
+const {
+  makeNoopStep,
+  makeRequiredFieldBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = AnimationExampleBlock
 
 // Bind before defining the policy so its standard leave operation is available
 // inside the StartedLeaveAnimating branch.
-const BaseAnimationBinding = makeBinding(Animation.AnimationBlock, {
-  field: 'animation',
-  init: { contextToArgs: () => [{ id: 'content' }] },
-})
+const BaseAnimationBinding = makeRequiredFieldBinding(
+  Animation.AnimationBlock,
+  {
+    field: 'animation',
+    init: { contextToArgs: () => [{ id: 'content' }] },
+  },
+)
 
 const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
   // The operation asks Animation to wait for its wrapper's CSS to settle.

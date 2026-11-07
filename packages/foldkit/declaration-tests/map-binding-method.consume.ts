@@ -16,7 +16,7 @@ import {
   RowsBinding,
   init,
   insert,
-  makeMapBinding,
+  makeRecordBinding,
 } from './map-binding-method.accepted.js'
 
 type Equal<Left, Right> =
@@ -96,7 +96,7 @@ export type ExactPickerModel = Expect<
   >
 >
 
-export const ImportedHelperBinding = makeMapBinding(ChildBlock, {
+export const ImportedHelperBinding = makeRecordBinding(ChildBlock, {
   field: 'children',
   placement: 'importedChildren',
   delivery: {
@@ -129,7 +129,7 @@ FiniteBinding.read('Third', { multiplier: 1 })
 ChildBlock.init()
 // @ts-expect-error Relocated imports retain generic UI operation arguments.
 PickerBinding.select('first', { selected: 'Green' })
-makeMapBinding(ChildBlock, {
+makeRecordBinding(ChildBlock, {
   field: 'children',
   // @ts-expect-error Relocated detached helpers reject incomplete child context.
   delivery: { toUpdateContext: () => [] },

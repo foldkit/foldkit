@@ -214,7 +214,7 @@ it('interprets registered child Steps and passive child initialization recipes',
     Model: ParentModel,
     Message: ParentMessage,
   })
-  const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+  const ChildBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     init: false,
   })

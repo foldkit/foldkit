@@ -1,6 +1,6 @@
 import { Array, Option, Schema, Tuple } from 'effect'
 import { Block, Message, Struct } from 'foldkit'
-import { initAndSet } from 'foldkit/bindingInit'
+import { initAndSet } from 'foldkit/binding'
 
 import {
   BaseRequiredBinding,
@@ -60,7 +60,7 @@ MissingComposition.prepareBlock({
   init: MissingComposition.makeInit(() => ({ model })),
   update: missingUpdate,
 })
-const ForeignBinding = ParentDefinition.makeBinding(ChildBlock, {
+const ForeignBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
   placement: 'foreign',
   field: 'requiredChild',
   init: { contextToArgs: () => [0] },
@@ -94,7 +94,7 @@ type RequiredRecipeWithoutServices = Block.BindingInitRecipe<
 const recipeWithoutServices: RequiredRecipeWithoutServices = recipe
 void recipeWithoutServices
 
-const NoPolicyAccessorBinding = ParentDefinition.makeBinding(ChildBlock, {
+const NoPolicyAccessorBinding = ParentDefinition.makeCustomBinding(ChildBlock, {
   placement: 'noPolicyAccessor',
   read: model => Option.some(model.projectedChild),
   write: (model, nextChild) =>
@@ -109,7 +109,7 @@ const KeyedDefinition = Block.makeDefinition('RejectedSetKeyedParent', {
   Model: KeyedModel,
   Message: Message.defineMessageUnion({}),
 })
-const KeyedBinding = KeyedDefinition.makeBinding(ChildBlock, {
+const KeyedBinding = KeyedDefinition.makeKeyedArrayBinding(ChildBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -120,7 +120,7 @@ const KeyedBinding = KeyedDefinition.makeBinding(ChildBlock, {
 })
 // @ts-expect-error Keyed storage is not a singular replacement target.
 initAndSet(KeyedBinding, KeyedModel.make({ entries: [] }), { args: [1] })
-const GeneralKeyedBinding = KeyedDefinition.makeBinding(ChildBlock, {
+const GeneralKeyedBinding = KeyedDefinition.makeCustomKeyedBinding(ChildBlock, {
   readAll: model => model.entries,
   key: entry => entry.id,
   read: entry => entry.child,

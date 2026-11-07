@@ -105,7 +105,7 @@ type ChildInitContext = Readonly<{
   secondCount: number
 }>
 
-const EntriesBinding = Parent.makeBinding(ChildBlock, {
+const EntriesBinding = Parent.makeKeyedArrayBinding(ChildBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -199,7 +199,7 @@ const initKeyedParent = (
     child: KeyedChildModel,
   ) => KeyedChildModel,
 ) => {
-  const binding = KeyedParent.makeBinding(KeyedChildBlock, {
+  const binding = KeyedParent.makeKeyedArrayBinding(KeyedChildBlock, {
     field: 'entries',
     key: 'id',
     init: {
@@ -283,15 +283,19 @@ const makeRuntimeComposition = (init: object) => {
     Model: ParentModel,
     Message: ParentMessage,
   })
-  const binding = Reflect.apply(RuntimeParent.makeBinding, undefined, [
-    ChildBlock,
-    {
-      field: 'entries',
-      key: 'id',
-      childField: 'child',
-      init,
-    },
-  ])
+  const binding = Reflect.apply(
+    RuntimeParent.makeKeyedArrayBinding,
+    undefined,
+    [
+      ChildBlock,
+      {
+        field: 'entries',
+        key: 'id',
+        childField: 'child',
+        init,
+      },
+    ],
+  )
 
   return Reflect.apply(RuntimeParent.makeComposition, undefined, [
     { bindings: [binding] },
@@ -351,26 +355,34 @@ it('preflights every Binding selector before calling any child init', () => {
     Model: AllPlansModel,
     Message: Schema.Never,
   })
-  const directBinding = Reflect.apply(AllPlansParent.makeBinding, undefined, [
-    ChildBlock,
-    {
-      field: 'direct',
-      init: { contextToArgs: () => single(9) },
-    },
-  ])
-  const keyedBinding = Reflect.apply(AllPlansParent.makeBinding, undefined, [
-    ChildBlock,
-    {
-      field: 'entries',
-      key: 'id',
-      childField: 'child',
-      init: {
-        instances: () => [{ key: 'invalid' }],
-        toItem: ({ key }: { key: string }, child: ChildModel) =>
-          Entry.make({ id: key, child, label: key }),
+  const directBinding = Reflect.apply(
+    AllPlansParent.makeRequiredFieldBinding,
+    undefined,
+    [
+      ChildBlock,
+      {
+        field: 'direct',
+        init: { contextToArgs: () => single(9) },
       },
-    },
-  ])
+    ],
+  )
+  const keyedBinding = Reflect.apply(
+    AllPlansParent.makeKeyedArrayBinding,
+    undefined,
+    [
+      ChildBlock,
+      {
+        field: 'entries',
+        key: 'id',
+        childField: 'child',
+        init: {
+          instances: () => [{ key: 'invalid' }],
+          toItem: ({ key }: { key: string }, child: ChildModel) =>
+            Entry.make({ id: key, child, label: key }),
+        },
+      },
+    ],
+  )
   const composition = Reflect.apply(AllPlansParent.makeComposition, undefined, [
     { bindings: [directBinding, keyedBinding] },
   ])
@@ -426,7 +438,7 @@ it('rejects wrappers that replace the initialized child', () => {
 
 it('remains passive and creates fresh wrappers on every invocation', () => {
   const occurrenceCalls = { count: 0 }
-  const FreshBinding = Parent.makeBinding(ChildBlock, {
+  const FreshBinding = Parent.makeKeyedArrayBinding(ChildBlock, {
     field: 'entries',
     key: 'id',
     childField: 'child',
@@ -460,7 +472,7 @@ it('remains passive and creates fresh wrappers on every invocation', () => {
 
 it('selects one large wrapped keyed field once in each validation and survival phase', () => {
   const occurrenceCount = 100
-  const ScalingBinding = Parent.makeBinding(ChildBlock, {
+  const ScalingBinding = Parent.makeKeyedArrayBinding(ChildBlock, {
     field: 'entries',
     key: 'id',
     childField: 'child',
@@ -508,15 +520,12 @@ if (false) {
   // @ts-expect-error Contextful occurrence selectors require shared startup.
   ParentComposition.makeInit(() => ({ model: { status: 'Ready' } }))
 
-  Parent.makeBinding(ChildBlock, {
-    // @ts-expect-error Wrapped occurrence args must match child init exactly.
+  Parent.makeKeyedArrayBinding(ChildBlock, {
     field: 'entries',
-    // @ts-expect-error Wrapped occurrence args must match child init exactly.
     key: 'id',
-    // @ts-expect-error Wrapped occurrence args must match child init exactly.
     childField: 'child',
-    // @ts-expect-error Wrapped occurrence args must match child init exactly.
     init: {
+      // @ts-expect-error Wrapped occurrence args must match child init exactly.
       instances: () => [{ key: 'invalid', args: ['invalid'] }],
       toItem: ({ key }: { key: string }, child: ChildModel) =>
         Entry.make({ id: key, child, label: key }),

@@ -17,6 +17,6 @@ const ApplicationBlock = Block.make('UnifiedApplication', {
   Message: defineMessageUnion({ ClickedSave: {} }),
   Init: Schema.Tuple([]),
 })
-const ChildBinding = ApplicationBlock.makeBinding(ChildBlock, { field: 'child' })
+const ChildBinding = ApplicationBlock.makeRequiredFieldBinding(ChildBlock, { field: 'child' })
 const ApplicationComposition = ApplicationBlock.makeComposition({ bindings: [ChildBinding] })
 export const update = ApplicationComposition.makeUpdate({ ClickedSave: ChildBinding.requestSave() })

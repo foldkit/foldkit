@@ -30,10 +30,14 @@ export const InvoiceTableBlock = Block.make('InvoiceTable', {
   Model,
   Message,
 })
-const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
-  InvoiceTableBlock
+const {
+  makeNoopStep,
+  makeRequiredFieldBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = InvoiceTableBlock
 
-const InvoiceRowsBinding = makeBinding(InvoiceRowsBlock, {
+const InvoiceRowsBinding = makeRequiredFieldBinding(InvoiceRowsBlock, {
   field: 'invoiceRows',
   init: {
     contextToArgs: () => [

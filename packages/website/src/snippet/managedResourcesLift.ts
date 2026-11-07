@@ -17,11 +17,15 @@ export const CallBlock = Block.make('Call', {
   Message,
 })
 
-const { makeResource, makeBinding, makeComposition, makeManagedResources } =
-  CallBlock
+const {
+  makeResource,
+  makeRequiredFieldBinding,
+  makeComposition,
+  makeManagedResources,
+} = CallBlock
 const SignalingSocket = makeResource<WebSocket>()('SignalingSocket')
 
-const VideoCallBinding = makeBinding(VideoCall.VideoCallBlock, {
+const VideoCallBinding = makeRequiredFieldBinding(VideoCall.VideoCallBlock, {
   field: 'videoCall',
 })
 

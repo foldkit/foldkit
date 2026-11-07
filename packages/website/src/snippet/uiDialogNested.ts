@@ -28,8 +28,12 @@ export const ProjectDialogsBlock = Block.make('ProjectDialogs', {
   Message,
 })
 
-const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
-  ProjectDialogsBlock
+const {
+  makeNoopStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = ProjectDialogsBlock
 
 const foldConfirmDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
   Opened: makeNoopStep,
@@ -37,12 +41,12 @@ const foldConfirmDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
   CompletedClose: makeNoopStep,
 })
 
-const SettingsDialogBinding = makeBinding(Dialog.DialogBlock, {
+const SettingsDialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'settingsDialog',
   init: { contextToArgs: () => [{ id: 'settings' }] },
 }).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
 
-const ConfirmDialogBinding = makeBinding(Dialog.DialogBlock, {
+const ConfirmDialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'confirmDialog',
   init: { contextToArgs: () => [{ id: 'confirm-delete' }] },
 }).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })

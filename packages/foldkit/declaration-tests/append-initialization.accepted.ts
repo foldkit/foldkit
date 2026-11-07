@@ -1,6 +1,6 @@
 import { Context, Effect, Schema } from 'effect'
 import { Block, Message } from 'foldkit'
-import { initAndAppend } from 'foldkit/bindingInit'
+import { initAndAppend } from 'foldkit/binding'
 
 export class ReadService extends Context.Service<
   ReadService,
@@ -69,15 +69,18 @@ export const ParentDefinition = Block.makeDefinition(
   'DeclarationAppendParent',
   { Model: ParentModel, Message: ParentMessage },
 )
-export const BaseEntriesBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'entries',
-  key: 'id',
-  childField: 'child',
-  init: {
-    instances: () => [],
-    toItem: ({ key }, child) => ({ id: key, child, label: `Entry ${key}` }),
+export const BaseEntriesBinding = ParentDefinition.makeKeyedArrayBinding(
+  ChildBlock,
+  {
+    field: 'entries',
+    key: 'id',
+    childField: 'child',
+    init: {
+      instances: () => [],
+      toItem: ({ key }, child) => ({ id: key, child, label: `Entry ${key}` }),
+    },
   },
-})
+)
 export const EntriesBinding = BaseEntriesBinding.withOutMessagePolicy({
   fold: (_key, outMessage) =>
     ChildBlock.OutMessage.match({

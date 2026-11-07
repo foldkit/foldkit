@@ -1,6 +1,6 @@
 import { Array, Option, Schema, Tuple } from 'effect'
 import { Block, Message } from 'foldkit'
-import { initAndSet } from 'foldkit/bindingInit'
+import { initAndSet } from 'foldkit/binding'
 
 import {
   ChildBlock,
@@ -55,11 +55,14 @@ const LabeledDefinition = Block.makeDefinition('RejectedOptionalSetLabeled', {
   Model: LabeledModel,
   Message: Message.defineMessageUnion({}),
 })
-const LabeledBinding = LabeledDefinition.makeBinding(ChildBlock, {
-  field: 'maybeEntry',
-  key: 'id',
-  childField: 'child',
-})
+const LabeledBinding = LabeledDefinition.makeOptionalKeyedFieldBinding(
+  ChildBlock,
+  {
+    field: 'maybeEntry',
+    key: 'id',
+    childField: 'child',
+  },
+)
 // @ts-expect-error Additional parent-owned wrapper fields require Binding.init.
 initAndSet(LabeledBinding, LabeledModel.make({ maybeEntry: Option.none() }), {
   key: firstId,
@@ -71,7 +74,7 @@ const ArrayDefinition = Block.makeDefinition('RejectedOptionalSetArray', {
   Model: ArrayModel,
   Message: Message.defineMessageUnion({}),
 })
-const ArrayBinding = ArrayDefinition.makeBinding(ChildBlock, {
+const ArrayBinding = ArrayDefinition.makeKeyedArrayBinding(ChildBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',

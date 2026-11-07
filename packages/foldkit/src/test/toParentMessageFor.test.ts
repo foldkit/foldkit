@@ -42,16 +42,25 @@ const ParentDefinition = Block.makeDefinition('ParentBoundDeliveryParent', {
   }),
   Message: Schema.Never,
 })
-const LeftBinding = ParentDefinition.makeBinding(ChildDefinition.contract, {
-  field: 'left',
-})
-const RightBinding = ParentDefinition.makeBinding(ChildDefinition.contract, {
-  field: 'right',
-})
-const EntryBinding = ParentDefinition.makeMapBinding(ChildDefinition.contract, {
-  field: 'entries',
-})
-const UnregisteredBinding = ParentDefinition.makeBinding(
+const LeftBinding = ParentDefinition.makeRequiredFieldBinding(
+  ChildDefinition.contract,
+  {
+    field: 'left',
+  },
+)
+const RightBinding = ParentDefinition.makeRequiredFieldBinding(
+  ChildDefinition.contract,
+  {
+    field: 'right',
+  },
+)
+const EntryBinding = ParentDefinition.makeRecordBinding(
+  ChildDefinition.contract,
+  {
+    field: 'entries',
+  },
+)
+const UnregisteredBinding = ParentDefinition.makeRequiredFieldBinding(
   ChildDefinition.contract,
   { field: 'left', placement: 'Unregistered' },
 )
@@ -78,9 +87,12 @@ const ForeignDefinition = Block.makeDefinition('ParentBoundDeliveryForeign', {
   Model: ParentDefinition.Model,
   Message: Schema.Never,
 })
-const ForeignBinding = ForeignDefinition.makeBinding(ChildDefinition.contract, {
-  field: 'left',
-})
+const ForeignBinding = ForeignDefinition.makeRequiredFieldBinding(
+  ChildDefinition.contract,
+  {
+    field: 'left',
+  },
+)
 const TopKey = Symbol('ParentBoundDeliveryTop')
 const TopDefinition = Block.makeDefinition('ParentBoundDeliveryTop', {
   key: TopKey,
@@ -88,9 +100,12 @@ const TopDefinition = Block.makeDefinition('ParentBoundDeliveryTop', {
   Model: Schema.Struct({ group: ParentDefinition.contract.Model }),
   Message: Schema.Never,
 })
-const GroupBinding = TopDefinition.makeBinding(ParentDefinition.contract, {
-  field: 'group',
-})
+const GroupBinding = TopDefinition.makeRequiredFieldBinding(
+  ParentDefinition.contract,
+  {
+    field: 'group',
+  },
+)
 const TopComposition = TopDefinition.makeComposition({
   bindings: [GroupBinding],
 })

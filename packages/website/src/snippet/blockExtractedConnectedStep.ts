@@ -30,10 +30,14 @@ export const ApplicationBlock = Block.make('Application', {
   OutMessage,
 })
 
-const { makeOutMessageStep, makeBinding, makeOutMessageFold, makeComposition } =
-  ApplicationBlock
+const {
+  makeOutMessageStep,
+  makeRequiredFieldBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = ApplicationBlock
 
-export const SettingsBinding = makeBinding(SettingsBlock, {
+export const SettingsBinding = makeRequiredFieldBinding(SettingsBlock, {
   field: 'settings',
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(SettingsBlock, {

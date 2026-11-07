@@ -39,7 +39,7 @@ export const EducationBlock = Block.make('Education', {
 })
 
 export const {
-  makeBinding,
+  makeKeyedArrayBinding,
   makeCommand,
   makeCommandsStep,
   makeComposition,

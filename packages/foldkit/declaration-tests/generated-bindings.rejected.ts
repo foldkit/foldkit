@@ -20,40 +20,36 @@ declare const ServiceRoomId: Schema.Codec<
   'RoomIdEncode'
 >
 
-GeneratedBindingParentDefinition.makeBinding(CounterBlock, {
+// @ts-expect-error A contextual accessor requires generated delivery context.
+GeneratedBindingParentDefinition.makeCustomBinding(CounterBlock, {
   read: model => model.selected,
-  // @ts-expect-error A contextual accessor requires generated delivery context.
   write: (model, nextCounter) =>
     modifyFields(model, { selected: () => Option.some(nextCounter) }),
 })
 
-const ServiceRoomBinding = GeneratedBindingParentDefinition.makeBinding(
-  CounterBlock,
-  {
+const ServiceRoomBinding =
+  GeneratedBindingParentDefinition.makeCustomKeyedBinding(CounterBlock, {
     readAll: readRooms,
     key: readRoomId,
     keySchema: ServiceRoomId,
     read: readRoomCounter,
     writeAt: model => model,
     delivery: { toUpdateContext: model => [model.amount] },
-  },
-)
+  })
 // @ts-expect-error Generated child envelope key serialization must not require Services.
 GeneratedBindingParentDefinition.makeComposition({
   bindings: [ServiceRoomBinding],
 })
 
-GeneratedBindingParentDefinition.makeBinding(CounterBlock, {
-  // @ts-expect-error A contextual keyed child requires generated delivery context.
+GeneratedBindingParentDefinition.makeKeyedArrayBinding(CounterBlock, {
   field: 'counters',
-  // @ts-expect-error A contextual keyed child requires generated delivery context.
   key: 'id',
   // @ts-expect-error A contextual keyed child requires generated delivery context.
   delivery: {},
 })
 
 // @ts-expect-error General generated delivery requires an exact key Schema.
-GeneratedBindingParentDefinition.makeBinding(CounterBlock, {
+GeneratedBindingParentDefinition.makeCustomKeyedBinding(CounterBlock, {
   readAll: readRooms,
   key: readRoomId,
   read: readRoomCounter,
@@ -61,53 +57,47 @@ GeneratedBindingParentDefinition.makeBinding(CounterBlock, {
   delivery: { toUpdateContext: model => [model.amount] },
 })
 
-GeneratedBindingParentDefinition.makeBinding(CounterBlock, {
+GeneratedBindingParentDefinition.makeCustomKeyedBinding(CounterBlock, {
   readAll: readRooms,
-  key: readRoomId,
   // @ts-expect-error The key Schema must decode to the selector's key type.
+  key: readRoomId,
   keySchema: Schema.Number,
   read: readRoomCounter,
   writeAt: model => model,
   delivery: { toUpdateContext: model => [model.amount] },
 })
 
-GeneratedBindingParentDefinition.makeBinding(CounterBlock, {
-  // @ts-expect-error The keyed delivery predicate has an incompatible key type.
+GeneratedBindingParentDefinition.makeKeyedArrayBinding(CounterBlock, {
   field: 'counters',
-  // @ts-expect-error The keyed delivery predicate has an incompatible key type.
   key: 'id',
-  // @ts-expect-error The keyed delivery predicate has an incompatible key type.
   delivery: {
+    // @ts-expect-error The keyed delivery predicate has an incompatible key type.
     when: (_model, _key: number) => true,
     toUpdateContext: model => [model.amount],
   },
 })
 
-GeneratedBindingParentDefinition.makeBinding(CounterBlock, {
-  // @ts-expect-error Generated context must match the child update tuple.
+GeneratedBindingParentDefinition.makeOptionalFieldBinding(CounterBlock, {
   field: 'maybeCounter',
-  // @ts-expect-error Generated context must match the child update tuple.
   delivery: {
+    // @ts-expect-error Generated context must match the child update tuple.
     toUpdateContext: () => ['wrong'],
   },
 })
 
-GeneratedBindingParentDefinition.makeBinding(StatusBlock, {
-  // @ts-expect-error A context-free child cannot declare update context.
+GeneratedBindingParentDefinition.makeRequiredFieldBinding(StatusBlock, {
   field: 'status',
-  // @ts-expect-error A context-free child cannot declare update context.
   delivery: {
+    // @ts-expect-error A context-free child cannot declare update context.
     toUpdateContext: () => [],
   },
 })
 
-const UnregisteredStatusBinding = GeneratedBindingParentDefinition.makeBinding(
-  StatusBlock,
-  {
+const UnregisteredStatusBinding =
+  GeneratedBindingParentDefinition.makeRequiredFieldBinding(StatusBlock, {
     field: 'status',
     placement: 'unregistered-status',
-  },
-)
+  })
 const unregisteredGenerated = GeneratedBindingParentDefinition.makeStep(() =>
   UnregisteredStatusBinding.requestToggle(),
 )
@@ -116,15 +106,15 @@ GeneratedBindingParentComposition.makeUpdate({
   ClickedParent: model => unregisteredGenerated(model),
 })
 
-GeneratedBindingParentDefinition.makeBinding(CounterBlock, {
-  // @ts-expect-error Parent Message wrappers are generated from the Binding placement.
+// @ts-expect-error Parent Message wrappers are generated from the Binding placement.
+GeneratedBindingParentDefinition.makeOptionalFieldBinding(CounterBlock, {
   field: 'maybeCounter',
   toParentMessage: () => ParentMessage.ClickedParent(),
   delivery: { toUpdateContext: model => [model.amount] },
 })
 
-GeneratedBindingParentDefinition.makeBinding(CounterBlock, {
-  // @ts-expect-error Parent Message wrappers are generated from the Binding placement.
+// @ts-expect-error Parent Message wrappers are generated from the Binding placement.
+GeneratedBindingParentDefinition.makeOptionalFieldBinding(CounterBlock, {
   field: 'maybeCounter',
   fromParentMessage: false,
   delivery: { toUpdateContext: model => [model.amount] },
@@ -158,9 +148,8 @@ const GeneratedBindingSilentParentDefinition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-GeneratedBindingSilentParentDefinition.makeBinding(SilentBlock, {
-  // @ts-expect-error A Message-free child cannot configure generated delivery.
+// @ts-expect-error A Message-free child cannot configure generated delivery.
+GeneratedBindingSilentParentDefinition.makeRequiredFieldBinding(SilentBlock, {
   field: 'silent',
-  // @ts-expect-error A Message-free child cannot configure generated delivery.
   delivery: {},
 })

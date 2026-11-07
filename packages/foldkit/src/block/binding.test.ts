@@ -237,7 +237,7 @@ const writeChild = (
 ): ParentModel =>
   modifyFields(model, { maybeChild: () => Option.some(nextChildModel) })
 
-const HomeBinding = Parent.makeBinding(Child, {
+const HomeBinding = Parent.makeCustomBinding(Child, {
   placement: 'home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -275,7 +275,7 @@ const foldChildOutMessageWithCommand = (
       }),
   })
 
-const CommandHomeBinding = Parent.makeBinding(Child, {
+const CommandHomeBinding = Parent.makeCustomBinding(Child, {
   placement: 'command-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -318,16 +318,19 @@ const foldChildOutMessageWithParentCommand = ChildOutMessage.match<
     }),
 })
 
-const ParentCommandHomeBinding = ParentPolicyDefinition.makeBinding(Child, {
-  placement: 'parent-command-home',
-  read: (model: ParentModel) => model.maybeChild,
-  write: writeChild,
-  delivery: {
-    toUpdateContext: () => [{ roomId: 'room' }],
+const ParentCommandHomeBinding = ParentPolicyDefinition.makeCustomBinding(
+  Child,
+  {
+    placement: 'parent-command-home',
+    read: (model: ParentModel) => model.maybeChild,
+    write: writeChild,
+    delivery: {
+      toUpdateContext: () => [{ roomId: 'room' }],
+    },
   },
-}).withOutMessagePolicy({ fold: foldChildOutMessageWithParentCommand })
+).withOutMessagePolicy({ fold: foldChildOutMessageWithParentCommand })
 
-const ForwardOnlyHomeBinding = Parent.makeBinding(Child, {
+const ForwardOnlyHomeBinding = Parent.makeCustomBinding(Child, {
   placement: 'forward-only-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -337,31 +340,29 @@ const ForwardOnlyHomeBinding = Parent.makeBinding(Child, {
 }).withOutMessagePolicy({ forward: forwardChildOutMessage })
 
 const bindWithoutOutMessagePolicy = () =>
-  Parent.makeBinding(Child, {
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
+  // @ts-expect-error This child requires an explicit update context mapping.
+  Parent.makeCustomBinding(Child, {
     placement: 'missing-policy',
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
     read: (model: ParentModel) => model.maybeChild,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
     write: writeChild,
   })
 void bindWithoutOutMessagePolicy
 
 const bindWithUnknownForward = () =>
-  Parent.makeBinding(Child, {
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
+  Parent.makeCustomBinding(Child, {
+    // @ts-expect-error Binding constructors do not accept OutMessage policy options.
     placement: 'unknown-forward',
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
+    // @ts-expect-error Binding constructors do not accept OutMessage policy options.
     read: (model: ParentModel) => model.maybeChild,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
+    // @ts-expect-error Binding constructors do not accept OutMessage policy options.
     write: writeChild,
     // eslint-disable-next-line foldkit/no-empty-to-parent-out-message
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
+    // @ts-expect-error Binding constructors do not accept OutMessage policy options.
     outMessage: { forward: (): unknown => undefined },
   })
 void bindWithUnknownForward
 
-const LocallyHandledWithoutForwardingBinding = Parent.makeBinding(Child, {
+const LocallyHandledWithoutForwardingBinding = Parent.makeCustomBinding(Child, {
   placement: 'locally-handled',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -626,14 +627,17 @@ const WrappedArityParent = makeDefinition('BindingWrappedArityParent', {
   Model: ArityParent,
   Message: ArityParentMessage,
 })
-const WrappedArityBinding = WrappedArityParent.makeBinding(WrappedArityBlock, {
-  placement: 'wrapped-arity',
-  read: readArityChild,
-  write: writeArityChild,
-  delivery: {
-    toUpdateContext: () => [{ amount: 2 }],
+const WrappedArityBinding = WrappedArityParent.makeCustomBinding(
+  WrappedArityBlock,
+  {
+    placement: 'wrapped-arity',
+    read: readArityChild,
+    write: writeArityChild,
+    delivery: {
+      toUpdateContext: () => [{ amount: 2 }],
+    },
   },
-})
+)
 
 const embedViewlessBlockWithoutView = () =>
   // @ts-expect-error a viewless block requires an explicit view
@@ -671,11 +675,14 @@ const IgnoredMessage: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ArityModel,
   typeof prepareIgnoredMessage
 > = Block.assemble(prepareIgnoredMessage)
-const IgnoredMessageBinding = WrappedArityParent.makeBinding(IgnoredMessage, {
-  placement: 'ignored-message',
-  read: readArityChild,
-  write: writeArityChild,
-})
+const IgnoredMessageBinding = WrappedArityParent.makeCustomBinding(
+  IgnoredMessage,
+  {
+    placement: 'ignored-message',
+    read: readArityChild,
+    write: writeArityChild,
+  },
+)
 
 const DefaultContextNamespace = makeNamespace('BindingDefaultContext')
 const DefaultContextComposition = DefaultContextNamespace.makeDefinition({
@@ -733,12 +740,15 @@ const DefaultContext: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ArityModel,
   typeof prepareDefaultContext
 > = Block.assemble(prepareDefaultContext)
-const DefaultContextBinding = WrappedArityParent.makeBinding(DefaultContext, {
-  placement: 'default-context',
-  read: readArityChild,
-  write: writeArityChild,
-  delivery: { toUpdateContext: () => [{ amount: 2 }] },
-})
+const DefaultContextBinding = WrappedArityParent.makeCustomBinding(
+  DefaultContext,
+  {
+    placement: 'default-context',
+    read: readArityChild,
+    write: writeArityChild,
+    delivery: { toUpdateContext: () => [{ amount: 2 }] },
+  },
+)
 
 const OptionalContextNamespace = makeNamespace('BindingOptionalContext')
 const OptionalContextComposition = OptionalContextNamespace.makeDefinition({
@@ -796,12 +806,15 @@ const OptionalContext: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ArityModel,
   typeof prepareOptionalContext
 > = Block.assemble(prepareOptionalContext)
-const OptionalContextBinding = WrappedArityParent.makeBinding(OptionalContext, {
-  placement: 'optional-context',
-  read: readArityChild,
-  write: writeArityChild,
-  delivery: { toUpdateContext: () => [{ amount: 1 }] },
-})
+const OptionalContextBinding = WrappedArityParent.makeCustomBinding(
+  OptionalContext,
+  {
+    placement: 'optional-context',
+    read: readArityChild,
+    write: writeArityChild,
+    delivery: { toUpdateContext: () => [{ amount: 1 }] },
+  },
+)
 
 const WrappedArityParentComposition = WrappedArityParent.makeComposition({
   bindings: [
@@ -998,7 +1011,7 @@ describe('Block binding', () => {
   })
 
   it('applies one Subscription gate across every child entry', () => {
-    const GatedBinding = Parent.makeBinding(Child, {
+    const GatedBinding = Parent.makeCustomBinding(Child, {
       placement: 'gated-home',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
@@ -1176,7 +1189,7 @@ describe('Block binding', () => {
       Message: NamedParentMessage,
       OutMessage: ParentOutMessage,
     })
-    const NamedHomeBinding = ParentBaseDefinition.makeBinding(Child, {
+    const NamedHomeBinding = ParentBaseDefinition.makeCustomBinding(Child, {
       placement: 'home',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
@@ -1184,7 +1197,7 @@ describe('Block binding', () => {
         toUpdateContext: () => [{ roomId: 'room' }],
       },
     }).withOutMessagePolicy({ fold: foldNamedChildOutMessage })
-    const RoomBinding = ParentBaseDefinition.makeBinding(pulseChild, {
+    const RoomBinding = ParentBaseDefinition.makeCustomBinding(pulseChild, {
       placement: 'room',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
@@ -1442,7 +1455,7 @@ if (false) {
 
 describe('Block child registration composition', () => {
   it('gives repeated ManagedResources independent placement capability keys', () => {
-    const SidebarBinding = Parent.makeBinding(Child, {
+    const SidebarBinding = Parent.makeCustomBinding(Child, {
       placement: 'sidebar',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
@@ -1509,7 +1522,7 @@ describe('Block child registration composition', () => {
         Message: RepeatedParentMessage,
       })
       const bindRepeated = (placement: 'first' | 'second') =>
-        RepeatedParent.makeBinding(Repeated, {
+        RepeatedParent.makeCustomBinding(Repeated, {
           placement,
           read: (model: RepeatedParentModel) => Option.some(model.child),
           write: (model, child) => ({ ...model, child }),
@@ -1608,7 +1621,7 @@ describe('generic block refinement', () => {
         outMessage,
       }),
     }
-    const DirectBinding = ChoiceParent.makeBinding(Choice, {
+    const DirectBinding = ChoiceParent.makeCustomBinding(Choice, {
       placement: 'direct-choice',
       read: (model: ChoiceParentModel) => Option.some(model.choice),
       write: (model, choice) => ({ ...model, choice }),
@@ -1616,7 +1629,7 @@ describe('generic block refinement', () => {
     const DirectComposition = ChoiceParent.makeComposition({
       bindings: [DirectBinding],
     })
-    const Binding = ChoiceParent.makeBinding(Choice, {
+    const Binding = ChoiceParent.makeCustomBinding(Choice, {
       placement: 'choice',
       read: (model: ChoiceParentModel) => Option.some(model.choice),
       write: (model: ChoiceParentModel, choice: ChoiceModel) => ({

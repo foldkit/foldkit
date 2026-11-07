@@ -1,9 +1,9 @@
 import { Array } from 'effect'
 
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
+  makeKeyedArrayBinding,
   makeOutMessageFold,
 } from './block'
 import { WorkHistoryEntryBlock } from './blocks/workHistoryEntry'
@@ -16,7 +16,7 @@ const foldEntryOutMessage = (entryId: string) =>
       })),
   })
 
-export const EntriesBinding = makeBinding(WorkHistoryEntryBlock, {
+export const EntriesBinding = makeKeyedArrayBinding(WorkHistoryEntryBlock, {
   field: 'entries',
   key: 'id',
   init: {

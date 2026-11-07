@@ -26,10 +26,10 @@ const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeStep, makeFieldsStep, makeBinding, makeComposition } =
+const { makeStep, makeFieldsStep, makeRequiredFieldBinding, makeComposition } =
   ApplicationBlock
 
-const CounterBinding = makeBinding(CounterBlock, {
+const CounterBinding = makeRequiredFieldBinding(CounterBlock, {
   field: 'counter',
   init: { contextToArgs: () => [0] },
 })

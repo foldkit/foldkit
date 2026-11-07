@@ -31,8 +31,12 @@ export const PlanPickerBlock = Block.make('PlanPicker', {
   Message,
 })
 
-const { makeFieldsStep, makeOutMessageFold, makeBinding, makeComposition } =
-  PlanPickerBlock
+const {
+  makeFieldsStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = PlanPickerBlock
 
 // At module scope, fold the OutMessage into your own Model. When the user
 // commits a selection it carries `Selected({ value })` where `value: Plan`.
@@ -48,7 +52,7 @@ const foldListboxOutMessage = makeOutMessageFold(PlanListbox, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const ListboxBinding = makeBinding(PlanListbox, {
+const ListboxBinding = makeRequiredFieldBinding(PlanListbox, {
   field: 'listbox',
   init: { contextToArgs: () => [{ id: 'plan' }] },
 }).withOutMessagePolicy({ fold: foldListboxOutMessage })

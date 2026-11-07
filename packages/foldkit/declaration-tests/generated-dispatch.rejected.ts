@@ -156,14 +156,14 @@ const RepeatedDefinition = Block.makeDefinition('Repeated', {
   Model: RepeatedModel,
   Message: RepeatedMessage,
 })
-const HeaderBinding = RepeatedDefinition.makeBinding(
+const HeaderBinding = RepeatedDefinition.makeRequiredFieldBinding(
   GeneratedDispatchChildBlock,
   {
     field: 'first',
     placement: 'header-search',
   },
 )
-const AliasBinding = RepeatedDefinition.makeBinding(
+const AliasBinding = RepeatedDefinition.makeRequiredFieldBinding(
   GeneratedDispatchChildBlock,
   {
     field: 'second',

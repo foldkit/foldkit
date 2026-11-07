@@ -1,11 +1,11 @@
 import type { Block } from 'foldkit'
 
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 import {
   AttachmentsBlock,
@@ -17,12 +17,12 @@ import {
 } from './blocks'
 import { StepMenuBlock, StepTabsBlock } from './navigationComponents'
 
-export const PersonalInfoBinding = makeBinding(PersonalInfoBlock, {
+export const PersonalInfoBinding = makeRequiredFieldBinding(PersonalInfoBlock, {
   field: 'personalInfo',
   init: { contextToArgs: ({ today }) => [today] },
 })
 
-export const WorkHistoryBinding = makeBinding(WorkHistoryBlock, {
+export const WorkHistoryBinding = makeRequiredFieldBinding(WorkHistoryBlock, {
   field: 'workHistory',
   init: {
     contextToArgs: ({ today, initialWorkHistoryEntryId }) => [
@@ -32,7 +32,7 @@ export const WorkHistoryBinding = makeBinding(WorkHistoryBlock, {
   },
 })
 
-export const EducationBinding = makeBinding(EducationBlock, {
+export const EducationBinding = makeRequiredFieldBinding(EducationBlock, {
   field: 'education',
   init: {
     contextToArgs: ({ today, initialEducationEntryId }) => [
@@ -42,22 +42,22 @@ export const EducationBinding = makeBinding(EducationBlock, {
   },
 })
 
-export const SkillsBinding = makeBinding(SkillsBlock, {
+export const SkillsBinding = makeRequiredFieldBinding(SkillsBlock, {
   field: 'skills',
   init: {
     contextToArgs: ({ initialSkillsEntryId }) => [initialSkillsEntryId],
   },
 })
 
-export const CoverLetterBinding = makeBinding(CoverLetterBlock, {
+export const CoverLetterBinding = makeRequiredFieldBinding(CoverLetterBlock, {
   field: 'coverLetter',
 })
 
-export const AttachmentsBinding = makeBinding(AttachmentsBlock, {
+export const AttachmentsBinding = makeRequiredFieldBinding(AttachmentsBlock, {
   field: 'attachments',
 })
 
-export const StepMenuBinding = makeBinding(StepMenuBlock, {
+export const StepMenuBinding = makeRequiredFieldBinding(StepMenuBlock, {
   field: 'stepMenu',
   init: { contextToArgs: () => [{ id: 'step-menu' }] },
 }).withOutMessagePolicy({
@@ -70,7 +70,7 @@ export const StepMenuBinding = makeBinding(StepMenuBlock, {
   }),
 })
 
-export const StepTabsBinding = makeBinding(StepTabsBlock, {
+export const StepTabsBinding = makeRequiredFieldBinding(StepTabsBlock, {
   field: 'stepTabs',
   init: { contextToArgs: () => [{ id: 'step-tabs' }] },
 }).withOutMessagePolicy({

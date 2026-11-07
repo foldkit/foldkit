@@ -26,20 +26,22 @@ const RejectedDeclarationQueryParentDefinition = Block.makeDefinition(
 )
 
 // @ts-expect-error The direct parent field must contain the Query Model.
-RejectedDeclarationQueryParentDefinition.makeBinding(Notes, { field: 'label' })
+RejectedDeclarationQueryParentDefinition.makeRequiredFieldBinding(Notes, {
+  field: 'label',
+})
 
 // @ts-expect-error Authored parent Message constructors are no longer Binding configuration.
-RejectedDeclarationQueryParentDefinition.makeBinding(Notes, {
+RejectedDeclarationQueryParentDefinition.makeRequiredFieldBinding(Notes, {
   field: 'notes',
   parentMessage: ParentMessage.ClickedParent,
 })
 // @ts-expect-error Authored child-to-parent Message mappers are no longer Binding configuration.
-RejectedDeclarationQueryParentDefinition.makeBinding(Notes, {
+RejectedDeclarationQueryParentDefinition.makeRequiredFieldBinding(Notes, {
   field: 'notes',
   toParentMessage: () => ParentMessage.ClickedParent(),
 })
 // @ts-expect-error Authored parent-to-child Message routes are no longer Binding configuration.
-RejectedDeclarationQueryParentDefinition.makeBinding(Notes, {
+RejectedDeclarationQueryParentDefinition.makeRequiredFieldBinding(Notes, {
   field: 'notes',
   fromParentMessage: false,
 })

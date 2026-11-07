@@ -16,10 +16,13 @@ const FileDropSceneBlock = Block.make('FileDropScene', {
   Message: Schema.Never,
   view: { kind: 'Element', Inputs: Block.makeInputContract<SceneViewInputs>() },
 })
-const FileDropBinding = FileDropSceneBlock.makeBinding(FileDropBlock, {
-  field: 'fileDrop',
-  init: { contextToArgs: () => [{ id: 'uploader' }] },
-}).withOutMessagePolicy({
+const FileDropBinding = FileDropSceneBlock.makeRequiredFieldBinding(
+  FileDropBlock,
+  {
+    field: 'fileDrop',
+    init: { contextToArgs: () => [{ id: 'uploader' }] },
+  },
+).withOutMessagePolicy({
   fold: FileDropSceneBlock.makeOutMessageFold(FileDropBlock, {
     ReceivedFiles: () => model => ({ model }),
     RejectedNonFiles: () => model => ({ model }),

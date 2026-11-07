@@ -23,8 +23,12 @@ export const PopoverExampleBlock = Block.make('PopoverExample', {
   Message,
 })
 
-const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
-  PopoverExampleBlock
+const {
+  makeNoopStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = PopoverExampleBlock
 
 // At module scope, fold the OutMessage into your own Model. `Opened` and
 // `Closed` mark the visibility transitions. Fire analytics, coordinate with
@@ -44,7 +48,7 @@ const foldPopoverOutMessage = makeOutMessageFold(Popover.PopoverBlock, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const PopoverBinding = makeBinding(Popover.PopoverBlock, {
+const PopoverBinding = makeRequiredFieldBinding(Popover.PopoverBlock, {
   field: 'popover',
   init: { contextToArgs: () => [{ id: 'info' }] },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })

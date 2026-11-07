@@ -1,9 +1,9 @@
 import type { Block } from 'foldkit'
 
-import { makeBinding, makeComposition } from './block'
+import { makeComposition, makeRequiredFieldBinding } from './block'
 import { UiBlock } from './blocks'
 
-export const UiModelBinding = makeBinding(UiBlock, {
+export const UiModelBinding = makeRequiredFieldBinding(UiBlock, {
   field: 'uiModel',
   init: { contextToArgs: ({ today }) => [today] },
 })

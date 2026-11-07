@@ -201,10 +201,13 @@ describe('Subscription when gate', () => {
       Model,
       Message,
     })
-    const ChildBinding = ApplicationDefinition.makeBinding(ChildBlock, {
-      field: 'child',
-      init: true,
-    })
+    const ChildBinding = ApplicationDefinition.makeRequiredFieldBinding(
+      ChildBlock,
+      {
+        field: 'child',
+        init: true,
+      },
+    )
     const ApplicationComposition = ApplicationDefinition.makeComposition({
       bindings: [ChildBinding],
     })

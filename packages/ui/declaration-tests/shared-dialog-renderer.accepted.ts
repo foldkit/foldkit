@@ -22,7 +22,7 @@ export const DeleteIssueBlock = Block.make('DeleteIssue', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-export const DeleteDialogBinding = DeleteIssueBlock.makeBinding(
+export const DeleteDialogBinding = DeleteIssueBlock.makeRequiredFieldBinding(
   Dialog.DialogBlock,
   {
     field: 'dialog',
@@ -107,7 +107,7 @@ export const InviteMemberBlock = Block.make('InviteMember', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-export const InviteDialogBinding = InviteMemberBlock.makeBinding(
+export const InviteDialogBinding = InviteMemberBlock.makeRequiredFieldBinding(
   Dialog.DialogBlock,
   {
     field: 'dialog',

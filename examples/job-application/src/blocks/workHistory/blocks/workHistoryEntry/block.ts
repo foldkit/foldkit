@@ -54,7 +54,7 @@ export const WorkHistoryEntryBlock = Block.make('WorkHistoryEntry', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,

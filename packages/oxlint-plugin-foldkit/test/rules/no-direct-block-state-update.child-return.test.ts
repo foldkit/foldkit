@@ -477,7 +477,7 @@ it('detects copied child results using completed Block binding evidence', () => 
     callee: {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('makeBinding'),
+      property: Testing.id('makeCustomBinding'),
       computed: false,
     },
     arguments: [
@@ -501,16 +501,20 @@ it('detects copied child results using completed Block binding evidence', () => 
 })
 
 it('detects copied child results using direct field Binding shorthand', () => {
-  const binding = Testing.callOfMember('Application', 'makeBinding', [
-    Testing.id('Settings'),
-    objectExpression([
-      property('field', Testing.strLiteral('settings')),
-      property(
-        'parentMessage',
-        Testing.memberExpr('Message', 'GotSettingsMessage'),
-      ),
-    ]),
-  ])
+  const binding = Testing.callOfMember(
+    'Application',
+    'makeRequiredFieldBinding',
+    [
+      Testing.id('Settings'),
+      objectExpression([
+        property('field', Testing.strLiteral('settings')),
+        property(
+          'parentMessage',
+          Testing.memberExpr('Message', 'GotSettingsMessage'),
+        ),
+      ]),
+    ],
+  )
   const result = resultFor(
     'Settings',
     'settings',
@@ -530,21 +534,25 @@ it('detects copied child results using keyed Binding evidence', () => {
     },
     [Testing.id('model')],
   )
-  const binding = Testing.callOfMember('Application', 'makeBinding', [
-    Testing.id('Settings'),
-    objectExpression([
-      property('readAll', readAll),
-      property(
-        'key',
-        Testing.arrowFn(Testing.memberExpr('settings', 'id'), [
-          Testing.id('settings'),
-        ]),
-      ),
-      property('read', Testing.arrowFn(Testing.id('settings'))),
-      property('writeAt', writeChildAt('settings')),
-      property('toParentMessage', Testing.arrowFn(Testing.id('message'))),
-    ]),
-  ])
+  const binding = Testing.callOfMember(
+    'Application',
+    'makeCustomKeyedBinding',
+    [
+      Testing.id('Settings'),
+      objectExpression([
+        property('readAll', readAll),
+        property(
+          'key',
+          Testing.arrowFn(Testing.memberExpr('settings', 'id'), [
+            Testing.id('settings'),
+          ]),
+        ),
+        property('read', Testing.arrowFn(Testing.id('settings'))),
+        property('writeAt', writeChildAt('settings')),
+        property('toParentMessage', Testing.arrowFn(Testing.id('message'))),
+      ]),
+    ],
+  )
   const result = resultFor(
     'Settings',
     'settings',

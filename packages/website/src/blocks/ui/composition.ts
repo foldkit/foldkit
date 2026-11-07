@@ -17,11 +17,11 @@ import {
 } from '@foldkit/ui'
 
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 import { CityComboboxBlock, CityMultiComboboxBlock } from './combobox'
 import {
@@ -163,19 +163,22 @@ const foldCalendarBasicDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const CalendarBasicDemoBinding = makeBinding(UiCalendar.CalendarBlock, {
-  field: 'calendarBasicDemo',
-  init: {
-    contextToArgs: today => [
-      {
-        id: 'calendar-basic-demo',
-        today,
-        minDate: Calendar.subtractYears(today, 1),
-        maxDate: Calendar.addYears(today, 1),
-      },
-    ],
+export const CalendarBasicDemoBinding = makeRequiredFieldBinding(
+  UiCalendar.CalendarBlock,
+  {
+    field: 'calendarBasicDemo',
+    init: {
+      contextToArgs: today => [
+        {
+          id: 'calendar-basic-demo',
+          today,
+          minDate: Calendar.subtractYears(today, 1),
+          maxDate: Calendar.addYears(today, 1),
+        },
+      ],
+    },
   },
-}).withOutMessagePolicy({ fold: foldCalendarBasicDemoOutMessage })
+).withOutMessagePolicy({ fold: foldCalendarBasicDemoOutMessage })
 
 const foldDatePickerBasicDemoOutMessage = makeOutMessageFold(
   DatePicker.DatePickerBlock,
@@ -192,7 +195,7 @@ const foldDatePickerBasicDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const DatePickerBasicDemoBinding = makeBinding(
+export const DatePickerBasicDemoBinding = makeRequiredFieldBinding(
   DatePicker.DatePickerBlock,
   {
     field: 'datePickerBasicDemo',
@@ -217,7 +220,7 @@ const foldComboboxDemoOutMessage = makeOutMessageFold(CityComboboxBlock, {
   ClearedSelection: makeNoopStep,
 })
 
-export const ComboboxDemoBinding = makeBinding(CityComboboxBlock, {
+export const ComboboxDemoBinding = makeRequiredFieldBinding(CityComboboxBlock, {
   field: 'comboboxDemo',
   init: { contextToArgs: () => [{ id: 'combobox-demo' }] },
 }).withOutMessagePolicy({ fold: foldComboboxDemoOutMessage })
@@ -233,12 +236,15 @@ const foldComboboxPlacementLockDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const ComboboxPlacementLockDemoBinding = makeBinding(CityComboboxBlock, {
-  field: 'comboboxPlacementLockDemo',
-  init: {
-    contextToArgs: () => [{ id: 'combobox-placement-lock-demo' }],
+export const ComboboxPlacementLockDemoBinding = makeRequiredFieldBinding(
+  CityComboboxBlock,
+  {
+    field: 'comboboxPlacementLockDemo',
+    init: {
+      contextToArgs: () => [{ id: 'combobox-placement-lock-demo' }],
+    },
   },
-}).withOutMessagePolicy({ fold: foldComboboxPlacementLockDemoOutMessage })
+).withOutMessagePolicy({ fold: foldComboboxPlacementLockDemoOutMessage })
 
 const foldComboboxNullableDemoOutMessage = makeOutMessageFold(
   CityComboboxBlock,
@@ -258,12 +264,15 @@ const foldComboboxNullableDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const ComboboxNullableDemoBinding = makeBinding(CityComboboxBlock, {
-  field: 'comboboxNullableDemo',
-  init: {
-    contextToArgs: () => [{ id: 'combobox-nullable-demo', nullable: true }],
+export const ComboboxNullableDemoBinding = makeRequiredFieldBinding(
+  CityComboboxBlock,
+  {
+    field: 'comboboxNullableDemo',
+    init: {
+      contextToArgs: () => [{ id: 'combobox-nullable-demo', nullable: true }],
+    },
   },
-}).withOutMessagePolicy({ fold: foldComboboxNullableDemoOutMessage })
+).withOutMessagePolicy({ fold: foldComboboxNullableDemoOutMessage })
 
 const foldComboboxMultiDemoOutMessage = makeOutMessageFold(
   CityMultiComboboxBlock,
@@ -282,10 +291,13 @@ const foldComboboxMultiDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const ComboboxMultiDemoBinding = makeBinding(CityMultiComboboxBlock, {
-  field: 'comboboxMultiDemo',
-  init: { contextToArgs: () => [{ id: 'combobox-multi-demo' }] },
-}).withOutMessagePolicy({ fold: foldComboboxMultiDemoOutMessage })
+export const ComboboxMultiDemoBinding = makeRequiredFieldBinding(
+  CityMultiComboboxBlock,
+  {
+    field: 'comboboxMultiDemo',
+    init: { contextToArgs: () => [{ id: 'combobox-multi-demo' }] },
+  },
+).withOutMessagePolicy({ fold: foldComboboxMultiDemoOutMessage })
 
 const foldComboboxSelectOnFocusDemoOutMessage = makeOutMessageFold(
   CityComboboxBlock,
@@ -298,34 +310,43 @@ const foldComboboxSelectOnFocusDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const ComboboxSelectOnFocusDemoBinding = makeBinding(CityComboboxBlock, {
-  field: 'comboboxSelectOnFocusDemo',
-  init: {
-    contextToArgs: () => [
-      {
-        id: 'combobox-select-on-focus-demo',
-        selectInputOnFocus: true,
-      },
-    ],
+export const ComboboxSelectOnFocusDemoBinding = makeRequiredFieldBinding(
+  CityComboboxBlock,
+  {
+    field: 'comboboxSelectOnFocusDemo',
+    init: {
+      contextToArgs: () => [
+        {
+          id: 'combobox-select-on-focus-demo',
+          selectInputOnFocus: true,
+        },
+      ],
+    },
   },
-}).withOutMessagePolicy({ fold: foldComboboxSelectOnFocusDemoOutMessage })
+).withOutMessagePolicy({ fold: foldComboboxSelectOnFocusDemoOutMessage })
 
-export const DialogDemoBinding = makeBinding(Dialog.DialogBlock, {
+export const DialogDemoBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialogDemo',
   init: { contextToArgs: () => [{ id: 'dialog-demo' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-export const DialogAnimatedDemoBinding = makeBinding(Dialog.DialogBlock, {
-  field: 'dialogAnimatedDemo',
-  init: {
-    contextToArgs: () => [{ id: 'dialog-animated-demo', isAnimated: true }],
+export const DialogAnimatedDemoBinding = makeRequiredFieldBinding(
+  Dialog.DialogBlock,
+  {
+    field: 'dialogAnimatedDemo',
+    init: {
+      contextToArgs: () => [{ id: 'dialog-animated-demo', isAnimated: true }],
+    },
   },
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-export const OverlayDialogDemoBinding = makeBinding(Dialog.DialogBlock, {
-  field: 'overlayDialogDemo',
-  init: { contextToArgs: () => [{ id: 'overlay-dialog-demo' }] },
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
+export const OverlayDialogDemoBinding = makeRequiredFieldBinding(
+  Dialog.DialogBlock,
+  {
+    field: 'overlayDialogDemo',
+    init: { contextToArgs: () => [{ id: 'overlay-dialog-demo' }] },
+  },
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const foldOverlayComboboxDemoOutMessage = makeOutMessageFold(
   CityComboboxBlock,
@@ -338,24 +359,33 @@ const foldOverlayComboboxDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const OverlayComboboxDemoBinding = makeBinding(CityComboboxBlock, {
-  field: 'overlayComboboxDemo',
-  init: { contextToArgs: () => [{ id: 'overlay-combobox-demo' }] },
-}).withOutMessagePolicy({ fold: foldOverlayComboboxDemoOutMessage })
-
-export const NestedDialogParentDemoBinding = makeBinding(Dialog.DialogBlock, {
-  field: 'nestedDialogParentDemo',
-  init: {
-    contextToArgs: () => [{ id: 'nested-dialog-parent-demo' }],
+export const OverlayComboboxDemoBinding = makeRequiredFieldBinding(
+  CityComboboxBlock,
+  {
+    field: 'overlayComboboxDemo',
+    init: { contextToArgs: () => [{ id: 'overlay-combobox-demo' }] },
   },
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
+).withOutMessagePolicy({ fold: foldOverlayComboboxDemoOutMessage })
 
-export const NestedDialogChildDemoBinding = makeBinding(Dialog.DialogBlock, {
-  field: 'nestedDialogChildDemo',
-  init: {
-    contextToArgs: () => [{ id: 'nested-dialog-child-demo' }],
+export const NestedDialogParentDemoBinding = makeRequiredFieldBinding(
+  Dialog.DialogBlock,
+  {
+    field: 'nestedDialogParentDemo',
+    init: {
+      contextToArgs: () => [{ id: 'nested-dialog-parent-demo' }],
+    },
   },
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
+
+export const NestedDialogChildDemoBinding = makeRequiredFieldBinding(
+  Dialog.DialogBlock,
+  {
+    field: 'nestedDialogChildDemo',
+    init: {
+      contextToArgs: () => [{ id: 'nested-dialog-child-demo' }],
+    },
+  },
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const foldListboxDemoOutMessage = makeOutMessageFold(ItemListboxBlock, {
   Selected: ({ value }) =>
@@ -364,7 +394,7 @@ const foldListboxDemoOutMessage = makeOutMessageFold(ItemListboxBlock, {
     })),
 })
 
-export const ListboxDemoBinding = makeBinding(ItemListboxBlock, {
+export const ListboxDemoBinding = makeRequiredFieldBinding(ItemListboxBlock, {
   field: 'listboxDemo',
   init: { contextToArgs: () => [{ id: 'listbox-demo' }] },
 }).withOutMessagePolicy({ fold: foldListboxDemoOutMessage })
@@ -385,10 +415,13 @@ const foldListboxMultiDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const ListboxMultiDemoBinding = makeBinding(ItemMultiListboxBlock, {
-  field: 'listboxMultiDemo',
-  init: { contextToArgs: () => [{ id: 'listbox-multi-demo' }] },
-}).withOutMessagePolicy({ fold: foldListboxMultiDemoOutMessage })
+export const ListboxMultiDemoBinding = makeRequiredFieldBinding(
+  ItemMultiListboxBlock,
+  {
+    field: 'listboxMultiDemo',
+    init: { contextToArgs: () => [{ id: 'listbox-multi-demo' }] },
+  },
+).withOutMessagePolicy({ fold: foldListboxMultiDemoOutMessage })
 
 const foldListboxGroupedDemoOutMessage = makeOutMessageFold(
   CharacterListboxBlock,
@@ -400,41 +433,53 @@ const foldListboxGroupedDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const ListboxGroupedDemoBinding = makeBinding(CharacterListboxBlock, {
-  field: 'listboxGroupedDemo',
-  init: { contextToArgs: () => [{ id: 'listbox-grouped-demo' }] },
-}).withOutMessagePolicy({ fold: foldListboxGroupedDemoOutMessage })
+export const ListboxGroupedDemoBinding = makeRequiredFieldBinding(
+  CharacterListboxBlock,
+  {
+    field: 'listboxGroupedDemo',
+    init: { contextToArgs: () => [{ id: 'listbox-grouped-demo' }] },
+  },
+).withOutMessagePolicy({ fold: foldListboxGroupedDemoOutMessage })
 
-export const MenuBasicDemoBinding = makeBinding(DemoMenuBlock, {
+export const MenuBasicDemoBinding = makeRequiredFieldBinding(DemoMenuBlock, {
   field: 'menuBasicDemo',
   init: { contextToArgs: () => [{ id: 'menu-basic-demo' }] },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
-export const MenuAnimatedDemoBinding = makeBinding(DemoMenuBlock, {
+export const MenuAnimatedDemoBinding = makeRequiredFieldBinding(DemoMenuBlock, {
   field: 'menuAnimatedDemo',
   init: {
     contextToArgs: () => [{ id: 'menu-animated-demo', isAnimated: true }],
   },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
-export const PopoverBasicDemoBinding = makeBinding(Popover.PopoverBlock, {
-  field: 'popoverBasicDemo',
-  init: { contextToArgs: () => [{ id: 'popover-basic-demo' }] },
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
-
-export const PopoverAnimatedDemoBinding = makeBinding(Popover.PopoverBlock, {
-  field: 'popoverAnimatedDemo',
-  init: {
-    contextToArgs: () => [{ id: 'popover-animated-demo', isAnimated: true }],
+export const PopoverBasicDemoBinding = makeRequiredFieldBinding(
+  Popover.PopoverBlock,
+  {
+    field: 'popoverBasicDemo',
+    init: { contextToArgs: () => [{ id: 'popover-basic-demo' }] },
   },
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-export const PopoverArrowDemoBinding = makeBinding(Popover.PopoverBlock, {
-  field: 'popoverArrowDemo',
-  init: { contextToArgs: () => [{ id: 'popover-arrow-demo' }] },
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+export const PopoverAnimatedDemoBinding = makeRequiredFieldBinding(
+  Popover.PopoverBlock,
+  {
+    field: 'popoverAnimatedDemo',
+    init: {
+      contextToArgs: () => [{ id: 'popover-animated-demo', isAnimated: true }],
+    },
+  },
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-export const PopoverNestedParentDemoBinding = makeBinding(
+export const PopoverArrowDemoBinding = makeRequiredFieldBinding(
+  Popover.PopoverBlock,
+  {
+    field: 'popoverArrowDemo',
+    init: { contextToArgs: () => [{ id: 'popover-arrow-demo' }] },
+  },
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+
+export const PopoverNestedParentDemoBinding = makeRequiredFieldBinding(
   Popover.PopoverBlock,
   {
     field: 'popoverNestedParentDemo',
@@ -446,40 +491,49 @@ export const PopoverNestedParentDemoBinding = makeBinding(
   },
 ).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-export const PopoverNestedChildDemoBinding = makeBinding(Popover.PopoverBlock, {
-  field: 'popoverNestedChildDemo',
-  init: {
-    contextToArgs: () => [{ id: 'popover-nested-child-demo' }],
+export const PopoverNestedChildDemoBinding = makeRequiredFieldBinding(
+  Popover.PopoverBlock,
+  {
+    field: 'popoverNestedChildDemo',
+    init: {
+      contextToArgs: () => [{ id: 'popover-nested-child-demo' }],
+    },
   },
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
 const foldSliderRatingDemoOutMessage = makeOutMessageFold(Slider.SliderBlock, {
   ChangedValue: ({ value }) =>
     makeFieldsStep(() => ({ sliderRatingValue: () => value })),
 })
 
-export const SliderRatingDemoBinding = makeBinding(Slider.SliderBlock, {
-  field: 'sliderRatingDemo',
-  init: {
-    contextToArgs: () => [
-      { id: 'slider-rating-demo', min: 0, max: 10, step: 1 },
-    ],
+export const SliderRatingDemoBinding = makeRequiredFieldBinding(
+  Slider.SliderBlock,
+  {
+    field: 'sliderRatingDemo',
+    init: {
+      contextToArgs: () => [
+        { id: 'slider-rating-demo', min: 0, max: 10, step: 1 },
+      ],
+    },
   },
-}).withOutMessagePolicy({ fold: foldSliderRatingDemoOutMessage })
+).withOutMessagePolicy({ fold: foldSliderRatingDemoOutMessage })
 
 const foldSliderVolumeDemoOutMessage = makeOutMessageFold(Slider.SliderBlock, {
   ChangedValue: ({ value }) =>
     makeFieldsStep(() => ({ sliderVolumeValue: () => value })),
 })
 
-export const SliderVolumeDemoBinding = makeBinding(Slider.SliderBlock, {
-  field: 'sliderVolumeDemo',
-  init: {
-    contextToArgs: () => [
-      { id: 'slider-volume-demo', min: 0, max: 1, step: 0.05 },
-    ],
+export const SliderVolumeDemoBinding = makeRequiredFieldBinding(
+  Slider.SliderBlock,
+  {
+    field: 'sliderVolumeDemo',
+    init: {
+      contextToArgs: () => [
+        { id: 'slider-volume-demo', min: 0, max: 1, step: 0.05 },
+      ],
+    },
   },
-}).withOutMessagePolicy({ fold: foldSliderVolumeDemoOutMessage })
+).withOutMessagePolicy({ fold: foldSliderVolumeDemoOutMessage })
 
 const foldHorizontalTabsDemoOutMessage = makeOutMessageFold(DemoTabsBlock, {
   Selected: ({ value }) =>
@@ -488,17 +542,20 @@ const foldHorizontalTabsDemoOutMessage = makeOutMessageFold(DemoTabsBlock, {
     })),
 })
 
-export const HorizontalTabsDemoBinding = makeBinding(DemoTabsBlock, {
-  field: 'horizontalTabsDemo',
-  init: { contextToArgs: () => [{ id: 'horizontal-tabs-demo' }] },
-}).withOutMessagePolicy({ fold: foldHorizontalTabsDemoOutMessage })
+export const HorizontalTabsDemoBinding = makeRequiredFieldBinding(
+  DemoTabsBlock,
+  {
+    field: 'horizontalTabsDemo',
+    init: { contextToArgs: () => [{ id: 'horizontal-tabs-demo' }] },
+  },
+).withOutMessagePolicy({ fold: foldHorizontalTabsDemoOutMessage })
 
 const foldVerticalTabsDemoOutMessage = makeOutMessageFold(DemoTabsBlock, {
   Selected: ({ value }) =>
     makeFieldsStep(() => ({ verticalTabsDemoTab: () => value })),
 })
 
-export const VerticalTabsDemoBinding = makeBinding(DemoTabsBlock, {
+export const VerticalTabsDemoBinding = makeRequiredFieldBinding(DemoTabsBlock, {
   field: 'verticalTabsDemo',
   init: { contextToArgs: () => [{ id: 'vertical-tabs-demo' }] },
 }).withOutMessagePolicy({ fold: foldVerticalTabsDemoOutMessage })
@@ -508,10 +565,13 @@ const foldTooltipOutMessage = makeOutMessageFold(Tooltip.TooltipBlock, {
   Hidden: makeNoopStep,
 })
 
-export const TooltipDemoBinding = makeBinding(Tooltip.TooltipBlock, {
-  field: 'tooltipDemo',
-  init: { contextToArgs: () => [{ id: 'tooltip-demo' }] },
-}).withOutMessagePolicy({ fold: foldTooltipOutMessage })
+export const TooltipDemoBinding = makeRequiredFieldBinding(
+  Tooltip.TooltipBlock,
+  {
+    field: 'tooltipDemo',
+    init: { contextToArgs: () => [{ id: 'tooltip-demo' }] },
+  },
+).withOutMessagePolicy({ fold: foldTooltipOutMessage })
 
 const foldHoverIntentOutMessage = makeOutMessageFold(
   HoverIntent.HoverIntentBlock,
@@ -521,14 +581,14 @@ const foldHoverIntentOutMessage = makeOutMessageFold(
   },
 )
 
-export const HoverIntentCardDemoBinding = makeBinding(
+export const HoverIntentCardDemoBinding = makeRequiredFieldBinding(
   HoverIntent.HoverIntentBlock,
   {
     field: 'hoverIntentCardDemo',
   },
 ).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
 
-export const HoverIntentMenuDemoBinding = makeBinding(
+export const HoverIntentMenuDemoBinding = makeRequiredFieldBinding(
   HoverIntent.HoverIntentBlock,
   {
     field: 'hoverIntentMenuDemo',
@@ -542,17 +602,20 @@ const foldToastDemoOutMessage = makeOutMessageFold(ToastBlock, {
     })),
 })
 
-export const ToastDemoBinding = makeBinding(ToastBlock, {
+export const ToastDemoBinding = makeRequiredFieldBinding(ToastBlock, {
   field: 'toastDemo',
   init: {
     contextToArgs: () => [{ id: 'toast-demo', swipeToDismiss: {} }],
   },
 }).withOutMessagePolicy({ fold: foldToastDemoOutMessage })
 
-const BaseAnimationDemoBinding = makeBinding(Animation.AnimationBlock, {
-  field: 'animationDemo',
-  init: { contextToArgs: () => [{ id: 'animation-demo' }] },
-})
+const BaseAnimationDemoBinding = makeRequiredFieldBinding(
+  Animation.AnimationBlock,
+  {
+    field: 'animationDemo',
+    init: { contextToArgs: () => [{ id: 'animation-demo' }] },
+  },
+)
 
 const foldAnimationDemoOutMessage = makeOutMessageFold(
   Animation.AnimationBlock,
@@ -574,10 +637,13 @@ const foldFileDropBasicDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const FileDropBasicDemoBinding = makeBinding(FileDrop.FileDropBlock, {
-  field: 'fileDropBasicDemo',
-  init: { contextToArgs: () => [{ id: 'file-drop-basic-demo' }] },
-}).withOutMessagePolicy({ fold: foldFileDropBasicDemoOutMessage })
+export const FileDropBasicDemoBinding = makeRequiredFieldBinding(
+  FileDrop.FileDropBlock,
+  {
+    field: 'fileDropBasicDemo',
+    init: { contextToArgs: () => [{ id: 'file-drop-basic-demo' }] },
+  },
+).withOutMessagePolicy({ fold: foldFileDropBasicDemoOutMessage })
 
 const foldDragAndDropDemoOutMessage = makeOutMessageFold(
   DragAndDrop.DragAndDropBlock,
@@ -651,7 +717,7 @@ const foldDragAndDropDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const DragAndDropDemoBinding = makeBinding(
+export const DragAndDropDemoBinding = makeRequiredFieldBinding(
   DragAndDrop.DragAndDropBlock,
   {
     field: 'dragAndDropDemo',
@@ -665,14 +731,17 @@ const foldVirtualListOutMessage = makeOutMessageFold(ActivityVirtualListBlock, {
   EndedContainerScroll: makeNoopStep,
 })
 
-export const VirtualListDemoBinding = makeBinding(ActivityVirtualListBlock, {
-  field: 'virtualListDemo',
-  init: {
-    contextToArgs: () => [{ id: 'virtual-list-demo', rowHeightPx: 56 }],
+export const VirtualListDemoBinding = makeRequiredFieldBinding(
+  ActivityVirtualListBlock,
+  {
+    field: 'virtualListDemo',
+    init: {
+      contextToArgs: () => [{ id: 'virtual-list-demo', rowHeightPx: 56 }],
+    },
   },
-}).withOutMessagePolicy({ fold: foldVirtualListOutMessage })
+).withOutMessagePolicy({ fold: foldVirtualListOutMessage })
 
-export const VirtualListVariableDemoBinding = makeBinding(
+export const VirtualListVariableDemoBinding = makeRequiredFieldBinding(
   ActivityVirtualListBlock,
   {
     field: 'virtualListVariableDemo',
@@ -694,12 +763,15 @@ const foldVerticalRadioGroupDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const VerticalRadioGroupDemoBinding = makeBinding(PlanRadioGroupBlock, {
-  field: 'verticalRadioGroupDemo',
-  init: {
-    contextToArgs: () => [{ id: 'vertical-radio-group-demo' }],
+export const VerticalRadioGroupDemoBinding = makeRequiredFieldBinding(
+  PlanRadioGroupBlock,
+  {
+    field: 'verticalRadioGroupDemo',
+    init: {
+      contextToArgs: () => [{ id: 'vertical-radio-group-demo' }],
+    },
   },
-}).withOutMessagePolicy({ fold: foldVerticalRadioGroupDemoOutMessage })
+).withOutMessagePolicy({ fold: foldVerticalRadioGroupDemoOutMessage })
 
 const foldHorizontalRadioGroupDemoOutMessage = makeOutMessageFold(
   PlanRadioGroupBlock,
@@ -711,7 +783,7 @@ const foldHorizontalRadioGroupDemoOutMessage = makeOutMessageFold(
   },
 )
 
-export const HorizontalRadioGroupDemoBinding = makeBinding(
+export const HorizontalRadioGroupDemoBinding = makeRequiredFieldBinding(
   PlanRadioGroupBlock,
   {
     field: 'horizontalRadioGroupDemo',

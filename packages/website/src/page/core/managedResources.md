@@ -97,13 +97,13 @@ A Binding lifts the child’s entries through its Model access and generated del
 
 ### Optional Child Models
 
-Use an exact `Option<ChildModel>` field for direct optional storage. `None` releases the child's resources without reading their requirements, and `Some` lets the child determine which resources it needs. A direct-field `presentWhen` predicate can also make the whole child absent without clearing its stored Model. Use [whole-variant Bindings](/core/block#whole-tagged-variants) for one complete tagged child member. Use explicit accessors for nested, wrapped, or custom storage; `None` from `read` has the same release behavior. `subscriptions.when` does not gate ManagedResources.
+Use an exact `Option<ChildModel>` field for direct optional storage. `None` releases the child's resources without reading their requirements, and `Some` lets the child determine which resources it needs. A direct-field `activeWhen` predicate can also make the whole child absent without clearing its stored Model. Use [whole-variant Bindings](/core/block#whole-tagged-variants) for one complete tagged child member. Use explicit accessors for nested, wrapped, or custom storage; `None` from `read` has the same release behavior. `subscriptions.when` does not gate ManagedResources.
 
 ::Snippet{name="managedResourcesLift" label="Composing child ManagedResources"}
 
 ### Multiple Block Levels
 
-`makeBinding` automates composition for static, optional, and keyed placements. Every active collection key receives an independent ManagedResource lifetime. [Subscription Organization](/patterns/subscription-organization) traces the equivalent leaf-to-root shape with Subscriptions.
+The Binding constructors automate composition for static, optional, and keyed placements. Every active collection key receives an independent ManagedResource lifetime. [Subscription Organization](/patterns/subscription-organization) traces the equivalent leaf-to-root shape with Subscriptions.
 
 :::Info{label="Layers vs Managed Resources"}
 Use the root `ApplicationLayer` and the completed program's `provide` method for services that live with the runtime, such as an `RpcClient` or analytics client. The selected executable graph retains its handler recipes. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections. These are separate scopes: restarting or releasing a ManagedResource handle does not rebuild the app service or handler Layer that implements its lifecycle.

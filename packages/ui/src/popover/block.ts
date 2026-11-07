@@ -355,7 +355,7 @@ const foldAnimationOutMessage = PopoverBlock.makeOutMessageFold(
 )
 
 /** @internal Original Animation relationship used by lifecycle test delivery. */
-export const AnimationBinding = PopoverBlock.makeBinding(
+export const AnimationBinding = PopoverBlock.makeRequiredFieldBinding(
   Animation.AnimationBlock,
   {
     field: 'animation',

@@ -66,7 +66,7 @@ const makeAuthoring = <Item, Value extends string, ValueEncoded>(
     },
   })
   const itemUpdate = makeUpdateHandlers(
-    Definition.makeBinding,
+    Definition.makeRequiredFieldBinding,
     Definition.makeOutMessageFold,
     Definition.makeStep,
     Definition.makeFieldsStep,

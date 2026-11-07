@@ -1,8 +1,8 @@
 import { Child } from './child'
 import * as Helpers from './parent/definition'
-import { makeMapBinding } from './parent/definition'
+import { makeHashMapBinding } from './parent/definition'
 
-export const ChildByIdBinding = makeMapBinding(
+export const ChildByIdBinding = makeHashMapBinding(
   Child.block,
   {
     field: 'childrenById',
@@ -17,10 +17,10 @@ export const ChildByIdBinding = makeMapBinding(
 
 const namespaceAlias = Helpers
 const namespaceAliasAgain = namespaceAlias
-const namespaceMethodAlias = namespaceAliasAgain.makeMapBinding
-const { makeMapBinding: namespaceDestructuredMap } = namespaceAliasAgain
+const namespaceMethodAlias = namespaceAliasAgain.makeHashMapBinding
+const { makeHashMapBinding: namespaceDestructuredMap } = namespaceAliasAgain
 
-Helpers.makeMapBinding(Child.block, {
+Helpers.makeHashMapBinding(Child.block, {
   field: 'childrenById',
   delivery: { when: () => { Child.Message.ClickedParentMapSave(); return true } },
 })
@@ -35,7 +35,7 @@ namespaceDestructuredMap(Child.block, {
   delivery: { when: () => { Child.Message.ClickedParentMapSave(); return true } },
 })
 
-namespaceAliasAgain.makeMapBinding(Child.block, {
+namespaceAliasAgain.makeHashMapBinding(Child.block, {
   field: 'childrenById',
   delivery: { when: () => { Child.Message.ClickedParentMapSave(); return true } },
 })

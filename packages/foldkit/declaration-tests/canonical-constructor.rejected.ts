@@ -11,26 +11,38 @@ declare const anyConstructor: any
 declare const unknownConstructor: unknown
 
 // @ts-expect-error Even an erased constructor cannot enable authored wrappers.
-DeclarationCanonicalConstructorParentDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-  parentMessage: anyConstructor,
-})
+DeclarationCanonicalConstructorParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
+    parentMessage: anyConstructor,
+  },
+)
 // @ts-expect-error Unknown constructors cannot enable authored wrappers.
-DeclarationCanonicalConstructorParentDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-  parentMessage: unknownConstructor,
-})
+DeclarationCanonicalConstructorParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
+    parentMessage: unknownConstructor,
+  },
+)
 // @ts-expect-error Composition derives outgoing delivery; mapper fields are forbidden.
-DeclarationCanonicalConstructorParentDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-  toParentMessage: () =>
-    ParentMessage.ReceivedPayload({ payload: Payload.make('value') }),
-})
+DeclarationCanonicalConstructorParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
+    toParentMessage: () =>
+      ParentMessage.ReceivedPayload({ payload: Payload.make('value') }),
+  },
+)
 // @ts-expect-error Composition derives incoming routing; mapper fields are forbidden.
-DeclarationCanonicalConstructorParentDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-  fromParentMessage: false,
-})
+DeclarationCanonicalConstructorParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
+    fromParentMessage: false,
+  },
+)
 
 // @ts-expect-error Complete dispatch Schemas expose no generated wrapper constructors.
 DeclarationCanonicalConstructorParentComposition.Message.GotChildMessage

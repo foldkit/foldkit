@@ -303,10 +303,13 @@ const isLeaving = (model: Model): boolean =>
 const isOpenOrAnimating = (model: Model): boolean =>
   model.isOpen || model.animation.transitionState !== 'Idle'
 
-const BaseAnimationBinding = DialogBlock.makeBinding(Animation.AnimationBlock, {
-  field: 'animation',
-  init: { contextToArgs: id => [{ id: `${id}-panel` }] },
-})
+const BaseAnimationBinding = DialogBlock.makeRequiredFieldBinding(
+  Animation.AnimationBlock,
+  {
+    field: 'animation',
+    init: { contextToArgs: id => [{ id: `${id}-panel` }] },
+  },
+)
 
 const closeNativeDialog = DialogBlock.makeCommandsStep(model => [
   CloseDialog({ id: model.id }),

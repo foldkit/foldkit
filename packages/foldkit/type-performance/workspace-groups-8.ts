@@ -79,30 +79,43 @@ const WorkspaceGroup001ObserveGroup =
     },
   })
 const WorkspaceGroup001ControlBinding =
-  TypePerformanceWorkspaceGroup001Definition.makeBinding(ControlBlock, {
-    field: 'control',
-  })
-const WorkspaceGroup001EditorBinding =
-  TypePerformanceWorkspaceGroup001Definition.makeBinding(EditorBlock, {
-    field: 'maybeEditor',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'editor',
-  })
-const WorkspaceGroup001RowsBinding =
-  TypePerformanceWorkspaceGroup001Definition.makeBinding(EditorBlock, {
-    field: 'rows',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'rows',
-    init: {
-      instances: () => [
-        { key: 'WorkspaceGroup001-row', args: ['WorkspaceGroup001-row'] },
-      ],
-      toItem: ({ key }, model) =>
-        WorkspaceGroup001Row.make({ issueId: key, model, label: 'Issue row' }),
+  TypePerformanceWorkspaceGroup001Definition.makeRequiredFieldBinding(
+    ControlBlock,
+    {
+      field: 'control',
     },
-  })
+  )
+const WorkspaceGroup001EditorBinding =
+  TypePerformanceWorkspaceGroup001Definition.makeOptionalKeyedFieldBinding(
+    EditorBlock,
+    {
+      field: 'maybeEditor',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'editor',
+    },
+  )
+const WorkspaceGroup001RowsBinding =
+  TypePerformanceWorkspaceGroup001Definition.makeKeyedArrayBinding(
+    EditorBlock,
+    {
+      field: 'rows',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'rows',
+      init: {
+        instances: () => [
+          { key: 'WorkspaceGroup001-row', args: ['WorkspaceGroup001-row'] },
+        ],
+        toItem: ({ key }, model) =>
+          WorkspaceGroup001Row.make({
+            issueId: key,
+            model,
+            label: 'Issue row',
+          }),
+      },
+    },
+  )
 const WorkspaceGroup001OpenEditor = (issueId: string) =>
   TypePerformanceWorkspaceGroup001Definition.makeStep(model =>
     WorkspaceGroup001EditorBinding.init({
@@ -364,30 +377,43 @@ const WorkspaceGroup002ObserveGroup =
     },
   })
 const WorkspaceGroup002ControlBinding =
-  TypePerformanceWorkspaceGroup002Definition.makeBinding(ControlBlock, {
-    field: 'control',
-  })
-const WorkspaceGroup002EditorBinding =
-  TypePerformanceWorkspaceGroup002Definition.makeBinding(EditorBlock, {
-    field: 'maybeEditor',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'editor',
-  })
-const WorkspaceGroup002RowsBinding =
-  TypePerformanceWorkspaceGroup002Definition.makeBinding(EditorBlock, {
-    field: 'rows',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'rows',
-    init: {
-      instances: () => [
-        { key: 'WorkspaceGroup002-row', args: ['WorkspaceGroup002-row'] },
-      ],
-      toItem: ({ key }, model) =>
-        WorkspaceGroup002Row.make({ issueId: key, model, label: 'Issue row' }),
+  TypePerformanceWorkspaceGroup002Definition.makeRequiredFieldBinding(
+    ControlBlock,
+    {
+      field: 'control',
     },
-  })
+  )
+const WorkspaceGroup002EditorBinding =
+  TypePerformanceWorkspaceGroup002Definition.makeOptionalKeyedFieldBinding(
+    EditorBlock,
+    {
+      field: 'maybeEditor',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'editor',
+    },
+  )
+const WorkspaceGroup002RowsBinding =
+  TypePerformanceWorkspaceGroup002Definition.makeKeyedArrayBinding(
+    EditorBlock,
+    {
+      field: 'rows',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'rows',
+      init: {
+        instances: () => [
+          { key: 'WorkspaceGroup002-row', args: ['WorkspaceGroup002-row'] },
+        ],
+        toItem: ({ key }, model) =>
+          WorkspaceGroup002Row.make({
+            issueId: key,
+            model,
+            label: 'Issue row',
+          }),
+      },
+    },
+  )
 const WorkspaceGroup002OpenEditor = (issueId: string) =>
   TypePerformanceWorkspaceGroup002Definition.makeStep(model =>
     WorkspaceGroup002EditorBinding.init({
@@ -649,30 +675,43 @@ const WorkspaceGroup003ObserveGroup =
     },
   })
 const WorkspaceGroup003ControlBinding =
-  TypePerformanceWorkspaceGroup003Definition.makeBinding(ControlBlock, {
-    field: 'control',
-  })
-const WorkspaceGroup003EditorBinding =
-  TypePerformanceWorkspaceGroup003Definition.makeBinding(EditorBlock, {
-    field: 'maybeEditor',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'editor',
-  })
-const WorkspaceGroup003RowsBinding =
-  TypePerformanceWorkspaceGroup003Definition.makeBinding(EditorBlock, {
-    field: 'rows',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'rows',
-    init: {
-      instances: () => [
-        { key: 'WorkspaceGroup003-row', args: ['WorkspaceGroup003-row'] },
-      ],
-      toItem: ({ key }, model) =>
-        WorkspaceGroup003Row.make({ issueId: key, model, label: 'Issue row' }),
+  TypePerformanceWorkspaceGroup003Definition.makeRequiredFieldBinding(
+    ControlBlock,
+    {
+      field: 'control',
     },
-  })
+  )
+const WorkspaceGroup003EditorBinding =
+  TypePerformanceWorkspaceGroup003Definition.makeOptionalKeyedFieldBinding(
+    EditorBlock,
+    {
+      field: 'maybeEditor',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'editor',
+    },
+  )
+const WorkspaceGroup003RowsBinding =
+  TypePerformanceWorkspaceGroup003Definition.makeKeyedArrayBinding(
+    EditorBlock,
+    {
+      field: 'rows',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'rows',
+      init: {
+        instances: () => [
+          { key: 'WorkspaceGroup003-row', args: ['WorkspaceGroup003-row'] },
+        ],
+        toItem: ({ key }, model) =>
+          WorkspaceGroup003Row.make({
+            issueId: key,
+            model,
+            label: 'Issue row',
+          }),
+      },
+    },
+  )
 const WorkspaceGroup003OpenEditor = (issueId: string) =>
   TypePerformanceWorkspaceGroup003Definition.makeStep(model =>
     WorkspaceGroup003EditorBinding.init({
@@ -934,30 +973,43 @@ const WorkspaceGroup004ObserveGroup =
     },
   })
 const WorkspaceGroup004ControlBinding =
-  TypePerformanceWorkspaceGroup004Definition.makeBinding(ControlBlock, {
-    field: 'control',
-  })
-const WorkspaceGroup004EditorBinding =
-  TypePerformanceWorkspaceGroup004Definition.makeBinding(EditorBlock, {
-    field: 'maybeEditor',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'editor',
-  })
-const WorkspaceGroup004RowsBinding =
-  TypePerformanceWorkspaceGroup004Definition.makeBinding(EditorBlock, {
-    field: 'rows',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'rows',
-    init: {
-      instances: () => [
-        { key: 'WorkspaceGroup004-row', args: ['WorkspaceGroup004-row'] },
-      ],
-      toItem: ({ key }, model) =>
-        WorkspaceGroup004Row.make({ issueId: key, model, label: 'Issue row' }),
+  TypePerformanceWorkspaceGroup004Definition.makeRequiredFieldBinding(
+    ControlBlock,
+    {
+      field: 'control',
     },
-  })
+  )
+const WorkspaceGroup004EditorBinding =
+  TypePerformanceWorkspaceGroup004Definition.makeOptionalKeyedFieldBinding(
+    EditorBlock,
+    {
+      field: 'maybeEditor',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'editor',
+    },
+  )
+const WorkspaceGroup004RowsBinding =
+  TypePerformanceWorkspaceGroup004Definition.makeKeyedArrayBinding(
+    EditorBlock,
+    {
+      field: 'rows',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'rows',
+      init: {
+        instances: () => [
+          { key: 'WorkspaceGroup004-row', args: ['WorkspaceGroup004-row'] },
+        ],
+        toItem: ({ key }, model) =>
+          WorkspaceGroup004Row.make({
+            issueId: key,
+            model,
+            label: 'Issue row',
+          }),
+      },
+    },
+  )
 const WorkspaceGroup004OpenEditor = (issueId: string) =>
   TypePerformanceWorkspaceGroup004Definition.makeStep(model =>
     WorkspaceGroup004EditorBinding.init({
@@ -1219,30 +1271,43 @@ const WorkspaceGroup005ObserveGroup =
     },
   })
 const WorkspaceGroup005ControlBinding =
-  TypePerformanceWorkspaceGroup005Definition.makeBinding(ControlBlock, {
-    field: 'control',
-  })
-const WorkspaceGroup005EditorBinding =
-  TypePerformanceWorkspaceGroup005Definition.makeBinding(EditorBlock, {
-    field: 'maybeEditor',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'editor',
-  })
-const WorkspaceGroup005RowsBinding =
-  TypePerformanceWorkspaceGroup005Definition.makeBinding(EditorBlock, {
-    field: 'rows',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'rows',
-    init: {
-      instances: () => [
-        { key: 'WorkspaceGroup005-row', args: ['WorkspaceGroup005-row'] },
-      ],
-      toItem: ({ key }, model) =>
-        WorkspaceGroup005Row.make({ issueId: key, model, label: 'Issue row' }),
+  TypePerformanceWorkspaceGroup005Definition.makeRequiredFieldBinding(
+    ControlBlock,
+    {
+      field: 'control',
     },
-  })
+  )
+const WorkspaceGroup005EditorBinding =
+  TypePerformanceWorkspaceGroup005Definition.makeOptionalKeyedFieldBinding(
+    EditorBlock,
+    {
+      field: 'maybeEditor',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'editor',
+    },
+  )
+const WorkspaceGroup005RowsBinding =
+  TypePerformanceWorkspaceGroup005Definition.makeKeyedArrayBinding(
+    EditorBlock,
+    {
+      field: 'rows',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'rows',
+      init: {
+        instances: () => [
+          { key: 'WorkspaceGroup005-row', args: ['WorkspaceGroup005-row'] },
+        ],
+        toItem: ({ key }, model) =>
+          WorkspaceGroup005Row.make({
+            issueId: key,
+            model,
+            label: 'Issue row',
+          }),
+      },
+    },
+  )
 const WorkspaceGroup005OpenEditor = (issueId: string) =>
   TypePerformanceWorkspaceGroup005Definition.makeStep(model =>
     WorkspaceGroup005EditorBinding.init({
@@ -1504,30 +1569,43 @@ const WorkspaceGroup006ObserveGroup =
     },
   })
 const WorkspaceGroup006ControlBinding =
-  TypePerformanceWorkspaceGroup006Definition.makeBinding(ControlBlock, {
-    field: 'control',
-  })
-const WorkspaceGroup006EditorBinding =
-  TypePerformanceWorkspaceGroup006Definition.makeBinding(EditorBlock, {
-    field: 'maybeEditor',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'editor',
-  })
-const WorkspaceGroup006RowsBinding =
-  TypePerformanceWorkspaceGroup006Definition.makeBinding(EditorBlock, {
-    field: 'rows',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'rows',
-    init: {
-      instances: () => [
-        { key: 'WorkspaceGroup006-row', args: ['WorkspaceGroup006-row'] },
-      ],
-      toItem: ({ key }, model) =>
-        WorkspaceGroup006Row.make({ issueId: key, model, label: 'Issue row' }),
+  TypePerformanceWorkspaceGroup006Definition.makeRequiredFieldBinding(
+    ControlBlock,
+    {
+      field: 'control',
     },
-  })
+  )
+const WorkspaceGroup006EditorBinding =
+  TypePerformanceWorkspaceGroup006Definition.makeOptionalKeyedFieldBinding(
+    EditorBlock,
+    {
+      field: 'maybeEditor',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'editor',
+    },
+  )
+const WorkspaceGroup006RowsBinding =
+  TypePerformanceWorkspaceGroup006Definition.makeKeyedArrayBinding(
+    EditorBlock,
+    {
+      field: 'rows',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'rows',
+      init: {
+        instances: () => [
+          { key: 'WorkspaceGroup006-row', args: ['WorkspaceGroup006-row'] },
+        ],
+        toItem: ({ key }, model) =>
+          WorkspaceGroup006Row.make({
+            issueId: key,
+            model,
+            label: 'Issue row',
+          }),
+      },
+    },
+  )
 const WorkspaceGroup006OpenEditor = (issueId: string) =>
   TypePerformanceWorkspaceGroup006Definition.makeStep(model =>
     WorkspaceGroup006EditorBinding.init({
@@ -1789,30 +1867,43 @@ const WorkspaceGroup007ObserveGroup =
     },
   })
 const WorkspaceGroup007ControlBinding =
-  TypePerformanceWorkspaceGroup007Definition.makeBinding(ControlBlock, {
-    field: 'control',
-  })
-const WorkspaceGroup007EditorBinding =
-  TypePerformanceWorkspaceGroup007Definition.makeBinding(EditorBlock, {
-    field: 'maybeEditor',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'editor',
-  })
-const WorkspaceGroup007RowsBinding =
-  TypePerformanceWorkspaceGroup007Definition.makeBinding(EditorBlock, {
-    field: 'rows',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'rows',
-    init: {
-      instances: () => [
-        { key: 'WorkspaceGroup007-row', args: ['WorkspaceGroup007-row'] },
-      ],
-      toItem: ({ key }, model) =>
-        WorkspaceGroup007Row.make({ issueId: key, model, label: 'Issue row' }),
+  TypePerformanceWorkspaceGroup007Definition.makeRequiredFieldBinding(
+    ControlBlock,
+    {
+      field: 'control',
     },
-  })
+  )
+const WorkspaceGroup007EditorBinding =
+  TypePerformanceWorkspaceGroup007Definition.makeOptionalKeyedFieldBinding(
+    EditorBlock,
+    {
+      field: 'maybeEditor',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'editor',
+    },
+  )
+const WorkspaceGroup007RowsBinding =
+  TypePerformanceWorkspaceGroup007Definition.makeKeyedArrayBinding(
+    EditorBlock,
+    {
+      field: 'rows',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'rows',
+      init: {
+        instances: () => [
+          { key: 'WorkspaceGroup007-row', args: ['WorkspaceGroup007-row'] },
+        ],
+        toItem: ({ key }, model) =>
+          WorkspaceGroup007Row.make({
+            issueId: key,
+            model,
+            label: 'Issue row',
+          }),
+      },
+    },
+  )
 const WorkspaceGroup007OpenEditor = (issueId: string) =>
   TypePerformanceWorkspaceGroup007Definition.makeStep(model =>
     WorkspaceGroup007EditorBinding.init({
@@ -2074,30 +2165,43 @@ const WorkspaceGroup008ObserveGroup =
     },
   })
 const WorkspaceGroup008ControlBinding =
-  TypePerformanceWorkspaceGroup008Definition.makeBinding(ControlBlock, {
-    field: 'control',
-  })
-const WorkspaceGroup008EditorBinding =
-  TypePerformanceWorkspaceGroup008Definition.makeBinding(EditorBlock, {
-    field: 'maybeEditor',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'editor',
-  })
-const WorkspaceGroup008RowsBinding =
-  TypePerformanceWorkspaceGroup008Definition.makeBinding(EditorBlock, {
-    field: 'rows',
-    key: 'issueId',
-    childField: 'model',
-    placement: 'rows',
-    init: {
-      instances: () => [
-        { key: 'WorkspaceGroup008-row', args: ['WorkspaceGroup008-row'] },
-      ],
-      toItem: ({ key }, model) =>
-        WorkspaceGroup008Row.make({ issueId: key, model, label: 'Issue row' }),
+  TypePerformanceWorkspaceGroup008Definition.makeRequiredFieldBinding(
+    ControlBlock,
+    {
+      field: 'control',
     },
-  })
+  )
+const WorkspaceGroup008EditorBinding =
+  TypePerformanceWorkspaceGroup008Definition.makeOptionalKeyedFieldBinding(
+    EditorBlock,
+    {
+      field: 'maybeEditor',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'editor',
+    },
+  )
+const WorkspaceGroup008RowsBinding =
+  TypePerformanceWorkspaceGroup008Definition.makeKeyedArrayBinding(
+    EditorBlock,
+    {
+      field: 'rows',
+      key: 'issueId',
+      childField: 'model',
+      placement: 'rows',
+      init: {
+        instances: () => [
+          { key: 'WorkspaceGroup008-row', args: ['WorkspaceGroup008-row'] },
+        ],
+        toItem: ({ key }, model) =>
+          WorkspaceGroup008Row.make({
+            issueId: key,
+            model,
+            label: 'Issue row',
+          }),
+      },
+    },
+  )
 const WorkspaceGroup008OpenEditor = (issueId: string) =>
   TypePerformanceWorkspaceGroup008Definition.makeStep(model =>
     WorkspaceGroup008EditorBinding.init({

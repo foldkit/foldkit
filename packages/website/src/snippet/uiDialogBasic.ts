@@ -26,8 +26,12 @@ export const DialogExampleBlock = Block.make('DialogExample', {
   Message,
 })
 
-const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
-  DialogExampleBlock
+const {
+  makeNoopStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = DialogExampleBlock
 
 // One boundary handles Dialog Messages, Commands, and OutMessages. Replace
 // either no-op arm with the parent transition that should follow that event.
@@ -37,7 +41,7 @@ const foldDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
   CompletedClose: makeNoopStep,
 })
 
-const DialogBinding = makeBinding(Dialog.DialogBlock, {
+const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'confirm' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })

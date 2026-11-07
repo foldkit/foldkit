@@ -1,5 +1,5 @@
 import { Array } from 'effect'
-import { initAndAppend } from 'foldkit/bindingInit'
+import { initAndAppend } from 'foldkit/binding'
 
 import { makeCommandsStep, makeFieldsStep } from './block'
 import { GenerateEducationEntryId } from './command'
