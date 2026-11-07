@@ -1,5 +1,15 @@
 # Next preview tasks
 
+## November 7 observed broken-pipe recovery
+
+The improved diagnostic identified `EPIPE` in the next pre-upload lookup failure. The [follow-up checkpoint](preview-final-20261107/registry-recovery.md#observed-broken-pipe-follow-up) records why it joins the two existing socket codes, with the original single retry and timeout unchanged. All nine versions from the failed run remain absent; publication remains authorized.
+
+- [x] Inspect the actual `write EPIPE` failure and complete registry state before another publication attempt.
+- [x] Observe both EPIPE tests fail before extending the socket-code check.
+- [x] Pass 52 coherent-release tests, 254 script tests and script typechecking.
+- [ ] Complete exact-commit review, normal push, protected integration and the authorized Daybreak follow-up.
+- [ ] Publish and verify the complete registry manifest, external consumer and immutable Website before updating Ready.
+
 ## November 7 registry recovery
 
 Publication remains authorized. Both attempts for reviewed source `52ecdc1050024fb1f5bd526e696d32f9e4c01c6e` stopped on an npm metadata read before any upload. All nine target versions remain absent and stable tags are unchanged. The [recovery checkpoint](preview-final-20261107/registry-recovery.md) records the failure, narrowly bounded read retry, tests and remaining gates.

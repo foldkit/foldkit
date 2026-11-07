@@ -1113,7 +1113,7 @@ const interruptedRegistryRead = code =>
   })
 
 for (const method of ['packument', 'version']) {
-  for (const code of ['ECONNRESET', 'UND_ERR_SOCKET']) {
+  for (const code of ['ECONNRESET', 'UND_ERR_SOCKET', 'EPIPE']) {
     test(`npm registry recovers ${method} after ${code} with the same timeout`, async () => {
       const metadata = { name: 'foldkit', version: '1.2.3' }
       const requests = []

@@ -23,3 +23,11 @@ Changes are confined to release tooling, its tests and release records. Framewor
 - The repository's configured root lint excludes `scripts/`; no successful scoped lint result is inferred from an ignored-file invocation. JavaScript syntax checks, formatting and the normal push gate remain part of verification.
 
 This checkpoint does not claim publication. The exact commit must pass independent review, the normal push gate, protected integration checks and the authorized Daybreak follow-up. Publication then uses the integrated commit and verifies its registry manifest, an external consumer and the immutable Website deployment before updating the Ready announcement.
+
+## Observed broken-pipe follow-up
+
+[Release run 42363247540](https://github.com/foldkit/foldkit/actions/runs/42363247540) reached the same pre-upload lookup from integrated source `3491c219146efdd0e88655a7a70a0de0805faab8`. The retained cause now identifies `write EPIPE`. The first recovery deliberately accepted only `ECONNRESET` and `UND_ERR_SOCKET`, so it rejected this additional socket failure rather than retrying it or treating it as absence.
+
+The read retry now includes this observed `EPIPE` code. It still permits only one repeat within the same timeout. Publishing, HTTP/404/JSON handling and packed integrity checks are unchanged. Independent registry reads after the failed run again found all nine target versions absent, no upload tags and unchanged stable tags.
+
+Both added EPIPE tests fail against the preceding implementation. With the additional code, all 52 coherent-release tests and 254 script tests pass. This follow-up changes no published package, application or benchmark runtime code. The same independent review, normal push, protected integration, authorized Daybreak and actual-artifact gates apply before publication is reported.
