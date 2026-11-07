@@ -1,4 +1,4 @@
-import { Effect, Layer } from 'effect'
+import { Layer } from 'effect'
 
 import { PeopleBlock } from './block'
 import { FetchPeople, PushSearchUrl } from './command'
@@ -8,15 +8,10 @@ import { view } from './view'
 
 const EffectsLayer = Layer.mergeAll(PushSearchUrl.layer, FetchPeople.layer)
 
-export const layer = PeopleBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = PeopleBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+  EffectsLayer,
+})

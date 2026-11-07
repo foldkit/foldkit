@@ -124,20 +124,13 @@ type Authoring<Item, Value extends string, ValueEncoded> = ReturnType<
 const construct = <Item, Value extends string, ValueEncoded>(
   authoring: Authoring<Item, Value, ValueEncoded>,
 ) =>
-  authoring.Definition.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* authoring.Composition.acquireChildren()
-
-      return {
-        children,
-        init: authoring.init,
-        update: authoring.update,
-        inMessageUpdate: authoring.inMessageUpdate,
-        view: authoring.view,
-        EffectsLayer,
-      }
-    }),
-  ).pipe(Layer.provide(AnimationLayer))
+  authoring.Definition.makeLayer({
+    init: authoring.init,
+    update: authoring.update,
+    inMessageUpdate: authoring.inMessageUpdate,
+    view: authoring.view,
+    EffectsLayer,
+  }).pipe(Layer.provide(AnimationLayer))
 
 interface ListboxImplementation extends Block.FamilyLifetime {
   readonly construct: typeof construct

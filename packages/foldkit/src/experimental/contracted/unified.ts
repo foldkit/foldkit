@@ -17,7 +17,10 @@ import {
 } from '../../block/namespaceIdentity.js'
 import type { MakeOutMessageStep } from '../../block/outMessageStep.js'
 import type { Owner } from '../../block/owner.js'
-import type { HandlerOfHostDefinition } from '../../block/requirements.js'
+import type {
+  HandlerOfHostDefinition,
+  HandlerRequirements,
+} from '../../block/requirements.js'
 import type {
   ConstructorBody,
   MakeDescriptorOutMessageFold,
@@ -31,6 +34,13 @@ import type {
   PublicFacts,
 } from '../constructed/contract.js'
 import type { RelationshipConstructors } from '../constructed/relationshipAuthoring.js'
+import type {
+  AcquiredConstructorBody,
+  CustomConstructorFields,
+  ImplementationRecord,
+  RecordAcquisition,
+  ValidateImplementationRecord,
+} from './completionRecord.js'
 import type {
   ActualFacts,
   Block,
@@ -71,6 +81,23 @@ import {
 type AnySchema = Schema.Codec<any, any, any, any>
 type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 
+type LayerDeclaredFacts<
+  LayerValue extends Layer.Any,
+  OwnerValue extends Owner<string>,
+> =
+  Extract<
+    Layer.Success<LayerValue>,
+    ContractGraph<OwnerValue, any, any, any, any>
+  > extends ContractGraph<
+    OwnerValue,
+    any,
+    any,
+    any,
+    infer Facts extends PublicFacts
+  >
+    ? Facts
+    : never
+
 type ValidateLayerHandlerSelectionAlternative<
   LayerValue extends Layer.Any,
   Handlers,
@@ -79,8 +106,8 @@ type ValidateLayerHandlerSelectionAlternative<
     Layer.Success<LayerValue>,
     ImplementationFacts<any, any, any>
   > extends ImplementationFacts<
-    any,
-    infer Facts extends PublicFacts,
+    infer OwnerValue extends Owner<string>,
+    PublicFacts,
     infer Pending
   >
     ? [Pending] extends [never]
@@ -88,8 +115,15 @@ type ValidateLayerHandlerSelectionAlternative<
           'This Block Layer has no pending host handlers': Handlers
         }>
       : Handlers extends Layer.Any
-        ? ValidateFamilyHandlers<Pending, Handlers> &
-            ValidateHandlerSelection<Facts, Handlers>
+        ? [LayerDeclaredFacts<LayerValue, OwnerValue>] extends [never]
+          ? Readonly<{
+              'Select handlers from an original Block implementation Layer': LayerValue
+            }>
+          : ValidateFamilyHandlers<Pending, Handlers> &
+              ValidateHandlerSelection<
+                LayerDeclaredFacts<LayerValue, OwnerValue>,
+                Handlers
+              >
         : Readonly<{
             'Select the original host handlers for this Block Layer': Pending
           }>
@@ -101,35 +135,48 @@ type InvalidLayerHandlerSelection<
   LayerValue extends Layer.Any,
   Handlers,
 > = LayerValue extends unknown
-  ? unknown extends ValidateLayerHandlerSelectionAlternative<
-      LayerValue,
-      Handlers
-    >
-    ? never
-    : ValidateLayerHandlerSelectionAlternative<LayerValue, Handlers>
+  ? Handlers extends unknown
+    ? unknown extends ValidateLayerHandlerSelectionAlternative<
+        LayerValue,
+        Handlers
+      >
+      ? never
+      : ValidateLayerHandlerSelectionAlternative<LayerValue, Handlers>
+    : never
   : never
 
 /** @internal Validates each selected implementation Layer's original host handlers. */
 export type ValidateLayerHandlerSelection<
   LayerValue extends Layer.Any,
   Handlers,
-> =
-  true extends IsUnion<LayerValue>
-    ? [InvalidLayerHandlerSelection<LayerValue, Handlers>] extends [never]
-      ? unknown
-      : InvalidLayerHandlerSelection<LayerValue, Handlers>
-    : ValidateLayerHandlerSelectionAlternative<LayerValue, Handlers>
+> = true extends IsUnion<LayerValue> | IsUnion<Handlers>
+  ? [InvalidLayerHandlerSelection<LayerValue, Handlers>] extends [never]
+    ? unknown
+    : InvalidLayerHandlerSelection<LayerValue, Handlers>
+  : ValidateLayerHandlerSelectionAlternative<LayerValue, Handlers>
 
 /**
- * Checks a Block's constructor and returns its ordinary implementation Layer.
+ * Checks portable implementation plans and returns their construction Layer.
  *
- * The constructor acquires registered children and returns portable init, update,
- * optional InMessage update and view plans, together with local handler recipes.
- * Supply child implementation Layers with Effect's `Layer.provide`.
+ * Pass a record for ordinary completion. Its init plan selects the Composition;
+ * building the Layer acquires that Composition's registered child inventory.
+ * Update, InMessage update and view plans must belong to the same Composition.
+ * Provide child implementation Layers with Effect's `Layer.provide`.
  *
- * Creating this Layer is passive. Building it constructs the executable graph;
- * init creates Model occurrences later, and the Runtime executes Commands and
- * starts Model-driven lifecycles. Request Services belong in handler constructors.
+ * Pass an Effect for custom construction that needs dependencies or scoped work.
+ * That constructor acquires and returns its own `children`; Foldkit adds none.
+ * The record form rejects an explicit `children` field. An Effect with both
+ * init and update plans attached is rejected; return those plans from it.
+ *
+ * Configuration is passive. Acquisition uses the existing Layer Scope and
+ * memoization without evaluating init arguments, building handler Layers or
+ * starting Model-driven lifecycles. Init creates Model occurrences later.
+ * Ordinary request Services belong in handler constructors.
+ *
+ * @example
+ * const layer = FeatureBlock.makeLayer({ init, update, view }).pipe(
+ *   Layer.provide(Child.layer),
+ * )
  */
 export interface MakeLayer<
   Id extends string,
@@ -138,8 +185,71 @@ export interface MakeLayer<
   OutMessageSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
 > {
+  <const Record extends ImplementationRecord>(
+    implementation: Record & ValidateImplementationRecord<Record>,
+    ...validation: NoInfer<
+      readonly [
+        ...Validate<
+          NominalId<Id, Config['key']>,
+          ModelSchema,
+          MessageSchema,
+          OutMessageSchema,
+          NativeBody<AcquiredConstructorBody<Record>, Config>
+        >,
+        ...PublishedMountValidation<
+          SourceOf<AcquiredConstructorBody<Record>>,
+          Config
+        >,
+        ...InMessageUpdateBodyValidation<
+          AcquiredConstructorBody<Record>,
+          Config
+        >,
+        ...HostContractValidation<
+          ActualFacts<MessageSchema, AcquiredConstructorBody<Record>, Config>,
+          DeclaredFacts<
+            MessageSchema,
+            OutMessageSchema,
+            Config,
+            Owner<NominalId<Id, Config['key']>, true>
+          >,
+          HostDefinitions<AcquiredConstructorBody<Record>>
+        >,
+      ]
+    >
+  ): Block<
+    Owner<NominalId<Id, Config['key']>, true>,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    DeclaredFacts<
+      MessageSchema,
+      OutMessageSchema,
+      Config,
+      Owner<NominalId<Id, Config['key']>, true>
+    >,
+    Effect.Error<RecordAcquisition<Record>>,
+    Effect.Services<RecordAcquisition<Record>>,
+    ActualFacts<
+      MessageSchema,
+      NoInfer<AcquiredConstructorBody<Record>>,
+      Config
+    >['subscriptions'],
+    HostDefinitions<AcquiredConstructorBody<Record>>
+  >['layer'] extends infer GraphLayer extends Layer.Layer<any, any, any>
+    ? LayerWithImplementationFacts<
+        GraphLayer,
+        Owner<NominalId<Id, Config['key']>, true>,
+        SelectedActualFacts<
+          MessageSchema,
+          AcquiredConstructorBody<Record>,
+          Config
+        >,
+        HostDefinitions<AcquiredConstructorBody<Record>>
+      >
+    : never
   <const Body extends ConstructorBody, Error, Requirements>(
     constructor: Effect.Effect<Body, Error, Requirements> &
+      CustomConstructorFields &
       ValidateConstructorBody<Body>,
     ...validation: NoInfer<
       readonly [
@@ -238,7 +348,7 @@ export interface ProvideLayerHandlers<
         ? unknown
         : Readonly<{ 'Layer belongs to this Block': LayerValue }>),
   ) => Layer.Layer<
-    SelectedLayerOutput<Layer.Success<LayerValue>>,
+    SelectedLayerOutput<Layer.Success<LayerValue>, Handlers>,
     Layer.Error<LayerValue>,
     Layer.Services<LayerValue>
   >
@@ -252,12 +362,44 @@ type SelectedLayerPending<Success> =
     ? Pending
     : never
 
-type SelectedLayerOutput<Success> = SelectedLayerOutputForPending<
+type SelectedHandlerFacts<
+  Facts extends PublicFacts,
+  Pending,
+  Handlers extends Layer.Any,
+> = Omit<
+  WithoutPendingHandlers<Facts, HandlerOfHostDefinition<Pending>>,
+  | 'effectsLayerRequirements'
+  | 'effectsLayerError'
+  | 'hostRequirements'
+  | 'programRequirements'
+> &
+  Readonly<{
+    effectsLayerRequirements:
+      | Facts['effectsLayerRequirements']
+      | Layer.Services<Handlers>
+    effectsLayerError: Facts['effectsLayerError'] | Layer.Error<Handlers>
+    hostRequirements:
+      | Exclude<Facts['hostRequirements'], HandlerOfHostDefinition<Pending>>
+      | HandlerRequirements<Layer.Services<Handlers>>
+    programRequirements:
+      | Exclude<Facts['programRequirements'], HandlerOfHostDefinition<Pending>>
+      | Layer.Services<Handlers>
+  }>
+
+type SelectedLayerOutput<
   Success,
-  SelectedLayerPending<Success>
+  Handlers extends Layer.Any,
+> = SelectedLayerOutputForPending<
+  Success,
+  SelectedLayerPending<Success>,
+  Handlers
 >
 
-type SelectedLayerOutputForPending<Success, Pending> =
+type SelectedLayerOutputForPending<
+  Success,
+  Pending,
+  Handlers extends Layer.Any,
+> =
   Success extends SelectedImplementationFacts<
     infer SelectedResult,
     infer OwnerValue,
@@ -265,9 +407,13 @@ type SelectedLayerOutputForPending<Success, Pending> =
     infer OriginalPending
   >
     ? SelectedImplementationFacts<
-        SelectedLayerOutputForPending<SelectedResult, OriginalPending>,
+        SelectedLayerOutputForPending<
+          SelectedResult,
+          OriginalPending,
+          Handlers
+        >,
         OwnerValue,
-        WithoutPendingHandlers<Facts, HandlerOfHostDefinition<OriginalPending>>,
+        SelectedHandlerFacts<Facts, OriginalPending, Handlers>,
         never
       >
     : Success extends ContractGraph<

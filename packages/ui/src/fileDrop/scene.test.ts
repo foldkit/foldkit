@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Scene from 'foldkit/scene'
 
@@ -52,18 +52,11 @@ const view = FileDropSceneComposition.makeView.withInputs(
 )
 const fileDropScene = {
   block: FileDropSceneBlock,
-  layer: FileDropSceneBlock.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* FileDropSceneComposition.acquireChildren()
-
-      return {
-        children,
-        init,
-        update,
-        view,
-      }
-    }),
-  ).pipe(Layer.provide(layer)),
+  layer: FileDropSceneBlock.makeLayer({
+    init,
+    update,
+    view,
+  }).pipe(Layer.provide(layer)),
 }
 
 const dropZone = Scene.selector('label')

@@ -148,7 +148,7 @@ A Message named `Incremented` describes the resulting state change, not the user
 
 ### `view-named-after-namespace`
 
-Name the feature's primary implementation `view`, rather than repeating its feature name as `counter`, `home`, or `room`. Pass that implementation from the Block constructor. Parents render through a Binding declared from the passive child contract with `ChildBinding.embedView`; do not export a parallel loose view solely for parent embedding.
+Name the feature's primary implementation `view`, rather than repeating its feature name as `counter`, `home`, or `room`. Pass that implementation in the Block implementation record. Parents render through a Binding declared from the passive child contract with `ChildBinding.embedView`; do not export a parallel loose view solely for parent embedding.
 
 ### `whole-model-render-helper`
 
@@ -160,7 +160,7 @@ Declare a Schema's same-named decoded type immediately below it, with no blank l
 
 Inside a feature, use its local aliases. Across a child boundary, derive a named alias from the passive contract, such as `type ChildModel = typeof ChildBlock.Model.Type`. Parent Schemas use `ChildBlock.Model` without importing the implementation. `ChildBlock = Block.make(...)` establishes this boundary before implementation inference; a decoded alias does not replace it. The passive contract's Message contains local constructors. The acquired executable's Message Codec includes generated child envelopes for its selected graph.
 
-For ordinary source features, complete the implementation with `ChildBlock.makeLayer(Effect.gen(...))`, yield its registered Bindings, and return the acquired connections under `children` with the portable builders and local effects. Feature barrels export the passive `ChildBlock` and construction `layer`; only completion imports child implementation Layers. Program and Server receive `{ block: ApplicationBlock, layer }`. Do not require a preparation producer or assembly annotation. Preserve meaningful named generic library contracts and independently public domain Schemas. Flag casts, broad annotations, `satisfies`-only boundaries, another Definition, or a repeated generic factory call used to obtain a child Model.
+For ordinary source features, complete the implementation with `ChildBlock.makeLayer({ init, update, view, ... })`; init selects the Composition's registered Binding inventory and Foldkit acquires it automatically. Feature barrels export the passive `ChildBlock` and construction `layer`; only completion imports child implementation Layers. Reserve the explicit Effect constructor and `children` result for genuine graph-construction dependencies, scoped resources, or code that uses acquired handles. Program and Server receive `{ block: ApplicationBlock, layer }`. Do not require a preparation producer or assembly annotation. Preserve meaningful named generic library contracts and independently public domain Schemas. Flag casts, broad annotations, `satisfies`-only boundaries, another Definition, or a repeated generic factory call used to obtain a child Model.
 
 ## Effect and Foldkit idiom
 
@@ -234,7 +234,7 @@ Present but with no `expect(...)` and no interactive resolution in a block is th
 
 ## Construction and test ownership
 
-Do not run init while constructing an implementation graph or evaluate `contextToArgs` before parent startup. The constructor yields static Bindings and returns acquired `children`; the Model still owns child presence and keyed membership. Keep request Services in their attached handler constructors. A pure Story or Scene acquires the graph without running handlers, so it should not need an HTTP/socket mock unless construction itself requests that Service. Use the scoped Block-aware runner or `withBlock` for an advanced fixture; never retain a globally acquired executable across tests. A passive contract's local Message constructors are not the acquired graph's complete serialization Codec. Codec checks inspect the graph statically and run transformations only when a real serialization boundary receives a real value.
+Do not run init while constructing an implementation graph or evaluate `contextToArgs` before parent startup. Ordinary completion acquires init's static Binding inventory; the Model still owns child presence and keyed membership. Keep request Services in their attached handler constructors. A pure Story or Scene acquires the graph without running handlers, so it should not need an HTTP/socket mock unless custom graph construction itself requests that Service. Use the scoped Block-aware runner or `withBlock` for an advanced fixture; never retain a globally acquired executable across tests. A passive contract's local Message constructors are not the acquired graph's complete serialization Codec. Codec checks inspect the graph statically and run transformations only when a real serialization boundary receives a real value.
 
 ## Block file and authoring boundaries
 

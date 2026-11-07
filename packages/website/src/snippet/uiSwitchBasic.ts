@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -99,13 +99,8 @@ const view = NotificationSettingsComposition.makeView((model, h) => {
   )
 })
 
-export const layer = NotificationSettingsBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+export const layer = NotificationSettingsBlock.makeLayer({
+  init,
+  update,
+  view,
+})

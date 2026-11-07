@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -20,15 +20,10 @@ const previewInit = PreviewComposition.makeInit(() => ({
   model: PreviewModel.make({ content: '' }),
 }))
 
-const layer = PreviewBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init: previewInit,
-      update: PreviewComposition.makeUpdate({}),
-    }
-  }),
-)
+const layer = PreviewBlock.makeLayer({
+  init: previewInit,
+  update: PreviewComposition.makeUpdate({}),
+})
 
 const PageModel = Schema.Struct({ preview: PreviewModel })
 type PageModel = typeof PageModel.Type

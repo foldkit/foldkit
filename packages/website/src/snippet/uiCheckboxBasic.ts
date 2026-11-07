@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -86,13 +86,8 @@ const view = TermsFormComposition.makeView((model, h) => {
   )
 })
 
-export const layer = TermsFormBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+export const layer = TermsFormBlock.makeLayer({
+  init,
+  update,
+  view,
+})

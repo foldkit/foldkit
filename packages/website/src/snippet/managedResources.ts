@@ -3,7 +3,6 @@ import { Block } from 'foldkit'
 
 import { CameraBlock, makeManagedResources } from './block'
 import { TakePhoto } from './command'
-import { CameraComposition } from './composition'
 import { init } from './init'
 import { Message } from './message'
 import type { Model } from './model'
@@ -43,15 +42,10 @@ const managedResources = makeManagedResources(entry => ({
   ),
 }))
 
-export const layer = CameraBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      managedResources,
-      EffectsLayer: Layer.mergeAll(TakePhoto.layer, managedResources.layer),
-    }
-  }),
-)
+export const layer = CameraBlock.makeLayer({
+  init,
+  update,
+  view,
+  managedResources,
+  EffectsLayer: Layer.mergeAll(TakePhoto.layer, managedResources.layer),
+})

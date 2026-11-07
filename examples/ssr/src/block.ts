@@ -167,14 +167,9 @@ const parseEquivalenceView = (h: ApplicationViewBuilder): Html =>
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+  EffectsLayer,
+})

@@ -44,33 +44,28 @@ export const pinsSubscriptions = PinsBlock.makeSubscriptions(entry => ({
 
 const PinsComposition = PinsBlock.makeComposition()
 
-export const PinsLayer = PinsBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init: PinsComposition.makeInit(() => ({ model: { count: 0 } })),
-      update: PinsComposition.makeUpdate({
-        CompletedReadPins: (model, { count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
-        ObservedPins: (model, { count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
-      }),
-      inMessageUpdate: PinsComposition.makeInMessageUpdate({
-        RequestedReadPins: model => ({ model, commands: [ReadPins()] }),
-      }),
-      view: PinsComposition.makeView((model, h) =>
-        h.output([], [globalThis.String(model.count)]),
-      ),
-      subscriptions: pinsSubscriptions,
-      EffectsLayer: Layer.merge(
-        ReadPins.layer,
-        pinsSubscriptions.observations.layer,
-      ),
-    }
+export const PinsLayer = PinsBlock.makeLayer({
+  init: PinsComposition.makeInit(() => ({ model: { count: 0 } })),
+  update: PinsComposition.makeUpdate({
+    CompletedReadPins: (model, { count }) => ({
+      model: modifyFields(model, { count: () => count }),
+    }),
+    ObservedPins: (model, { count }) => ({
+      model: modifyFields(model, { count: () => count }),
+    }),
   }),
-)
+  inMessageUpdate: PinsComposition.makeInMessageUpdate({
+    RequestedReadPins: model => ({ model, commands: [ReadPins()] }),
+  }),
+  view: PinsComposition.makeView((model, h) =>
+    h.output([], [globalThis.String(model.count)]),
+  ),
+  subscriptions: pinsSubscriptions,
+  EffectsLayer: Layer.merge(
+    ReadPins.layer,
+    pinsSubscriptions.observations.layer,
+  ),
+})
 
 const Model = Schema.Struct({ pins: PinsBlock.Model })
 type Model = typeof Model.Type
@@ -105,15 +100,8 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ApplicationComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(PinsLayer))
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(PinsLayer))

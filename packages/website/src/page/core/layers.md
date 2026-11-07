@@ -97,7 +97,7 @@ The host implements that Service with browser storage or a document API:
 
 The implementation Layer retains the real Command handler. The host’s provider supplies the storage dependency. An execution test can replace the storage transport and still exercise request construction, error handling, and result mapping.
 
-When the integrator owns a handler implementation, an ordinary Block constructor can list the original definition under `hostHandlers`. Select providers for every listed definition with `layer.pipe(FeatureBlock.provideHandlers(HandlersLayer))`, using their original `toLayer` methods. Provider Services and constructor errors must fit the Block's declared effects contract. This selection is passive; handler Layers are built later by the Runtime.
+When the integrator owns a handler implementation, an ordinary Block implementation can list the original definition under `hostHandlers`. Select providers for every listed definition with `layer.pipe(FeatureBlock.provideHandlers(HandlersLayer))`, using their original `toLayer` methods. Provider Services and constructor errors must fit the Block's declared effects contract. This selection is passive; handler Layers are built later by the Runtime.
 
 The passive public child contract does not expose the implementation's private handler inventory. Some generic family APIs, including Query, deliberately publish original host-handler contracts with their own checked `provideHandlers` selector. For normal storage or transport variation, keep the feature's workflow in its attached handler and provide the ordinary Service boundary shown above.
 
@@ -259,7 +259,7 @@ Including Mounts in a Composition gives its view builder the allowed Mount contr
 
 ## Public bounds and construction dependencies
 
-A Block's `effects.services`, `effects.managedResources` and `effects.Error` bound its handler-Layer Services, ManagedResource handles and construction failures. The Effect passed to `makeLayer` has its own inferred requirements and errors. Ordinary request Services remain in their handler constructors, and invocation failures become Messages.
+A Block's `effects.services`, `effects.managedResources` and `effects.Error` bound its handler-Layer Services, ManagedResource handles and construction failures. Record completion infers graph-construction requirements and errors from its registered children. A custom Effect constructor adds its own requirements and errors. Ordinary request Services remain in their handler constructors, and invocation failures become Messages.
 
 The implementation's `EffectsLayer` selects local handler recipes. A separate bundle lives in `effectsLayer.ts`; `layer.ts` constructs the Block and provides child implementation Layers. `Block.makeEffectsContract<E, R>()` supplies generic handler-Layer error and ordinary Service bounds without repeating a finite Schema list.
 

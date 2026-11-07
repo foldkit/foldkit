@@ -1,0 +1,18 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/*": ["../src/*/public.ts"]
+    }
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "record-completion/view.ts",
+    "record-completion/accepted.ts",
+    "record-completion/rejected.ts",
+    "record-completion/consume.ts"
+  ]
+}

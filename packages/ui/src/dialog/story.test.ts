@@ -122,20 +122,13 @@ const parentInit = DialogParentTestComposition.makeInit(() => ({
 }))
 const ParentBlock = {
   block: DialogParentTestBlock,
-  layer: DialogParentTestBlock.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* DialogParentTestComposition.acquireChildren()
-
-      return {
-        children,
-        init: parentInit,
-        update: DialogParentTestComposition.makeUpdate({
-          CompletedLoadParentData: DialogParentTestBlock.makeNoopStep(),
-        }),
-        EffectsLayer: LoadParentData.layer,
-      }
+  layer: DialogParentTestBlock.makeLayer({
+    init: parentInit,
+    update: DialogParentTestComposition.makeUpdate({
+      CompletedLoadParentData: DialogParentTestBlock.makeNoopStep(),
     }),
-  ).pipe(Layer.provide(layer)),
+    EffectsLayer: LoadParentData.layer,
+  }).pipe(Layer.provide(layer)),
 }
 
 const provideEffects = Effect.provide(

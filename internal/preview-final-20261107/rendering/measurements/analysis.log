@@ -1,0 +1,241 @@
+{
+  "evidenceKind": "measured",
+  "comparisons": {
+    "naive": {
+      "main": "foldkit-main",
+      "candidate": "foldkit-preview-final",
+      "totalMs": {
+        "main": 654.9,
+        "candidate": 710.6,
+        "added": 55.7,
+        "percentChange": 8.51
+      },
+      "syncMs": {
+        "main": 41.2,
+        "candidate": 49.2
+      },
+      "animationFrameMs": {
+        "main": 615.6,
+        "candidate": 661.7
+      },
+      "rangeMs": {
+        "main": {
+          "minimum": 543,
+          "maximum": 740.2
+        },
+        "candidate": {
+          "minimum": 545.9,
+          "maximum": 852.2
+        }
+      },
+      "bundle": {
+        "main": {
+          "files": [
+            {
+              "file": "assets/index-DN9U5aN7.js",
+              "sha256": "d3e37e9f695531f98727dadc3ead8bddd4b0bdb93f52b64029880c3d7a78adb4",
+              "bytes": 304187,
+              "gzipBytes": 99031
+            }
+          ],
+          "rawBytes": 304187,
+          "gzipBytes": 99031
+        },
+        "candidate": {
+          "files": [
+            {
+              "file": "assets/index-ZmDGH17y.js",
+              "sha256": "445b31212df9efe25ce6e81fe60cb7a5dfc583c46fc098dd84de40e234e9d146",
+              "bytes": 475519,
+              "gzipBytes": 147123
+            }
+          ],
+          "rawBytes": 475519,
+          "gzipBytes": 147123
+        },
+        "addedRawBytes": 171332,
+        "addedGzipBytes": 48092,
+        "gzipPercentChange": 48.56
+      }
+    },
+    "optimized": {
+      "main": "foldkit-main-optimised",
+      "candidate": "foldkit-preview-final-optimised",
+      "totalMs": {
+        "main": 207.4,
+        "candidate": 308.1,
+        "added": 100.7,
+        "percentChange": 48.55
+      },
+      "syncMs": {
+        "main": 42.7,
+        "candidate": 56.9
+      },
+      "animationFrameMs": {
+        "main": 164.7,
+        "candidate": 250.6
+      },
+      "rangeMs": {
+        "main": {
+          "minimum": 188.5,
+          "maximum": 243
+        },
+        "candidate": {
+          "minimum": 255.8,
+          "maximum": 330.9
+        }
+      },
+      "bundle": {
+        "main": {
+          "files": [
+            {
+              "file": "assets/index.optimised-UkWhNSKN.js",
+              "sha256": "852eddbf31ec2d3274568f1f0d503dfeabc6e181c8d2361489b435b13ce14ded",
+              "bytes": 306590,
+              "gzipBytes": 99741
+            }
+          ],
+          "rawBytes": 306590,
+          "gzipBytes": 99741
+        },
+        "candidate": {
+          "files": [
+            {
+              "file": "assets/index.optimised-4XrqNWmx.js",
+              "sha256": "c6802c60c7eccbfb7bbd04f760bb0a9e8e7fc3db2f4945edcf880cca340036ce",
+              "bytes": 482112,
+              "gzipBytes": 148452
+            }
+          ],
+          "rawBytes": 482112,
+          "gzipBytes": 148452
+        },
+        "addedRawBytes": 175522,
+        "addedGzipBytes": 48711,
+        "gzipPercentChange": 48.84
+      }
+    }
+  },
+  "pairedRounds": [
+    {
+      "round": 1,
+      "naive": {
+        "mainMs": 543,
+        "candidateMs": 607.2,
+        "addedMs": 64.2,
+        "percentChange": 11.82
+      },
+      "optimized": {
+        "mainMs": 204.6,
+        "candidateMs": 255.8,
+        "addedMs": 51.2,
+        "percentChange": 25.02
+      }
+    },
+    {
+      "round": 2,
+      "naive": {
+        "mainMs": 657,
+        "candidateMs": 702.6,
+        "addedMs": 45.6,
+        "percentChange": 6.94
+      },
+      "optimized": {
+        "mainMs": 188.5,
+        "candidateMs": 269.8,
+        "addedMs": 81.3,
+        "percentChange": 43.13
+      }
+    },
+    {
+      "round": 3,
+      "naive": {
+        "mainMs": 652.7,
+        "candidateMs": 852.2,
+        "addedMs": 199.5,
+        "percentChange": 30.57
+      },
+      "optimized": {
+        "mainMs": 206,
+        "candidateMs": 326.6,
+        "addedMs": 120.6,
+        "percentChange": 58.54
+      }
+    },
+    {
+      "round": 4,
+      "naive": {
+        "mainMs": 633.5,
+        "candidateMs": 691.1,
+        "addedMs": 57.6,
+        "percentChange": 9.09
+      },
+      "optimized": {
+        "mainMs": 222.9,
+        "candidateMs": 309.3,
+        "addedMs": 86.4,
+        "percentChange": 38.76
+      }
+    },
+    {
+      "round": 5,
+      "naive": {
+        "mainMs": 740.2,
+        "candidateMs": 796.9,
+        "addedMs": 56.7,
+        "percentChange": 7.66
+      },
+      "optimized": {
+        "mainMs": 209.9,
+        "candidateMs": 321.7,
+        "addedMs": 111.8,
+        "percentChange": 53.26
+      }
+    },
+    {
+      "round": 6,
+      "naive": {
+        "mainMs": 713.6,
+        "candidateMs": 718.6,
+        "addedMs": 5,
+        "percentChange": 0.7
+      },
+      "optimized": {
+        "mainMs": 243,
+        "candidateMs": 272.5,
+        "addedMs": 29.5,
+        "percentChange": 12.14
+      }
+    },
+    {
+      "round": 7,
+      "naive": {
+        "mainMs": 623.9,
+        "candidateMs": 545.9,
+        "addedMs": -78,
+        "percentChange": -12.5
+      },
+      "optimized": {
+        "mainMs": 208.7,
+        "candidateMs": 306.9,
+        "addedMs": 98.2,
+        "percentChange": 47.05
+      }
+    },
+    {
+      "round": 8,
+      "naive": {
+        "mainMs": 691.8,
+        "candidateMs": 735.4,
+        "addedMs": 43.6,
+        "percentChange": 6.3
+      },
+      "optimized": {
+        "mainMs": 205,
+        "candidateMs": 330.9,
+        "addedMs": 125.9,
+        "percentChange": 61.41
+      }
+    }
+  ]
+}

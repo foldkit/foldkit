@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from 'effect'
+import { Context, Layer } from 'effect'
 import * as Block from 'foldkit/block'
 import * as BlockFamily from 'foldkit/internal/block'
 
@@ -10,17 +10,12 @@ import { update } from './update.js'
 import { view } from './view.js'
 
 /** @internal Checked canonical Tabs implementation for internal tests. */
-const canonicalLayer = TabsBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer: FocusTab.layer,
-    }
-  }),
-)
+const canonicalLayer = TabsBlock.makeLayer({
+  init,
+  update,
+  view,
+  EffectsLayer: FocusTab.layer,
+})
 
 /** @internal Exact canonical public selection. */
 export type CanonicalIdentity = Block.SelectedPublicIdentity<typeof TabsBlock>

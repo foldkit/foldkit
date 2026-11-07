@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { Block } from 'foldkit'
 
 import type { Model } from './layers'
@@ -37,16 +36,11 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   }),
 }))
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+  EffectsLayer,
+})
 
 export { ApplicationBlock } from './layers'

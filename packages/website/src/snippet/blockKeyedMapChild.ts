@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineInMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -26,19 +26,14 @@ const { makeComposition } = EntryBlock
 
 const EntryComposition = makeComposition()
 
-export const layer = EntryBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init: EntryComposition.makeInit((title: string) => ({
-        model: { title },
-      })),
-      update: EntryComposition.makeUpdate({}),
-      inMessageUpdate: EntryComposition.makeInMessageUpdate({
-        RequestedRename: (model, { title }) => ({
-          model: modifyFields(model, { title: () => title }),
-        }),
-      }),
-    }
+export const layer = EntryBlock.makeLayer({
+  init: EntryComposition.makeInit((title: string) => ({
+    model: { title },
+  })),
+  update: EntryComposition.makeUpdate({}),
+  inMessageUpdate: EntryComposition.makeInMessageUpdate({
+    RequestedRename: (model, { title }) => ({
+      model: modifyFields(model, { title: () => title }),
+    }),
   }),
-)
+})

@@ -1,5 +1,5 @@
 // block.ts
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 
@@ -64,14 +64,9 @@ export const inMessageUpdate = SettingsComposition.makeInMessageUpdate({
   }),
 })
 
-export const layer = SettingsBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = SettingsBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  EffectsLayer,
+})

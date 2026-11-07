@@ -302,15 +302,8 @@ const view = CalendarExampleComposition.makeView((model, h) => {
   )
 })
 
-export const layer = CalendarExampleBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* CalendarExampleComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(UiCalendar.layer))
+export const layer = CalendarExampleBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(UiCalendar.layer))

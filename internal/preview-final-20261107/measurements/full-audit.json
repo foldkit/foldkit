@@ -1,0 +1,105 @@
+{
+  "advisories": {
+    "1244013": {
+      "findings": [
+        {
+          "version": "13.0.6",
+          "paths": [
+            "packages__create-foldkit-app>rimraf>glob",
+            "packages__devtools>rimraf>glob",
+            "packages__devtools-mcp>rimraf>glob",
+            "packages__foldkit>rimraf>glob",
+            "packages__markdown>rimraf>glob",
+            "packages__node>rimraf>glob",
+            "packages__oxlint-plugin-foldkit>rimraf>glob",
+            "packages__ui>rimraf>glob",
+            "packages__vite-plugin-foldkit>rimraf>glob"
+          ],
+          "dev": true,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "id": 1244013,
+      "title": "Glob: AbortSignal cancellation bypass allows post-timeout filesystem traversal",
+      "module_name": "glob",
+      "vulnerable_versions": ">=9.0.0 <=14.0.1",
+      "patched_versions": ">=14.0.2",
+      "severity": "moderate",
+      "cwe": "CWE-400",
+      "github_advisory_id": "GHSA-3g3m-2fjr-6pw4",
+      "url": "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4"
+    },
+    "1244623": {
+      "findings": [
+        {
+          "version": "10.2.6",
+          "paths": [
+            ".>madge>dependency-tree>precinct>detective-typescript>@typescript-eslint/typescript-estree>minimatch",
+            ".>madge>dependency-tree>precinct>detective-vue2>detective-typescript>@typescript-eslint/typescript-estree>minimatch",
+            "internal__api-reference-generator>typedoc>minimatch",
+            "packages__create-foldkit-app>rimraf>glob>minimatch",
+            "packages__devtools>rimraf>glob>minimatch",
+            "packages__devtools-mcp>rimraf>glob>minimatch",
+            "packages__examples-e2e>@eslint/js>eslint>@eslint/config-array>minimatch",
+            "packages__examples-e2e>@eslint/js>eslint>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/parser>@typescript-eslint/typescript-estree>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/parser>eslint>@eslint/config-array>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/parser>eslint>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>@eslint/config-array>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>@typescript-eslint/typescript-estree>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>eslint>@eslint/config-array>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/utils>eslint>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>eslint>@eslint/config-array>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>eslint>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>@eslint/config-array>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>@eslint-community/eslint-utils>eslint>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>@typescript-eslint/typescript-estree>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>eslint>@eslint/config-array>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>@typescript-eslint/utils>eslint>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>eslint>@eslint/config-array>minimatch",
+            "packages__examples-e2e>@typescript-eslint/eslint-plugin>eslint>minimatch",
+            "packages__examples-e2e>@typescript-eslint/parser>@typescript-eslint/typescript-estree>minimatch",
+            "packages__examples-e2e>@typescript-eslint/parser>eslint>@eslint/config-array>minimatch",
+            "packages__examples-e2e>@typescript-eslint/parser>eslint>minimatch",
+            "packages__examples-e2e>eslint>@eslint/config-array>minimatch",
+            "packages__examples-e2e>eslint>minimatch",
+            "packages__foldkit>rimraf>glob>minimatch",
+            "packages__markdown>rimraf>glob>minimatch",
+            "packages__node>rimraf>glob>minimatch",
+            "packages__oxlint-plugin-foldkit>rimraf>glob>minimatch",
+            "packages__ui>rimraf>glob>minimatch",
+            "packages__vite-plugin-foldkit>rimraf>glob>minimatch"
+          ],
+          "dev": true,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "id": 1244623,
+      "title": "minimatch has potential denial of service via globparts amplification",
+      "module_name": "minimatch",
+      "vulnerable_versions": ">=7.0.0 <11.0.1",
+      "patched_versions": ">=11.0.1",
+      "severity": "moderate",
+      "cwe": "CWE-405",
+      "github_advisory_id": "GHSA-g3hv-75wg-m249",
+      "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249"
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 2,
+      "high": 0,
+      "critical": 0
+    },
+    "dependencies": 320,
+    "devDependencies": 558,
+    "optionalDependencies": 222,
+    "totalDependencies": 945
+  }
+}

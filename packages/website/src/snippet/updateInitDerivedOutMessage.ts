@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Layer, Option, Schema } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -96,14 +96,7 @@ const update = DateRangeComposition.makeUpdate({
     EndDatePickerBinding.requestSelectDate(date)(model),
 })
 
-export const layer = DateRangeBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* DateRangeComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-    }
-  }),
-).pipe(Layer.provide(DatePicker.layer))
+export const layer = DateRangeBlock.makeLayer({
+  init,
+  update,
+}).pipe(Layer.provide(DatePicker.layer))

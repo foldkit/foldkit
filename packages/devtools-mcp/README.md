@@ -41,6 +41,7 @@ Set `devTools.dispatch` to `true` when calling `Program.make` to let the agent d
 ```typescript
 Program.make({
   block: ApplicationBlock,
+  layer,
   container,
   devTools: {
     // Rest of your DevTools config

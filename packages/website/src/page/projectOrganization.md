@@ -79,7 +79,7 @@ For a split feature, `composition.ts` owns its child Bindings, complete child an
 
 An update can import `CounterBinding` to invoke its operations. Generated child envelopes route through the Binding automatically. The view imports `DashboardComposition`. Registering `CounterBinding` under `bindings` gives those builders its static contract. Acquiring that Binding in the constructor supplies the child's executable graph, including handlers and lifecycle declarations.
 
-`layer.ts` imports the portable builders and child implementation Layers. Its constructor yields `CounterBinding`, then returns that connection under `children` together with init, update, view, and local handlers. The barrel exports `DashboardBlock` and its implementation `layer`. Parent Schemas use `DashboardBlock.Model`. Internal implementation modules import their own contracts directly rather than through the completed feature barrel.
+`layer.ts` imports the portable builders and child implementation Layers. It passes init, update, view and local effects to `DashboardBlock.makeLayer` as a record, then provides the child's construction Layer. The barrel exports `DashboardBlock` and its implementation `layer`. Parent Schemas use `DashboardBlock.Model`. Internal implementation modules import their own contracts directly rather than through the completed feature barrel.
 
 ### A Feature with Mounts Only
 
@@ -91,7 +91,7 @@ The view imports both the Composition and the local Mount definition:
 
 ::Snippet{name="organizationMountView" label="View using its registered Mount"}
 
-This Panel Block declares Model and Message. Its Composition registers the Mount, and its constructor returns `children: []`, the portable builders, and the local `EffectsLayer`:
+This Panel Block declares Model and Message. Its Composition registers the Mount, and its implementation record supplies the portable builders and local `EffectsLayer`:
 
 ::Snippet{name="organizationMountBlock" label="Mount handler at Block completion"}
 

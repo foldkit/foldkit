@@ -2610,18 +2610,13 @@ const viewImpl = VirtualListComposition.makeView.withInputs(
 )
 
 /** @internal Checked canonical implementation for scoped library tests. */
-const canonicalLayer = VirtualListBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view: viewImpl,
-      EffectsLayer,
-    }
-  }),
-)
+const canonicalLayer = VirtualListBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view: viewImpl,
+  EffectsLayer,
+})
 
 /** Constructs the shared implementation without starting browser observation. */
 type CanonicalIdentity = Block.SelectedPublicIdentity<typeof VirtualListBlock>

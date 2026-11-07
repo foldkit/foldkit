@@ -38,16 +38,13 @@ const constructNotifyingKeyedQuery = <
   const { RequestedReset, ...updateHandlers } = api.notifyingUpdateHandlers
   const update = Composition.makeUpdate(updateHandlers)
   const inMessageUpdate = Composition.makeInMessageUpdate({ RequestedReset })
-  return Definition.makeLayer(
-    Effect.succeed({
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      EffectsLayer: Layer.empty,
-      hostHandlers: [Fetch],
-    }),
-  )
+  return Definition.makeLayer({
+    init,
+    update,
+    inMessageUpdate,
+    EffectsLayer: Layer.empty,
+    hostHandlers: [Fetch],
+  })
 }
 
 const constructSilentKeyedQuery = <
@@ -75,16 +72,13 @@ const constructSilentKeyedQuery = <
   const { RequestedReset, ...updateHandlers } = api.updateHandlers
   const update = Composition.makeUpdate(updateHandlers)
   const inMessageUpdate = Composition.makeInMessageUpdate({ RequestedReset })
-  return Definition.makeLayer(
-    Effect.succeed({
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      EffectsLayer: Layer.empty,
-      hostHandlers: [Fetch],
-    }),
-  )
+  return Definition.makeLayer({
+    init,
+    update,
+    inMessageUpdate,
+    EffectsLayer: Layer.empty,
+    hostHandlers: [Fetch],
+  })
 }
 
 function constructKeyedQueryRecipe<

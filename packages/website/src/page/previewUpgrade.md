@@ -118,20 +118,20 @@ This candidate establishes each public Block contract before its implementation.
 
 1. Declare each concrete feature once as `FooBlock = Block.make(...)`. Retain its stable unique `key`, Model, Message, InitArgs tuple, Context, view, operation, and effect contracts.
 2. Use that same `FooBlock` for local helpers and parent authorship. Remove a separate Definition and its `.contract` projection. Parent Schemas and Bindings use `FooBlock` directly.
-3. Complete the implementation with `layer = FooBlock.makeLayer(Effect.gen(function* () { ... }))`. Yield each registered Binding and return the acquired connections as `children`, alongside the portable builders and local lifecycle and handler declarations. A leaf returns `children: []`.
+3. Complete the implementation with `layer = FooBlock.makeLayer({ init, update, view, ... })`. Omit `children`. The Layer acquires the init plan's registered Binding inventory internally; all plans must belong to the same Composition.
 4. Provide child implementations through ordinary Layer composition: `.pipe(Layer.provide(Child.layer))`.
 5. Pass `{ block: ApplicationBlock, layer }` to Program and Server. Use the same pair for normal Story and Scene tests, followed by `init(...args)` or `given(model)`. Use `withBlock` only for fixtures needing direct pure functions.
 6. Check emitted declarations and a relocated consumer when publishing a package. Ordinary application exports need no `FromAssembly*` annotations.
 
 If an unpublished snapshot declared the initializer Schema under `Init`, rename that contract key to `InitArgs`. The initializer function and `makeInit` keep their names. No `Init` compatibility alias remains.
 
-When the constructor only collects registered child handles, use `const children = yield* FooComposition.acquireChildren()` followed by the return record with `children` shorthand. Keep individual Binding yields when the constructor uses the handles. Acquisition retains exact requirements, errors, order and scoped cleanup without evaluating child initialization arguments.
+Replace a constructor that only collects registered child handles with the record form. Remove its `Effect.gen`, `acquireChildren()` call and returned `children` field together. Childless implementations use the same record form. Keep an Effect constructor when construction performs work or acquires dependencies or scoped resources; that form still acquires and returns its own children. `Composition.acquireChildren()` remains available inside a custom constructor. Neither form initializes Models or starts handlers or Model-driven lifecycles during acquisition.
 
 ::Snippet{name="blockFeatureExports" label="Contract-first Block completion"}
 
 The constructor builds the executable graph. Initialization remains deferred, state stays in the Model, and ordinary request Services stay in Command handler constructors. See [Block](/core/block) and [Project Organization](/patterns/project-organization) for the complete layout.
 
-Keep canonical local handlers in the implementation's `EffectsLayer`. An attached handler normally receives host-selected HTTP, storage, or transport Services. When the integrator owns specific handler implementations, the constructor can instead return their original definitions under `hostHandlers`. Select providers for every listed definition with `layer.pipe(FeatureBlock.provideHandlers(HandlersLayer))`, using those definitions' `toLayer` methods. Provider Services and constructor errors must fit the Block's declared effects contract. Selection remains passive.
+Keep canonical local handlers in the implementation's `EffectsLayer`. An attached handler normally receives host-selected HTTP, storage, or transport Services. When the integrator owns specific handler implementations, the implementation can instead list their original definitions under `hostHandlers`. Select providers for every listed definition with `layer.pipe(FeatureBlock.provideHandlers(HandlersLayer))`, using those definitions' `toLayer` methods. Provider Services and constructor errors must fit the Block's declared effects contract. Selection remains passive.
 
 The passive public child contract does not expose the implementation's private handler inventory. Apply handler selection to its ordinary construction Layer with the Block's `provideHandlers` helper. Query and other generic family APIs can also expose a checked host-handler selector. See [host implementations](/core/layers#host-implementations-for-reusable-features).
 
@@ -309,7 +309,7 @@ This section applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
 
 ### Complete an ordinary root Block
 
-Declare the root's unique key, InitArgs, Model, Message, and view contract in `ApplicationBlock`. Complete it with `ApplicationBlock.makeLayer`, yielding registered child Bindings and returning their connections under `children`. Export the returned ordinary `layer` and provide child implementations with `Layer.provide`. Program and Server receive `{ block: ApplicationBlock, layer }`.
+Declare the root's unique key, InitArgs, Model, Message, and view contract in `ApplicationBlock`. Complete it with `ApplicationBlock.makeLayer({ init, update, view, ... })`, which acquires the registered child graph when built. Export the returned ordinary `layer` and provide child implementations with `Layer.provide`. Program and Server receive `{ block: ApplicationBlock, layer }`.
 
 ::Snippet{name="blockFeatureExports" label="Independent contract and checked implementation"}
 

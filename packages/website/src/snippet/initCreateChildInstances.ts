@@ -1,4 +1,4 @@
-import { Array, Effect, Layer } from 'effect'
+import { Array, Layer } from 'effect'
 import { Update } from 'foldkit'
 
 import {
@@ -31,16 +31,9 @@ const update = ApplicationComposition.makeUpdate({
   })),
 })
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ApplicationComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-    }
-  }),
-).pipe(Layer.provide(Counter.layer))
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+}).pipe(Layer.provide(Counter.layer))
 
 export { ApplicationBlock } from './blockInstanceArray'

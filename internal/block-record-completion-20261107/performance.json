@@ -1,0 +1,560 @@
+{
+  "schemaVersion": 1,
+  "status": "complete",
+  "reproduce": "NODE_DISABLE_COMPILE_CACHE=1 node internal/block-record-completion-20261107/performance.mjs",
+  "scriptSha256": "b39c0b9ab4d99db5d992e39d0cf6c5ac94a9025a101d3cae8291e2dc5b264699",
+  "scriptExitPolicy": "Exits nonzero if any primary measurement exceeds the unchanged native budgets. The retained final run exits 1 for canonical baseline overruns; all primary sources compile and active-overload controls pass.",
+  "method": [
+    "Fresh run-owned temporary directory; repository resolved from import.meta.url; no package build, install, production fixture edit or budget change.",
+    "Historical adapter updated only for InitArgs spelling and explicit Binding factory recognition. Original domain declarations, authored implementation properties and moved operation sources retain its AST checks.",
+    "Manual and record files retain the exact same remaining property ASTs and Expect assertions. Record mode removes only generated acquisition statements and children.",
+    "Pinned TypeScript 7.1.0-beta with unchanged --singleThreaded checker, baseline, warmup, tsconfig, budgets and snapshot dependencies. TypeScript 6.0.3 parses the transformations.",
+    "Each compiler invocation has a 120-second timeout. Raw sources, logs, full inventories, private declaration controls and receipts remain in the named temporary runs."
+  ],
+  "sharedInputs": {
+    "sourceSha256": "c9633a43c8bcb7c5514beaf4caa88f62f2f2acf1c10597acde832e057717e9c3",
+    "checkerSha256": "7901c169f107cb479aceb9664340deb500a409b1c0fe669169585a1bf19929d0",
+    "budgetsSha256": "95928a4e080368851589408d79eecc70eb2a56d20c106ab48800641feda1880f",
+    "canonicalManualAndRecordSourceHashesEqualAcrossStages": true
+  },
+  "comparison": [
+    {
+      "groups": 4,
+      "blocks": 7,
+      "bindings": 16,
+      "mounts": 4,
+      "retainedAssertions": 49,
+      "recordVersusSameStageManual": [
+        {
+          "stage": "initial-tuple",
+          "addedInstantiations": 15738,
+          "instantiationsPercent": 0.9293,
+          "addedTypes": 1363,
+          "typesPercent": 1.3345
+        },
+        {
+          "stage": "normalized-union-array",
+          "addedInstantiations": -22805,
+          "instantiationsPercent": -1.3312,
+          "addedTypes": -4864,
+          "typesPercent": -4.6194
+        },
+        {
+          "stage": "final-host-fix",
+          "addedInstantiations": -22805,
+          "instantiationsPercent": -1.3312,
+          "addedTypes": -4864,
+          "typesPercent": -4.6194
+        },
+        {
+          "stage": "final-hybrid-guards",
+          "addedInstantiations": -23065,
+          "instantiationsPercent": -1.3461,
+          "addedTypes": -5048,
+          "typesPercent": -4.7844
+        }
+      ]
+    },
+    {
+      "groups": 8,
+      "blocks": 11,
+      "bindings": 32,
+      "mounts": 8,
+      "retainedAssertions": 93,
+      "recordVersusSameStageManual": [
+        {
+          "stage": "initial-tuple",
+          "addedInstantiations": 29642,
+          "instantiationsPercent": 0.9242,
+          "addedTypes": 3031,
+          "typesPercent": 1.9397
+        },
+        {
+          "stage": "normalized-union-array",
+          "addedInstantiations": -30457,
+          "instantiationsPercent": -0.9407,
+          "addedTypes": -6624,
+          "typesPercent": -4.1107
+        },
+        {
+          "stage": "final-host-fix",
+          "addedInstantiations": -30457,
+          "instantiationsPercent": -0.9407,
+          "addedTypes": -6624,
+          "typesPercent": -4.1107
+        },
+        {
+          "stage": "final-hybrid-guards",
+          "addedInstantiations": -30865,
+          "instantiationsPercent": -0.9531,
+          "addedTypes": -6904,
+          "typesPercent": -4.2758
+        }
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "label": "initial-tuple",
+      "receipt": "/private/tmp/foldkit-record-performance-20261107-Avyo7U/receipt.json",
+      "receiptSha256": "0112fcc8152b7ef059c8cc1ad4c6fdc531ce7cbb673f80b579228b2ff1546723",
+      "node": "v22.22.3",
+      "compiler": "7.1.0-beta",
+      "checkerSha256": "7901c169f107cb479aceb9664340deb500a409b1c0fe669169585a1bf19929d0",
+      "sourceSha256": "c9633a43c8bcb7c5514beaf4caa88f62f2f2acf1c10597acde832e057717e9c3",
+      "distributionSha256": "fdac5ba85ae567fe8fd35f1acd5ddfc99789c3b968af10cf208bb2c5ce546dbf",
+      "measurements": [
+        {
+          "mode": "manual",
+          "fixture": "workspace-composition-4",
+          "instantiations": 1693599,
+          "types": 102138,
+          "maxInstantiations": 1609171,
+          "maxTypes": 117873,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "b3f6e41d84a2a43f88ad52f8d68870a61bb8f6290055f57e9aea6b7de886e256"
+        },
+        {
+          "mode": "record",
+          "fixture": "workspace-composition-4",
+          "instantiations": 1709337,
+          "types": 103501,
+          "maxInstantiations": 1609171,
+          "maxTypes": 117873,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "6ee74b50fb724b7586381eaed521f3d4d907a28b27b352d1fe31f49b431b846f"
+        },
+        {
+          "mode": "manual",
+          "fixture": "workspace-composition-8",
+          "instantiations": 3207347,
+          "types": 156258,
+          "maxInstantiations": 2787171,
+          "maxTypes": 160966,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "b384148ed9d3bf0b58f330cd17c19a9596025709edda0a69a120a26696b6668b"
+        },
+        {
+          "mode": "record",
+          "fixture": "workspace-composition-8",
+          "instantiations": 3236989,
+          "types": 159289,
+          "maxInstantiations": 2787171,
+          "maxTypes": 160966,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "e47c15a85cfe207d1f2d68d4f65739870acb44a64a10a193058513a33599776c"
+        }
+      ],
+      "originalSourcesUnchanged": true,
+      "frameworkDistUnchanged": true
+    },
+    {
+      "label": "normalized-union-array",
+      "receipt": "/private/tmp/foldkit-record-normalized-performance-j4o2lvqw/receipt.json",
+      "receiptSha256": "690ab1e8888ec5f536e5b7661510289cb4b3fe4a7f624dd0920adc9dd8d3197b",
+      "node": "v22.22.3",
+      "compiler": "7.1.0-beta",
+      "checkerSha256": "7901c169f107cb479aceb9664340deb500a409b1c0fe669169585a1bf19929d0",
+      "sourceSha256": "c9633a43c8bcb7c5514beaf4caa88f62f2f2acf1c10597acde832e057717e9c3",
+      "distributionSha256": "80f6a6fb8eb990d070d6c098f58c30be1f8d92a17cc567c7e7669e895626ce16",
+      "measurements": [
+        {
+          "mode": "manual",
+          "fixture": "workspace-composition-4",
+          "instantiations": 1713100,
+          "types": 105295,
+          "maxInstantiations": 1609171,
+          "maxTypes": 117873,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "9c380bd8d17c170d7ac838d4e9fe6878b64693e4f6653359c77921e409922c94"
+        },
+        {
+          "mode": "record",
+          "fixture": "workspace-composition-4",
+          "instantiations": 1690295,
+          "types": 100431,
+          "maxInstantiations": 1609171,
+          "maxTypes": 117873,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "f404fa8f9dcfc79effd543f8c2c184a633aeb8b2ab26fdb36905c7c60ee7d25b"
+        },
+        {
+          "mode": "manual",
+          "fixture": "workspace-composition-8",
+          "instantiations": 3237604,
+          "types": 161139,
+          "maxInstantiations": 2787171,
+          "maxTypes": 160966,
+          "budgetStatus": "failed: Instantiations, Types",
+          "status": 1,
+          "logSha256": "b2780f0dc3e9422d86b8b9f369055269660b95211b3e77c21244b65425032bbf"
+        },
+        {
+          "mode": "record",
+          "fixture": "workspace-composition-8",
+          "instantiations": 3207147,
+          "types": 154515,
+          "maxInstantiations": 2787171,
+          "maxTypes": 160966,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "eae2d6824a91e88f8d2baa68d05e44843a8736ed0316b314986d225445d01628"
+        }
+      ],
+      "originalSourcesUnchanged": true,
+      "frameworkDistUnchanged": true
+    },
+    {
+      "label": "final-host-fix",
+      "receipt": "/private/tmp/foldkit-record-completion-performance-V8FjYk/receipt.json",
+      "receiptSha256": "fd46f4ec7f166d34c9618d2d3ad533b13b7fc16829cf78d6f8b0aa79c876a3c6",
+      "node": "v22.22.3",
+      "compiler": "7.1.0-beta",
+      "checkerSha256": "7901c169f107cb479aceb9664340deb500a409b1c0fe669169585a1bf19929d0",
+      "sourceSha256": "c9633a43c8bcb7c5514beaf4caa88f62f2f2acf1c10597acde832e057717e9c3",
+      "distributionSha256": "e76c647311e7c7e1b1160400856afcf30eb1ac706f50739f29ad9b8563820b8e",
+      "measurements": [
+        {
+          "mode": "manual",
+          "fixture": "workspace-composition-4",
+          "instantiations": 1713100,
+          "types": 105295,
+          "maxInstantiations": 1609171,
+          "maxTypes": 117873,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "9c380bd8d17c170d7ac838d4e9fe6878b64693e4f6653359c77921e409922c94"
+        },
+        {
+          "mode": "record",
+          "fixture": "workspace-composition-4",
+          "instantiations": 1690295,
+          "types": 100431,
+          "maxInstantiations": 1609171,
+          "maxTypes": 117873,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "f404fa8f9dcfc79effd543f8c2c184a633aeb8b2ab26fdb36905c7c60ee7d25b"
+        },
+        {
+          "mode": "manual",
+          "fixture": "workspace-composition-8",
+          "instantiations": 3237604,
+          "types": 161139,
+          "maxInstantiations": 2787171,
+          "maxTypes": 160966,
+          "budgetStatus": "failed: Instantiations, Types",
+          "status": 1,
+          "logSha256": "b2780f0dc3e9422d86b8b9f369055269660b95211b3e77c21244b65425032bbf"
+        },
+        {
+          "mode": "record",
+          "fixture": "workspace-composition-8",
+          "instantiations": 3207147,
+          "types": 154515,
+          "maxInstantiations": 2787171,
+          "maxTypes": 160966,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "eae2d6824a91e88f8d2baa68d05e44843a8736ed0316b314986d225445d01628"
+        }
+      ],
+      "originalSourcesUnchanged": true,
+      "frameworkDistUnchanged": true
+    },
+    {
+      "label": "final-hybrid-guards",
+      "receipt": "/private/tmp/foldkit-record-completion-performance-VSNUTW/receipt.json",
+      "receiptSha256": "f117158c02dd8aa3ed42b15d867e27b326b5dc10c8ae8ee3c920de35544341dd",
+      "node": "v22.22.3",
+      "compiler": "7.1.0-beta",
+      "checkerSha256": "7901c169f107cb479aceb9664340deb500a409b1c0fe669169585a1bf19929d0",
+      "sourceSha256": "c9633a43c8bcb7c5514beaf4caa88f62f2f2acf1c10597acde832e057717e9c3",
+      "distributionSha256": "330adc14f67f594e8f22a89c40f3ffc7ca606f1372e33954550b645701ea5924",
+      "measurements": [
+        {
+          "mode": "manual",
+          "fixture": "workspace-composition-4",
+          "instantiations": 1713509,
+          "types": 105510,
+          "maxInstantiations": 1609171,
+          "maxTypes": 117873,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "c6790b4f11cdd304cf1e74d4eabb39b8890ce6dfabdf3c237a2c8ebee23cc564"
+        },
+        {
+          "mode": "record",
+          "fixture": "workspace-composition-4",
+          "instantiations": 1690444,
+          "types": 100462,
+          "maxInstantiations": 1609171,
+          "maxTypes": 117873,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "b32c96ef346f8716ad46c9660ad8df3c0c7a61bd77a400cdc03be62b4cebd4a8"
+        },
+        {
+          "mode": "manual",
+          "fixture": "workspace-composition-8",
+          "instantiations": 3238245,
+          "types": 161466,
+          "maxInstantiations": 2787171,
+          "maxTypes": 160966,
+          "budgetStatus": "failed: Instantiations, Types",
+          "status": 1,
+          "logSha256": "59b3e07e48a875284ec782583d88f00bbb0bd1c78e38b43c6d87bd82980b42c3"
+        },
+        {
+          "mode": "record",
+          "fixture": "workspace-composition-8",
+          "instantiations": 3207380,
+          "types": 154562,
+          "maxInstantiations": 2787171,
+          "maxTypes": 160966,
+          "budgetStatus": "failed: Instantiations",
+          "status": 1,
+          "logSha256": "f54f9f5d046676e5551e784864ac5348c361fda2c2d48719ccf06789ca0e721d"
+        }
+      ],
+      "originalSourcesUnchanged": true,
+      "frameworkDistUnchanged": true
+    }
+  ],
+  "activeOverloadControls": {
+    "initial": {
+      "receipt": "/private/tmp/foldkit-record-performance-20261107-Avyo7U/control-verified/active-overload-control.json",
+      "receiptSha256": "0098fdff78470b48607e592b6d0739356b9a109f0c928bd331f3cc9620d495f3",
+      "originalSha256": "fabc24e1a2799cd8ac1eaf89bb9b96d0f6a23e4913034d8bec9ed26675d13ba3",
+      "mutatedSha256": "53d42def1f2dee69e443bdb21b7f49b28a889e65b43153876f326a31ca7bd0b8",
+      "mutation": "Remove only the ordinary MakeLayer record overload from a separate copied declaration package",
+      "measurements": [
+        {
+          "mode": "record",
+          "fixture": "workspace-composition-4",
+          "status": 1,
+          "log": "/private/tmp/foldkit-record-performance-20261107-Avyo7U/control-verified/logs/record-no-record-overload-workspace-composition-4.log",
+          "logSha256": "fc267a4fcbdedef63e3a159703192f7b1a320633ec7cf51327a5ff0152d84de3",
+          "diagnosticFailure": true,
+          "intendedDiagnostic": "Seven original record makeLayer calls rejected with TS2345 after removing the record overload"
+        },
+        {
+          "mode": "manual",
+          "fixture": "workspace-composition-4",
+          "status": 1,
+          "log": "/private/tmp/foldkit-record-performance-20261107-Avyo7U/control-verified/logs/manual-no-record-overload-workspace-composition-4.log",
+          "logSha256": "dc4997f5eab0bd66d055bda05efba7c29ebf66a482e50a41ff30568ee1d7b33e",
+          "instantiations": 1690677,
+          "types": 101854,
+          "budgetStatus": "failed: Instantiations"
+        },
+        {
+          "mode": "manual",
+          "fixture": "workspace-composition-8",
+          "status": 1,
+          "log": "/private/tmp/foldkit-record-performance-20261107-Avyo7U/control-verified/logs/manual-no-record-overload-workspace-composition-8.log",
+          "logSha256": "663db0b279c2fb269e8b4d284f03f2c8f8ab9387c4140199f1809c1b5f31d644",
+          "instantiations": 3202321,
+          "types": 155810,
+          "budgetStatus": "failed: Instantiations"
+        }
+      ],
+      "frozenMeasuredPackageUnchanged": true
+    },
+    "final": [
+      {
+        "mutation": "Remove only the ordinary MakeLayer record overload in a separate declaration copy",
+        "file": "experimental/contracted/unified.d.ts",
+        "originalSha256": "79ace5ecde6487cf621fab6764b64a8bd9e150ba4fedd427fe3a81c1ad4ec3df",
+        "mutatedSha256": "fddfd6bfc2b8346033f30fbbb588509e76b41c5e45d049aae0e80d3cd3a2fbef"
+      },
+      {
+        "mode": "record-no-overload",
+        "fixture": "workspace-composition-4",
+        "startedAt": "2026-11-07T05:15:00.273Z",
+        "completedAt": "2026-11-07T05:15:01.488Z",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-record-completion-performance-VSNUTW/record-no-overload/scripts/check-block-type-performance.ts",
+          "workspace-composition-4"
+        ],
+        "log": "/private/tmp/foldkit-record-completion-performance-VSNUTW/logs/record-no-overload-workspace-composition-4.log",
+        "logSha256": "8ac8e41026512b7305df66a17a529bb14214130315a54d9cf7b0e962850830c0",
+        "diagnosticFailure": true,
+        "expectedRejectedRecordCalls": 7
+      },
+      {
+        "mode": "manual-no-overload",
+        "fixture": "workspace-composition-4",
+        "startedAt": "2026-11-07T05:15:01.493Z",
+        "completedAt": "2026-11-07T05:15:02.886Z",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-record-completion-performance-VSNUTW/manual-no-overload/scripts/check-block-type-performance.ts",
+          "workspace-composition-4"
+        ],
+        "log": "/private/tmp/foldkit-record-completion-performance-VSNUTW/logs/manual-no-overload-workspace-composition-4.log",
+        "logSha256": "6486d0c5cf9aeac580f670adeea4ea369c8eaebf54a8b85742614680049b3a84",
+        "instantiations": 1690878,
+        "maxInstantiations": 1609171,
+        "types": 102033,
+        "maxTypes": 117873,
+        "symbols": 173400,
+        "budgetStatus": "failed: Instantiations"
+      },
+      {
+        "mode": "manual-no-overload",
+        "fixture": "workspace-composition-8",
+        "startedAt": "2026-11-07T05:15:02.886Z",
+        "completedAt": "2026-11-07T05:15:04.500Z",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-record-completion-performance-VSNUTW/manual-no-overload/scripts/check-block-type-performance.ts",
+          "workspace-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-record-completion-performance-VSNUTW/logs/manual-no-overload-workspace-composition-8.log",
+        "logSha256": "6be6df7311a3e1682df5d65aeccfe1ccb2ba97d6ef843759bcd971f9d2eeb197",
+        "instantiations": 3202602,
+        "maxInstantiations": 2787171,
+        "types": 156069,
+        "maxTypes": 160966,
+        "symbols": 272463,
+        "budgetStatus": "failed: Instantiations"
+      }
+    ],
+    "initialControlWrapperCorrection": "The first wrapper expected a different diagnostic string after record-overload removal. Its rejected source log and wrapper remain in the initial run; control-verified checks the actual seven TS2345 constructor errors without changing measured sources.",
+    "finalBeforeHybridGuards": [
+      {
+        "mutation": "Remove only the ordinary MakeLayer record overload in a separate declaration copy",
+        "file": "experimental/contracted/unified.d.ts",
+        "originalSha256": "10a354b2782b088138260f2d592c87e70b10beecdc856311db6a97504ed0fd4c",
+        "mutatedSha256": "ed3f577fc9d3bb9e438a189920ebce432a63eb897c23047831a8cd821fc2ef26"
+      },
+      {
+        "mode": "record-no-overload",
+        "fixture": "workspace-composition-4",
+        "startedAt": "2026-11-07T04:58:54.954Z",
+        "completedAt": "2026-11-07T04:58:56.203Z",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-record-completion-performance-V8FjYk/record-no-overload/scripts/check-block-type-performance.ts",
+          "workspace-composition-4"
+        ],
+        "log": "/private/tmp/foldkit-record-completion-performance-V8FjYk/logs/record-no-overload-workspace-composition-4.log",
+        "logSha256": "e4918bf64e80ebefb7b7b25201babce6d600c1c95d6c2e92b7f4812d0a4c71e5",
+        "diagnosticFailure": true,
+        "expectedRejectedRecordCalls": 7
+      },
+      {
+        "mode": "manual-no-overload",
+        "fixture": "workspace-composition-4",
+        "startedAt": "2026-11-07T04:58:56.208Z",
+        "completedAt": "2026-11-07T04:58:57.595Z",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-record-completion-performance-V8FjYk/manual-no-overload/scripts/check-block-type-performance.ts",
+          "workspace-composition-4"
+        ],
+        "log": "/private/tmp/foldkit-record-completion-performance-V8FjYk/logs/manual-no-overload-workspace-composition-4.log",
+        "logSha256": "dc4997f5eab0bd66d055bda05efba7c29ebf66a482e50a41ff30568ee1d7b33e",
+        "instantiations": 1690677,
+        "maxInstantiations": 1609171,
+        "types": 101854,
+        "maxTypes": 117873,
+        "symbols": 173336,
+        "budgetStatus": "failed: Instantiations"
+      },
+      {
+        "mode": "manual-no-overload",
+        "fixture": "workspace-composition-8",
+        "startedAt": "2026-11-07T04:58:57.595Z",
+        "completedAt": "2026-11-07T04:58:59.228Z",
+        "status": 1,
+        "command": [
+          "/Users/devinjameson/.local/share/mise/installs/node/22.22.3/bin/node",
+          "/private/tmp/foldkit-record-completion-performance-V8FjYk/manual-no-overload/scripts/check-block-type-performance.ts",
+          "workspace-composition-8"
+        ],
+        "log": "/private/tmp/foldkit-record-completion-performance-V8FjYk/logs/manual-no-overload-workspace-composition-8.log",
+        "logSha256": "663db0b279c2fb269e8b4d284f03f2c8f8ab9387c4140199f1809c1b5f31d644",
+        "instantiations": 3202321,
+        "maxInstantiations": 2787171,
+        "types": 155810,
+        "maxTypes": 160966,
+        "symbols": 272367,
+        "budgetStatus": "failed: Instantiations"
+      }
+    ]
+  },
+  "nativeEightFixtureGate": {
+    "log": "/private/tmp/foldkit-record-performance-proof-final.log",
+    "sha256": "87c543c82162a01b7540c8b216f03bba7c7356bfb915f00eef9201176e54d515",
+    "rows": [
+      {
+        "fixture": "deep-composition-8",
+        "instantiations": 668962,
+        "types": 54028,
+        "budgetStatus": "ok"
+      },
+      {
+        "fixture": "wide-composition-100",
+        "instantiations": 1399757,
+        "types": 81490,
+        "budgetStatus": "ok"
+      },
+      {
+        "fixture": "command-requirements-200",
+        "instantiations": 344558,
+        "types": 64167,
+        "budgetStatus": "ok"
+      },
+      {
+        "fixture": "wide-subscriptions-100",
+        "instantiations": 548136,
+        "types": 23588,
+        "budgetStatus": "ok"
+      },
+      {
+        "fixture": "workspace-composition-4",
+        "instantiations": 1608927,
+        "types": 117788,
+        "budgetStatus": "ok"
+      },
+      {
+        "fixture": "workspace-composition-8",
+        "instantiations": 2786731,
+        "types": 160805,
+        "budgetStatus": "ok"
+      },
+      {
+        "fixture": "machine-search",
+        "instantiations": 69498,
+        "types": 13132,
+        "budgetStatus": "ok"
+      },
+      {
+        "fixture": "attribute-bundles-200",
+        "instantiations": 114226,
+        "types": 29369,
+        "budgetStatus": "ok"
+      }
+    ],
+    "scope": "These native makeDefinition workloads check dormant overload coexistence. Their pass does not establish record completion cost."
+  },
+  "limits": [
+    "Both canonical manual baselines already exceed the current native instantiation ceilings. Final canonical manual Workspace8 also exceeds the native Types ceiling by 500; the record version passes that Types ceiling. No ceiling is revised or accepted here.",
+    "Final normalized records use fewer instantiations and Types than their same-stage manual forms. The earlier tuple prototype used more. Stage distributions differ; cross-stage absolute differences are not attributed solely to normalization.",
+    "These are compiler counters, not editor latency, compilation-time or rendering measurements. Runtime, channel rejection, emitted and relocated safety checks remain separate evidence."
+  ]
+}

@@ -1,0 +1,148 @@
+{
+  "status": "artifact-comparison-only",
+  "candidateCommit": "1117a93316ff8111d402bffc995067476ec97983",
+  "priorCandidateCommit": "29b3f80e4048996e43f3d3b1262870a96c3b005b",
+  "currentArtifactReceipt": {
+    "file": "/private/tmp/foldkit-record-release-rendering-xpwmm820/final-artifact-receipt.json",
+    "sha256": "9e4713466acc76e4f063e257212f209bf8533828c92c36f6eab8cd49a9c2bbde"
+  },
+  "priorArtifactReceipt": {
+    "file": "/private/tmp/foldkit-preview-followup-rendering-20261106/final-artifact-receipt.json",
+    "sha256": "3e41c8bd65c33be3f3fcf75cdc707e7c7d46bdef628f8db2a52aabd6ae91a078"
+  },
+  "driverAndHarnessByteIdentical": true,
+  "allServedSlotAssetsByteIdentical": false,
+  "slots": {
+    "foldkit-main": {
+      "role": "main-naive",
+      "byteIdentical": true,
+      "currentFiles": [
+        {
+          "file": "assets/index-DN9U5aN7.js",
+          "sha256": "d3e37e9f695531f98727dadc3ead8bddd4b0bdb93f52b64029880c3d7a78adb4",
+          "bytes": 304187,
+          "gzipBytes": 99031
+        },
+        {
+          "file": "index.html",
+          "sha256": "88423c577762fde0c3243d17a5a6874a938ae913d260b29aa279ad3f7b1d223b",
+          "bytes": 678,
+          "gzipBytes": 381
+        }
+      ],
+      "priorFiles": [
+        {
+          "file": "assets/index-DN9U5aN7.js",
+          "sha256": "d3e37e9f695531f98727dadc3ead8bddd4b0bdb93f52b64029880c3d7a78adb4",
+          "bytes": 304187,
+          "gzipBytes": 99031
+        },
+        {
+          "file": "index.html",
+          "sha256": "88423c577762fde0c3243d17a5a6874a938ae913d260b29aa279ad3f7b1d223b",
+          "bytes": 678,
+          "gzipBytes": 381
+        }
+      ]
+    },
+    "foldkit-preview-final": {
+      "role": "candidate-naive",
+      "byteIdentical": false,
+      "currentFiles": [
+        {
+          "file": "assets/index-ZmDGH17y.js",
+          "sha256": "445b31212df9efe25ce6e81fe60cb7a5dfc583c46fc098dd84de40e234e9d146",
+          "bytes": 475519,
+          "gzipBytes": 147123
+        },
+        {
+          "file": "index.html",
+          "sha256": "fea15086113640134efec42cff0358ba2e9631a74663f66a44623b55fae81fa7",
+          "bytes": 678,
+          "gzipBytes": 382
+        }
+      ],
+      "priorFiles": [
+        {
+          "file": "assets/index-DmiGb-xu.js",
+          "sha256": "cc903b683385320f4a22a8846cac2e83f3cd5437a69ad34b617c48333126f0f4",
+          "bytes": 474721,
+          "gzipBytes": 146915
+        },
+        {
+          "file": "index.html",
+          "sha256": "1d75c6b6d11e17fd7827fcbee6c1239d4dfeda7d7bb1487bb59558eba64c1d3e",
+          "bytes": 678,
+          "gzipBytes": 379
+        }
+      ]
+    },
+    "foldkit-main-optimised": {
+      "role": "main-optimized",
+      "byteIdentical": true,
+      "currentFiles": [
+        {
+          "file": "assets/index.optimised-UkWhNSKN.js",
+          "sha256": "852eddbf31ec2d3274568f1f0d503dfeabc6e181c8d2361489b435b13ce14ded",
+          "bytes": 306590,
+          "gzipBytes": 99741
+        },
+        {
+          "file": "index.html",
+          "sha256": "14df3403d117b54927b7a9af43be15d67f365dceb3d1ab1c335e7611b9fb5027",
+          "bytes": 700,
+          "gzipBytes": 394
+        }
+      ],
+      "priorFiles": [
+        {
+          "file": "assets/index.optimised-UkWhNSKN.js",
+          "sha256": "852eddbf31ec2d3274568f1f0d503dfeabc6e181c8d2361489b435b13ce14ded",
+          "bytes": 306590,
+          "gzipBytes": 99741
+        },
+        {
+          "file": "index.html",
+          "sha256": "14df3403d117b54927b7a9af43be15d67f365dceb3d1ab1c335e7611b9fb5027",
+          "bytes": 700,
+          "gzipBytes": 394
+        }
+      ]
+    },
+    "foldkit-preview-final-optimised": {
+      "role": "candidate-optimized",
+      "byteIdentical": false,
+      "currentFiles": [
+        {
+          "file": "assets/index.optimised-4XrqNWmx.js",
+          "sha256": "c6802c60c7eccbfb7bbd04f760bb0a9e8e7fc3db2f4945edcf880cca340036ce",
+          "bytes": 482112,
+          "gzipBytes": 148452
+        },
+        {
+          "file": "index.html",
+          "sha256": "9e3a2550ac93df9bce77f9da42eb553c7f56ed6505680843403095f047fe50af",
+          "bytes": 700,
+          "gzipBytes": 395
+        }
+      ],
+      "priorFiles": [
+        {
+          "file": "assets/index.optimised-DVnsESzc.js",
+          "sha256": "67c6b8459359fabf4bf14e662265021e5ca9666cc1991b851d804ebedea0e1b7",
+          "bytes": 481314,
+          "gzipBytes": 148252
+        },
+        {
+          "file": "index.html",
+          "sha256": "46ba88ff8bf4499ddf1012db5e16f7d676ce7bb7120991ae8993778cbb694242",
+          "bytes": 700,
+          "gzipBytes": 392
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "No new timing or functional-browser evidence is produced by this comparison. Prior timing remains historical; exact served-byte equality can link it to the final candidate. Changed assets require fresh paired measurement."
+  ]
+}

@@ -27,19 +27,14 @@ export const LabelEditorBlock = Block.make('LabelEditor', {
 const { makeComposition } = LabelEditorBlock
 const LabelEditorComposition = makeComposition()
 
-export const layer = LabelEditorBlock.makeLayer(
-  Effect.succeed({
-    children: [],
-    init: LabelEditorComposition.makeInit(() => ({
-      model: Model.make({ label: '' }),
-    })),
-    update: LabelEditorComposition.makeUpdate({
-      SubmittedLabel: (model, { label }) => ({
-        model: modifyFields(model, { label: () => label }),
-      }),
+export const layer = LabelEditorBlock.makeLayer({
+  init: LabelEditorComposition.makeInit(() => ({
+    model: Model.make({ label: '' }),
+  })),
+  update: LabelEditorComposition.makeUpdate({
+    SubmittedLabel: (model, { label }) => ({
+      model: modifyFields(model, { label: () => label }),
     }),
-    view: LabelEditorComposition.makeView((model, h) =>
-      h.div([], [model.label]),
-    ),
   }),
-)
+  view: LabelEditorComposition.makeView((model, h) => h.div([], [model.label])),
+})

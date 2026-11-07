@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -97,15 +97,8 @@ const view = ActivityFeedComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = ActivityFeedBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ActivityFeedComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(VirtualList.layer))
+export const layer = ActivityFeedBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(VirtualList.layer))

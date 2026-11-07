@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -127,15 +127,8 @@ const view = AnimatedDialogExampleComposition.makeView((model, h) => {
   )
 })
 
-export const layer = AnimatedDialogExampleBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* AnimatedDialogExampleComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Dialog.layer))
+export const layer = AnimatedDialogExampleBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Dialog.layer))

@@ -118,17 +118,10 @@ const parentInit = DragAndDropTestParentComposition.makeInit(() => ({
 }))
 const ParentBlock = {
   block: DragAndDropTestParentBlock,
-  layer: DragAndDropTestParentBlock.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* DragAndDropTestParentComposition.acquireChildren()
-
-      return {
-        children,
-        init: parentInit,
-        update,
-      }
-    }),
-  ).pipe(Layer.provide(layer)),
+  layer: DragAndDropTestParentBlock.makeLayer({
+    init: parentInit,
+    update,
+  }).pipe(Layer.provide(layer)),
 }
 const NestedParentBlock = DragAndDropTestParentBlock
 const OtherDragAndDropKey = Symbol('OtherDragAndDrop')
@@ -397,18 +390,10 @@ const NestedBlockInit = NestedDragAndDropTestParentComposition.makeInit(() => ({
 }))
 const NestedBlock = {
   block: NestedDragAndDropTestParentBlock,
-  layer: NestedDragAndDropTestParentBlock.makeLayer(
-    Effect.gen(function* () {
-      const children =
-        yield* NestedDragAndDropTestParentComposition.acquireChildren()
-
-      return {
-        children,
-        init: NestedBlockInit,
-        update: nestedUpdate,
-      }
-    }),
-  ).pipe(Layer.provide(ParentBlock.layer)),
+  layer: NestedDragAndDropTestParentBlock.makeLayer({
+    init: NestedBlockInit,
+    update: nestedUpdate,
+  }).pipe(Layer.provide(ParentBlock.layer)),
 }
 
 describe('DragAndDrop.test nested ancestor selection', () => {
@@ -519,18 +504,10 @@ const KeyedBlockInit = KeyedDragAndDropTestParentComposition.makeInit(() => ({
 }))
 const KeyedBlock = {
   block: KeyedDragAndDropTestParentBlock,
-  layer: KeyedDragAndDropTestParentBlock.makeLayer(
-    Effect.gen(function* () {
-      const children =
-        yield* KeyedDragAndDropTestParentComposition.acquireChildren()
-
-      return {
-        children,
-        init: KeyedBlockInit,
-        update: keyedUpdate,
-      }
-    }),
-  ).pipe(Layer.provide(layer)),
+  layer: KeyedDragAndDropTestParentBlock.makeLayer({
+    init: KeyedBlockInit,
+    update: keyedUpdate,
+  }).pipe(Layer.provide(layer)),
 }
 
 if (false) {

@@ -108,17 +108,10 @@ const parentInit = ToastFixtureParentComposition.makeInit(() => ({
 }))
 const ParentBlock = {
   block: ToastFixtureParentBlock,
-  layer: ToastFixtureParentBlock.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* ToastFixtureParentComposition.acquireChildren()
-
-      return {
-        children,
-        init: parentInit,
-        update,
-      }
-    }),
-  ).pipe(Layer.provide(Toast.layer)),
+  layer: ToastFixtureParentBlock.makeLayer({
+    init: parentInit,
+    update,
+  }).pipe(Layer.provide(Toast.layer)),
 }
 
 const KeyedToastSlot = Schema.Struct({
@@ -188,18 +181,10 @@ const keyedInit = KeyedToastFixtureParentComposition.makeInit(() => ({
 }))
 const KeyedParentBlock = {
   block: KeyedToastFixtureParentBlock,
-  layer: KeyedToastFixtureParentBlock.makeLayer(
-    Effect.gen(function* () {
-      const children =
-        yield* KeyedToastFixtureParentComposition.acquireChildren()
-
-      return {
-        children,
-        init: keyedInit,
-        update: keyedUpdate,
-      }
-    }),
-  ).pipe(Layer.provide(Toast.layer)),
+  layer: KeyedToastFixtureParentBlock.makeLayer({
+    init: keyedInit,
+    update: keyedUpdate,
+  }).pipe(Layer.provide(Toast.layer)),
 }
 
 const makeParentFixture = (block: Story.TestBlock<typeof ParentBlock>) => ({

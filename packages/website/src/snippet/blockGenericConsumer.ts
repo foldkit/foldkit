@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Schema } from 'effect'
+import { Array, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -60,15 +60,8 @@ const view = FruitSelectionComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = FruitSelectionBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* FruitSelectionComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(PickerLayer))
+export const layer = FruitSelectionBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(PickerLayer))

@@ -86,16 +86,11 @@ const constructPicker = <Value extends string>({
   update,
   view,
 }: PickerAuthoring<Value>) =>
-  PickerDefinition.makeLayer(
-    Effect.gen(function* () {
-      return {
-        children: [],
-        init,
-        update,
-        view,
-      }
-    }),
-  )
+  PickerDefinition.makeLayer({
+    init,
+    update,
+    view,
+  })
 
 interface PickerImplementation extends Block.FamilyLifetime {
   readonly construct: typeof constructPicker

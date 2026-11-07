@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -153,15 +153,8 @@ const view = ProjectDialogsComposition.makeView((model, h) => {
   return h.div([], [settingsDialogViewNode, confirmDialogViewNode])
 })
 
-export const layer = ProjectDialogsBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ProjectDialogsComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Dialog.layer))
+export const layer = ProjectDialogsBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Dialog.layer))

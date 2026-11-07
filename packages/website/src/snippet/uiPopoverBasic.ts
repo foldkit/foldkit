@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -125,15 +125,8 @@ const view = PopoverExampleComposition.makeView((model, h) => {
   )
 })
 
-export const layer = PopoverExampleBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* PopoverExampleComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Popover.layer))
+export const layer = PopoverExampleBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Popover.layer))

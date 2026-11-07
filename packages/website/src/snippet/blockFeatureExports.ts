@@ -25,7 +25,6 @@ export const SettingsBlock = Block.make('Settings', {
 })
 
 // blocks/settings/layer.ts
-import { Effect } from 'effect'
 
 import { SettingsBlock } from './block'
 import { EffectsLayer } from './effectsLayer'
@@ -34,18 +33,13 @@ import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const layer = SettingsBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = SettingsBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+  EffectsLayer,
+})
 
 // blocks/settings/index.ts
 export { SettingsBlock, SettingsKey } from './block'

@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Schema } from 'effect'
+import { Array, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -124,15 +124,8 @@ const view = PeoplePickerComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = PeoplePickerBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* PeoplePickerComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Listbox.Multi.layer))
+export const layer = PeoplePickerBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Listbox.Multi.layer))

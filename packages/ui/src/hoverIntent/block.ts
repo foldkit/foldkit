@@ -371,18 +371,13 @@ export const view = HoverIntentComposition.makeView.withInputs(
 )
 
 /** Constructs the HoverIntent implementation without starting occurrence effects. */
-export const layer = HoverIntentBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = HoverIntentBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+  EffectsLayer,
+})
 
 /** @internal Selected implementation used by component tests. */
 export const block = { block: HoverIntentBlock, layer }

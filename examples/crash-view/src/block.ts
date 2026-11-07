@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block, Runtime } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -114,13 +114,8 @@ export const crashView = (
   ),
 })
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+})

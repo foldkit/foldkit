@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Program from 'foldkit/program'
@@ -24,32 +24,25 @@ const EditorBinding = makeRequiredFieldBinding(LabelEditorBlock, {
 })
 const ApplicationComposition = makeComposition({ bindings: [EditorBinding] })
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ApplicationComposition.acquireChildren()
-
-    return {
-      children,
-      init: ApplicationComposition.makeInit(() => ({ model: {} })),
-      update: ApplicationComposition.makeUpdate({
-        ClickedReload: makeNoopStep(),
-      }),
-      view: ApplicationComposition.makeView((model, h) =>
-        h.div(
-          [],
-          [
-            h.block(
-              EditorBinding.embedView({
-                slotId: 'editor',
-                model: model.editor,
-              }),
-            ),
-          ],
-        ),
-      ),
-    }
+export const layer = ApplicationBlock.makeLayer({
+  init: ApplicationComposition.makeInit(() => ({ model: {} })),
+  update: ApplicationComposition.makeUpdate({
+    ClickedReload: makeNoopStep(),
   }),
-).pipe(Layer.provide(editorLayer))
+  view: ApplicationComposition.makeView((model, h) =>
+    h.div(
+      [],
+      [
+        h.block(
+          EditorBinding.embedView({
+            slotId: 'editor',
+            model: model.editor,
+          }),
+        ),
+      ],
+    ),
+  ),
+}).pipe(Layer.provide(editorLayer))
 
 export const dispatchProgram = Program.makeElement({
   block: ApplicationBlock,

@@ -1011,18 +1011,13 @@ export const maybeDropTarget = (model: Model): Option.Option<DropTarget> =>
   )
 
 /** Constructs the DragAndDrop implementation without starting occurrence effects. */
-export const layer = DragAndDropBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      subscriptions,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = DragAndDropBlock.makeLayer({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
+})
 
 /** @internal Selected implementation used by component tests. */
 export const block = { block: DragAndDropBlock, layer }

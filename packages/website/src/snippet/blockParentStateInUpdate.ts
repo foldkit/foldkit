@@ -1,4 +1,4 @@
-import { Array, Effect, Schema } from 'effect'
+import { Array, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -52,16 +52,11 @@ const accountSettingsView = AccountSettingsComposition.makeView((model, h) =>
   h.p([], [`${model.theme}; audit: ${Array.join(model.auditTrail, ', ')}`]),
 )
 
-const layer = AccountSettingsBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init: accountSettingsInit,
-      update: accountSettingsUpdate,
-      view: accountSettingsView,
-    }
-  }),
-)
+const layer = AccountSettingsBlock.makeLayer({
+  init: accountSettingsInit,
+  update: accountSettingsUpdate,
+  view: accountSettingsView,
+})
 
 const ProfileModel = Schema.Struct({
   currentUser: CurrentUser,

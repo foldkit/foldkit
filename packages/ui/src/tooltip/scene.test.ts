@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import * as Scene from 'foldkit/scene'
 import { expect } from 'vitest'
@@ -78,18 +78,11 @@ const panel = Scene.selector('#test-panel')
 
 const tooltipScene = {
   block: TooltipSceneBlock,
-  layer: TooltipSceneBlock.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* TooltipSceneComposition.acquireChildren()
-
-      return {
-        children,
-        init,
-        update,
-        view: rootView,
-      }
-    }),
-  ).pipe(Layer.provide(layer)),
+  layer: TooltipSceneBlock.makeLayer({
+    init,
+    update,
+    view: rootView,
+  }).pipe(Layer.provide(layer)),
 }
 
 describe('Tooltip', () => {

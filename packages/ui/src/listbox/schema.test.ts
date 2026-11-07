@@ -138,17 +138,10 @@ const parentInit = ListboxSchemaParentComposition.makeInit(() => ({
   },
 }))
 const parentUpdate = ListboxSchemaParentComposition.makeUpdate({})
-const parentLayer = ListboxSchemaParentBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ListboxSchemaParentComposition.acquireChildren()
-
-    return {
-      children,
-      init: parentInit,
-      update: parentUpdate,
-    }
-  }),
-).pipe(Layer.provide(Listbox.layer))
+const parentLayer = ListboxSchemaParentBlock.makeLayer({
+  init: parentInit,
+  update: parentUpdate,
+}).pipe(Layer.provide(Listbox.layer))
 
 describe('Listbox Value Schemas', () => {
   it('uses a literal Value Codec for every selection channel', () => {

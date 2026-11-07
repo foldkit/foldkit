@@ -465,17 +465,12 @@ const internalView = RadioGroupComposition.makeView.withInputs(
 )
 
 /** @internal Checked canonical implementation for scoped library tests. */
-const canonicalLayer = RadioGroupBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view: internalView,
-      EffectsLayer,
-    }
-  }),
-)
+const canonicalLayer = RadioGroupBlock.makeLayer({
+  init,
+  update,
+  view: internalView,
+  EffectsLayer,
+})
 
 /** Constructs the implementation shared by all type-only RadioGroup specializations. */
 type CanonicalIdentity = Block.SelectedPublicIdentity<typeof RadioGroupBlock>

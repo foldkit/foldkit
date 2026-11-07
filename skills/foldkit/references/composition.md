@@ -13,29 +13,27 @@ Its parent owns integration policy: where the child Model is stored, whether an
 occurrence exists, when child delivery is accepted, what OutMessages mean to
 the parent, and where the child renders.
 
-The Block declaration establishes the public contract and typed helpers. The Composition supplies static relationship information for portable typed builders. A Layer-owned constructor acquires the implementations that execute those relationships.
+The Block declaration establishes the public contract and typed helpers. The Composition supplies static relationship information for portable typed builders. Ordinary record completion acquires the implementations registered by init's Composition.
 
 Declare an independent public contract before its implementation. `Block.make` binds a stable module-level unique `key`, Model, local Message, optional OutMessage, and an `InitArgs` tuple. Add a `Context` tuple for dispatch context, `ChildInitContext` for deferred child startup, and a `view` descriptor when the Block renders. A serializable tuple uses `Schema.Tuple`; callbacks or other deliberately nonserialized inputs use `Block.makeInputContract<...>()`.
 
-When construction only collects registered child implementations, acquire their
-exact tuple with `const children = yield* FeatureComposition.acquireChildren()`.
-Leave a blank line before returning the implementation with `children` shorthand.
-The helper preserves Binding order, Layer requirements, errors, identities and
-construction Scope; it does not evaluate init arguments, create Models or start
-handlers and lifecycles. Keep individual Binding yields when construction uses
-their handles. A childless constructor can keep `children: []`.
+Complete ordinary implementations with
+`FeatureBlock.makeLayer({ init, update, view, ... })`. Init selects the exact
+Composition graph and Foldkit acquires its registered Binding inventory while
+preserving requirements, errors, identities and construction Scope. Do not add
+`children`, `bindings`, or an Effect wrapper to this form.
 
 Export the same `FooBlock` declaration for parent authorship. Parents derive Schemas from `FooBlock.Model`, configure Bindings, author extracted Steps, and render through their Composition without importing the child implementation. The key identifies the contract; the readable Block name is a label and may repeat across independent modules. Declare one unique key at module scope. When verified declaration emission needs a Block’s unique-symbol identity, export its original key declaration from the owning module. A public barrel may re-export it with `export type` when downstream declarations only need to name that identity.
 
 A Block feature's explicit barrel exposes its passive Block, construction `layer`, stable read-only queries, and necessary public Schema/type contracts. A child may expose pure read-only selectors such as `isComplete` and `hasErrors`; the parent passes the child Model and the child owns interpreting its fields. Keep substantial selectors with their responsibility, such as `validation.ts`, rather than exporting them from update. These ordinary exports are independent of implementation Layer selection, so give them stable semantics over the public Model. Keep authoring helpers and update implementations internal. Do not copy derived values into parent state or introduce Messages solely to read them.
 
-Complete the implementation with `FooBlock.makeLayer(Effect.gen(function* () { ... }))`. Yield each registered Binding, then return the acquired connections under `children`, together with init, update, view and local lifecycle/handler declarations. Static Composition configuration still uses `bindings`. Provide child implementations with ordinary Layer composition: `FooBlock.makeLayer(...).pipe(Layer.provide(Child.layer))`. A feature barrel exports the passive `FooBlock` and the implementation `layer`; the root exports the same `ApplicationBlock` declaration and its `layer` for paired Program or Server hosting.
+Use `FooBlock.makeLayer(Effect.gen(...))` only when graph construction has genuine dependencies, scoped resources, or needs acquired handles. That form remains explicit: yield individual Bindings when their handles are used, or optionally call `FooComposition.acquireChildren()` for the complete registered inventory, then return `children` with init, update, view and local lifecycle/handler declarations. It never mixes automatic acquisition with that explicit result; `children` is the complete selected inventory. A childless custom constructor returns `children: []`. Provide child implementations separately with ordinary Layer composition: `FooBlock.makeLayer(...).pipe(Layer.provide(Child.layer))`. A feature barrel exports the passive `FooBlock` and the implementation `layer`; the root exports the same `ApplicationBlock` declaration and its `layer` for paired Program or Server hosting.
 
-Leave one blank line between the Binding acquisition group and `return`. Write each returned implementation field on its own line, even when the record would fit on one line. Use the same layout for graphless Blocks.
+In a custom Effect constructor, leave one blank line between the Binding acquisition group and `return`. Write each returned implementation field on its own line, even when the record would fit on one line.
 
 Name field-backed Bindings after their Model field in PascalCase with the `Binding` suffix: `activeMemberListbox` becomes `ActiveMemberListboxBinding`, and `issueDetails` becomes `IssueDetailsBinding`. Preserve optional prefixes, plurals, and role words. For wrapped storage, include the nested child role when the container alone would hide it, such as `entries[].animation` becoming `EntriesAnimationBinding`. Custom and whole-variant storage use a meaningful relationship name. A necessary private pre-policy value uses `Base<Field>Binding`; the policy-complete value keeps the canonical field name.
 
-Inline single-use `bindings` and constructor `children` arrays at their registration sites. Export one policy-complete Binding for each relationship and acquire that same Binding in the constructor. Keep a necessary base Binding internal when reciprocal policies or self-directed operations need to break a dependency cycle. A Binding registers the relationship to a child contract; the supplied child Layer constructs its implementation.
+Inline single-use `bindings` at their registration sites. Export one policy-complete Binding for each relationship. Keep a necessary base Binding internal when reciprocal policies or self-directed operations need to break a dependency cycle. A Binding registers the relationship to a child contract; the supplied child Layer constructs its implementation.
 
 Prefer plain array literals wherever contextual typing preserves the required element or tuple types. Use `Tuple.make` only when a value or producer would otherwise widen and lose necessary tuple typing. Do not add it to `children`, `bindings`, or initializer arguments by default.
 
@@ -65,19 +63,10 @@ const update = SettingsComposition.makeUpdate({
 })
 const view = SettingsComposition.makeView((model, h) => h.p([], [model.theme]))
 
-export const layer = SettingsBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-    }
-  }),
-)
+export const layer = SettingsBlock.makeLayer({ init, update, view })
 ```
 
-A graphless Block still uses a Composition and returns `children: []`. Use `makeUpdate({})` for an empty local Message union. A leaf with an empty complete dispatch contract declares `isMessageFree: true`; a routed-only parent omits that flag because child delivery is nonempty. An InMessage does not make the local dispatch contract nonempty. A viewless Block omits the view descriptor and implementation view. For a Document root, declare `view: { kind: 'Document' }` and return a Document from the canonical view. Do not return an operations record from the constructor.
+A graphless Block still uses a Composition and passes its portable plans directly to `makeLayer`. Use `makeUpdate({})` for an empty local Message union. A leaf with an empty complete dispatch contract declares `isMessageFree: true`; a routed-only parent omits that flag because child delivery is nonempty. An InMessage does not make the local dispatch contract nonempty. A viewless Block omits the view descriptor and implementation view. For a Document root, declare `view: { kind: 'Document' }` and return a Document from the canonical view. Do not pass an operations record to completion.
 
 ## Composing updates
 
@@ -108,7 +97,7 @@ Shared `each`, `on`, and `except` pieces cannot emit OutMessages. Handler record
 
 Declare an ordinary optional `InMessage` Schema with `defineInMessageUnion` for requests and notifications a parent can initiate. Keep local Message and OutMessage unions on `defineMessageUnion`. The InMessage helper returns the same MessageUnion constructors, Schema, and exhaustive matcher, without adding a brand. It rejects invalid literal names at the offending property, retains validation for extracted literal case records, and repeats the check at runtime when JavaScript or type erasure hides the keys. Other Schema forms remain valid InMessage contracts subject to Block's existing constructor and tag validation. Its tags are disjoint from local `Message`: `RequestedSubmit` generates `Binding.requestSubmit()`, and `InformedOfIssueChanged` generates `Binding.informOfIssueChanged(payload)`. Fields use the variant constructor's exact payload contract. A keyed Binding takes its occurrence key first. Do not inflect or alias the generated names.
 
-Author an exhaustive `Composition.makeInMessageUpdate` record and return `inMessageUpdate` with init, update and view from `FeatureBlock.makeLayer`. Local UI facts and Command results remain in `makeUpdate`. Share a reusable Step in `steps.ts` when local `SubmittedForm` and received `RequestedSubmit` need the same transition. Sparse `inMessageOutputs` entries declare emitting OutMessage bounds and additional `services` or `managedResources`; an omitted entry is silent and adds no public requirements. Commands returned from inMessageUpdate produce local Messages, never InMessages.
+Author an exhaustive `Composition.makeInMessageUpdate` record and pass `inMessageUpdate` with init, update and view to `FeatureBlock.makeLayer`. Local UI facts and Command results remain in `makeUpdate`. Share a reusable Step in `steps.ts` when local `SubmittedForm` and received `RequestedSubmit` need the same transition. Sparse `inMessageOutputs` entries declare emitting OutMessage bounds and additional `services` or `managedResources`; an omitted entry is silent and adds no public requirements. Commands returned from inMessageUpdate produce local Messages, never InMessages.
 
 Declare a separate `InMessageContext` tuple and use `makeInMessageUpdate.withContext` for InMessage context. Binding methods take that context after the payload. The update `Context` and `delivery.toUpdateContext` do not supply it. InMessage handling remains synchronous and pure; it preserves the existing Binding's storage, OutMessage policy, occurrence identity and lifecycle. Acquisition does not call inMessageUpdate or initialize Model state.
 
@@ -214,7 +203,7 @@ callbacks remain invalid; move them to a top-level input rather than casting.
 ## Bind a child
 
 A storage-specific Binding constructor describes one relationship. Adding the Binding to
-`bindings` registers it. Binding construction is passive relationship configuration. In the constructor, `yield* SettingsBinding` acquires the Layer-provided child implementation and returns its exact connection; include that value under `children`. A missing child provider is a construction requirement, not an invented Model fallback.
+`bindings` registers it. Binding construction is passive relationship configuration. Ordinary record completion acquires the registered inventory automatically from init's Composition. In a custom Effect constructor that uses a child handle, `yield* SettingsBinding` acquires the Layer-provided implementation and its exact connection must appear under `children`. A missing child provider is a construction requirement, not an invented Model fallback.
 
 Choose the narrowest storage form that describes the parent Model:
 
@@ -643,16 +632,16 @@ Message, contracts, init, update, and other non-rendering ownership above it.
 
 ## Compose handlers and Services
 
-| Value                                 | Owns                                                                                                                 |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `FeatureBlock`                        | Independent Model, local Message, InMessage, InitArgs/Context, view inputs, operations and external effect contracts |
-| `FeatureComposition`                  | Static Binding/Mount inventory and typed init/update/inMessageUpdate/view builders                                   |
-| `FeatureBlock.makeLayer(constructor)` | Layer-owned acquisition of child implementations and checked completion                                              |
-| Feature `EffectsLayer`                | Locally owned handler recipes                                                                                        |
-| Feature `layer`                       | Construction provider for the public contract                                                                        |
-| Root `ApplicationLayer`               | Ordinary HTTP, storage, RPC, browser and other environment Services                                                  |
+| Value                                    | Owns                                                                                                                 |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `FeatureBlock`                           | Independent Model, local Message, InMessage, InitArgs/Context, view inputs, operations and external effect contracts |
+| `FeatureComposition`                     | Static Binding/Mount inventory and typed init/update/inMessageUpdate/view builders                                   |
+| `FeatureBlock.makeLayer(implementation)` | Automatic registered-child acquisition and checked completion; custom Effect construction when genuinely needed      |
+| Feature `EffectsLayer`                   | Locally owned handler recipes                                                                                        |
+| Feature `layer`                          | Construction provider for the public contract                                                                        |
+| Root `ApplicationLayer`                  | Ordinary HTTP, storage, RPC, browser and other environment Services                                                  |
 
-Return only local handler recipes as `EffectsLayer` from the Block constructor. Acquired child connections carry their own checked recipes and descendants. Supply each child's construction `layer`; do not merge the child's handler `EffectsLayer` again in the parent.
+Pass only local handler recipes as `EffectsLayer` in the Block implementation record. Acquired child connections carry their own checked recipes and descendants. Supply each child's construction `layer`; do not merge the child's handler `EffectsLayer` again in the parent.
 
 Keep a compact local `EffectsLayer` beside its definitions. A split feature composes the separate bundle in `effectsLayer.ts`. Preserve `Layer` for Effect's module; reserve `ApplicationLayer` for root ordinary Service providers. An attached Subscription registry exposes `subscriptions.layer`, and a fully attached ManagedResource registry exposes `managedResources.layer`; these are handler recipes, distinct from a feature's construction `layer`.
 
@@ -660,24 +649,17 @@ Keep a compact local `EffectsLayer` beside its definitions. A split feature comp
 
 Keep concrete HTTP, storage, RPC and browser providers open for the root by default. Execution tests retain production handlers and replace ordinary Services beneath them. A feature-owned Service may be provided beneath its local handler recipe, while an operation-owned provider may be scoped inside that invocation when per-dispatch ownership is intentional. Do not move loading, retry or expected acquisition failure out of the Model into startup construction merely to shorten update.
 
-Omit `handler` for an external host contract. Supply its implementation through the original definition's `toLayer`, preserving identity. Compose that provider into local `EffectsLayer`, or list the original definition under the constructor's `hostHandlers` and let the integrator select it with `layer.pipe(FeatureBlock.provideHandlers(HandlersLayer))` before hosting or scoped tests. Every possible selected Layer must provide all original handlers and fit the Block's effects bounds. Selection is passive, preserves child construction provisioning, and does not build handler Layers in pure Stories. The Block-owned selector checks the exact pending handlers of its construction Layer; an ordinary attached implementation uses its declared request Services. Declare external effects in the Block's `effects` contract, using exact ordinary Services, ManagedResource accessors and typed constructor errors. Generic libraries can use `Block.makeEffectsContract<E, R>()` when the effect channels come from generic code rather than a finite list of Service values.
+Omit `handler` for an external host contract. Supply its implementation through the original definition's `toLayer`, preserving identity. Compose that provider into local `EffectsLayer`, or list the original definition under the implementation's `hostHandlers` and let the integrator select it with `layer.pipe(FeatureBlock.provideHandlers(HandlersLayer))` before hosting or scoped tests. Every possible selected Layer must provide all original handlers and fit the Block's effects bounds. Selection is passive, preserves child construction provisioning, and does not build handler Layers in pure Stories. The Block-owned selector checks the exact pending handlers of its construction Layer; an ordinary attached implementation uses its declared request Services. Declare external effects in the Block's `effects` contract, using exact ordinary Services, ManagedResource accessors and typed constructor errors. Generic libraries can use `Block.makeEffectsContract<E, R>()` when the effect channels come from generic code rather than a finite list of Service values.
 
 At a root with a registered child:
 
 ```ts
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const settings = yield* SettingsBinding
-
-    return {
-      children: [settings],
-      init,
-      update,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Settings.layer))
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+  EffectsLayer,
+}).pipe(Layer.provide(Settings.layer))
 const program = Program.make({
   block: ApplicationBlock,
   layer,
@@ -692,14 +674,14 @@ The construction Layer and Program remain passive until an execution owner acqui
 
 Keep compact Blocks cohesive. In a split feature, `block.ts` owns contracts and a stable unique key and exports `FooBlock = Block.make(...)`. `composition.ts` imports only child contracts, owns Bindings, OutMessage policies, registration and its ViewBuilder alias. It does not import init, update, the primary view or child implementations. Portable builders may be inline, local values or imported complete expressions without changing their application types.
 
-`layer.ts` imports those builders and the child implementation Layers, completes the constructor and exports `layer`. The root's `layer.ts` may instead export the `ApplicationBlock` and its construction `layer` used by Program or Server. A feature's explicit `index.ts` exports its public contract and `layer`. Shared Steps live in `steps.ts` or a responsibility folder; keep reciprocal sibling policies together and defer cyclic Binding reads through callbacks.
+`layer.ts` imports those builders and the child implementation Layers, completes the implementation and exports `layer`. The root's `layer.ts` may instead export the `ApplicationBlock` and its construction `layer` used by Program or Server. A feature's explicit `index.ts` exports its public contract and `layer`. Shared Steps live in `steps.ts` or a responsibility folder; keep reciprocal sibling policies together and defer cyclic Binding reads through callbacks.
 
 Do not create a Block declaration or its key in an update, callback or loop. Generic library factories need a genuine provider family for runtime specialization; use the existing component implementations as precedents rather than adding per-instance IDs or application-owned caches.
 
 ## Review invariants
 
 - Public contracts establish their own identity, InitArgs/Context tuple, Model, Messages, view and operation/effect channels independently of implementation.
-- Every selected Binding is registered once, acquired in the constructor and returned under `children`; views embed only registered relationships.
+- Every selected Binding is registered once; ordinary completion acquires init's exact inventory automatically, while a custom Effect constructor returns every explicitly acquired connection under `children`. Views embed only registered relationships.
 - Extracted init/update/view/Steps depend on the static authoring contract and Composition, never a bag of constructor-local child instances.
 - Connected results and explicit Binding init recipes are preserved intact until graph execution.
 - Parent-driven transitions use Binding operations; generated delivery, occurrence keys and replacement admission stay with Foldkit.

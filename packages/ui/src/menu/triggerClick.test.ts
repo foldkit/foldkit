@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
@@ -64,18 +64,11 @@ const init = MenuTriggerClickTestComposition.makeInit(() => ({
 const update = MenuTriggerClickTestComposition.makeUpdate({})
 const ApplicationBlock = {
   block: MenuTriggerClickTestBlock,
-  layer: MenuTriggerClickTestBlock.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* MenuTriggerClickTestComposition.acquireChildren()
-
-      return {
-        children,
-        init,
-        update,
-        view,
-      }
-    }),
-  ).pipe(Layer.provide(MenuLayer)),
+  layer: MenuTriggerClickTestBlock.makeLayer({
+    init,
+    update,
+    view,
+  }).pipe(Layer.provide(MenuLayer)),
 }
 
 const requireElement = (id: string): HTMLElement => {

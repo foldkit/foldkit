@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchPeople } from './informingBlocksCommand'
@@ -33,14 +32,9 @@ export const inMessageUpdate = PeopleComposition.makeInMessageUpdate({
   },
 })
 
-export const layer = PeopleBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      EffectsLayer: FetchPeople.layer,
-    }
-  }),
-)
+export const layer = PeopleBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  EffectsLayer: FetchPeople.layer,
+})

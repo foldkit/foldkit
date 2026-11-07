@@ -1423,18 +1423,13 @@ export const view = CalendarComposition.makeView.withInputs(
 )
 
 /** Constructs the Calendar implementation without starting occurrence effects. */
-export const layer = CalendarBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = CalendarBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+  EffectsLayer,
+})
 
 /** @internal Selected implementation used by component tests. */
 export const block = { block: CalendarBlock, layer }

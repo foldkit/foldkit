@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -110,15 +110,8 @@ const view = TooltipExampleComposition.makeView((model, h) => {
   )
 })
 
-export const layer = TooltipExampleBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* TooltipExampleComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Tooltip.layer))
+export const layer = TooltipExampleBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Tooltip.layer))

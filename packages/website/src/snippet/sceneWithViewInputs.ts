@@ -67,18 +67,11 @@ const view = ApplicationComposition.makeView.withInputs<
 
 const init = ApplicationComposition.makeInit(() => ({ model: {} }))
 
-const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ApplicationComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Slider.layer))
+const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Slider.layer))
 
 await Effect.runPromise(
   Scene.scene(

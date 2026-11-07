@@ -1,0 +1,14 @@
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 584 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/naive/index.html                  0.67 kB │ gzip:   0.38 kB
+dist/naive/assets/index-ZmDGH17y.js  475.51 kB │ gzip: 148.31 kB
+
+✓ built in 176ms
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:14:27). Use `import.meta.dirname` instead
+  - import "../../examples/vite.aliases" without a file extension (vite.config.ts:5:32). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+<script src="/priv/instrumentation.js"> in "/index.html" can't be bundled without type="module" attribute

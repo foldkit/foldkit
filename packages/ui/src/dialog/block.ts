@@ -691,20 +691,13 @@ export const view = DialogComposition.makeView.withInputs(
   },
 )
 
-export const layer = DialogBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* DialogComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      EffectsLayer,
-    }
-  }),
-).pipe(Layer.provide(Animation.layer))
+export const layer = DialogBlock.makeLayer({
+  init,
+  update,
+  inMessageUpdate,
+  view,
+  EffectsLayer,
+}).pipe(Layer.provide(Animation.layer))
 
 /** @internal Selected implementation used by component tests. */
 export const block = { block: DialogBlock, layer }

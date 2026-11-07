@@ -1,4 +1,4 @@
-import { Effect, Layer } from 'effect'
+import { Layer } from 'effect'
 
 import {
   Animation,
@@ -21,25 +21,17 @@ import {
 } from '@foldkit/ui'
 
 import { UiBlock } from './block'
-import { UiComposition } from './composition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 import { FetchVirtualListChatHistory } from './virtualListChat'
 
-export const layer = UiBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* UiComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-      EffectsLayer: FetchVirtualListChatHistory.layer,
-    }
-  }),
-).pipe(
+export const layer = UiBlock.makeLayer({
+  init,
+  update,
+  view,
+  EffectsLayer: FetchVirtualListChatHistory.layer,
+}).pipe(
   Layer.provide(
     Layer.mergeAll(
       Animation.layer,

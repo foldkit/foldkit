@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import * as Scene from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
@@ -102,18 +102,11 @@ const init = RadioGroupSceneComposition.makeInit(maybeSelectedValue => ({
 }))
 const radioGroupScene = {
   block: RadioGroupSceneBlock,
-  layer: RadioGroupSceneBlock.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* RadioGroupSceneComposition.acquireChildren()
-
-      return {
-        children,
-        init,
-        update,
-        view: rootView,
-      }
-    }),
-  ).pipe(Layer.provide(RadioGroupLayer)),
+  layer: RadioGroupSceneBlock.makeLayer({
+    init,
+    update,
+    view: rootView,
+  }).pipe(Layer.provide(RadioGroupLayer)),
 }
 
 const resolveFocusOption = Scene.Command.resolve(

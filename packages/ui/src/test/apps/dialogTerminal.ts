@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Option, Schema } from 'effect'
+import { Array, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { initAndSet } from 'foldkit/binding'
 import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
@@ -72,83 +72,76 @@ const cancelDialog = TerminalDialogParentBlock.makeFieldsStep(() => ({
 }))
 
 /** @internal Constructs the real Dialog and its ordinary attached handlers. */
-export const layer = TerminalDialogParentBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* TerminalDialogParentComposition.acquireChildren()
-
-    return {
-      children,
-      init: TerminalDialogParentComposition.makeInit(() => ({
-        model: {
-          maybeDialogInstance: Option.none(),
-          closedKeys: [],
-          completedKeys: [],
-        },
-      })),
-      update: TerminalDialogParentComposition.makeUpdate({
-        ClickedOpen: openDialog('first', false),
-        ClickedReplace: openDialog('second', false),
-        ClickedCancel: cancelDialog,
-      }),
-      inMessageUpdate: TerminalDialogParentComposition.makeInMessageUpdate({
-        RequestedOpen: (model, { key, isAnimated }) =>
-          openDialog(key, isAnimated)(model),
-        RequestedCancel: cancelDialog,
-      }),
-      view: TerminalDialogParentComposition.makeView((model, h) =>
-        h.div(
-          [],
+export const layer = TerminalDialogParentBlock.makeLayer({
+  init: TerminalDialogParentComposition.makeInit(() => ({
+    model: {
+      maybeDialogInstance: Option.none(),
+      closedKeys: [],
+      completedKeys: [],
+    },
+  })),
+  update: TerminalDialogParentComposition.makeUpdate({
+    ClickedOpen: openDialog('first', false),
+    ClickedReplace: openDialog('second', false),
+    ClickedCancel: cancelDialog,
+  }),
+  inMessageUpdate: TerminalDialogParentComposition.makeInMessageUpdate({
+    RequestedOpen: (model, { key, isAnimated }) =>
+      openDialog(key, isAnimated)(model),
+    RequestedCancel: cancelDialog,
+  }),
+  view: TerminalDialogParentComposition.makeView((model, h) =>
+    h.div(
+      [],
+      [
+        h.button(
           [
-            h.button(
-              [
-                h.Id('terminal-open'),
-                h.OnClick(TerminalDialogParentBlock.Message.ClickedOpen()),
-              ],
-              ['Open'],
-            ),
-            h.button(
-              [
-                h.Id('terminal-cancel'),
-                h.OnClick(TerminalDialogParentBlock.Message.ClickedCancel()),
-              ],
-              ['Cancel'],
-            ),
-            h.button(
-              [
-                h.Id('terminal-replace'),
-                h.OnClick(TerminalDialogParentBlock.Message.ClickedReplace()),
-              ],
-              ['Replace'],
-            ),
-            h.p([h.Id('terminal-closed')], [model.closedKeys.join(',')]),
-            h.p([h.Id('terminal-completed')], [model.completedKeys.join(',')]),
-            ...Array.map(Option.toArray(model.maybeDialogInstance), instance =>
-              h.block(
-                MaybeDialogInstanceBinding.embedView({
-                  key: instance.key,
-                  slotId: instance.key,
-                  model: instance.model,
-                  viewInputs: {
-                    toView: ({ dialog, panel, title, closeButton }) =>
-                      h.dialog(
-                        [...dialog],
+            h.Id('terminal-open'),
+            h.OnClick(TerminalDialogParentBlock.Message.ClickedOpen()),
+          ],
+          ['Open'],
+        ),
+        h.button(
+          [
+            h.Id('terminal-cancel'),
+            h.OnClick(TerminalDialogParentBlock.Message.ClickedCancel()),
+          ],
+          ['Cancel'],
+        ),
+        h.button(
+          [
+            h.Id('terminal-replace'),
+            h.OnClick(TerminalDialogParentBlock.Message.ClickedReplace()),
+          ],
+          ['Replace'],
+        ),
+        h.p([h.Id('terminal-closed')], [model.closedKeys.join(',')]),
+        h.p([h.Id('terminal-completed')], [model.completedKeys.join(',')]),
+        ...Array.map(Option.toArray(model.maybeDialogInstance), instance =>
+          h.block(
+            MaybeDialogInstanceBinding.embedView({
+              key: instance.key,
+              slotId: instance.key,
+              model: instance.model,
+              viewInputs: {
+                toView: ({ dialog, panel, title, closeButton }) =>
+                  h.dialog(
+                    [...dialog],
+                    [
+                      h.div(
+                        [...panel],
                         [
-                          h.div(
-                            [...panel],
-                            [
-                              h.h2([...title], ['Terminal Dialog']),
-                              h.button([...closeButton], ['Close Dialog']),
-                            ],
-                          ),
+                          h.h2([...title], ['Terminal Dialog']),
+                          h.button([...closeButton], ['Close Dialog']),
                         ],
                       ),
-                  },
-                }),
-              ),
-            ),
-          ],
+                    ],
+                  ),
+              },
+            }),
+          ),
         ),
-      ),
-    }
-  }),
-).pipe(Layer.provide(Dialog.layer))
+      ],
+    ),
+  ),
+}).pipe(Layer.provide(Dialog.layer))

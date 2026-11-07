@@ -1,4 +1,3 @@
-import { Effect } from 'effect'
 // layer.ts
 
 import { ApplicationBlock } from './block'
@@ -7,18 +6,13 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      subscriptions,
-      EffectsLayer: subscriptions.layer,
-    }
-  }),
-)
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer: subscriptions.layer,
+})
 
 // entry.ts
 import { Program } from 'foldkit'

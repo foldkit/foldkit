@@ -63,15 +63,8 @@ const update = AnimationExampleComposition.makeUpdate({
     AnimationBinding.requestFinish(generation)(model),
 })
 
-export const layer = AnimationExampleBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* AnimationExampleComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      EffectsLayer: WaitForPanelSettled.layer,
-    }
-  }),
-).pipe(Layer.provide(Animation.layer))
+export const layer = AnimationExampleBlock.makeLayer({
+  init,
+  update,
+  EffectsLayer: WaitForPanelSettled.layer,
+}).pipe(Layer.provide(Animation.layer))

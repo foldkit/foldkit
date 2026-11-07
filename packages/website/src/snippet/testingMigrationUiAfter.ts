@@ -69,18 +69,11 @@ const view = ConfirmComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = ConfirmBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ConfirmComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Dialog.layer))
+export const layer = ConfirmBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Dialog.layer))
 
 await Effect.runPromise(
   Scene.scene(

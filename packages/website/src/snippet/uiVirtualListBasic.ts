@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -125,15 +125,8 @@ const view = ActivityListExampleComposition.makeView(
   // Subscription wiring is required.
 )
 
-export const layer = ActivityListExampleBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ActivityListExampleComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(VirtualList.layer))
+export const layer = ActivityListExampleBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(VirtualList.layer))

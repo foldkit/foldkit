@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -90,24 +90,16 @@ const view = PopoverSiblingRuntimeTestComposition.makeView((model, h) =>
 
 const ApplicationBlock = {
   block: PopoverSiblingRuntimeTestBlock,
-  layer: PopoverSiblingRuntimeTestBlock.makeLayer(
-    Effect.gen(function* () {
-      const children =
-        yield* PopoverSiblingRuntimeTestComposition.acquireChildren()
-
-      return {
-        children,
-        init: PopoverSiblingRuntimeTestComposition.makeInit(() =>
-          PopoverBinding.init({
-            args: [{ id: popoverId }],
-            toParentModel: popover => ({ popover, isBadgeShown: false }),
-          }),
-        ),
-        update,
-        view,
-      }
-    }),
-  ).pipe(Layer.provide(layer)),
+  layer: PopoverSiblingRuntimeTestBlock.makeLayer({
+    init: PopoverSiblingRuntimeTestComposition.makeInit(() =>
+      PopoverBinding.init({
+        args: [{ id: popoverId }],
+        toParentModel: popover => ({ popover, isBadgeShown: false }),
+      }),
+    ),
+    update,
+    view,
+  }).pipe(Layer.provide(layer)),
 }
 
 describe('Popover with a portaled panel', () => {

@@ -865,17 +865,14 @@ const makeSliderLayer = ({
   view,
   subscriptions,
 }: SliderAuthoring) =>
-  Definition.makeLayer(
-    Effect.succeed({
-      children: [],
-      init,
-      update,
-      inMessageUpdate,
-      view,
-      subscriptions,
-      EffectsLayer: subscriptions.layer,
-    }),
-  )
+  Definition.makeLayer({
+    init,
+    update,
+    inMessageUpdate,
+    view,
+    subscriptions,
+    EffectsLayer: subscriptions.layer,
+  })
 
 type SliderLayer = ReturnType<typeof makeSliderLayer>
 interface SliderImplementation extends Block.FamilyLifetime {

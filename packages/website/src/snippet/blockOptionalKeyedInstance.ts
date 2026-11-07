@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect'
+import { Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -24,20 +24,15 @@ export const RoomBlock = Block.make('Room', {
 
 const RoomComposition = RoomBlock.makeComposition()
 
-const layer = RoomBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init: RoomComposition.makeInit((title: string) => ({ model: { title } })),
-      update: RoomComposition.makeUpdate({}),
-      inMessageUpdate: RoomComposition.makeInMessageUpdate({
-        RequestedRename: (model, { title }) => ({
-          model: modifyFields(model, { title: () => title }),
-        }),
-      }),
-    }
+const layer = RoomBlock.makeLayer({
+  init: RoomComposition.makeInit((title: string) => ({ model: { title } })),
+  update: RoomComposition.makeUpdate({}),
+  inMessageUpdate: RoomComposition.makeInMessageUpdate({
+    RequestedRename: (model, { title }) => ({
+      model: modifyFields(model, { title: () => title }),
+    }),
   }),
-)
+})
 
 const RoomInstance = Schema.Struct({
   roomId: Schema.String,

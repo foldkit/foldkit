@@ -362,15 +362,10 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    return {
-      children: [],
-      init,
-      update,
-      view,
-      subscriptions,
-      EffectsLayer,
-    }
-  }),
-)
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
+})

@@ -27,6 +27,13 @@ import type {
   PublicFacts,
 } from '../constructed/contract.js'
 import type {
+  AcquiredConstructorBody,
+  CustomConstructorFields,
+  ImplementationRecord,
+  RecordAcquisition,
+  ValidateImplementationRecord,
+} from './completionRecord.js'
+import type {
   ActualFacts,
   Contract,
   ContractConfiguration,
@@ -568,8 +575,59 @@ export interface MakeFamilyLayer<
   OutMessageSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
 > {
+  <const Record extends ImplementationRecord>(
+    implementation: Record & ValidateImplementationRecord<Record>,
+    ...validation: NoInfer<
+      readonly [
+        ...Validate<
+          NominalId<Id, Config['key']>,
+          ModelSchema,
+          MessageSchema,
+          OutMessageSchema,
+          NativeBody<AcquiredConstructorBody<Record>, Config>,
+          'Equivalent'
+        >,
+        ...PublishedMountValidation<
+          SourceOf<NoInfer<AcquiredConstructorBody<Record>>>,
+          Config
+        >,
+        ...InMessageUpdateBodyValidation<
+          NoInfer<AcquiredConstructorBody<Record>>,
+          Config
+        >,
+        ...FamilyValidation<
+          MessageSchema,
+          OutMessageSchema,
+          Config,
+          NoInfer<AcquiredConstructorBody<Record>>,
+          Owner<NominalId<Id, Config['key']>, true>
+        >,
+      ]
+    >
+  ): FamilySpecializationLayer<
+    Contract<
+      Owner<NominalId<Id, Config['key']>, true>,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      DeclaredFacts<
+        MessageSchema,
+        OutMessageSchema,
+        Config,
+        Owner<NominalId<Id, Config['key']>, true>
+      >
+    >,
+    Effect.Error<RecordAcquisition<Record>>,
+    Exclude<
+      Effect.Services<RecordAcquisition<Record>>,
+      Scope.Scope | Layer.CurrentMemoMap
+    >,
+    HostDefinitions<AcquiredConstructorBody<Record>>,
+    ActualFacts<MessageSchema, AcquiredConstructorBody<Record>, Config>
+  >
   <const Body extends ConstructorBody, Error, Requirements>(
     constructor: Effect.Effect<Body, Error, Requirements> &
+      CustomConstructorFields &
       ValidateConstructorBody<Body>,
     ...validation: NoInfer<
       readonly [
@@ -653,8 +711,91 @@ export interface MakeFamilyProviderLayer<
   Handlers,
   Declared extends PublicFacts,
 > {
+  <const Record extends ImplementationRecord>(
+    implementation: Record & ValidateImplementationRecord<Record>,
+    ...validation: NoInfer<
+      readonly [
+        ...Validate<
+          NominalId<Id, Config['key']>,
+          ModelSchema,
+          MessageSchema,
+          OutMessageSchema,
+          NativeBody<AcquiredConstructorBody<Record>, Config>,
+          'Equivalent'
+        >,
+        ...PublishedMountValidation<
+          SourceOf<NoInfer<AcquiredConstructorBody<Record>>>,
+          Config
+        >,
+        ...InMessageUpdateBodyValidation<
+          NoInfer<AcquiredConstructorBody<Record>>,
+          Config
+        >,
+        ...HostContractValidation<
+          ActualFacts<
+            MessageSchema,
+            NoInfer<AcquiredConstructorBody<Record>>,
+            Config
+          >,
+          Declared,
+          HostDefinitions<NoInfer<AcquiredConstructorBody<Record>>>
+        >,
+        ...([
+          HostDefinitions<NoInfer<AcquiredConstructorBody<Record>>>,
+        ] extends [Hosts]
+          ? [Hosts] extends [
+              HostDefinitions<NoInfer<AcquiredConstructorBody<Record>>>,
+            ]
+            ? readonly []
+            : readonly [originalFamilyHostHandlers: never]
+          : readonly [originalFamilyHostHandlers: never]),
+      ]
+    >
+  ): Layer.Layer<
+    | FamilyReaderCapability<
+        Identifier,
+        ContractGraph<
+          Owner<NominalId<Id, Config['key']>, true>,
+          ModelSchema,
+          MessageSchema,
+          OutMessageSchema,
+          Declared
+        >
+      >
+    | ContractGraph<
+        Owner<NominalId<Id, Config['key']>, true>,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Declared
+      >
+    | SelectedImplementationFacts<
+        ContractGraph<
+          Owner<NominalId<Id, Config['key']>, true>,
+          ModelSchema,
+          MessageSchema,
+          OutMessageSchema,
+          Declared
+        >,
+        Owner<NominalId<Id, Config['key']>, true>,
+        FamilyProviderFacts<
+          ActualFacts<MessageSchema, AcquiredConstructorBody<Record>, Config>,
+          Handlers,
+          HostDefinitions<AcquiredConstructorBody<Record>>
+        >,
+        Handlers extends Layer.Any
+          ? never
+          : HostDefinitions<AcquiredConstructorBody<Record>>
+      >,
+    Effect.Error<RecordAcquisition<Record>>,
+    Exclude<
+      Effect.Services<RecordAcquisition<Record>>,
+      Scope.Scope | Layer.CurrentMemoMap
+    >
+  >
   <const Body extends ConstructorBody, Error, Requirements>(
     constructor: Effect.Effect<Body, Error, Requirements> &
+      CustomConstructorFields &
       ValidateConstructorBody<Body>,
     ...validation: NoInfer<
       readonly [

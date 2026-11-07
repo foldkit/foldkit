@@ -109,18 +109,11 @@ const preservedOpenModel = (config: Dialog.InitConfig) =>
 
 const application = {
   block: ApplicationBlock,
-  layer: ApplicationBlock.makeLayer(
-    Effect.gen(function* () {
-      const children = yield* ApplicationComposition.acquireChildren()
-
-      return {
-        children,
-        init,
-        update,
-        view,
-      }
-    }),
-  ).pipe(Layer.provide(Dialog.layer)),
+  layer: ApplicationBlock.makeLayer({
+    init,
+    update,
+    view,
+  }).pipe(Layer.provide(Dialog.layer)),
 }
 
 const makeDialogProgram = (container: HTMLElement) =>

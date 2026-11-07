@@ -1,4 +1,4 @@
-import { Effect, Layer } from 'effect'
+import { Layer } from 'effect'
 
 // composition.ts
 import { Dialog, Menu } from '@foldkit/ui'
@@ -65,18 +65,11 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ApplicationComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(Dialog.layer, Menu.layer)))
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Layer.mergeAll(Dialog.layer, Menu.layer)))
 
 // entry.ts
 

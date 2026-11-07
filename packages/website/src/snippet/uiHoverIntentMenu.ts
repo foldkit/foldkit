@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -127,15 +127,8 @@ const view = HoverMenuComposition.makeView((model, h) => {
   )
 })
 
-export const layer = HoverMenuBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* HoverMenuComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(HoverIntent.layer))
+export const layer = HoverMenuBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(HoverIntent.layer))

@@ -1,4 +1,4 @@
-import { Effect, Layer, Number, Schema } from 'effect'
+import { Layer, Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -72,14 +72,7 @@ const init = ApplicationComposition.makeInit(() => ({
   model: { themeChangeCount: 3 },
 }))
 
-export const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ApplicationComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-    }
-  }),
-).pipe(Layer.provide(SettingsLayer))
+export const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+}).pipe(Layer.provide(SettingsLayer))

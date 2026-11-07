@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -119,15 +119,8 @@ const view = PlanPickerComposition.makeView((model, h) =>
   ),
 )
 
-export const layer = PlanPickerBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* PlanPickerComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-      view,
-    }
-  }),
-).pipe(Layer.provide(Listbox.layer))
+export const layer = PlanPickerBlock.makeLayer({
+  init,
+  update,
+  view,
+}).pipe(Layer.provide(Listbox.layer))

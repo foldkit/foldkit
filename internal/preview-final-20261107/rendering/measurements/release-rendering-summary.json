@@ -1,0 +1,304 @@
+{
+  "status": "complete",
+  "candidateCommit": "1117a93316ff8111d402bffc995067476ec97983",
+  "baselineCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+  "allSamplesRetained": true,
+  "samples": 32,
+  "cyclicRounds": 8,
+  "comparisons": {
+    "naive": {
+      "main": "foldkit-main",
+      "candidate": "foldkit-preview-final",
+      "totalMs": {
+        "main": 654.9,
+        "candidate": 710.6,
+        "added": 55.7,
+        "percentChange": 8.51
+      },
+      "syncMs": {
+        "main": 41.2,
+        "candidate": 49.2
+      },
+      "animationFrameMs": {
+        "main": 615.6,
+        "candidate": 661.7
+      },
+      "rangeMs": {
+        "main": {
+          "minimum": 543,
+          "maximum": 740.2
+        },
+        "candidate": {
+          "minimum": 545.9,
+          "maximum": 852.2
+        }
+      },
+      "bundle": {
+        "main": {
+          "files": [
+            {
+              "file": "assets/index-DN9U5aN7.js",
+              "sha256": "d3e37e9f695531f98727dadc3ead8bddd4b0bdb93f52b64029880c3d7a78adb4",
+              "bytes": 304187,
+              "gzipBytes": 99031
+            }
+          ],
+          "rawBytes": 304187,
+          "gzipBytes": 99031
+        },
+        "candidate": {
+          "files": [
+            {
+              "file": "assets/index-ZmDGH17y.js",
+              "sha256": "445b31212df9efe25ce6e81fe60cb7a5dfc583c46fc098dd84de40e234e9d146",
+              "bytes": 475519,
+              "gzipBytes": 147123
+            }
+          ],
+          "rawBytes": 475519,
+          "gzipBytes": 147123
+        },
+        "addedRawBytes": 171332,
+        "addedGzipBytes": 48092,
+        "gzipPercentChange": 48.56
+      }
+    },
+    "optimized": {
+      "main": "foldkit-main-optimised",
+      "candidate": "foldkit-preview-final-optimised",
+      "totalMs": {
+        "main": 207.4,
+        "candidate": 308.1,
+        "added": 100.7,
+        "percentChange": 48.55
+      },
+      "syncMs": {
+        "main": 42.7,
+        "candidate": 56.9
+      },
+      "animationFrameMs": {
+        "main": 164.7,
+        "candidate": 250.6
+      },
+      "rangeMs": {
+        "main": {
+          "minimum": 188.5,
+          "maximum": 243
+        },
+        "candidate": {
+          "minimum": 255.8,
+          "maximum": 330.9
+        }
+      },
+      "bundle": {
+        "main": {
+          "files": [
+            {
+              "file": "assets/index.optimised-UkWhNSKN.js",
+              "sha256": "852eddbf31ec2d3274568f1f0d503dfeabc6e181c8d2361489b435b13ce14ded",
+              "bytes": 306590,
+              "gzipBytes": 99741
+            }
+          ],
+          "rawBytes": 306590,
+          "gzipBytes": 99741
+        },
+        "candidate": {
+          "files": [
+            {
+              "file": "assets/index.optimised-4XrqNWmx.js",
+              "sha256": "c6802c60c7eccbfb7bbd04f760bb0a9e8e7fc3db2f4945edcf880cca340036ce",
+              "bytes": 482112,
+              "gzipBytes": 148452
+            }
+          ],
+          "rawBytes": 482112,
+          "gzipBytes": 148452
+        },
+        "addedRawBytes": 175522,
+        "addedGzipBytes": 48711,
+        "gzipPercentChange": 48.84
+      }
+    }
+  },
+  "optimizedPairsSlower": 8,
+  "naivePairsSlower": 7,
+  "host": {
+    "before": {
+      "at": "2026-11-07T05:46:53.675Z",
+      "platform": "darwin",
+      "release": "25.6.0",
+      "cpu": "Apple M1 Max",
+      "logicalCpus": 10,
+      "aggregateCpuTimes": {
+        "user": 315363330,
+        "nice": 0,
+        "sys": 112067460,
+        "idle": 2295240990,
+        "irq": 0
+      },
+      "loadAverage": [
+        2.67529296875,
+        4.03271484375,
+        4.10400390625
+      ],
+      "freeMemory": 13202227200,
+      "totalMemory": 68719476736
+    },
+    "after": {
+      "at": "2026-11-07T05:54:05.255Z",
+      "platform": "darwin",
+      "release": "25.6.0",
+      "cpu": "Apple M1 Max",
+      "logicalCpus": 10,
+      "aggregateCpuTimes": {
+        "user": 315684850,
+        "nice": 0,
+        "sys": 112222930,
+        "idle": 2299070560,
+        "irq": 0
+      },
+      "loadAverage": [
+        2.384765625,
+        3,
+        3.54736328125
+      ],
+      "freeMemory": 12837797888,
+      "totalMemory": 68719476736
+    }
+  },
+  "startedAt": "2026-11-07T05:46:53.675Z",
+  "completedAt": "2026-11-07T05:54:05.255Z",
+  "controls": [
+    {
+      "name": "unchanged",
+      "exitCode": 0,
+      "expectedFailure": null
+    },
+    {
+      "name": "foreign-driver",
+      "exitCode": 1,
+      "expectedFailure": "Unexpected physical benchmark driver"
+    },
+    {
+      "name": "foreign-harness",
+      "exitCode": 1,
+      "expectedFailure": "Unexpected physical harness"
+    },
+    {
+      "name": "wrong-counter",
+      "exitCode": 1,
+      "expectedFailure": "Invalid representative workload counters"
+    },
+    {
+      "name": "omitted-sample",
+      "exitCode": 1,
+      "expectedFailure": "Expected 32 timing samples"
+    }
+  ],
+  "priorEvidence": {
+    "packet": "/private/tmp/foldkit-preview-followup-rendering-20261106",
+    "repeatPacket": "/private/tmp/foldkit-preview-followup-rendering-20261106-repeat",
+    "samples": 64,
+    "optimizedPairsSlower": 16,
+    "optimizedMedianPercentChanges": [
+      31.33,
+      40.9
+    ],
+    "sameCandidateAssetsAsCurrent": false,
+    "pooledWithCurrent": false
+  },
+  "initialRefusal": {
+    "reason": "Sandbox denied loopback bind before first functional preflight completed; no timed samples existed",
+    "retained": true,
+    "unchangedDriverRetryWithLocalServerAccess": true
+  },
+  "limitations": [
+    "This is one fresh paired batch of the entire final preview versus actual main; it does not isolate record-completion cost or establish a stable universal slowdown percentage.",
+    "The unchanged benchmark still uses manual Effect completion; record-specific API behavior is covered separately.",
+    "Prior 64 samples use prior candidate bundles and remain historical; none replaced or pooled into this final-candidate median.",
+    "Actual-main artifacts were reused byte-for-byte with 349 source Git-blob checks and fresh functional preflights; no baseline rebuild or independent fresh dependency installation."
+  ],
+  "files": [
+    {
+      "file": "final-artifact-receipt.json",
+      "sha256": "9e4713466acc76e4f063e257212f209bf8533828c92c36f6eab8cd49a9c2bbde",
+      "bytes": 709226
+    },
+    {
+      "file": "candidate/source.json",
+      "sha256": "28a7c61bd01718220013b4c487b36298d0efcf6047302b8426df6ee7555ed926",
+      "bytes": 416202
+    },
+    {
+      "file": "candidate-build.json",
+      "sha256": "590affbdb190ef223a2c220ae1a8c4c42115550773e005df68ba452193798fc2",
+      "bytes": 1802
+    },
+    {
+      "file": "candidate-dependencies.json",
+      "sha256": "438278538ef540f9fa59a4c614757a650f12a9c548a9d3e95ad1473d27727696",
+      "bytes": 16729
+    },
+    {
+      "file": "asset-comparison.json",
+      "sha256": "79fd0afe3be5a3c96be273874c874cf5c19fe44670a19b55fc39ed25d1a818ce",
+      "bytes": 4875
+    },
+    {
+      "file": "timing-final-execution.json",
+      "sha256": "a2509063b24146de7672ada2b7dc4cbd560d95827164f984bfc4affd94e0dcdd",
+      "bytes": 1169
+    },
+    {
+      "file": "timing-final.log",
+      "sha256": "129d35d40c6885c4d2224a37a7386b8a84edcbb4122e8075f7ec3783eb148d67",
+      "bytes": 3130
+    },
+    {
+      "file": "preflight-final/results.json",
+      "sha256": "875b89f147b57fe162e1942688f1aa23cac93da3e724d9fb3471ff9d25f9cf49",
+      "bytes": 1519
+    },
+    {
+      "file": "host-before.json",
+      "sha256": "efa15faa1f1b2aa3e5175ca68205c24d5c802508c46e7a215dd5002023ff4f54",
+      "bytes": 398
+    },
+    {
+      "file": "host-after.json",
+      "sha256": "3c271fdd1e03dcf1122aff5f6c1af807b76570df0b5e1b24eeff8aa8a4a61144",
+      "bytes": 384
+    },
+    {
+      "file": "final-analysis.json",
+      "sha256": "b963e35c08b5ec9d837acbb58f7136166f1caf34f0be8819342da21c56dc8d6e",
+      "bytes": 759042
+    },
+    {
+      "file": "analysis-controls.json",
+      "sha256": "6e6e2d07812742872d4be01a301219ba253e325f78ea63768f1d954647befe3c",
+      "bytes": 1097
+    },
+    {
+      "file": "initial-sandbox-refusal-run.log",
+      "sha256": "f125fda606ab47f7f1cb0f8ac8d2e84ac0f401915a1e14b11b35ce6fd87dd035",
+      "bytes": 1204
+    },
+    {
+      "file": "initial-sandbox-refusal-preflight/foldkit-main.log",
+      "sha256": "9cf2ec7b5e07513206d823a37a8e4cdb147edd99ceaa14bef6804b99d82d5b66",
+      "bytes": 616
+    },
+    {
+      "file": "compare-served-assets.mjs",
+      "sha256": "c4788ebc5fb7fbce7fdbd8f713253217e2ea8a0f7ce940aa61a6239ff3da4f10",
+      "bytes": 4081
+    },
+    {
+      "file": "tool-preparation.json",
+      "sha256": "c812a01719bfcfa09bf5e4105861090d45bb1c9df7b42eddca5269f7f352553c",
+      "bytes": 5868
+    }
+  ]
+}

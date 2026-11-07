@@ -256,7 +256,7 @@ export const makeFamilyContractRuntime = (
     }),
   )
   const makeLayer = (
-    constructor: Effect.Effect<any, any, any>,
+    constructor: Effect.Effect<any, any, any> | object,
   ): Layer.Layer<any, any, any> => {
     const rawLayer = declared.makeLayer(constructor)
     const graphLayer =

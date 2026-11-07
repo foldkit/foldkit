@@ -80,7 +80,7 @@ The following application reuses `addCounter` during startup and later additions
 
 When the acquired graph executes the field Step, Foldkit checks the complete creation batch, initializes the requested children, and replaces the requests with ready `{ key, model }` values. It retains child init Commands and the exact requirements and Binding registration evidence. The next Step sees the initialized Model synchronously. The Runtime performs the Commands later through their existing handlers.
 
-Calling `create` does not acquire a child implementation, run init, construct handlers, or start a lifecycle. The constructor still yields the explicit Binding and receives the child's implementation through its Layer. Creation-bearing field results are opaque connected recipes until checked execution; keep them intact through the registered Composition. Field Steps with ordinary changes still return only a Model.
+Calling `create` does not acquire a child implementation, run init, construct handlers, or start a lifecycle. The implementation Layer acquires the registered Binding and receives the child's implementation through its provided Layer. Creation-bearing field results are opaque connected recipes until checked execution; keep them intact through the registered Composition. Field Steps with ordinary changes still return only a Model.
 
 Requests cannot substitute for ready Instances in ordinary Model construction. Use `ChildBlock.Instance.make` to seed a fixture from an already constructed child Model. Restoring a ready snapshot through the Schema does not rerun child init or recreate its Commands.
 

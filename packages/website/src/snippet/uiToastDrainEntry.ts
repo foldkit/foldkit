@@ -49,17 +49,10 @@ const update = ApplicationComposition.makeUpdate({
   RequestedShowToast: ToastBinding.requestShow({ payload: { body: 'Saved' } }),
 })
 
-const layer = ApplicationBlock.makeLayer(
-  Effect.gen(function* () {
-    const children = yield* ApplicationComposition.acquireChildren()
-
-    return {
-      children,
-      init,
-      update,
-    }
-  }),
-).pipe(Layer.provide(Toast.layer))
+const layer = ApplicationBlock.makeLayer({
+  init,
+  update,
+}).pipe(Layer.provide(Toast.layer))
 
 await Effect.runPromise(
   Story.story(
