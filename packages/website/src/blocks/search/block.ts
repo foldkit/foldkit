@@ -18,7 +18,7 @@ export const SearchBlock = Block.make('Search', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeCommand,
   makeCommandsStep,
   makeComposition,

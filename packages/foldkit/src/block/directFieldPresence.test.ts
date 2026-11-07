@@ -52,12 +52,12 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 const Parent = makeDefinition('DirectPresenceParent', { Model, Message })
-const OptionalBinding = Parent.makeBinding(childBlock, {
+const OptionalBinding = Parent.makeOptionalFieldBinding(childBlock, {
   field: 'maybeChild',
 })
-const GatedBinding = Parent.makeBinding(childBlock, {
+const GatedBinding = Parent.makeRequiredFieldBinding(childBlock, {
   field: 'child',
-  presentWhen: model => {
+  activeWhen: model => {
     expectTypeOf(model).toEqualTypeOf<Model>()
     return model.route === 'Home'
   },
@@ -121,7 +121,7 @@ it('folds exact Option fields without creating absent children', () => {
   expect(parent.operations.setOptionalCount(absent, 9).model).toBe(absent)
 })
 
-it('makes direct stored children absent through presentWhen without deleting their state', () => {
+it('makes direct stored children absent through activeWhen without deleting their state', () => {
   expect(parent.operations.setGatedCount(initial, 3).model.child.count).toBe(3)
   const away: Model = modifyFields(initial, { route: () => 'Away' })
   expect(
@@ -174,10 +174,10 @@ it('distinguishes Option child Models from optional storage wrappers', () => {
     Model,
     Message: Schema.Never,
   })
-  const RequiredBinding = Parent.makeBinding(block, {
+  const RequiredBinding = Parent.makeRequiredFieldBinding(block, {
     field: 'required',
   })
-  const OptionalBinding = Parent.makeBinding(block, {
+  const OptionalBinding = Parent.makeOptionalFieldBinding(block, {
     field: 'maybe',
   })
   const Composition = Parent.makeComposition({
@@ -206,30 +206,34 @@ it('distinguishes Option child Models from optional storage wrappers', () => {
 
 it('reports invalid erased direct configurations during binding creation', () => {
   const bind = (config: unknown) =>
-    Reflect.apply(Parent.makeBinding, Parent, [childBlock, config])
+    Reflect.apply(Parent.makeRequiredFieldBinding, Parent, [childBlock, config])
   expect(() =>
     bind({
       field: 'missing',
     }),
-  ).toThrow(/declared Struct Model field/)
+  ).toThrow(/makeRequiredFieldBinding requires a required field/)
   expect(() =>
     bind({
       field: 'child',
       read: () => Option.some(initial.child),
     }),
-  ).toThrow(/cannot also supply/)
+  ).toThrow(
+    'makeRequiredFieldBinding does not support the read configuration field',
+  )
   expect(() =>
     bind({
       field: 'child',
       write: () => initial,
     }),
-  ).toThrow(/cannot also supply/)
+  ).toThrow(
+    'makeRequiredFieldBinding does not support the write configuration field',
+  )
   expect(() =>
     bind({
       field: 'child',
-      presentWhen: true,
+      activeWhen: true,
     }),
-  ).toThrow(/presentWhen must be/)
+  ).toThrow(/activeWhen must be/)
   for (const removedField of [
     'parentMessage',
     'toParentMessage',
@@ -250,7 +254,7 @@ it('preserves absence through a suspended Option storage schema', () => {
     Model: SuspendedModel,
     Message: Schema.Never,
   })
-  const ChildBinding = Suspended.makeBinding(childBlock, {
+  const ChildBinding = Suspended.makeOptionalFieldBinding(childBlock, {
     field: 'maybeChild',
   })
   const Composition = Suspended.makeComposition({
@@ -290,17 +294,20 @@ it('rejects structurally incompatible storage and invalid wrapper constructors b
     Message,
   })
   const bind = (config: unknown) =>
-    Reflect.apply(Invalid.makeBinding, Invalid, [childBlock, config])
+    Reflect.apply(Invalid.makeRequiredFieldBinding, Invalid, [
+      childBlock,
+      config,
+    ])
   for (const field of ['number', 'wrongOption']) {
     expect(() =>
       bind({
         field,
       }),
-    ).toThrow(/must store the declared child Model/)
+    ).toThrow(/makeRequiredFieldBinding requires a required field/)
   }
 
   const bindParent = (config: unknown) =>
-    Reflect.apply(Parent.makeBinding, Parent, [childBlock, config])
+    Reflect.apply(Parent.makeRequiredFieldBinding, Parent, [childBlock, config])
   expect(() =>
     bindParent({
       field: 'child',
@@ -311,11 +318,11 @@ it('rejects structurally incompatible storage and invalid wrapper constructors b
 
 it('rejects nonboolean presence policies from erased callers', () => {
   const bind = (config: unknown) =>
-    Reflect.apply(Parent.makeBinding, Parent, [childBlock, config])
+    Reflect.apply(Parent.makeRequiredFieldBinding, Parent, [childBlock, config])
   const InvalidPresenceBinding = bind({
     placement: 'invalid-child',
     field: 'child',
-    presentWhen: () => 'Home',
+    activeWhen: () => 'Home',
     init: false,
   })
   const Composition = Reflect.apply(Parent.makeComposition, undefined, [
@@ -353,7 +360,7 @@ it('rejects nonboolean presence policies from erased callers', () => {
 
 it('rejects ignored keyed adapters on erased accessor configs', () => {
   const bind = (config: unknown) =>
-    Reflect.apply(Parent.makeBinding, Parent, [childBlock, config])
+    Reflect.apply(Parent.makeCustomBinding, Parent, [childBlock, config])
   for (const field of ['Model', 'key', 'writeAt']) {
     expect(() =>
       bind({
@@ -361,7 +368,7 @@ it('rejects ignored keyed adapters on erased accessor configs', () => {
         write: (model: Model) => model,
         [field]: () => initial,
       }),
-    ).toThrow(/accessor Binding cannot supply/)
+    ).toThrow(/cannot supply|does not support/)
   }
 })
 
@@ -375,10 +382,10 @@ it('reads direct fields from callable tagged Struct parent Models', () => {
     Model,
     Message,
   })
-  const ChildBinding = Parent.makeBinding(childBlock, {
+  const ChildBinding = Parent.makeRequiredFieldBinding(childBlock, {
     field: 'child',
   })
-  const OptionalBinding = Parent.makeBinding(childBlock, {
+  const OptionalBinding = Parent.makeOptionalFieldBinding(childBlock, {
     field: 'maybeChild',
   })
   const Composition = Parent.makeComposition({
@@ -416,7 +423,7 @@ it('reads direct fields from callable tagged Struct parent Models', () => {
 it('rejects ignored Model overrides on parent-owned direct fields', () => {
   for (const field of ['Model', 'ChildModel']) {
     expect(() =>
-      Reflect.apply(Parent.makeBinding, Parent, [
+      Reflect.apply(Parent.makeRequiredFieldBinding, Parent, [
         childBlock,
         {
           field: 'child',

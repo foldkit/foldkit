@@ -85,9 +85,8 @@ export const GeneratedBindingParentDefinition = Block.makeDefinition(
   },
 )
 
-export const AccessorBinding = GeneratedBindingParentDefinition.makeBinding(
-  CounterBlock,
-  {
+export const AccessorBinding =
+  GeneratedBindingParentDefinition.makeCustomBinding(CounterBlock, {
     placement: 'selected-child',
     read: model => model.selected,
     write: (model, nextCounter) =>
@@ -96,32 +95,27 @@ export const AccessorBinding = GeneratedBindingParentDefinition.makeBinding(
       when: model => model.isEnabled,
       toUpdateContext: model => [model.amount],
     },
-  },
-)
+  })
 
-export const OptionalBinding = GeneratedBindingParentDefinition.makeBinding(
-  CounterBlock,
-  {
+export const OptionalBinding =
+  GeneratedBindingParentDefinition.makeOptionalFieldBinding(CounterBlock, {
     field: 'maybeCounter',
-    presentWhen: model => Option.isSome(model.maybeCounter),
+    activeWhen: model => Option.isSome(model.maybeCounter),
     delivery: {
       when: model => model.isEnabled,
       toUpdateContext: model => [model.amount],
     },
-  },
-)
+  })
 
-export const KeyedFieldBinding = GeneratedBindingParentDefinition.makeBinding(
-  CounterBlock,
-  {
+export const KeyedFieldBinding =
+  GeneratedBindingParentDefinition.makeKeyedArrayBinding(CounterBlock, {
     field: 'counters',
     key: 'id',
     delivery: {
       when: (model, key) => model.isEnabled && key !== 'paused',
       toUpdateContext: model => [model.amount],
     },
-  },
-)
+  })
 
 export const RoomId = Schema.Number.pipe(
   Schema.decodeTo(
@@ -139,9 +133,8 @@ export const readRoomId = (room: typeof Room.Type): string => room.roomId
 export const readRoomCounter = (
   room: typeof Room.Type,
 ): typeof CounterModel.Type => room.counter
-export const RoomBinding = GeneratedBindingParentDefinition.makeBinding(
-  CounterBlock,
-  {
+export const RoomBinding =
+  GeneratedBindingParentDefinition.makeCustomKeyedBinding(CounterBlock, {
     placement: 'room-counters',
     readAll: readRooms,
     key: readRoomId,
@@ -158,12 +151,10 @@ export const RoomBinding = GeneratedBindingParentDefinition.makeBinding(
     delivery: {
       toUpdateContext: model => [model.amount],
     },
-  },
-)
+  })
 
-export const WrappedBinding = GeneratedBindingParentDefinition.makeBinding(
-  CounterBlock,
-  {
+export const WrappedBinding =
+  GeneratedBindingParentDefinition.makeKeyedArrayBinding(CounterBlock, {
     placement: 'wrapped-counters',
     field: 'rooms',
     key: 'roomId',
@@ -171,15 +162,12 @@ export const WrappedBinding = GeneratedBindingParentDefinition.makeBinding(
     delivery: {
       toUpdateContext: model => [model.amount],
     },
-  },
-)
+  })
 
-export const StatusBinding = GeneratedBindingParentDefinition.makeBinding(
-  StatusBlock,
-  {
+export const StatusBinding =
+  GeneratedBindingParentDefinition.makeRequiredFieldBinding(StatusBlock, {
     field: 'status',
-  },
-)
+  })
 
 export const GeneratedBindingParentComposition =
   GeneratedBindingParentDefinition.makeComposition({

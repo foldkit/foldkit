@@ -133,7 +133,7 @@ const ParentDefinition = Block.makeDefinition('MandatoryCompletionParent', {
   Model: ParentModel,
   Message: Schema.Never,
 })
-export const ViewedBinding = ParentDefinition.makeBinding(Viewed, {
+export const ViewedBinding = ParentDefinition.makeRequiredFieldBinding(Viewed, {
   field: 'child',
 })
 export const EmbeddedViewed = ViewedBinding.embedView({

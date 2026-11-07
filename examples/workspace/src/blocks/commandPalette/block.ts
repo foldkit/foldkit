@@ -19,7 +19,7 @@ export const CommandPaletteBlock = Block.make('CommandPalette', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeCommand,
   makeComposition,
   makeFieldsStep,

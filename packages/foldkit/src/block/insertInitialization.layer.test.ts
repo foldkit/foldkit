@@ -54,7 +54,7 @@ const ParentBlock = Block.make('ProducedInitializationLayerParent', {
   Message: ParentMessage,
   Init: Schema.Tuple([Schema.String, Schema.Number]),
 })
-const ChildrenBinding = ParentBlock.makeMapBinding(ChildBlock, {
+const ChildrenBinding = ParentBlock.makeRecordBinding(ChildBlock, {
   field: 'children',
 })
 const ParentComposition = ParentBlock.makeComposition({

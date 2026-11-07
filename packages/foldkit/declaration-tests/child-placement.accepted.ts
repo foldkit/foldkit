@@ -45,18 +45,24 @@ export const DeclarationChildPlacementParentDefinition = Block.makeDefinition(
 )
 
 export const PrimaryBinding =
-  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
-    field: 'primary',
-  })
+  DeclarationChildPlacementParentDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'primary',
+    },
+  )
 
 export const SecondaryBinding =
-  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
-    field: 'secondary',
-    placement: 'secondaryPlacement',
-  })
+  DeclarationChildPlacementParentDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'secondary',
+      placement: 'secondaryPlacement',
+    },
+  )
 
 export const OptionalBinding =
-  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.makeCustomBinding(ChildBlock, {
     placement: 'optional',
     read: model => model.maybeChild,
     write: (model, nextChild) =>
@@ -66,7 +72,7 @@ export const OptionalBinding =
   })
 
 export const EntriesBinding =
-  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.makeCustomKeyedBinding(ChildBlock, {
     placement: 'entries',
     readAll: model => model.entries,
     key: entry => entry.id,
@@ -75,7 +81,7 @@ export const EntriesBinding =
   })
 
 export const DefaultAccessorBinding =
-  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.makeCustomBinding(ChildBlock, {
     read: model => model.maybeChild,
     write: (model, nextChild) =>
       Struct.modifyFields(model, {
@@ -84,7 +90,7 @@ export const DefaultAccessorBinding =
   })
 
 export const EntriesByIdBinding =
-  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.makeCustomKeyedBinding(ChildBlock, {
     placement: 'entriesById',
     readAll: model => model.entries,
     key: entry => entry.id,
@@ -93,7 +99,7 @@ export const EntriesByIdBinding =
   })
 
 export const EntriesByIdLengthBinding =
-  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.makeCustomKeyedBinding(ChildBlock, {
     placement: 'entriesByIdLength',
     readAll: model => model.entries,
     key: entry => entry.id.length,

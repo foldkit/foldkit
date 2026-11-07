@@ -55,31 +55,37 @@ RoomBinding.informOfJoined('room-1', 'alice')
 // @ts-expect-error informOfJoined preserves the string Room context field.
 RoomBinding.informOfJoined('room-1', 'alice', { roomId: 1 })
 
-const PendingHomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
-  field: 'home',
-})
+const PendingHomeBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  HomeBlock,
+  {
+    field: 'home',
+  },
+)
 // @ts-expect-error A child with OutMessages requires an OutMessage policy before Composition.
 ApplicationDefinition.makeComposition({ bindings: [PendingHomeBinding] })
 
-const PendingRoomBinding = ApplicationDefinition.makeBinding(RoomBlock, {
-  placement: 'pending-room',
-  readAll: (model: typeof ApplicationDefinition.Model.Type) =>
-    Option.toArray(model.maybeRoomInstance),
-  key: (instance: typeof RoomInstance.Type) => instance.roomId,
-  keySchema: RoomInstance.fields.roomId,
-  read: (instance: typeof RoomInstance.Type) => instance.model,
-  writeAt: (model: typeof ApplicationDefinition.Model.Type) => model,
-  delivery: {
-    toUpdateContext: (
-      _model: typeof ApplicationDefinition.Model.Type,
-      roomId: string,
-    ) => [{ roomId }],
+const PendingRoomBinding = ApplicationDefinition.makeCustomKeyedBinding(
+  RoomBlock,
+  {
+    placement: 'pending-room',
+    readAll: (model: typeof ApplicationDefinition.Model.Type) =>
+      Option.toArray(model.maybeRoomInstance),
+    key: (instance: typeof RoomInstance.Type) => instance.roomId,
+    keySchema: RoomInstance.fields.roomId,
+    read: (instance: typeof RoomInstance.Type) => instance.model,
+    writeAt: (model: typeof ApplicationDefinition.Model.Type) => model,
+    delivery: {
+      toUpdateContext: (
+        _model: typeof ApplicationDefinition.Model.Type,
+        roomId: string,
+      ) => [{ roomId }],
+    },
   },
-})
+)
 // @ts-expect-error A keyed child with OutMessages requires an OutMessage policy before Composition.
 ApplicationDefinition.makeComposition({ bindings: [PendingRoomBinding] })
 
-ApplicationDefinition.makeBinding(HomeBlock, {
+ApplicationDefinition.makeRequiredFieldBinding(HomeBlock, {
   field: 'home',
 }).withOutMessagePolicy({
   // @ts-expect-error A static policy must accept every refined child OutMessage.

@@ -76,7 +76,7 @@ export const ParentBlock = Block.make('SurfaceSelection', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const SurfacesBinding = ParentBlock.makeBinding(SurfaceBlock, {
+const SurfacesBinding = ParentBlock.makeKeyedArrayBinding(SurfaceBlock, {
   field: 'surfaces',
   key: 'key',
   childField: 'model',

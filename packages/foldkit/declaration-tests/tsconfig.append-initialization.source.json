@@ -4,7 +4,7 @@
     "noEmit": true,
     "paths": {
       "foldkit": ["../src/index.ts"],
-      "foldkit/bindingInit": ["../src/block/bindingInit.ts"]
+      "foldkit/binding": ["../src/binding/public.ts"]
     },
     "rootDir": ".."
   },

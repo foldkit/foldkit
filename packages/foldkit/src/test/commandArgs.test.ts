@@ -52,7 +52,7 @@ const ParentDefinition = Block.makeDefinition('CommandArgsParent', {
   Model: Schema.Struct({ child: Model }),
   Message: ParentMessage,
 })
-const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+const ChildBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
 })
 const ParentComposition = ParentDefinition.makeComposition({

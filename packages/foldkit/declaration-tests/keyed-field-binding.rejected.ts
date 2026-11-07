@@ -18,15 +18,18 @@ const wrongModelConfig = {
   key: idKey,
 }
 // @ts-expect-error The selected field must be an exact child Model array.
-DeclarationKeyedFieldParentDefinition.makeBinding(ChildBlock, wrongModelConfig)
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(
+  ChildBlock,
+  wrongModelConfig,
+)
 
 const missingFieldConfig = {
   field: missingField,
   key: idKey,
 }
-DeclarationKeyedFieldParentDefinition.makeBinding(
+// @ts-expect-error The selected field must name a parent Struct field.
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(
   ChildBlock,
-  // @ts-expect-error The selected field must name a parent Struct field.
   missingFieldConfig,
 )
 
@@ -35,13 +38,19 @@ const missingKeyConfig = {
   key: missingKey,
 }
 // @ts-expect-error The key must name a field on the child Model.
-DeclarationKeyedFieldParentDefinition.makeBinding(ChildBlock, missingKeyConfig)
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(
+  ChildBlock,
+  missingKeyConfig,
+)
 
 const omittedKeyConfig = {
   field: entriesField,
 }
 // @ts-expect-error A direct keyed Binding requires a child key field.
-DeclarationKeyedFieldParentDefinition.makeBinding(ChildBlock, omittedKeyConfig)
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(
+  ChildBlock,
+  omittedKeyConfig,
+)
 
 const conflictingReadAllConfig = {
   field: entriesField,
@@ -49,20 +58,20 @@ const conflictingReadAllConfig = {
   readAll: (model: typeof DeclarationKeyedFieldParentDefinition.Model.Type) =>
     model.entries,
 }
-DeclarationKeyedFieldParentDefinition.makeBinding(
+// @ts-expect-error A direct keyed Binding cannot supply collection accessors.
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(
   ChildBlock,
-  // @ts-expect-error A direct keyed Binding cannot supply collection accessors.
   conflictingReadAllConfig,
 )
 
 const conflictingPresenceConfig = {
   field: entriesField,
   key: idKey,
-  presentWhen: () => true,
+  activeWhen: () => 'active',
 }
-DeclarationKeyedFieldParentDefinition.makeBinding(
+// @ts-expect-error activeWhen must return boolean.
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(
   ChildBlock,
-  // @ts-expect-error presentWhen belongs to a static direct Binding.
   conflictingPresenceConfig,
 )
 
@@ -72,9 +81,9 @@ const conflictingWriteConfig = {
   write: (model: typeof DeclarationKeyedFieldParentDefinition.Model.Type) =>
     model,
 }
-DeclarationKeyedFieldParentDefinition.makeBinding(
+// @ts-expect-error A direct keyed Binding cannot supply a custom write adapter.
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(
   ChildBlock,
-  // @ts-expect-error A direct keyed Binding cannot supply a custom write adapter.
   conflictingWriteConfig,
 )
 
@@ -84,7 +93,7 @@ const parentMessageConfig = {
   parentMessage: ParentMessage.IgnoredChildMessage,
 }
 // @ts-expect-error Generated child delivery does not accept an authored parent Message constructor.
-DeclarationKeyedFieldParentDefinition.makeBinding(
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(
   ChildBlock,
   parentMessageConfig,
 )
@@ -94,9 +103,9 @@ const unexpectedOutMessageConfig = {
   key: idKey,
   outMessage: { fold: () => undefined },
 }
-DeclarationKeyedFieldParentDefinition.makeBinding(
+// @ts-expect-error A child without OutMessages cannot configure an OutMessage policy.
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(
   ChildBlock,
-  // @ts-expect-error A child without OutMessages cannot configure an OutMessage policy.
   unexpectedOutMessageConfig,
 )
 
@@ -106,18 +115,18 @@ const foreignMappingConfig = {
   toParentMessage: () => ({ _tag: 'ForeignMessage' }),
 }
 // @ts-expect-error Generated child delivery does not accept an authored mapper.
-DeclarationKeyedFieldParentDefinition.makeBinding(
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(
   ChildBlock,
   foreignMappingConfig,
 )
 
 // @ts-expect-error Keyed init must store the initialized child Model directly.
 // oxfmt-ignore
-DeclarationKeyedFieldParentDefinition.makeBinding(ChildBlock, { field: 'entries', key: 'id', init: { instances: () => [{ key: 'initial', args: [] }], toItem: (_occurrence, child) => ({ child }) } })
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(ChildBlock, { field: 'entries', key: 'id', init: { instances: () => [{ key: 'initial', args: [] }], toItem: (_occurrence, child) => ({ child }) } })
 
 // @ts-expect-error init.occurrences was replaced by init.instances.
 // oxfmt-ignore
-DeclarationKeyedFieldParentDefinition.makeBinding(ChildBlock, { field: entriesField, key: idKey, init: { occurrences: () => [{ key: 'initial', args: [] }], toItem: (_instance, child) => child } })
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(ChildBlock, { field: entriesField, key: idKey, init: { occurrences: () => [{ key: 'initial', args: [] }], toItem: (_instance, child) => child } })
 
 const BooleanKeyModel = Schema.Struct({
   id: Schema.Boolean,
@@ -162,9 +171,9 @@ const booleanKeyConfig = {
   field: entriesField,
   key: idKey,
 }
-DeclarationBooleanKeyParentDefinition.makeBinding(
+// @ts-expect-error Child occurrence keys must be strings or numbers.
+DeclarationBooleanKeyParentDefinition.makeKeyedArrayBinding(
   BooleanKeyBlock,
-  // @ts-expect-error Child occurrence keys must be strings or numbers.
   booleanKeyConfig,
 )
 
@@ -211,9 +220,9 @@ const optionalKeyConfig = {
   field: entriesField,
   key: idKey,
 }
-DeclarationOptionalKeyParentDefinition.makeBinding(
+// @ts-expect-error A child key field must be required.
+DeclarationOptionalKeyParentDefinition.makeKeyedArrayBinding(
   OptionalKeyBlock,
-  // @ts-expect-error A child key field must be required.
   optionalKeyConfig,
 )
 
@@ -236,9 +245,9 @@ const extendedFieldConfig = {
   field: entriesField,
   key: idKey,
 }
-DeclarationExtendedKeyParentDefinition.makeBinding(
+// @ts-expect-error The field element cannot have extra optional properties.
+DeclarationExtendedKeyParentDefinition.makeKeyedArrayBinding(
   ChildBlock,
-  // @ts-expect-error The field element cannot have extra optional properties.
   extendedFieldConfig,
 )
 
@@ -281,9 +290,9 @@ const primitiveKeyConfig = {
   field: entriesField,
   key: 'length',
 }
-DeclarationPrimitiveKeyParentDefinition.makeBinding(
+// @ts-expect-error A keyed child Model must be an object Struct.
+DeclarationPrimitiveKeyParentDefinition.makeKeyedArrayBinding(
   PrimitiveBlock,
-  // @ts-expect-error A keyed child Model must be an object Struct.
   primitiveKeyConfig,
 )
 
@@ -343,7 +352,10 @@ const unionKeyConfig = {
   key: idKey,
 }
 // @ts-expect-error Direct keyed shorthand requires a Struct child Model schema.
-DeclarationUnionKeyParentDefinition.makeBinding(UnionKeyBlock, unionKeyConfig)
+DeclarationUnionKeyParentDefinition.makeKeyedArrayBinding(
+  UnionKeyBlock,
+  unionKeyConfig,
+)
 
 const ArrayCollectionParentModel = Schema.Struct({
   entries: Schema.Array(ArrayChildBlock.Model),
@@ -359,9 +371,9 @@ const arrayModelKeyConfig = {
   field: entriesField,
   key: 'length',
 }
-DeclarationArrayCollectionParentDefinition.makeBinding(
+// @ts-expect-error An Array child Model has no Struct key fields.
+DeclarationArrayCollectionParentDefinition.makeKeyedArrayBinding(
   ArrayChildBlock,
-  // @ts-expect-error An Array child Model has no Struct key fields.
   arrayModelKeyConfig,
 )
 
@@ -432,23 +444,26 @@ const anyKeyConfig = {
   key: anyKey,
 }
 
-DeclarationInvalidKeyParentDefinition.makeBinding(
+// @ts-expect-error Null is not an occurrence key type.
+DeclarationInvalidKeyParentDefinition.makeKeyedArrayBinding(
   InvalidKeyBlock,
-  // @ts-expect-error Null is not an occurrence key type.
   nullKeyConfig,
 )
-DeclarationInvalidKeyParentDefinition.makeBinding(
+// @ts-expect-error Unknown is not an occurrence key type.
+DeclarationInvalidKeyParentDefinition.makeKeyedArrayBinding(
   InvalidKeyBlock,
-  // @ts-expect-error Unknown is not an occurrence key type.
   unknownKeyConfig,
 )
-DeclarationInvalidKeyParentDefinition.makeBinding(
+// @ts-expect-error Never is not an occurrence key type.
+DeclarationInvalidKeyParentDefinition.makeKeyedArrayBinding(
   InvalidKeyBlock,
-  // @ts-expect-error Never is not an occurrence key type.
   neverKeyConfig,
 )
 // @ts-expect-error Any is not an occurrence key type.
-DeclarationInvalidKeyParentDefinition.makeBinding(InvalidKeyBlock, anyKeyConfig)
+DeclarationInvalidKeyParentDefinition.makeKeyedArrayBinding(
+  InvalidKeyBlock,
+  anyKeyConfig,
+)
 
 const repeatedModelConfig: Readonly<{
   field: 'entries'
@@ -460,7 +475,7 @@ const repeatedModelConfig: Readonly<{
   Model: Schema.String,
 }
 // @ts-expect-error Assigned configs cannot override the owning Definition's Model.
-DeclarationKeyedFieldParentDefinition.makeBinding(
+DeclarationKeyedFieldParentDefinition.makeKeyedArrayBinding(
   ChildBlock,
   repeatedModelConfig,
 )

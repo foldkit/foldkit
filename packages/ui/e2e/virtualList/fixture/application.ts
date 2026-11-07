@@ -69,19 +69,22 @@ const scrollContainerFor = (config: FixtureConfig) => {
   }
 }
 
-const MaybeListBinding = ApplicationBlock.makeBinding(ItemVirtualListBlock, {
-  field: 'maybeList',
-  init: {
-    contextToArgs: config =>
-      Option.some([
-        {
-          id: 'virtual-list',
-          rowHeightPx: ROW_HEIGHT_PX,
-          scrollContainer: scrollContainerFor(config),
-        },
-      ]),
+const MaybeListBinding = ApplicationBlock.makeOptionalFieldBinding(
+  ItemVirtualListBlock,
+  {
+    field: 'maybeList',
+    init: {
+      contextToArgs: config =>
+        Option.some([
+          {
+            id: 'virtual-list',
+            rowHeightPx: ROW_HEIGHT_PX,
+            scrollContainer: scrollContainerFor(config),
+          },
+        ]),
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: ApplicationBlock.makeOutMessageFold(ItemVirtualListBlock, {
     ObservedContainerScroll: makeNoopStep,
     ApproachedLoadedStart: makeNoopStep,

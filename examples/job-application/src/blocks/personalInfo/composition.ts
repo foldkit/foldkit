@@ -5,14 +5,14 @@ import { DatePicker } from '@foldkit/ui'
 
 import {
   PronounsListboxBlock,
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 
-export const PronounsBinding = makeBinding(PronounsListboxBlock, {
+export const PronounsBinding = makeRequiredFieldBinding(PronounsListboxBlock, {
   field: 'pronouns',
   init: { contextToArgs: () => [{ id: 'pronouns' }] },
 }).withOutMessagePolicy({
@@ -24,12 +24,15 @@ export const PronounsBinding = makeBinding(PronounsListboxBlock, {
   }),
 })
 
-export const AvailableDateBinding = makeBinding(DatePicker.DatePickerBlock, {
-  field: 'availableDate',
-  init: {
-    contextToArgs: today => [{ id: 'available-date', today, minDate: today }],
+export const AvailableDateBinding = makeRequiredFieldBinding(
+  DatePicker.DatePickerBlock,
+  {
+    field: 'availableDate',
+    init: {
+      contextToArgs: today => [{ id: 'available-date', today, minDate: today }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: makeOutMessageFold(DatePicker.DatePickerBlock, {
     SelectedDate: ({ date }) =>
       makeFieldsStep(() => ({

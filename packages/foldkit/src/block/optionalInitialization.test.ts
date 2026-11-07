@@ -82,11 +82,14 @@ const ParentDefinition = Block.makeDefinition('OptionalInitializationParent', {
   Model,
   Message,
 })
-const EntryBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'maybeEntry',
-  key: 'id',
-  childField: 'child',
-})
+const EntryBinding = ParentDefinition.makeOptionalKeyedFieldBinding(
+  ChildBlock,
+  {
+    field: 'maybeEntry',
+    key: 'id',
+    childField: 'child',
+  },
+)
 const Composition = ParentDefinition.makeComposition({
   bindings: [EntryBinding],
 })
@@ -213,7 +216,7 @@ describe('initAndSet keyed Option storage', () => {
       'OptionalInitializationLabeledParent',
       { Model: LabeledModel, Message: Schema.Never },
     )
-    const binding = LabeledParent.makeBinding(ChildBlock, {
+    const binding = LabeledParent.makeOptionalKeyedFieldBinding(ChildBlock, {
       field: 'maybeEntry',
       key: 'id',
       childField: 'child',

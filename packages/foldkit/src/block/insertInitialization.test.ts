@@ -85,13 +85,16 @@ const ParentDefinition = Block.makeDefinition('InsertParent', {
   Model,
   Message,
 })
-const ChildrenByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+const ChildrenByIdBinding = ParentDefinition.makeRecordBinding(ChildBlock, {
   field: 'childrenById',
 })
-const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(ChildBlock, {
-  field: 'childrenByNumber',
-})
-const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+const ChildrenByNumberBinding = ParentDefinition.makeHashMapBinding(
+  ChildBlock,
+  {
+    field: 'childrenByNumber',
+  },
+)
+const RowsByIdBinding = ParentDefinition.makeRecordBinding(ChildBlock, {
   field: 'rowsById',
   childField: 'child',
 })
@@ -337,9 +340,12 @@ describe('makeInitIfMissingStep', () => {
       Model: DirectParentModel,
       Message: Schema.Never,
     })
-    const DirectBinding = DirectParent.makeBinding(DirectChildBlock, {
-      field: 'child',
-    })
+    const DirectBinding = DirectParent.makeRequiredFieldBinding(
+      DirectChildBlock,
+      {
+        field: 'child',
+      },
+    )
     const CustomEntry = Schema.Struct({ id: Schema.String, child: ChildModel })
     const CustomParentModel = Schema.Struct({
       entries: Schema.Array(CustomEntry),
@@ -348,7 +354,7 @@ describe('makeInitIfMissingStep', () => {
       Model: CustomParentModel,
       Message: Schema.Never,
     })
-    const CustomBinding = CustomParent.makeBinding(ChildBlock, {
+    const CustomBinding = CustomParent.makeCustomKeyedBinding(ChildBlock, {
       readAll: model => model.entries,
       key: entry => entry.id,
       keySchema: Schema.String,

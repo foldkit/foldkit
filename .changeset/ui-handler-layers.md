@@ -2,7 +2,7 @@
 '@foldkit/ui': minor
 ---
 
-Expose each stateful Foldkit UI component as a completed Block. The owning parent creates Bindings with `makeBinding` and includes them under its Composition's `bindings`. Composition carries handler Layers, Mounts, Subscriptions, and ManagedResources to the application root.
+Expose each stateful Foldkit UI component as a passive Block contract with a construction Layer. The owning parent creates Bindings with the storage-specific Binding constructor and includes them under its Composition's `bindings`. Composition carries handler Layers, Mounts, Subscriptions, and ManagedResources to the application root.
 
 Before:
 
@@ -41,10 +41,10 @@ import { menuViewInputs } from './viewInputs'
 const MenuBlock = Menu.makeBlock()
 const TabsBlock = Tabs.makeBlock<Tab>()
 const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
-const MenuBinding = PanelDefinition.makeBinding(MenuBlock, {
+const MenuBinding = PanelDefinition.makeRequiredFieldBinding(MenuBlock, {
   field: 'menu',
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
-const TabsBinding = PanelDefinition.makeBinding(TabsBlock, {
+const TabsBinding = PanelDefinition.makeRequiredFieldBinding(TabsBlock, {
   field: 'tabs',
 }).withOutMessagePolicy({ fold: foldTabsOutMessage })
 const PanelComposition = PanelDefinition.makeComposition({
@@ -63,7 +63,7 @@ export const view = PanelComposition.makeView((model, h) =>
 
 Register only the components the owner embeds. A Binding makes the parent-child relationship explicit once: the Composition routes received wrapper Messages through the Binding automatically, update uses operations such as `binding.requestOpen()` for parent-driven changes, and view uses `binding.embedView`.
 
-Factories live on the component namespace: `Combobox.makeBlock`, `Combobox.Multi.makeBlock`, `Listbox.makeBlock`, `Listbox.Multi.makeBlock`, `Menu.makeBlock`, `Tabs.makeBlock`, `RadioGroup.makeBlock`, `VirtualList.makeBlock`, and `Toast.makeBlock`. Name completed factory results `FooBlock`. Factory definitions retain stable local names; Binding placement and keys distinguish occurrences. Schema-taking factories such as `Combobox.makeBlock(City)` preserve decoded Item payloads and encoded types. Item Codecs must be synchronous and service-free because the component decodes supplied values synchronously. Type-only factories such as `Tabs.makeBlock<Tab>()` preserve selected value types. Import ViewInputs and domain helpers from component subpaths; the completed value carries its Model, Message, and declared OutMessage matcher.
+Factories live on the component namespace: `Combobox.makeBlock`, `Combobox.Multi.makeBlock`, `Listbox.makeBlock`, `Listbox.Multi.makeBlock`, `Menu.makeBlock`, `Tabs.makeBlock`, `RadioGroup.makeBlock`, `VirtualList.makeBlock`, and `Toast.makeBlock`. Name passive factory results `FooBlock`. Factory definitions retain stable local names; Binding placement and keys distinguish occurrences. Schema-taking factories such as `Combobox.makeBlock(City)` preserve decoded Item payloads and encoded types. Combobox Item Codecs and Listbox Value Codecs must be synchronous and service-free because the component decodes selected values synchronously. In the two-Schema Listbox factory, the Item Schema supplies view typing and may carry Service requirements; it is not used to serialize the selection. Type-only factories such as `Tabs.makeBlock<Tab>()` preserve selected value types. Import component namespaces from `@foldkit/ui` and access ViewInputs and domain helpers through those namespaces. The passive contract carries its Model, Message, and declared OutMessage matcher.
 
 ```ts
 import { Toast } from '@foldkit/ui'
@@ -79,14 +79,17 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const ToastBinding = ApplicationDefinition.makeBinding(ToastBlock, {
-  field: 'toast',
-}).withOutMessagePolicy({ fold: foldToastOutMessage })
+const ToastBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  ToastBlock,
+  {
+    field: 'toast',
+  },
+).withOutMessagePolicy({ fold: foldToastOutMessage })
 ```
 
-The Binding contributes Toast's swipe Subscription and handler recipe automatically. Scene swipe events continue to use `Subscription.emit` with the registration carried by the completed Block.
+The Binding contributes Toast's swipe Subscription and handler recipe automatically. Scene swipe events continue to use `Subscription.emit` with the registration carried by the Block contract.
 
-For dynamic keyed component collections, use the keyed `makeBinding` shape. Every rendered occurrence needs a stable string or finite number key.
+For a dynamic keyed component collection with custom storage or accessors, use `makeCustomKeyedBinding`. Direct arrays, Records, and HashMaps use their storage-specific constructors. Every rendered occurrence needs a stable string or finite number key.
 
 ```ts
 import { Schema } from 'effect'
@@ -100,21 +103,24 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const DialogsBinding = ApplicationDefinition.makeBinding(DialogBlock, {
-  readAll: model => model.dialogs,
-  key: dialog => dialog.id,
-  read: dialog => dialog.model,
-  writeAt: (model, dialogId, nextDialog) =>
-    replaceDialog(model, dialogId, nextDialog),
-  keySchema: Schema.String,
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
+const DialogsBinding = ApplicationDefinition.makeCustomKeyedBinding(
+  DialogBlock,
+  {
+    readAll: model => model.dialogs,
+    key: dialog => dialog.id,
+    read: dialog => dialog.model,
+    writeAt: (model, dialogId, nextDialog) =>
+      replaceDialog(model, dialogId, nextDialog),
+    keySchema: Schema.String,
+  },
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 ```
 
-## Use completed component contracts and test matchers
+## Use passive component contracts and test matchers
 
-Ordinary stateful components export one feature-named completed value such as `DialogBlock`, `DragAndDropBlock`, or `SliderBlock`. Generic factories return an exact completed Block that the consumer names for its domain, such as `CityComboboxBlock` or `NavigationTabsBlock`. Read the component Model, Message, and OutMessage contracts from that completed value.
+Ordinary stateful components export one feature-named passive contract such as `DialogBlock`, `DragAndDropBlock`, or `SliderBlock`, plus its construction Layer. Generic factories return an exact passive Block contract that the consumer names for its domain, such as `CityComboboxBlock` or `NavigationTabsBlock`. Read the component Model, Message, and OutMessage contracts from that passive contract.
 
-Command and Mount Definitions used only to match pending work in Story and Scene tests now live under the component's `test` namespace. Pair that Definition with the result Message from the completed instance:
+Command and Mount Definitions used only to match pending work in Story and Scene tests now live under the component's `test` namespace. Pair that Definition with the result Message from the exact passive contract:
 
 Before:
 
@@ -142,7 +148,7 @@ const resolveMenuFocus = Command.resolve(
 )
 ```
 
-The same move applies to matcher Definitions from Dialog, Listbox, Popover, RadioGroup, Tabs, and the other stateful component families. Application code uses the completed Block and its Binding operations; the `test` namespace exists for resolving or asserting the original pending Command or Mount.
+The same move applies to matcher Definitions from Dialog, Listbox, Popover, RadioGroup, Tabs, and the other stateful component families. Application code uses the passive Block contract and its Binding operations; the `test` namespace exists for resolving or asserting the original pending Command or Mount.
 
 ## Embed DragAndDrop's canonical view
 

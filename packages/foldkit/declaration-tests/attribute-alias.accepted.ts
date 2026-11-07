@@ -116,7 +116,7 @@ export const ParentBlock = Block.make('AttributeAliasParent', {
     Inputs: Block.makeInputContract<ParentViewInputs>(),
   },
 })
-export const OriginBinding = ParentBlock.makeBinding(OriginBlock, {
+export const OriginBinding = ParentBlock.makeRequiredFieldBinding(OriginBlock, {
   field: 'origin',
 })
 export const ParentComposition = ParentBlock.makeComposition({

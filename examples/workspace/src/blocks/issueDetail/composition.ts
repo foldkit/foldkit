@@ -9,22 +9,25 @@ import {
 } from '../../listbox'
 import { decodeAssigneeSelection } from './assigneeSelection'
 import {
-  makeBinding,
   makeComposition,
   makeNoopStep,
   makeOutMessageFold,
   makeOutMessageStep,
+  makeRequiredFieldBinding,
 } from './block'
 import { CommentComposerBlock } from './blocks'
 import { OutMessage } from './outMessage'
 import { editDraft } from './steps'
 
-export const CommentComposerBinding = makeBinding(CommentComposerBlock, {
-  field: 'commentComposer',
-  init: {
-    contextToArgs: ({ issueId }) => [issueId],
+export const CommentComposerBinding = makeRequiredFieldBinding(
+  CommentComposerBlock,
+  {
+    field: 'commentComposer',
+    init: {
+      contextToArgs: ({ issueId }) => [issueId],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: makeOutMessageFold(CommentComposerBlock, {
     AddedComment: ({ comment }) =>
       makeOutMessageStep(model =>
@@ -36,48 +39,60 @@ export const CommentComposerBinding = makeBinding(CommentComposerBlock, {
   }),
 })
 
-export const StatusListboxBinding = makeBinding(StatusListboxBlock, {
-  field: 'statusListbox',
-  init: {
-    contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-status` }],
+export const StatusListboxBinding = makeRequiredFieldBinding(
+  StatusListboxBlock,
+  {
+    field: 'statusListbox',
+    init: {
+      contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-status` }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: makeOutMessageFold(StatusListboxBlock, {
     Selected: ({ value }) =>
       editDraft(draft => modifyFields(draft, { status: () => value })),
   }),
 })
 
-export const PriorityListboxBinding = makeBinding(PriorityListboxBlock, {
-  field: 'priorityListbox',
-  init: {
-    contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-priority` }],
+export const PriorityListboxBinding = makeRequiredFieldBinding(
+  PriorityListboxBlock,
+  {
+    field: 'priorityListbox',
+    init: {
+      contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-priority` }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: makeOutMessageFold(PriorityListboxBlock, {
     Selected: ({ value }) =>
       editDraft(draft => modifyFields(draft, { priority: () => value })),
   }),
 })
 
-export const ProjectListboxBinding = makeBinding(StringListboxBlock, {
-  field: 'projectListbox',
-  init: {
-    contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-project` }],
+export const ProjectListboxBinding = makeRequiredFieldBinding(
+  StringListboxBlock,
+  {
+    field: 'projectListbox',
+    init: {
+      contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-project` }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: makeOutMessageFold(StringListboxBlock, {
     Selected: ({ value }) =>
       editDraft(draft => modifyFields(draft, { projectId: () => value })),
   }),
 })
 
-export const AssigneeListboxBinding = makeBinding(StringListboxBlock, {
-  field: 'assigneeListbox',
-  init: {
-    contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-assignee` }],
+export const AssigneeListboxBinding = makeRequiredFieldBinding(
+  StringListboxBlock,
+  {
+    field: 'assigneeListbox',
+    init: {
+      contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-assignee` }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: makeOutMessageFold(StringListboxBlock, {
     Selected: ({ value }) =>
       Option.match(decodeAssigneeSelection(value), {

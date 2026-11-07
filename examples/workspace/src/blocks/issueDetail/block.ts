@@ -26,7 +26,7 @@ export const IssueDetailBlock = Block.make('IssueDetail', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeCommand,
   makeComposition,
   makeNoopStep,

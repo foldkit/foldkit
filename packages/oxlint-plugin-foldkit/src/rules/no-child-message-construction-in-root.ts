@@ -406,7 +406,7 @@ type DefinitionOperation = Readonly<{
   importedDefinitionPath: ImportedMessagePath | undefined
   members: ReadonlyArray<string>
   operation:
-    | 'makeBinding'
+    | 'binding'
     | 'makeCommand'
     | 'makeCommandsStep'
     | 'makeFieldsStep'
@@ -454,7 +454,6 @@ const definitionOperationName = (
     )
   }
   if (
-    method === 'makeBinding' ||
     method === 'makeCommand' ||
     method === 'makeCommandsStep' ||
     method === 'makeFieldsStep' ||
@@ -559,7 +558,7 @@ const definitionOperationForCall = (
           importedBindingParentPath,
         ),
         members: bindingParentPath.members,
-        operation: 'makeBinding',
+        operation: 'binding',
         root: bindingParentPath.root,
       }
     }
@@ -1162,7 +1161,7 @@ const definitionOperationCallOwnsMessage = (
     operation =>
       (operation.operation === 'update' ||
         operation.operation === 'inMessageUpdate' ||
-        operation.operation === 'makeBinding') &&
+        operation.operation === 'binding') &&
       operationOwnsMessage(references, operation, messagePath, filename),
   )
 

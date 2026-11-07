@@ -17,11 +17,11 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const EntriesBinding = ApplicationDefinition.makeBinding(KeyedEntry.KeyedEntryBlock, {
+const EntriesBinding = ApplicationDefinition.makeKeyedArrayBinding(KeyedEntry.KeyedEntryBlock, {
   field: 'entries',
   key: 'id',
 })
-const MaybeSettingsBinding = ApplicationDefinition.makeBinding(
+const MaybeSettingsBinding = ApplicationDefinition.makeOptionalFieldBinding(
   BoundSettings.BoundSettingsBlock,
   { field: 'maybeSettings' },
 )

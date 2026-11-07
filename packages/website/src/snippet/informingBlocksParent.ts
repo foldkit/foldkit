@@ -28,10 +28,14 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeFieldsStep, makeNoopStep, makeBinding, makeComposition } =
-  ApplicationBlock
+const {
+  makeFieldsStep,
+  makeNoopStep,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = ApplicationBlock
 
-export const PeopleBinding = makeBinding(People.PeopleBlock, {
+export const PeopleBinding = makeRequiredFieldBinding(People.PeopleBlock, {
   field: 'people',
   init: false,
 })

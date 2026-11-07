@@ -72,7 +72,7 @@ export const PlaygroundBlock = Block.make('Playground', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeCommand,
   makeComposition,
   makeFieldsStep,

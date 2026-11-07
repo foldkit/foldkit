@@ -26,7 +26,7 @@ const {
   makeNoopStep,
   makeCommand,
   makeOutMessageFold,
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
 } = AnimationExampleBlock
 
@@ -46,7 +46,7 @@ const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
     makeCommandsStep(() => [WaitForPanelSettled({ generation })]),
   TransitionedOut: makeNoopStep,
 })
-const AnimationBinding = makeBinding(Animation.AnimationBlock, {
+const AnimationBinding = makeRequiredFieldBinding(Animation.AnimationBlock, {
   field: 'animation',
   init: { contextToArgs: () => [{ id: 'drawer' }] },
 }).withOutMessagePolicy({

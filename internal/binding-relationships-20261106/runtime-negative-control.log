@@ -1,0 +1,27 @@
+Runtime relationship validator negative control
+Date: 2026-11-06
+
+Mutation:
+  Temporarily bypassed the keyed field container-kind comparison in
+  assertBindingRelationship, allowing KeyedArray to accept Option storage and
+  OptionalKeyed to accept Array storage.
+
+Command:
+  packages/foldkit/node_modules/.bin/vitest run \
+    packages/foldkit/src/block/bindingRelationship.test.ts --reporter=verbose
+
+Result: expected failure (exit 1)
+
+Failed tests:
+  - validates exact keyed arrays and wrapped array fields
+    Expected makeKeyedArrayBinding to reject Schema.Option storage.
+  - validates keyed optional slots without evaluating initialization
+    Expected makeOptionalKeyedFieldBinding to reject Schema.Array storage.
+
+Summary:
+  Test Files  1 failed (1)
+  Tests       2 failed | 5 passed (7)
+
+The five passing tests retained direct-shape, required-field, Record/HashMap,
+custom adapter, key Schema, and callback-passivity coverage. The production
+comparison was restored immediately after this run.

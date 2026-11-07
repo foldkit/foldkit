@@ -87,10 +87,10 @@ A Binding fold or named operation returns a connected Step whose Model input req
 
 When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper, and pass a new result literal first. Flag local attachment helpers and conditional object spreads that duplicate it.
 
-A child with OutMessages needs an explicit `withOutMessagePolicy` selection. Flag a missing policy, an old `outMessage` field inside `makeBinding` config, and a policy-selected value omitted from Composition registration. A local fold may handle variants that also continue upward; its derived OutMessage takes precedence for that dispatch.
+A child with OutMessages needs an explicit `withOutMessagePolicy` selection. Flag a missing policy, an old `outMessage` field inside a Binding configuration, and a policy-selected value omitted from Composition registration. A local fold may handle variants that also continue upward; its derived OutMessage takes precedence for that dispatch.
 
-Inline an ordinary unkeyed policy as
-`makeBinding(WholeChildBlock, ...).withOutMessagePolicy({ fold: FeatureBlock.makeOutMessageFold(WholeChildBlock, handlers) })`.
+For a required-field child, inline an ordinary policy as
+`FeatureBlock.makeRequiredFieldBinding(WholeChildBlock, ...).withOutMessagePolicy({ fold: FeatureBlock.makeOutMessageFold(WholeChildBlock, handlers) })`.
 Flag a raw child matcher, repeated Step or refined payload generics, and a
 wrapper that data-first matches inside the fold. Every fold passes the whole
 passive child contract explicitly, whether inline, extracted, adapted for keyed policy,
@@ -208,7 +208,7 @@ A `keyed(...)` whose key is built from displayed data (concatenated booleans, a 
 
 ### `authored-child-delivery-message`
 
-Flattening a child's Message variants into the parent's `defineMessageUnion()` record makes every parent handler know the child's tag names, and an authored `GotChildMessage` wrapper duplicates routing metadata that the Binding already owns. The canonical Block pattern keeps the authored parent Message local and lets `makeBinding` derive a generated envelope from the passive child contract. The acquired executable's complete Message Codec includes that envelope and routes it to the exact placement, key, and live generation. Use `delivery.when`, `delivery.toUpdateContext`, and `keySchema` for parent policy instead of adding child variants or mappers to the authored union.
+Flattening a child's Message variants into the parent's `defineMessageUnion()` record makes every parent handler know the child's tag names, and an authored `GotChildMessage` wrapper duplicates routing metadata that the Binding already owns. The canonical Block pattern keeps the authored parent Message local and lets the Binding derive a generated envelope from the passive child contract. The acquired executable's complete Message Codec includes that envelope and routes it to the exact placement, key, and live generation. Use `delivery.when`, `delivery.toUpdateContext`, and a custom keyed Binding's `keySchema` for parent policy instead of adding child variants or mappers to the authored union. A Message-free child has no delivery envelope and omits those delivery fields.
 
 ## Accessibility
 

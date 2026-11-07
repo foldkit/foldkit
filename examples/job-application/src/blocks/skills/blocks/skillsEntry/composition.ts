@@ -1,20 +1,23 @@
 import {
   ProficiencyRadioGroup,
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 
 const proficiencyRadioGroupId = (entryId: string): string =>
   `${entryId}-proficiency`
 
-export const ProficiencyRadioGroupBinding = makeBinding(ProficiencyRadioGroup, {
-  field: 'proficiencyRadioGroup',
-  init: {
-    contextToArgs: entryId => [{ id: proficiencyRadioGroupId(entryId) }],
+export const ProficiencyRadioGroupBinding = makeRequiredFieldBinding(
+  ProficiencyRadioGroup,
+  {
+    field: 'proficiencyRadioGroup',
+    init: {
+      contextToArgs: entryId => [{ id: proficiencyRadioGroupId(entryId) }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: makeOutMessageFold(ProficiencyRadioGroup, {
     Selected: ({ value }) =>
       makeFieldsStep(() => ({

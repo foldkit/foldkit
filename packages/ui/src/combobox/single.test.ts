@@ -75,10 +75,13 @@ const foldFruitComboboxOutMessage = FruitComboboxTestBlock.makeOutMessageFold(
   },
 )
 
-const ComboboxBinding = FruitComboboxTestBlock.makeBinding(FruitCombobox, {
-  field: 'combobox',
-  init: { contextToArgs: () => [{ id: 'fruit' }] },
-}).withOutMessagePolicy({ fold: foldFruitComboboxOutMessage })
+const ComboboxBinding = FruitComboboxTestBlock.makeRequiredFieldBinding(
+  FruitCombobox,
+  {
+    field: 'combobox',
+    init: { contextToArgs: () => [{ id: 'fruit' }] },
+  },
+).withOutMessagePolicy({ fold: foldFruitComboboxOutMessage })
 
 const FruitComboboxTestComposition = FruitComboboxTestBlock.makeComposition({
   bindings: [ComboboxBinding],

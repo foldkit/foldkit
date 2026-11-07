@@ -20,7 +20,8 @@ export const ApplicationBlock = Block.make('Application', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
+  makeOptionalFieldBinding,
   makeCommand,
   makeCommandsStep,
   makeComposition,

@@ -1,4 +1,4 @@
-import { makeInitIfMissingStep } from 'foldkit/bindingInit'
+import { makeInitIfMissingStep } from 'foldkit/binding'
 
 import { EditorsBinding } from './composition'
 import { Issue } from './domain'

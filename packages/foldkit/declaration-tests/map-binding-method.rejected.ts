@@ -1,8 +1,8 @@
 import { Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
-import { initAndInsert } from 'foldkit/bindingInit'
-// @ts-expect-error Map Bindings are authored through the owning Definition.
-import { makeMapBinding as standaloneMapBinding } from 'foldkit/mapBinding'
+import { initAndInsert } from 'foldkit/binding'
+// @ts-expect-error Record Bindings are authored through the owning Block.
+import { makeRecordBinding as standaloneRecordBinding } from 'foldkit/mapBinding'
 
 import {
   ChildBlock,
@@ -13,19 +13,19 @@ import {
   RowsBinding,
   init,
   insert,
-  makeMapBinding,
+  makeRecordBinding,
 } from './map-binding-method.accepted.js'
 
-void standaloneMapBinding
+void standaloneRecordBinding
 
 // @ts-expect-error A contextful child requires its generated delivery context.
-makeMapBinding(ChildBlock, { field: 'children' })
-makeMapBinding(ChildBlock, {
+makeRecordBinding(ChildBlock, { field: 'children' })
+makeRecordBinding(ChildBlock, {
   field: 'children',
   // @ts-expect-error The required update context keeps its exact numeric payload.
   delivery: { toUpdateContext: () => [{ multiplier: 'wrong' }] },
 })
-makeMapBinding(ChildBlock, {
+makeRecordBinding(ChildBlock, {
   field: 'children',
   // @ts-expect-error An empty tuple cannot supply the required child update context.
   delivery: { toUpdateContext: () => [] },
@@ -36,13 +36,13 @@ declare const unknownConfig: unknown
 declare const anyBlock: any
 declare const unknownBlock: unknown
 // @ts-expect-error An any config cannot erase map storage validation.
-makeMapBinding(ChildBlock, anyConfig)
+makeRecordBinding(ChildBlock, anyConfig)
 // @ts-expect-error An unknown config does not establish map storage.
-makeMapBinding(ChildBlock, unknownConfig)
+makeRecordBinding(ChildBlock, unknownConfig)
 // @ts-expect-error An any Block cannot erase the exact child contract.
-makeMapBinding(anyBlock, { field: 'children' })
+makeRecordBinding(anyBlock, { field: 'children' })
 // @ts-expect-error An unknown value is not a completed child Block.
-makeMapBinding(unknownBlock, { field: 'children' })
+makeRecordBinding(unknownBlock, { field: 'children' })
 
 const InvalidModel = Schema.Struct({
   wrong: Schema.Record(Schema.String, Schema.String),
@@ -69,53 +69,70 @@ const InvalidDefinition = Block.makeDefinition('MapMethodInvalidParent', {
 })
 const delivery = { toUpdateContext: () => Tuple.make({ multiplier: 1 }) }
 // @ts-expect-error Values must match the exact child Model.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'wrong', delivery })
-// @ts-expect-error Any-valued maps cannot establish exact child storage.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'anyValues', delivery })
-InvalidDefinition.makeMapBinding(ChildBlock, {
+InvalidDefinition.makeRecordBinding(ChildBlock, { field: 'wrong', delivery })
+InvalidDefinition.makeRecordBinding(ChildBlock, {
+  // @ts-expect-error Any-valued maps cannot establish exact child storage.
+  field: 'anyValues',
+  delivery,
+})
+InvalidDefinition.makeRecordBinding(ChildBlock, {
   // @ts-expect-error Unknown-valued maps cannot establish exact child storage.
   field: 'unknownValues',
   delivery,
 })
-InvalidDefinition.makeMapBinding(ChildBlock, {
+InvalidDefinition.makeRecordBinding(ChildBlock, {
   // @ts-expect-error Numeric Record keys are not silently coerced to strings.
   field: 'numericRecord',
   delivery,
 })
-// @ts-expect-error Composite keys are not occurrence identities.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'objectKey', delivery })
+InvalidDefinition.makeRecordBinding(ChildBlock, {
+  // @ts-expect-error Composite keys are not occurrence identities.
+  field: 'objectKey',
+  delivery,
+})
 // @ts-expect-error Any keys do not prove primitive occurrence identities.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'anyKey', delivery })
-// @ts-expect-error Unknown keys do not prove primitive occurrence identities.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'unknownKey', delivery })
+InvalidDefinition.makeRecordBinding(ChildBlock, { field: 'anyKey', delivery })
+InvalidDefinition.makeRecordBinding(ChildBlock, {
+  // @ts-expect-error Unknown keys do not prove primitive occurrence identities.
+  field: 'unknownKey',
+  delivery,
+})
 // @ts-expect-error Never cannot supply an occurrence key.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'neverKey', delivery })
+InvalidDefinition.makeRecordBinding(ChildBlock, { field: 'neverKey', delivery })
 // @ts-expect-error Parent map storage must be required.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'optional', delivery })
-InvalidDefinition.makeMapBinding(ChildBlock, {
+InvalidDefinition.makeRecordBinding(ChildBlock, { field: 'optional', delivery })
+InvalidDefinition.makeRecordBinding(ChildBlock, {
   // @ts-expect-error Wrapped child storage must be required.
   field: 'optionalChild',
   childField: 'child',
   delivery,
 })
-InvalidDefinition.makeMapBinding(ChildBlock, {
+InvalidDefinition.makeRecordBinding(ChildBlock, {
   // @ts-expect-error Wrapped child storage must have the child's exact Model.
   field: 'wrongChild',
   childField: 'child',
   delivery,
 })
 // @ts-expect-error The shorthand owns lookup and does not accept a custom reader.
-makeMapBinding(ChildBlock, { field: 'children', delivery, readAll: () => [] })
+makeRecordBinding(ChildBlock, {
+  field: 'children',
+  delivery,
+  readAll: () => [],
+})
 // @ts-expect-error The shorthand derives keys from the map Schema.
-makeMapBinding(ChildBlock, {
+makeRecordBinding(ChildBlock, {
   field: 'children',
   delivery,
   keySchema: Schema.String,
 })
 // @ts-expect-error Wrapper storage needs its explicitly named child field.
-makeMapBinding(ChildBlock, { field: 'rows', delivery })
-// @ts-expect-error A direct map's child Model does not contain a wrapper field.
-makeMapBinding(ChildBlock, { field: 'children', childField: 'child', delivery })
+makeRecordBinding(ChildBlock, { field: 'rows', delivery })
+makeRecordBinding(ChildBlock, {
+  // @ts-expect-error A direct map's child Model does not contain a wrapper field.
+  field: 'children',
+  childField: 'child',
+  delivery,
+})
 
 const model = init(1).model
 const id = Id.make('first')
@@ -148,7 +165,7 @@ MissingComposition.prepareBlock({
   })),
   update: missingUpdate,
 })
-const ForeignBinding = makeMapBinding(ChildBlock, {
+const ForeignBinding = makeRecordBinding(ChildBlock, {
   field: 'children',
   placement: 'foreign',
   delivery,

@@ -90,7 +90,7 @@ const ParentDefinition = makeDefinition('GeneratedSimulationParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+const ChildBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
 })
 const ParentComposition = ParentDefinition.makeComposition({
@@ -120,9 +120,12 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const ParentBinding = ApplicationDefinition.makeBinding(ParentBlock, {
-  field: 'parent',
-})
+const ParentBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  ParentBlock,
+  {
+    field: 'parent',
+  },
+)
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [ParentBinding],
 })

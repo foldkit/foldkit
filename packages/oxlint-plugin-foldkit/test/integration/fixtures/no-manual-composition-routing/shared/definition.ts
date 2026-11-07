@@ -5,4 +5,4 @@ export const ParentDefinition = Block.makeDefinition('MapRoutingParent', {
   Model: Schema.Struct({}),
   Message: Schema.Never,
 })
-export const { makeMapBinding } = ParentDefinition
+export const { makeHashMapBinding } = ParentDefinition

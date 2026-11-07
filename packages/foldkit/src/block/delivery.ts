@@ -1201,7 +1201,7 @@ const createCompositionUpdate = (
     const delivery = bindingDeliveries.get(childBinding)
     if (delivery === undefined) {
       throw new Error(
-        `[foldkit] Delivery metadata is unavailable for child Binding "${childBinding.placement}". Create Bindings through the parent Definition.makeBinding method.`,
+        `[foldkit] Delivery metadata is unavailable for child Binding "${childBinding.placement}". Create Bindings through the parent Block relationship constructor.`,
       )
     }
 

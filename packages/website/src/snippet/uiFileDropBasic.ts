@@ -28,7 +28,7 @@ const {
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
 } = FileDropExampleBlock
 
@@ -49,7 +49,7 @@ const foldFileDropOutMessage = makeOutMessageFold(FileDrop.FileDropBlock, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const UploaderBinding = makeBinding(FileDrop.FileDropBlock, {
+const UploaderBinding = makeRequiredFieldBinding(FileDrop.FileDropBlock, {
   field: 'uploader',
   init: { contextToArgs: () => [{ id: 'uploader' }] },
 }).withOutMessagePolicy({ fold: foldFileDropOutMessage })

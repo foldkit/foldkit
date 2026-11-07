@@ -79,7 +79,7 @@ export const NotePlayerDemoBlock = Block.make('NotePlayerDemo', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeCommand,
   makeComposition,
   makeFieldsStep,

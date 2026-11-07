@@ -28,7 +28,7 @@ export const AttachmentsBlock = Block.make('Attachments', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,

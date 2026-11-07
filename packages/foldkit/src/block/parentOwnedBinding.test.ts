@@ -128,15 +128,21 @@ const Parent = makeDefinition('ParentOwnedBindingParent', {
   OutMessage: ParentOutMessage,
 })
 
-const ExactMessageChildBinding = Parent.makeBinding(PlainChildBlock, {
-  field: 'child',
-  placement: 'exactMessageChild',
-})
+const ExactMessageChildBinding = Parent.makeRequiredFieldBinding(
+  PlainChildBlock,
+  {
+    field: 'child',
+    placement: 'exactMessageChild',
+  },
+)
 
-const ExactCustomMessageChildBinding = Parent.makeBinding(PlainChildBlock, {
-  placement: 'exactCustomMessageChild',
-  field: 'maybeChild',
-})
+const ExactCustomMessageChildBinding = Parent.makeOptionalFieldBinding(
+  PlainChildBlock,
+  {
+    placement: 'exactCustomMessageChild',
+    field: 'maybeChild',
+  },
+)
 
 const foldChildOutMessage = ChildOutMessage.match<
   Update.Step<ParentModel, ParentMessage>,
@@ -149,12 +155,12 @@ const foldChildOutMessage = ChildOutMessage.match<
     }),
 })
 
-const DirectChildBinding = Parent.makeBinding(ChildBlock, {
+const DirectChildBinding = Parent.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
   init: false,
 }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
-const ForwardingChildBinding = Parent.makeBinding(ChildBlock, {
+const ForwardingChildBinding = Parent.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
   placement: 'forwardingChild',
 }).withOutMessagePolicy({
@@ -168,7 +174,7 @@ const ForwardingChildBinding = Parent.makeBinding(ChildBlock, {
   },
 })
 
-const OptionalChildBinding = Parent.makeBinding(ChildBlock, {
+const OptionalChildBinding = Parent.makeCustomBinding(ChildBlock, {
   placement: 'optionalChild',
   read: model => model.maybeChild,
   write: (model, nextChild) =>
@@ -184,7 +190,7 @@ const OptionalChildBinding = Parent.makeBinding(ChildBlock, {
   },
 })
 
-const TaggedChildBinding = Parent.makeBinding(ChildBlock, {
+const TaggedChildBinding = Parent.makeCustomBinding(ChildBlock, {
   placement: 'taggedChild',
   read: model =>
     model.slot._tag === 'Child' ? Option.some(model.slot.child) : Option.none(),
@@ -194,7 +200,7 @@ const TaggedChildBinding = Parent.makeBinding(ChildBlock, {
     }),
 }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
-const KeyedChildBinding = Parent.makeBinding(ChildBlock, {
+const KeyedChildBinding = Parent.makeCustomKeyedBinding(ChildBlock, {
   placement: 'entries',
   readAll: model => model.entries,
   key: entry => entry.id,
@@ -302,10 +308,13 @@ const foldGenericChoiceOutMessage = GenericParent.makeOutMessageFold(
       },
   },
 )
-const GenericChoiceBinding = GenericParent.makeBinding(GenericChoice.block, {
-  field: 'choice',
-  init: false,
-}).withOutMessagePolicy({
+const GenericChoiceBinding = GenericParent.makeRequiredFieldBinding(
+  GenericChoice.block,
+  {
+    field: 'choice',
+    init: false,
+  },
+).withOutMessagePolicy({
   fold: foldGenericChoiceOutMessage,
 })
 
@@ -329,7 +338,7 @@ const makeKeyedGenericParent = <const Value extends string>(
         return { model }
       },
     })
-  const ChildBinding = Parent.makeBinding(ChildBlock, {
+  const ChildBinding = Parent.makeCustomKeyedBinding(ChildBlock, {
     readAll: model => model.entries,
     key: entry => {
       const payload: Value = entry.payload
@@ -412,7 +421,7 @@ const keyedConfigWithExtraField = {
 
 if (false) {
   // @ts-expect-error Capturing a keyed policy must not accept extra configuration fields.
-  Parent.makeBinding(ChildBlock, keyedConfigWithExtraField)
+  Parent.makeCustomKeyedBinding(ChildBlock, keyedConfigWithExtraField)
 }
 
 const SingleParentMessage = defineMessageUnion({
@@ -423,9 +432,12 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: SingleParentMessage,
 })
-const ApplicationChildBinding = ApplicationDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-}).withOutMessagePolicy({
+const ApplicationChildBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
+  },
+).withOutMessagePolicy({
   fold: () => ApplicationDefinition.makeStep(model => ({ model })),
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
@@ -436,9 +448,12 @@ const SnapshotParent = makeDefinition('ParentOwnedSnapshotParent', {
   Model: ParentModel,
   Message: SingleParentMessage,
 })
-const SnapshotChildBinding = SnapshotParent.makeBinding(PlainChildBlock, {
-  field: 'child',
-})
+const SnapshotChildBinding = SnapshotParent.makeRequiredFieldBinding(
+  PlainChildBlock,
+  {
+    field: 'child',
+  },
+)
 const SnapshotMount = SnapshotParent.makeMount('SnapshotMount', {
   messages: [SingleParentMessage.RequestedInvokePrototypeOperation],
 })
@@ -462,11 +477,11 @@ if (false) {
   // @ts-expect-error Keyed Bindings are also created by the parent.
   ChildBlock.keyedConnection
 
-  Parent.makeBinding(ChildBlock, {
+  Parent.makeOptionalFieldBinding(ChildBlock, {
     field: 'maybeChild',
   }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
-  const AlternativeChildBinding = Parent.makeBinding(ChildBlock, {
+  const AlternativeChildBinding = Parent.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     placement: 'alternative',
   }).withOutMessagePolicy({ fold: foldChildOutMessage })
@@ -538,9 +553,12 @@ it('freezes parent-owned Bindings after their private metadata is registered', (
 })
 
 it('snapshots mutable child and Mount arrays at the Composition boundary', () => {
-  const DuplicateChildBinding = SnapshotParent.makeBinding(PlainChildBlock, {
-    field: 'child',
-  })
+  const DuplicateChildBinding = SnapshotParent.makeRequiredFieldBinding(
+    PlainChildBlock,
+    {
+      field: 'child',
+    },
+  )
   const suppliedChildBindings: Array<typeof SnapshotChildBinding> = [
     SnapshotChildBinding,
   ]
@@ -608,12 +626,15 @@ it('rejects an authentic Binding created by a different parent identity', () => 
 
 it('keeps child Binding helpers on the Definition after composition', () => {
   const compositionHelper = ParentComposition
-  const DefinitionOwnedChildBinding = Parent.makeBinding(ChildBlock, {
-    field: 'child',
-    placement: 'definitionOwnedChild',
-  }).withOutMessagePolicy({ fold: foldChildOutMessage })
+  const DefinitionOwnedChildBinding = Parent.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'child',
+      placement: 'definitionOwnedChild',
+    },
+  ).withOutMessagePolicy({ fold: foldChildOutMessage })
 
-  expect(compositionHelper).not.toHaveProperty('makeBinding')
+  expect(compositionHelper).not.toHaveProperty('makeRequiredFieldBinding')
   expect(
     Parent.makeComposition({
       bindings: [
@@ -649,9 +670,12 @@ it('accepts shared named contracts and rejects incompatible contracts from that 
     Message: SingleParentMessage,
     OutMessage: ParentOutMessage,
   })
-  const SharedChildBinding = FirstDefinition.makeBinding(PlainChildBlock, {
-    field: 'child',
-  })
+  const SharedChildBinding = FirstDefinition.makeRequiredFieldBinding(
+    PlainChildBlock,
+    {
+      field: 'child',
+    },
+  )
 
   expect(
     SharedParentNamespace.makeDefinition({
@@ -684,11 +708,11 @@ it('uses only own properties to distinguish Binding config forms', () => {
   Object.setPrototypeOf(inheritedMapperConfig, {
     toParentMessage: (_message: ChildMessage) => _message,
   })
-  const InheritedReadAllBinding = SnapshotParent.makeBinding(
+  const InheritedReadAllBinding = SnapshotParent.makeCustomBinding(
     PlainChildBlock,
     inheritedReadAllConfig,
   )
-  const InheritedMapperBinding = SnapshotParent.makeBinding(
+  const InheritedMapperBinding = SnapshotParent.makeCustomBinding(
     PlainChildBlock,
     inheritedMapperConfig,
   )
@@ -723,7 +747,7 @@ it('uses only own properties to distinguish Binding config forms', () => {
 })
 
 it('binds an exposed operation named __proto__ as an own property', () => {
-  const PrototypeOperationBinding = SnapshotParent.makeBinding(
+  const PrototypeOperationBinding = SnapshotParent.makeRequiredFieldBinding(
     PrototypeOperationChildBlock,
     {
       field: 'child',

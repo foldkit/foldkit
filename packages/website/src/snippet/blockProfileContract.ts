@@ -26,7 +26,7 @@ export const ApplicationBlock = Block.make('Application', {
 
 export const {
   makeFieldsStep,
-  makeBinding,
+  makeRequiredFieldBinding,
   makeOutMessageFold,
   makeComposition,
 } = ApplicationBlock

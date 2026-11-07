@@ -1,6 +1,6 @@
 import { Array, Effect, Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
-import { initAndSet } from 'foldkit/bindingInit'
+import { initAndSet } from 'foldkit/binding'
 import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import * as Update from 'foldkit/update'
 
@@ -31,24 +31,26 @@ export const TerminalDialogParentBlock = Block.make('TerminalDialogParent', {
 })
 
 /** @internal Original keyed relationship used by terminal lifecycle assertions. */
-export const MaybeDialogInstanceBinding = TerminalDialogParentBlock.makeBinding(
-  Dialog.DialogBlock,
-  { field: 'maybeDialogInstance', key: 'key', childField: 'model' },
-).withOutMessagePolicy({
-  fold: key =>
-    TerminalDialogParentBlock.makeOutMessageFold(Dialog.DialogBlock, {
-      Opened: () => TerminalDialogParentBlock.makeNoopStep(),
-      Closed: () =>
-        TerminalDialogParentBlock.makeFieldsStep(() => ({
-          closedKeys: Array.append(key),
-        })),
-      CompletedClose: () =>
-        TerminalDialogParentBlock.makeFieldsStep(() => ({
-          completedKeys: Array.append(key),
-          maybeDialogInstance: () => Option.none(),
-        })),
-    }),
-})
+export const MaybeDialogInstanceBinding =
+  TerminalDialogParentBlock.makeOptionalKeyedFieldBinding(Dialog.DialogBlock, {
+    field: 'maybeDialogInstance',
+    key: 'key',
+    childField: 'model',
+  }).withOutMessagePolicy({
+    fold: key =>
+      TerminalDialogParentBlock.makeOutMessageFold(Dialog.DialogBlock, {
+        Opened: () => TerminalDialogParentBlock.makeNoopStep(),
+        Closed: () =>
+          TerminalDialogParentBlock.makeFieldsStep(() => ({
+            closedKeys: Array.append(key),
+          })),
+        CompletedClose: () =>
+          TerminalDialogParentBlock.makeFieldsStep(() => ({
+            completedKeys: Array.append(key),
+            maybeDialogInstance: () => Option.none(),
+          })),
+      }),
+  })
 const TerminalDialogParentComposition =
   TerminalDialogParentBlock.makeComposition({
     bindings: [MaybeDialogInstanceBinding],

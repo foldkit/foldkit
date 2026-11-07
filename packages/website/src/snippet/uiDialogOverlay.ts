@@ -46,7 +46,7 @@ const {
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
 } = FilterDialogBlock
 
@@ -64,12 +64,12 @@ const foldComboboxOutMessage = makeOutMessageFold(CityCombobox, {
   ClearedSelection: makeNoopStep,
 })
 
-const DialogBinding = makeBinding(Dialog.DialogBlock, {
+const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'edit-filters' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-const ComboboxBinding = makeBinding(CityCombobox, {
+const ComboboxBinding = makeRequiredFieldBinding(CityCombobox, {
   field: 'combobox',
   init: { contextToArgs: () => [{ id: 'city' }] },
 }).withOutMessagePolicy({ fold: foldComboboxOutMessage })

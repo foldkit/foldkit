@@ -13,7 +13,14 @@ import type {
   ValidateStaticBindingConfigWithoutPolicy,
 } from '../../block/bindChild.js'
 import type { AggregatedChildren, AnyBinding } from '../../block/binding.js'
+import type { NativeRelationshipConstructors } from '../../block/bindingAuthoring.js'
 import type { ExecutableConnection } from '../../block/bindingConnection.js'
+import type {
+  FieldRelationship,
+  MapRelationship,
+  MapRelationshipField,
+  RelationshipStorageFields,
+} from '../../block/bindingRelationshipTypes.js'
 import type { CompleteMessageSelfContainedCodec } from '../../block/childEnvelope.js'
 import type { AuthoringDefinition } from '../../block/define.js'
 import type {
@@ -85,11 +92,11 @@ import type {
   CoreOutMessageContract,
   Descriptor,
   DescriptorContract,
-  DescriptorTypeId,
   LayeredDescriptor,
   ProjectFacts,
 } from './contract.js'
 import type { PlanSourceValidation } from './planSourceValidation.js'
+import type { RelationshipConstructors } from './relationshipAuthoring.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
 type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
@@ -442,14 +449,15 @@ export interface DescriptorViewExtension<
   >
 }
 
-/** Creates passive child Bindings with native storage, policy, and initialization contracts. */
-export interface MakeBinding<
+/** Authors one direct field or a custom unkeyed relationship. */
+export interface MakeSingularBinding<
   ModelSchema extends AnySelfContainedSchema,
   MessageSchema extends AnySelfContainedSchema,
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
   Kind extends ConstructionKind = 'Effect',
   ParentOwner = unknown,
+  Relationship extends 'Required' | 'Optional' | 'Custom' = 'Required',
 > {
   <
     const Child extends AnyDescriptor &
@@ -459,10 +467,92 @@ export interface MakeBinding<
           ? ProvidedChildContract
           : unknown),
     const Keys extends BindChildConfigKey,
-    const ReadAll extends (
-      model: ModelSchema['Type'],
-    ) => ReadonlyArray<unknown>,
-    const KeyValue extends InstanceKey,
+    const Field extends string,
+    const Source extends object,
+    const InitialArguments extends Parameters<CoreContract<Child>['init']> =
+      Parameters<CoreContract<Child>['init']>,
+  >(
+    child: Child,
+    config: Source &
+      RelationshipStorageFields<Relationship, Field, never, never> &
+      Readonly<{ outMessage?: never }> &
+      BindChildContextualProperties<
+        Keys,
+        CoreContract<Child>,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        never,
+        never,
+        Field,
+        never,
+        never,
+        InitialArguments,
+        ChildContext<ChildInitContextSchema>
+      > &
+      Readonly<{
+        readAll?: never
+        key?: never
+        field?: Field
+        childField?: never
+        writeAt?: never
+      }> &
+      ([CoreContract<Child>['Message']['Type']] extends [never]
+        ? Readonly<{ delivery?: never; keySchema?: never }>
+        : GeneratedDeliveryRequirement<
+            CoreContract<Child>,
+            ModelSchema['Type'],
+            never
+          >),
+    ...validation: readonly [
+      ...ReadableAdmissionValidation<NoInfer<Child>>,
+      ...ValidateStaticBindingConfigWithoutPolicy<
+        CoreContract<Child>,
+        ModelSchema,
+        NoInfer<Keys>,
+        NoInfer<Field>,
+        never,
+        never,
+        NoInfer<Source>,
+        Relationship
+      >,
+      ...(Extract<
+        'construct' | 'connect',
+        keyof CoreContract<Child>['operations']
+      > extends never
+        ? readonly []
+        : readonly [reservedBindingOperation: never]),
+    ]
+  ): DescriptorBinding<
+    Child,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    Source,
+    ChildInitContextSchema,
+    Kind,
+    ParentOwner
+  >
+}
+
+/** @internal Names keyed field authoring while retaining native policy and init contracts. */
+export interface MakeFieldBinding<
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
+  OutMessageSchema extends AnySchema | undefined,
+  ChildInitContextSchema extends AnySchema | undefined,
+  Kind extends ConstructionKind = 'Effect',
+  ParentOwner = unknown,
+  Relationship extends FieldRelationship = 'Implicit',
+> {
+  <
+    const Child extends AnyDescriptor &
+      (Kind extends 'Layer'
+        ? Readonly<{ layer: Layer.Any }>
+        : Kind extends 'Provided'
+          ? ProvidedChildContract
+          : unknown),
+    const Keys extends BindChildConfigKey,
     const Field extends string,
     const KeyField extends string,
     const ChildField extends string,
@@ -472,6 +562,7 @@ export interface MakeBinding<
   >(
     child: Child,
     config: Source &
+      RelationshipStorageFields<Relationship, Field, KeyField, ChildField> &
       Readonly<{ outMessage?: never }> &
       BindChildContextualProperties<
         Keys,
@@ -479,8 +570,8 @@ export interface MakeBinding<
         ModelSchema,
         MessageSchema,
         OutMessageSchema,
-        ReadAll,
-        KeyValue,
+        never,
+        never,
         Field,
         KeyField,
         ChildField,
@@ -504,7 +595,7 @@ export interface MakeBinding<
                   Keys,
                   CoreContract<Child>,
                   ModelSchema,
-                  KeyValue,
+                  never,
                   Field,
                   KeyField
                 >
@@ -519,7 +610,8 @@ export interface MakeBinding<
         NoInfer<Field>,
         NoInfer<KeyField>,
         NoInfer<ChildField>,
-        NoInfer<Source>
+        NoInfer<Source>,
+        Relationship
       >,
       ...(Extract<
         'construct' | 'connect',
@@ -538,71 +630,17 @@ export interface MakeBinding<
     Kind,
     ParentOwner
   >
-  <
-    const Child extends AnyDescriptor &
-      Readonly<{ [DescriptorTypeId]: Readonly<{ isMessageFree: true }> }> &
-      (Kind extends 'Layer'
-        ? Readonly<{ layer: Layer.Any }>
-        : Kind extends 'Provided'
-          ? ProvidedChildContract
-          : unknown),
-    const Keys extends GeneralKeyedConfigKey,
-    const ReadAll extends (model: ModelSchema['Type']) => ReadonlyArray<any>,
-    const KeyValue extends InstanceKey,
-    const Source extends object = object,
-  >(
-    child: Child,
-    config: Source &
-      Readonly<{ outMessage?: never }> &
-      GeneralKeyedContextualProperties<
-        Keys,
-        CoreContract<Child>,
-        ModelSchema,
-        MessageSchema,
-        OutMessageSchema,
-        ReadAll,
-        (item: ItemOfReadAll<NoInfer<ReadAll>>) => KeyValue,
-        KeyValue
-      > &
-      Readonly<{
-        readAll: ReadAll
-        key: (item: ItemOfReadAll<NoInfer<ReadAll>>) => KeyValue
-        read: (
-          item: ItemOfReadAll<NoInfer<ReadAll>>,
-        ) => CoreContract<Child>['Model']['Type']
-        writeAt: (
-          model: ModelSchema['Type'],
-          key: KeyValue,
-          nextChildModel: CoreContract<Child>['Model']['Type'],
-        ) => ModelSchema['Type']
-        field?: never
-        childField?: never
-        presentWhen?: never
-        init?: never
-        write?: never
-        delivery?: never
-        keySchema?: never
-      }>,
-    ...validation: readonly [
-      ...ReadableAdmissionValidation<NoInfer<Child>>,
-      ...ValidateGeneralKeyedSourceWithoutPolicy<NoInfer<Source>>,
-      ...(Extract<
-        'construct' | 'connect',
-        keyof CoreContract<Child>['operations']
-      > extends never
-        ? readonly []
-        : readonly [reservedBindingOperation: never]),
-    ]
-  ): DescriptorBinding<
-    Child,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Source,
-    ChildInitContextSchema,
-    Kind,
-    ParentOwner
-  >
+}
+
+/** Creates a relationship through keyed parent-owned accessors. */
+export interface MakeCustomKeyedBinding<
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
+  OutMessageSchema extends AnySchema | undefined,
+  ChildInitContextSchema extends AnySchema | undefined,
+  Kind extends ConstructionKind = 'Effect',
+  ParentOwner = unknown,
+> {
   <
     const Child extends AnyDescriptor &
       (Kind extends 'Layer'
@@ -641,7 +679,7 @@ export interface MakeBinding<
         ) => ModelSchema['Type']
         field?: never
         childField?: never
-        presentWhen?: never
+        activeWhen?: never
         init?: never
         write?: never
       }> &
@@ -680,6 +718,31 @@ export interface MakeBinding<
   >
 }
 
+/** @internal Native lowering contract used before explicit relationship selection. */
+export type MakeBinding<
+  ModelSchema extends AnySelfContainedSchema,
+  MessageSchema extends AnySelfContainedSchema,
+  OutMessageSchema extends AnySchema | undefined,
+  ChildInitContextSchema extends AnySchema | undefined,
+  Kind extends ConstructionKind = 'Effect',
+  ParentOwner = unknown,
+> = MakeFieldBinding<
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  ChildInitContextSchema,
+  Kind,
+  ParentOwner
+> &
+  MakeCustomKeyedBinding<
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    ChildInitContextSchema,
+    Kind,
+    ParentOwner
+  >
+
 /** Map relationships retain their ordinary key, storage, and initialization contracts. */
 export interface MakeMapBinding<
   ModelSchema extends AnySelfContainedSchema,
@@ -688,6 +751,7 @@ export interface MakeMapBinding<
   ChildInitContextSchema extends AnySchema | undefined,
   Kind extends ConstructionKind = 'Effect',
   ParentOwner = unknown,
+  Relationship extends MapRelationship = 'Implicit',
 > {
   <
     const Child extends AnyDescriptor &
@@ -713,6 +777,7 @@ export interface MakeMapBinding<
       > &
       Readonly<{
         field: Field &
+          MapRelationshipField<ModelSchema, Relationship, Field> &
           MapValidField<CoreContract<Child>, ModelSchema, Keys, ChildField>
         childField?: ChildField
       }> &
@@ -903,30 +968,26 @@ export type Definition<
     true,
     ChildInitContextSchema
   >,
-  | 'makeBinding'
-  | 'makeMapBinding'
+  | keyof NativeRelationshipConstructors<
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      never
+    >
   | 'makeComposition'
   | 'makeOutMessageFold'
   | 'makeOutMessageForward'
 > &
+  RelationshipConstructors<
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    ChildInitContextSchema,
+    Kind,
+    Owner<Id, true>
+  > &
   Readonly<{
     makeBlock: MakeBlock<Id, ModelSchema, MessageSchema, OutMessageSchema, Kind>
-    makeBinding: MakeBinding<
-      ModelSchema,
-      MessageSchema,
-      OutMessageSchema,
-      ChildInitContextSchema,
-      Kind,
-      Owner<Id, true>
-    >
-    makeMapBinding: MakeMapBinding<
-      ModelSchema,
-      MessageSchema,
-      OutMessageSchema,
-      ChildInitContextSchema,
-      Kind,
-      Owner<Id, true>
-    >
     makeComposition: MakeComposition<
       Id,
       ModelSchema,

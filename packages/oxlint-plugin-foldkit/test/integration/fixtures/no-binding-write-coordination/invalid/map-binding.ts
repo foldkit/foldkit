@@ -5,7 +5,7 @@ import {
   ChildBlock,
   ChildModel,
   ParentDefinition,
-  makeMapBinding as bindMap,
+  makeRecordBinding as bindMap,
 } from '../shared/definition'
 
 // @ts-expect-error This invalid low-level writer proves lint provenance for the Definition helper.

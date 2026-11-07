@@ -29,10 +29,14 @@ export const ActivityFeedBlock = Block.make('ActivityFeed', {
   Model,
   Message,
 })
-const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
-  ActivityFeedBlock
+const {
+  makeNoopStep,
+  makeRequiredFieldBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = ActivityFeedBlock
 
-const ActivityListBinding = makeBinding(ActivityListBlock, {
+const ActivityListBinding = makeRequiredFieldBinding(ActivityListBlock, {
   field: 'activityList',
   init: {
     contextToArgs: () => [

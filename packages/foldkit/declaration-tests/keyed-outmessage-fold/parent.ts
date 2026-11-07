@@ -67,12 +67,15 @@ export const foldLiftedSelection = makeOutMessageFold(ChildBlock, {
     ParentBlock.makeCommandsStep(() => [liftCommand(Observe())]),
   Closed: ParentBlock.makeNoopStep,
 })
-export const EntriesBinding = ParentBlock.makeMapBinding(ChildBlock, {
+export const EntriesBinding = ParentBlock.makeRecordBinding(ChildBlock, {
   field: 'entries',
 }).withOutMessagePolicy({ fold: foldSelection })
-export const NumberedEntriesBinding = ParentBlock.makeMapBinding(ChildBlock, {
-  field: 'numberedEntries',
-}).withOutMessagePolicy({
+export const NumberedEntriesBinding = ParentBlock.makeHashMapBinding(
+  ChildBlock,
+  {
+    field: 'numberedEntries',
+  },
+).withOutMessagePolicy({
   fold: key =>
     makeOutMessageFold(ChildBlock, {
       Selected: ({ value }) =>

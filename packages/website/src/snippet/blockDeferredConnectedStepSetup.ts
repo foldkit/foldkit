@@ -21,12 +21,19 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
-  ApplicationBlock
+const {
+  makeNoopStep,
+  makeRequiredFieldBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = ApplicationBlock
 
-export const SettingsBinding = makeBinding(Settings.SettingsBlock, {
-  field: 'settings',
-}).withOutMessagePolicy({
+export const SettingsBinding = makeRequiredFieldBinding(
+  Settings.SettingsBlock,
+  {
+    field: 'settings',
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(Settings.SettingsBlock, {
     ChangedTheme: makeNoopStep,
   }),

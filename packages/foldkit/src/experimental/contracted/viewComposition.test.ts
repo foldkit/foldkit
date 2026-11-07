@@ -48,7 +48,7 @@ const PageDefinition = Block.makeDefinition('ComposableViewPage', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const CounterBinding = PageDefinition.makeBinding(CounterBlock, {
+const CounterBinding = PageDefinition.makeRequiredFieldBinding(CounterBlock, {
   field: 'counter',
 })
 const PageComposition = PageDefinition.makeComposition({
@@ -174,12 +174,18 @@ const ShellDefinition = Block.makeDefinition('AlternateViewShell', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const FirstPageBinding = ShellDefinition.makeBinding(PageDefinition.contract, {
-  field: 'first',
-})
-const SecondPageBinding = ShellDefinition.makeBinding(PageDefinition.contract, {
-  field: 'second',
-})
+const FirstPageBinding = ShellDefinition.makeRequiredFieldBinding(
+  PageDefinition.contract,
+  {
+    field: 'first',
+  },
+)
+const SecondPageBinding = ShellDefinition.makeRequiredFieldBinding(
+  PageDefinition.contract,
+  {
+    field: 'second',
+  },
+)
 const ShellComposition = ShellDefinition.makeComposition({
   bindings: [FirstPageBinding, SecondPageBinding],
 })
@@ -326,7 +332,7 @@ const ViewlessShellDefinition = Block.makeDefinition('ViewlessAlternateShell', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const ViewlessBinding = ViewlessShellDefinition.makeBinding(
+const ViewlessBinding = ViewlessShellDefinition.makeRequiredFieldBinding(
   ViewlessDefinition.contract,
   { field: 'child' },
 )
@@ -376,7 +382,7 @@ const KeyedShellDefinition = Block.makeDefinition('KeyedAlternateShell', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const KeyedChildBinding = KeyedShellDefinition.makeMapBinding(
+const KeyedChildBinding = KeyedShellDefinition.makeRecordBinding(
   ViewlessDefinition.contract,
   { field: 'children' },
 )

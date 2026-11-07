@@ -58,11 +58,14 @@ export const foldForEntry = (key: EntryId) =>
     },
     Closed: ParentBlock.makeNoopStep,
   })
-export const ExtractedEntriesBinding = ParentBlock.makeMapBinding(ChildBlock, {
-  field: 'entries',
-}).withOutMessagePolicy({ fold: foldForEntry })
+export const ExtractedEntriesBinding = ParentBlock.makeRecordBinding(
+  ChildBlock,
+  {
+    field: 'entries',
+  },
+).withOutMessagePolicy({ fold: foldForEntry })
 
-export const InlineEntriesBinding = ParentBlock.makeMapBinding(ChildBlock, {
+export const InlineEntriesBinding = ParentBlock.makeRecordBinding(ChildBlock, {
   field: 'entries',
 }).withOutMessagePolicy({
   fold: key => {
@@ -99,9 +102,12 @@ const equivalentFold = ParentBlock.makeOutMessageFold(EquivalentChildBlock, {
   Selected: ParentBlock.makeNoopStep,
   Closed: ParentBlock.makeNoopStep,
 })
-export const EquivalentEntriesBinding = ParentBlock.makeMapBinding(ChildBlock, {
-  field: 'entries',
-}).withOutMessagePolicy({ fold: equivalentFold })
+export const EquivalentEntriesBinding = ParentBlock.makeRecordBinding(
+  ChildBlock,
+  {
+    field: 'entries',
+  },
+).withOutMessagePolicy({ fold: equivalentFold })
 
 export const acquiredSelection = Story.withBlock(
   { block: ParentBlock, layer },

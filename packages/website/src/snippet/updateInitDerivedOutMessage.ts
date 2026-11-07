@@ -41,7 +41,7 @@ const {
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
-  makeBinding,
+  makeRequiredFieldBinding,
   makeOutMessageForward,
   makeComposition,
 } = DateRangeBlock
@@ -66,12 +66,15 @@ const foldEndDateOutMessage = makeOutMessageFold(DatePicker.DatePickerBlock, {
   ChangedViewMonth: makeNoopStep,
 })
 
-const EndDatePickerBinding = makeBinding(DatePicker.DatePickerBlock, {
-  field: 'endDatePicker',
-  init: {
-    contextToArgs: today => [{ id: 'end-date', today }],
+const EndDatePickerBinding = makeRequiredFieldBinding(
+  DatePicker.DatePickerBlock,
+  {
+    field: 'endDatePicker',
+    init: {
+      contextToArgs: today => [{ id: 'end-date', today }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: foldEndDateOutMessage,
   forward: makeOutMessageForward(DatePicker.DatePickerBlock, {
     SelectedDate: ({ date }) => OutMessage.SelectedEndDate({ date }),

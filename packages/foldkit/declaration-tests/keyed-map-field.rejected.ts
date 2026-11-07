@@ -28,36 +28,36 @@ const InvalidDefinition = Block.makeDefinition('InvalidKeyedMapParent', {
 })
 
 // @ts-expect-error Record map shorthand does not coerce numeric property keys.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'numericRecord' })
+InvalidDefinition.makeRecordBinding(ChildBlock, { field: 'numericRecord' })
 
 // @ts-expect-error Composite HashMap keys are not primitive occurrence identities.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'compositeMap' })
+InvalidDefinition.makeHashMapBinding(ChildBlock, { field: 'compositeMap' })
 
 // @ts-expect-error Never cannot produce a child occurrence identity.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'neverRecord' })
+InvalidDefinition.makeRecordBinding(ChildBlock, { field: 'neverRecord' })
 
 // @ts-expect-error Never cannot produce a child occurrence identity.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'neverMap' })
+InvalidDefinition.makeHashMapBinding(ChildBlock, { field: 'neverMap' })
 
 // @ts-expect-error The map value must exactly match the child Model.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'wrongValues' })
+InvalidDefinition.makeRecordBinding(ChildBlock, { field: 'wrongValues' })
 
 const wrongWrapperConfig = {
   field: 'wrongWrappers',
   childField: 'child',
 }
 // @ts-expect-error The declared wrapper child field has an incompatible Schema.
-InvalidDefinition.makeMapBinding(ChildBlock, wrongWrapperConfig)
+InvalidDefinition.makeRecordBinding(ChildBlock, wrongWrapperConfig)
 
 const optionalWrapperConfig = {
   field: 'optionalWrappers',
   childField: 'child',
 }
 // @ts-expect-error A wrapper child field must be required.
-InvalidDefinition.makeMapBinding(ChildBlock, optionalWrapperConfig)
+InvalidDefinition.makeHashMapBinding(ChildBlock, optionalWrapperConfig)
 
 // @ts-expect-error The parent map field must be required.
-InvalidDefinition.makeMapBinding(ChildBlock, { field: 'optionalMap' })
+InvalidDefinition.makeHashMapBinding(ChildBlock, { field: 'optionalMap' })
 
 const ValidModel = Schema.Struct({
   childrenById: Schema.Record(Schema.String, ChildBlock.Model),
@@ -75,43 +75,43 @@ const ValidDefinition = Block.makeDefinition('ValidKeyedMapParent', {
 const FakeDefinition = {
   Model: ValidModel,
   Message: Schema.Never,
-  makeBinding: () => ({}),
+  makeRecordBinding: () => ({}),
 }
 
 // @ts-expect-error A lookalike object must implement the Definition's full Binding constructor contract.
-FakeDefinition.makeMapBinding(ChildBlock, { field: 'childrenById' })
+FakeDefinition.makeRecordBinding(ChildBlock, { field: 'childrenById' })
 
 const conflictingReadAllConfig = {
   field: 'childrenById',
   readAll: () => [],
 }
 // @ts-expect-error Map shorthand derives readAll and rejects custom readers.
-ValidDefinition.makeMapBinding(ChildBlock, conflictingReadAllConfig)
+ValidDefinition.makeRecordBinding(ChildBlock, conflictingReadAllConfig)
 
 const conflictingKeyConfig = {
   field: 'childrenById',
   key: 'count',
 }
 // @ts-expect-error Map shorthand derives identity from the property key.
-ValidDefinition.makeMapBinding(ChildBlock, conflictingKeyConfig)
+ValidDefinition.makeRecordBinding(ChildBlock, conflictingKeyConfig)
 
 const conflictingWriterConfig = {
   field: 'childrenById',
   writeAt: (model: typeof ValidModel.Type) => model,
 }
 // @ts-expect-error Map shorthand derives an existing-only writer.
-ValidDefinition.makeMapBinding(ChildBlock, conflictingWriterConfig)
+ValidDefinition.makeRecordBinding(ChildBlock, conflictingWriterConfig)
 
 const conflictingPresenceConfig = {
   field: 'childrenById',
-  presentWhen: () => true,
+  activeWhen: () => true,
 }
-// @ts-expect-error Presence comes from property membership, not presentWhen.
-ValidDefinition.makeMapBinding(ChildBlock, conflictingPresenceConfig)
+// @ts-expect-error Presence comes from property membership, not activeWhen.
+ValidDefinition.makeRecordBinding(ChildBlock, conflictingPresenceConfig)
 
 const conflictingKeySchemaConfig = {
   field: 'childrenById',
   keySchema: Schema.String,
 }
 // @ts-expect-error The map field supplies the key Schema.
-ValidDefinition.makeMapBinding(ChildBlock, conflictingKeySchemaConfig)
+ValidDefinition.makeRecordBinding(ChildBlock, conflictingKeySchemaConfig)

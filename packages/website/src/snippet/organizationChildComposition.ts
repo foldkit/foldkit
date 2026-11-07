@@ -1,7 +1,7 @@
 import * as Counter from '../counter'
-import { makeBinding, makeComposition } from './block'
+import { makeRequiredFieldBinding, makeComposition } from './block'
 
-export const CounterBinding = makeBinding(Counter.CounterBlock, {
+export const CounterBinding = makeRequiredFieldBinding(Counter.CounterBlock, {
   field: 'counter',
 })
 

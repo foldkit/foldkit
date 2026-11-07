@@ -497,3 +497,14 @@ contains timings, ranges, memory, correctness checks and reproduction artifacts.
 `attribute-bundles-200` passes one `ReadonlyArray<Attribute<never>>` bundle to 200 builders with distinct Message unions. It checks the element input alias through the published declarations. The fixture imports the shared warmup unchanged; its budget is additional to the original seven ceilings.
 
 When changing attribute aliases, also compare the one-checker workload with an array that mixes the shared spread and a local handler. That mixed array creates a distinct source union and can retain structural comparison cost. Source/emitted acceptance, raw-only publishing, Message payloads, and registered Mount capabilities are covered by the `attribute-alias` declaration fixtures.
+
+## Explicit Binding relationship constructors
+
+The storage-specific constructors preserve the existing workload graphs and
+callback contracts. The approved adoption sets only the two Workspace
+instantiation/type ceilings to their measured counts: 1,609,171/117,873 for
+four groups and 2,787,171/160,966 for eight. All other limits are unchanged.
+All eight workloads pass. The [comparison and raw adoption run](../../../internal/binding-relationships-20261106/README.md#compiler-measurements)
+record the original costs and the budget decision. These counters do not measure
+editor or browser rendering latency. Earlier sections retain their historical
+API spellings and source measurements.

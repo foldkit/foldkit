@@ -266,7 +266,7 @@ DeclarationTestsViewHelperDefinition.makeComposition({
 // @ts-expect-error A no-args Mount rejects invented args.
 ObserveViewHelper({ unexpected: true })
 const AlternativeViewChildBinding =
-  DeclarationTestsViewHelperDefinition.makeBinding(ChildBlock, {
+  DeclarationTestsViewHelperDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     placement: 'alternativeViewChild',
     init: false,
@@ -677,7 +677,7 @@ const DeclarationTestsForeignParentDefinition = Block.makeDefinition(
   },
 )
 const ForeignParent = DeclarationTestsForeignParentDefinition
-const ForeignChildBinding = ForeignParent.makeBinding(ChildBlock, {
+const ForeignChildBinding = ForeignParent.makeCustomBinding(ChildBlock, {
   placement: 'foreign-child',
   read: model => Option.some(model.child),
   write: (_model, nextChild) => ParentModel.make({ child: nextChild }),
@@ -692,26 +692,26 @@ const DeclarationTestsBindingParentDefinition = Block.makeDefinition(
 )
 const BindingParent = DeclarationTestsBindingParentDefinition
 
-// @ts-expect-error Authored parent Message constructors are no longer accepted by makeBinding.
-BindingParent.makeBinding(ChildBlock, {
+// @ts-expect-error Explicit relationship constructors do not accept authored parent Message constructors.
+BindingParent.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.RequestedRefresh,
 })
 
-// @ts-expect-error Authored outgoing Message mappers are no longer accepted by makeBinding.
-BindingParent.makeBinding(ChildBlock, {
+// @ts-expect-error Explicit relationship constructors do not accept authored outgoing Message mappers.
+BindingParent.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
   toParentMessage: (message: ChildMessage) => message,
 })
 
-// @ts-expect-error Authored incoming Message routes are no longer accepted by makeBinding.
-BindingParent.makeBinding(ChildBlock, {
+// @ts-expect-error Explicit relationship constructors do not accept authored incoming Message routes.
+BindingParent.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
   fromParentMessage: false,
 })
 
 // @ts-expect-error Generated keyed delivery rejects authored outgoing Message mappers.
-BindingParent.makeBinding(ChildBlock, {
+BindingParent.makeCustomKeyedBinding(ChildBlock, {
   placement: 'children',
   readAll: (model: ParentModel) => [model.child],
   key: (): 'only' => 'only',
@@ -750,7 +750,7 @@ Block.makeDefinition('DeclarationTestsInvalidDirectContracts', {
 })
 
 const AlternativeChildBinding =
-  DeclarationTestsOmittedChildDefinition.makeBinding(ChildBlock, {
+  DeclarationTestsOmittedChildDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     placement: 'alternativeChild',
     init: false,
@@ -781,13 +781,13 @@ const DeclarationTestsOmittedInitChildDefinition = Block.makeDefinition(
   },
 )
 const OmittedInitChildBinding =
-  DeclarationTestsOmittedInitChildDefinition.makeBinding(ChildBlock, {
+  DeclarationTestsOmittedInitChildDefinition.makeCustomBinding(ChildBlock, {
     placement: 'omitted-init-child',
     read: model => Option.some(model),
     write: (_model, nextChild) => nextChild,
   })
 const AlternativeInitChildBinding =
-  DeclarationTestsOmittedInitChildDefinition.makeBinding(ChildBlock, {
+  DeclarationTestsOmittedInitChildDefinition.makeCustomBinding(ChildBlock, {
     placement: 'alternativeInitChild',
     read: model => Option.some(model),
     write: (_model, nextChild) => nextChild,

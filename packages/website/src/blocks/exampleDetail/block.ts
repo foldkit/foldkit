@@ -21,7 +21,7 @@ export const ExampleDetailBlock = Block.make('ExampleDetail', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeCommand,
   makeComposition,
   makeFieldsStep,

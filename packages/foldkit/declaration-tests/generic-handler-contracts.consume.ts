@@ -41,10 +41,13 @@ const ParentDefinition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-export const ColorBinding = ParentDefinition.makeBinding(ColorBlock, {
-  field: 'child',
-  init: { contextToArgs: () => ['color'] },
-})
+export const ColorBinding = ParentDefinition.makeRequiredFieldBinding(
+  ColorBlock,
+  {
+    field: 'child',
+    init: { contextToArgs: () => ['color'] },
+  },
+)
 
 export type OptionalViewPayloadIsExact = Expect<
   Equal<

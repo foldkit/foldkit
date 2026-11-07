@@ -51,7 +51,7 @@ const Parent = Block.make('DirectBlockLayerParent', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-const ChildBinding = Parent.makeBinding(Child, { field: 'child' })
+const ChildBinding = Parent.makeRequiredFieldBinding(Child, { field: 'child' })
 const ParentComposition = Parent.makeComposition({ bindings: [ChildBinding] })
 const parentInit = ParentComposition.makeInit(() => ({ model: {} }))
 const parentUpdate = ParentComposition.makeUpdate({})
@@ -137,9 +137,12 @@ const ParentWithDocument = Block.make('DirectBlockLayerParentWithDocument', {
   Init: Schema.Tuple([]),
   view: { kind: 'Document' },
 })
-const DocumentStateBinding = ParentWithDocument.makeBinding(DocumentChild, {
-  field: 'document',
-})
+const DocumentStateBinding = ParentWithDocument.makeRequiredFieldBinding(
+  DocumentChild,
+  {
+    field: 'document',
+  },
+)
 const ParentWithDocumentComposition = ParentWithDocument.makeComposition({
   bindings: [DocumentStateBinding],
 })

@@ -61,7 +61,7 @@ const foldSearchOutMessage = SearchOutMessage.match<
 >({
   Incremented: () => ParentDefinition.makeNoopStep(),
 })
-const SearchBinding = ParentDefinition.makeBinding(SearchBlock, {
+const SearchBinding = ParentDefinition.makeRequiredFieldBinding(SearchBlock, {
   field: 'search',
 }).withOutMessagePolicy({ fold: foldSearchOutMessage })
 const ParentComposition = ParentDefinition.makeComposition({
@@ -97,8 +97,8 @@ const ContextualSearchBlock: Block.FromAssemblyWithView<
 > = Block.assemble(prepareContextualSearchBlock)
 
 if (false) {
-  ParentDefinition.makeBinding(ContextualSearchBlock, {
-    // @ts-expect-error Required update context needs an explicit bidirectional mapping.
+  // @ts-expect-error Required update context needs an explicit bidirectional mapping.
+  ParentDefinition.makeRequiredFieldBinding(ContextualSearchBlock, {
     field: 'search',
   })
 }

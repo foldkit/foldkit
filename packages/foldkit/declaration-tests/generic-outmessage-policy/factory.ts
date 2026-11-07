@@ -85,12 +85,15 @@ export const makeSelectionFeature = <Item extends string, ItemEncoded>(
         Effect.as(store.record(value), ParentMessage.CompletedRecordSelection())
     },
   })
-  const HistoryBinding = Definition.makeBinding(HistoryBlock, {
+  const HistoryBinding = Definition.makeRequiredFieldBinding(HistoryBlock, {
     field: 'history',
   })
-  const UnselectedBinding = Definition.makeBinding(SelectionBlock, {
-    field: 'selection',
-  })
+  const UnselectedBinding = Definition.makeRequiredFieldBinding(
+    SelectionBlock,
+    {
+      field: 'selection',
+    },
+  )
   const foldSelectionOutMessage = Definition.makeOutMessageFold(
     SelectionBlock,
     {

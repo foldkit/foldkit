@@ -32,7 +32,7 @@ const {
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
 } = CitiesPickerBlock
 
@@ -48,7 +48,7 @@ const foldComboboxMultiOutMessage = makeOutMessageFold(CitiesCombobox, {
   ClearedSelection: makeNoopStep,
 })
 
-const ComboboxMultiBinding = makeBinding(CitiesCombobox, {
+const ComboboxMultiBinding = makeRequiredFieldBinding(CitiesCombobox, {
   field: 'comboboxMulti',
   init: { contextToArgs: () => [{ id: 'cities-multi' }] },
 }).withOutMessagePolicy({ fold: foldComboboxMultiOutMessage })

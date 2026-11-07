@@ -98,7 +98,9 @@ describe('Lazy.expectAllReused', () => {
       Model: ParentModel,
       Message: Schema.Never,
     })
-    const ChildBinding = ParentDefinition.makeBinding(child, { field: 'child' })
+    const ChildBinding = ParentDefinition.makeRequiredFieldBinding(child, {
+      field: 'child',
+    })
     const ParentComposition = ParentDefinition.makeComposition({
       bindings: [ChildBinding],
     })

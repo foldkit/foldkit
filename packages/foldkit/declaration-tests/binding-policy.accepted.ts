@@ -46,13 +46,16 @@ const wrongModelPolicy = {
     }),
 }
 export const WrongModelBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    readAll: model => model.choices,
-    key: item => item.id,
-    keySchema: ChoiceId,
-    read: item => item.choice,
-    writeAt: model => model,
-  }).withOutMessagePolicy(wrongModelPolicy)
+  DeclarationWrappedKeyedFieldParentDefinition.makeCustomKeyedBinding(
+    Choice.block,
+    {
+      readAll: model => model.choices,
+      key: item => item.id,
+      keySchema: ChoiceId,
+      read: item => item.choice,
+      writeAt: model => model,
+    },
+  ).withOutMessagePolicy(wrongModelPolicy)
 
 export const foreignMessagePolicy = {
   fold:
@@ -63,13 +66,16 @@ export const foreignMessagePolicy = {
     }),
 }
 export const ForeignMessageBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    readAll: model => model.choices,
-    key: item => item.id,
-    keySchema: ChoiceId,
-    read: item => item.choice,
-    writeAt: model => model,
-  }).withOutMessagePolicy(foreignMessagePolicy)
+  DeclarationWrappedKeyedFieldParentDefinition.makeCustomKeyedBinding(
+    Choice.block,
+    {
+      readAll: model => model.choices,
+      key: item => item.id,
+      keySchema: ChoiceId,
+      read: item => item.choice,
+      writeAt: model => model,
+    },
+  ).withOutMessagePolicy(foreignMessagePolicy)
 
 const undeclaredOutMessagePolicy = {
   fold:
@@ -80,13 +86,16 @@ const undeclaredOutMessagePolicy = {
     }),
 }
 export const UndeclaredOutMessageBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    readAll: model => model.choices,
-    key: item => item.id,
-    keySchema: ChoiceId,
-    read: item => item.choice,
-    writeAt: model => model,
-  }).withOutMessagePolicy(undeclaredOutMessagePolicy)
+  DeclarationWrappedKeyedFieldParentDefinition.makeCustomKeyedBinding(
+    Choice.block,
+    {
+      readAll: model => model.choices,
+      key: item => item.id,
+      keySchema: ChoiceId,
+      read: item => item.choice,
+      writeAt: model => model,
+    },
+  ).withOutMessagePolicy(undeclaredOutMessagePolicy)
 
 const ForeignMessage = Message.defineMessageUnion({ CompletedForeign: {} })
 declare const foreignCommand: Command.Command<
@@ -112,13 +121,16 @@ export const unionForeignMessagePolicy: Readonly<{
   }),
 }
 export const UnionForeignBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    readAll: model => model.choices,
-    key: item => item.id,
-    keySchema: ChoiceId,
-    read: item => item.choice,
-    writeAt: model => model,
-  }).withOutMessagePolicy(unionForeignMessagePolicy)
+  DeclarationWrappedKeyedFieldParentDefinition.makeCustomKeyedBinding(
+    Choice.block,
+    {
+      readAll: model => model.choices,
+      key: item => item.id,
+      keySchema: ChoiceId,
+      read: item => item.choice,
+      writeAt: model => model,
+    },
+  ).withOutMessagePolicy(unionForeignMessagePolicy)
 
 export const optionalForeignMessagePolicy: Readonly<{
   fold: (
@@ -136,13 +148,16 @@ export const optionalForeignMessagePolicy: Readonly<{
   }),
 }
 export const OptionalForeignBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    readAll: model => model.choices,
-    key: item => item.id,
-    keySchema: ChoiceId,
-    read: item => item.choice,
-    writeAt: model => model,
-  }).withOutMessagePolicy(optionalForeignMessagePolicy)
+  DeclarationWrappedKeyedFieldParentDefinition.makeCustomKeyedBinding(
+    Choice.block,
+    {
+      readAll: model => model.choices,
+      key: item => item.id,
+      keySchema: ChoiceId,
+      read: item => item.choice,
+      writeAt: model => model,
+    },
+  ).withOutMessagePolicy(optionalForeignMessagePolicy)
 
 type RegisteredReturn = ModelOnlyReturn &
   Update.RegistrationEvidence<'SiblingBinding'>
@@ -155,13 +170,16 @@ export const registeredPolicy: Readonly<{
   fold: (_key, _outMessage) => model => ({ model }),
 }
 export const RegisteredPolicyBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    readAll: model => model.choices,
-    key: item => item.id,
-    keySchema: ChoiceId,
-    read: item => item.choice,
-    writeAt: model => model,
-  }).withOutMessagePolicy(registeredPolicy)
+  DeclarationWrappedKeyedFieldParentDefinition.makeCustomKeyedBinding(
+    Choice.block,
+    {
+      readAll: model => model.choices,
+      key: item => item.id,
+      keySchema: ChoiceId,
+      read: item => item.choice,
+      writeAt: model => model,
+    },
+  ).withOutMessagePolicy(registeredPolicy)
 
 const ForwardOutMessage = Message.defineMessageUnion({
   ForwardedChoice: { value: Schema.String },
@@ -181,7 +199,7 @@ const wrongForwardPolicy = {
   ) => outMessage,
 }
 export const WrongForwardBinding =
-  DeclarationPolicyForwardDefinition.makeBinding(Choice.block, {
+  DeclarationPolicyForwardDefinition.makeCustomKeyedBinding(Choice.block, {
     readAll: model => model.choices,
     key: item => item.id,
     keySchema: ChoiceId,
@@ -238,9 +256,12 @@ export {
   ParentMessage,
 }
 
-export const DirectDomainBinding = DirectParent.makeBinding(DirectChildBlock, {
-  field: 'child',
-}).withOutMessagePolicy({
+export const DirectDomainBinding = DirectParent.makeRequiredFieldBinding(
+  DirectChildBlock,
+  {
+    field: 'child',
+  },
+).withOutMessagePolicy({
   fold: (_outMessage: typeof DirectChildBlock.OutMessage.Type) =>
     DirectParent.makeStep(model => ({ model })),
 })
@@ -249,11 +270,14 @@ export const DirectDomainComposition = DirectParent.makeComposition({
 })
 
 export const KeyedDomainBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    field: 'literalChoices',
-    key: 'kind',
-    childField: 'choice',
-  }).withOutMessagePolicy({
+  DeclarationWrappedKeyedFieldParentDefinition.makeKeyedArrayBinding(
+    Choice.block,
+    {
+      field: 'literalChoices',
+      key: 'kind',
+      childField: 'choice',
+    },
+  ).withOutMessagePolicy({
     fold: (
       _key: 'Primary' | 'Secondary',
       _outMessage: typeof Choice.OutMessage.Type,

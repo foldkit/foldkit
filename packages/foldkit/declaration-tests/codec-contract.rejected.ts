@@ -71,10 +71,13 @@ const ServiceChildParent = Block.make('ServiceChildParent', {
   Message,
   Init: Schema.Tuple([]),
 })
-const ServiceChildBinding = ServiceChildParent.makeBinding(ServiceChild, {
-  // @ts-expect-error A Service-dependent child cannot enter a generated dispatch graph.
-  field: 'child',
-})
+// @ts-expect-error A Service-dependent child cannot enter a generated dispatch graph.
+const ServiceChildBinding = ServiceChildParent.makeRequiredFieldBinding(
+  ServiceChild,
+  {
+    field: 'child',
+  },
+)
 void ServiceChildBinding
 
 const ServiceKeyParentKey = Symbol('ServiceKeyParent')
@@ -84,7 +87,7 @@ const ServiceKeyParent = Block.make('ServiceKeyParent', {
   Message,
   Init: Schema.Tuple([]),
 })
-const ServiceKeyBinding = ServiceKeyParent.makeBinding(ChildBlock, {
+const ServiceKeyBinding = ServiceKeyParent.makeCustomKeyedBinding(ChildBlock, {
   placement: 'serviceKeyChildren',
   readAll: model => model.children,
   key: child => child.id,

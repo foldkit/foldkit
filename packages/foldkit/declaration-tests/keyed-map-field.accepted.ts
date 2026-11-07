@@ -55,20 +55,23 @@ export const ParentDefinition = Block.makeDefinition(
   },
 )
 
-export const ChildrenByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
-  field: 'childrenById',
-})
-export const FiniteChildrenBinding = ParentDefinition.makeMapBinding(
+export const ChildrenByIdBinding = ParentDefinition.makeRecordBinding(
+  ChildBlock,
+  {
+    field: 'childrenById',
+  },
+)
+export const FiniteChildrenBinding = ParentDefinition.makeRecordBinding(
   ChildBlock,
   {
     field: 'finiteChildren',
   },
 )
-export const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+export const RowsByIdBinding = ParentDefinition.makeRecordBinding(ChildBlock, {
   field: 'rowsById',
   childField: 'child',
 })
-export const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(
+export const ChildrenByNumberBinding = ParentDefinition.makeHashMapBinding(
   ChildBlock,
   {
     field: 'childrenByNumber',
@@ -79,16 +82,19 @@ export const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(
     },
   },
 )
-export const HashRowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
-  field: 'hashRowsById',
-  childField: 'child',
-  placement: 'hashRows',
-})
-export const BroadNumberChildrenBinding = ParentDefinition.makeMapBinding(
+export const HashRowsByIdBinding = ParentDefinition.makeHashMapBinding(
+  ChildBlock,
+  {
+    field: 'hashRowsById',
+    childField: 'child',
+    placement: 'hashRows',
+  },
+)
+export const BroadNumberChildrenBinding = ParentDefinition.makeHashMapBinding(
   ChildBlock,
   { field: 'broadNumberChildren' },
 )
-export const LowerChildrenBinding = ParentDefinition.makeMapBinding(
+export const LowerChildrenBinding = ParentDefinition.makeRecordBinding(
   ChildBlock,
   {
     field: 'pairsById',
@@ -96,7 +102,7 @@ export const LowerChildrenBinding = ParentDefinition.makeMapBinding(
     placement: 'lowerChildren',
   },
 )
-export const UpperChildrenBinding = ParentDefinition.makeMapBinding(
+export const UpperChildrenBinding = ParentDefinition.makeRecordBinding(
   ChildBlock,
   {
     field: 'pairsById',

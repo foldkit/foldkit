@@ -3,15 +3,19 @@ import { Effect, Layer } from 'effect'
 // composition.ts
 import { Dialog, Menu } from '@foldkit/ui'
 
-import { ApplicationBlock, makeBinding, makeComposition } from './block'
+import {
+  ApplicationBlock,
+  makeRequiredFieldBinding,
+  makeComposition,
+} from './block'
 
-export const DialogBinding = makeBinding(Dialog.DialogBlock, {
+export const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 export const ApplicationMenu = Menu.makeBlock<string>()
 
-export const MenuBinding = makeBinding(ApplicationMenu, {
+export const MenuBinding = makeRequiredFieldBinding(ApplicationMenu, {
   field: 'menu',
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 

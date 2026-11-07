@@ -45,7 +45,7 @@ const {
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
 } = DatePickerExampleBlock
 
@@ -82,19 +82,22 @@ const foldDatePickerOutMessage = makeOutMessageFold(
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const DatePickerDemoBinding = makeBinding(DatePicker.DatePickerBlock, {
-  field: 'datePickerDemo',
-  init: {
-    contextToArgs: flags => [
-      {
-        id: 'date-picker-demo',
-        today: flags.today,
-        minDate: flags.today,
-        maxDate: Calendar.addMonths(flags.today, 3),
-      },
-    ],
+const DatePickerDemoBinding = makeRequiredFieldBinding(
+  DatePicker.DatePickerBlock,
+  {
+    field: 'datePickerDemo',
+    init: {
+      contextToArgs: flags => [
+        {
+          id: 'date-picker-demo',
+          today: flags.today,
+          minDate: flags.today,
+          maxDate: Calendar.addMonths(flags.today, 3),
+        },
+      ],
+    },
   },
-}).withOutMessagePolicy({ fold: foldDatePickerOutMessage })
+).withOutMessagePolicy({ fold: foldDatePickerOutMessage })
 
 const DatePickerExampleComposition = makeComposition({
   bindings: [DatePickerDemoBinding],

@@ -1,15 +1,15 @@
 import { Effect, Option, Schema } from 'effect'
 import { Update } from 'foldkit'
-import { initAndSet } from 'foldkit/bindingInit'
+import { initAndSet } from 'foldkit/binding'
 import { pushUrl } from 'foldkit/navigation'
 
 import * as Shared from '@typing-game/shared'
 
 import {
-  makeBinding,
   makeCommand,
   makeCommandsStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
   makeStep,
 } from '../block'
 import { HomeBlock } from '../blocks'
@@ -51,7 +51,7 @@ const foldHomeOutMessage = makeOutMessageFold(HomeBlock, {
   JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
 })
 
-export const HomeBinding = makeBinding(HomeBlock, {
+export const HomeBinding = makeRequiredFieldBinding(HomeBlock, {
   field: 'home',
-  presentWhen: model => ApplicationRoute.guards.Home(model.route),
+  activeWhen: model => ApplicationRoute.guards.Home(model.route),
 }).withOutMessagePolicy({ fold: foldHomeOutMessage })

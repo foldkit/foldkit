@@ -1,9 +1,9 @@
 import type { Block } from 'foldkit'
 
-import { makeBinding, makeComposition } from './block'
+import { makeComposition, makeRequiredFieldBinding } from './block'
 import { PeopleBlock } from './blocks'
 
-export const PeoplePageBinding = makeBinding(PeopleBlock, {
+export const PeoplePageBinding = makeRequiredFieldBinding(PeopleBlock, {
   field: 'peoplePage',
   init: { contextToArgs: route => [route] },
 })

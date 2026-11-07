@@ -20,14 +20,14 @@ export const ApplicationBlock = Block.make('Application', {
 })
 
 const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeOutMessageFold,
   makeFieldsStep,
   makeNoopStep,
   makeComposition,
 } = ApplicationBlock
 
-const PostDetailsBinding = makeBinding(postQuery, {
+const PostDetailsBinding = makeRequiredFieldBinding(postQuery, {
   field: 'postDetails',
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(postQuery, {

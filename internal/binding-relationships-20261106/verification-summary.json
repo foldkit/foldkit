@@ -1,0 +1,79 @@
+{
+  "status": "prototype-gated-on-unchanged-compiler-ceilings",
+  "baseCommit": "4f6a740d923b9a25b2c0360e79071eda898057ab",
+  "branch": "codex/explicit-binding-relationships-20261106",
+  "sourceState": "Uncommitted working tree; not a release candidate or a new Daybreak-reviewed snapshot",
+  "coreNonTestSourceSha256": "dfc14e5aabe2fc6224a928b3193e172bad6ab36195c8812984932c36d261e44a",
+  "budgetsSha256": "2d8c94057dd8abccdb3d5ab8e9b2a781f4aea0f837bbfc8f91383b5b3b9a35be",
+  "checks": [
+    {
+      "name": "Core build",
+      "command": "pnpm --filter foldkit exec tsc -p tsconfig.build.json",
+      "exitCode": 0
+    },
+    {
+      "name": "Source TS6",
+      "command": "node_modules/typescript/bin/tsc6 -p packages/foldkit/declaration-tests/tsconfig.binding-relationships.source.json --noEmit",
+      "version": "6.0.3",
+      "exitCode": 0
+    },
+    {
+      "name": "Source TS7",
+      "command": "pnpm --filter foldkit exec tsc -p declaration-tests/tsconfig.binding-relationships.source.json --noEmit",
+      "version": "7.1.0-beta",
+      "exitCode": 0
+    },
+    {
+      "name": "External emit / relocated declarations / negative controls",
+      "command": "node internal/binding-relationships-20261106/check-declarations.mjs",
+      "versions": ["6.0.3", "7.1.0-beta"],
+      "exitCode": 0
+    },
+    {
+      "name": "Typing Game typecheck and existing Stories",
+      "exitCode": 0,
+      "tests": 14
+    },
+    {
+      "name": "Workspace typecheck and top-level Stories/Scenes",
+      "exitCode": 0,
+      "tests": 58
+    },
+    {
+      "name": "Counters typecheck and existing tests",
+      "exitCode": 0,
+      "tests": 13
+    },
+    {
+      "name": "Focused Core storage/lifecycle tests",
+      "exitCode": 0,
+      "tests": 67
+    },
+    {
+      "name": "Generic Toast wrapped-array source check",
+      "command": "pnpm --filter @foldkit/ui exec tsc -p ../../internal/binding-relationships-20261106/tsconfig.toast.json",
+      "exitCode": 0
+    },
+    {
+      "name": "All eight unchanged compiler workloads",
+      "command": "pnpm --filter foldkit check:block-type-performance",
+      "exitCode": 1,
+      "passed": 6,
+      "failed": ["workspace-composition-4", "workspace-composition-8"],
+      "log": "prototype-performance.no-implicit-exports.log"
+    }
+  ],
+  "limits": [
+    "Full repository migration and obsolete erased runtime surface removal are not complete",
+    "No revised compiler ceiling has been approved",
+    "Editor latency and browser rendering were not remeasured for this prototype",
+    "This code is outside the preceding Daybreak-reviewed snapshot; publication remains held"
+  ],
+  "artifacts": {
+    "declaration-driver.log": "d0945a7e1436bdbcb934ec4027bd9099f8aa144efadc1d2c909e908ed2daf53c",
+    "declaration-proof.json": "801dcf316966930336858f54b29f8a83818ca29bf5464876b70437ec5be182cf",
+    "prototype-performance.initial.log": "063566525df9f388da3af8c24ca13e32aa57b5b6d2b71715b0c52b12dbc25f87",
+    "prototype-performance.no-implicit-exports.log": "90444d369d4270d3677af8c18f2bca9a5b3cb02e7d8fad97393b0db8cd8fc9ac",
+    "runtime-negative-control.log": "28ea253475a1d7ac28d635c18938b90adb1365d9f27512ee48b45a11550859e4"
+  }
+}

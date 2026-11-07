@@ -70,7 +70,7 @@ const LocalSave = ParentDefinition.makeCommand('LocalSave', {
     return () => Effect.succeed(ParentMessage.CompletedLocalSave())
   },
 })
-const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+const ChildBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
 })
 const ParentComposition = ParentDefinition.makeComposition({
@@ -181,7 +181,7 @@ export const KeyedDefinition = Block.makeDefinition('CallbackGuardKeyed', {
   Model: KeyedModel,
   Message: ParentMessage,
 })
-export const KeyedBinding = KeyedDefinition.makeBinding(ChildBlock, {
+export const KeyedBinding = KeyedDefinition.makeKeyedArrayBinding(ChildBlock, {
   field: 'children',
   key: 'id',
   childField: 'counter',
@@ -211,7 +211,9 @@ export const makeGenericOwner = <Value, Encoded>(
     Model,
     Message: ParentMessage,
   })
-  const Binding = Definition.makeBinding(ChildBlock, { field: 'child' })
+  const Binding = Definition.makeRequiredFieldBinding(ChildBlock, {
+    field: 'child',
+  })
   const Composition = Definition.makeComposition({ bindings: [Binding] })
   const keep = Definition.makeNoopStep()
   return Composition.makeUpdate({

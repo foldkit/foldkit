@@ -23,8 +23,12 @@ export const TooltipExampleBlock = Block.make('TooltipExample', {
   Message,
 })
 
-const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
-  TooltipExampleBlock
+const {
+  makeNoopStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = TooltipExampleBlock
 
 // At module scope, fold the OutMessage into your own Model. `Shown` and
 // `Hidden` mark the visibility transitions. Fire analytics or coordinate with
@@ -44,7 +48,7 @@ const foldTooltipOutMessage = makeOutMessageFold(Tooltip.TooltipBlock, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const TooltipBinding = makeBinding(Tooltip.TooltipBlock, {
+const TooltipBinding = makeRequiredFieldBinding(Tooltip.TooltipBlock, {
   field: 'tooltip',
   init: { contextToArgs: () => [{ id: 'save-button' }] },
 }).withOutMessagePolicy({ fold: foldTooltipOutMessage })

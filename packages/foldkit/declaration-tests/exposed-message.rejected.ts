@@ -264,10 +264,13 @@ MountedChoiceComposition.prepareBlock({
 })
 
 const foldChildOutMessage = () => (model: ParentModel) => ({ model })
-const AlternativeChildBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-  placement: 'alternative',
-}).withOutMessagePolicy({ fold: foldChildOutMessage })
+const AlternativeChildBinding = ParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
+    placement: 'alternative',
+  },
+).withOutMessagePolicy({ fold: foldChildOutMessage })
 const OmittedComposition = ParentDefinition.makeComposition({
   bindings: [AlternativeChildBinding, EntryBinding],
 })

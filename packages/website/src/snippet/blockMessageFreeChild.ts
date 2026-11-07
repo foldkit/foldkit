@@ -44,6 +44,6 @@ const PageBlock = Block.make('Page', {
   Message: PageMessage,
 })
 
-export const PreviewBinding = PageBlock.makeBinding(PreviewBlock, {
+export const PreviewBinding = PageBlock.makeRequiredFieldBinding(PreviewBlock, {
   field: 'preview',
 })

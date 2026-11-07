@@ -23,12 +23,13 @@ const ApplicationBlock = Block.make('Application', {
   Message: Schema.Never,
 })
 
-const { makeMapBinding, makeComposition } = ApplicationBlock
+const { makeRecordBinding, makeHashMapBinding, makeComposition } =
+  ApplicationBlock
 
-export const EntriesByIdBinding = makeMapBinding(EntryBlock, {
+export const EntriesByIdBinding = makeRecordBinding(EntryBlock, {
   field: 'entriesById',
 })
-export const RowsByIdBinding = makeMapBinding(EntryBlock, {
+export const RowsByIdBinding = makeHashMapBinding(EntryBlock, {
   field: 'rowsById',
   childField: 'entry',
 })

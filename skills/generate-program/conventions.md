@@ -459,7 +459,11 @@ A Binding's `write` or `writeAt` places the next child Model into parent storage
 
 An empty record returned by `makeFieldsStep` preserves the exact incoming Model and evaluates no field transformers. `FieldTransforms<Model>` from `foldkit/struct` is available when a helper genuinely accepts a field-update record; it follows ordinary structural typing and does not enforce exact keys or Model-variant relationships alone. For a local policy helper that gates Model changes, accept a Model-to-Model callback and keep `modifyFields` at the call site, preserving its field validation without duplicating generic machinery in application code.
 
-For a child stored in an exact `Schema.Struct` field as `ChildModel` or `Option<ChildModel>`, use `ParentBlock.makeBinding(ChildBlock, { field })`; the field is the default placement. A direct Option field is absent while `None`, and folds never create it. Reuse the child Model Schema instance for an opaque declaration whose decoded shape cannot be compared. Add `presentWhen` only when parent policy gates the entire direct child. Use `makeVariantBinding` from `foldkit/variantBinding` when the child occupies one complete tagged member of the parent `Schema.Union`, including the actual child Model Schema. Use explicit `read` and `write` for nested, wrapped, or custom storage. A custom keyed Binding provides `readAll`, `key`, `keySchema`, `read`, and `writeAt`. Put admission policy in `delivery.when` and derive required child update context with `delivery.toUpdateContext`; these callbacks receive the occurrence key for keyed storage. The Composition generates the child envelope and records its placement, key, and live generation. Do not add a child wrapper to the authored parent Message or write `parentMessage`, `toParentMessage`, or `fromParentMessage` mappings. A child whose Message Schema is `Schema.Never` needs no delivery policy. Placement identifies the Binding in the parent composition graph; a keyed occurrence's key is nested under that placement. The Binding projects `init`, `fold`, named operations, and `embedView`. Declare eligible startup with `init` and let `Composition.makeInit` assemble it. Custom storage, deliberate Command interleaving, and dynamic creation use the exact registered `ChildBinding.init({ key?, args, toParentModel, commands? })`. It returns a passive recipe with no `.model` or `.commands`. Return it directly from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through the parent's `makeStep` producer. The Composition authoring boundary interprets it directly. The compiler checks exact key, args, parent Model, requirements, and Binding requirement, while runtime validation during checked execution checks the active composition frame, schema-equivalent child placement, and exactly one requested keyed occurrence. Ordinary Model construction remains available.
+Choose the parent Block's Binding constructor from the stored shape: `makeRequiredFieldBinding` for one child field, `makeOptionalFieldBinding` for an Option field, `makeOptionalKeyedFieldBinding` for a closed keyed Option wrapper, `makeKeyedArrayBinding` for arrays, `makeRecordBinding` for Records, `makeHashMapBinding` for HashMaps, `makeCustomBinding` or `makeCustomKeyedBinding` for explicit accessors, and `makeVariantBinding` for one complete tagged child member. The [Binding reference](../foldkit/references/composition.md#bind-a-child) lists exact configurations and key contracts. Constructors retain parent typing when destructured. Add `activeWhen` only to required or optional direct-field Bindings when the whole occurrence should deactivate while its Model is retained. Keep it separate from incoming delivery admission and Stream-only gates.
+
+Reuse the actual child Model Schema for opaque fields and whole tagged variants. Ordinary folds and operations never create absent children. Composition generates the delivery envelope, records placement, key and generation, and routes to the registered occurrence. Do not add wrappers or Message mappers to the authored parent union. Put admission in `delivery.when` and exact child update context in `delivery.toUpdateContext`; keyed callbacks also receive the occurrence key. A Message-free child needs no delivery policy.
+
+Declare eligible startup through the Binding's `init` policy and let `Composition.makeInit` assemble it. Custom storage, deliberate Command interleaving and dynamic creation use `ChildBinding.init({ key?, args, toParentModel, commands? })`. Return that passive recipe intact from `makeInit` or `makeUpdate`, or preserve it through the owning `makeStep`. It exposes no `.model` or `.commands` before checked execution. The exact key, arguments, parent Model, requirements and registration evidence stay checked.
 
 `ChildBinding.fold` is the projected primitive Composition invokes for a registered generated child delivery. Framework adapters and focused tests may call it directly when they already own a child Message. Parent-driven transitions use named operations. Both folds and Binding-projected operations are connected Steps whose Model input requires the exact registered graph. Typed calls with the raw domain Model fail. Include named operations in `Composition.makeInit` startup or apply them to the contextual Model inside the owning `Composition.makeUpdate`. Return or compose their opaque results intact; no `.model` or `.commands` fields are available before checked execution, and the result cannot narrow to a useful `{ model }` return. A raw recipe exposes only direct channels. The Composition resolves registered policy into the final parent Command Message, requirements, and OutMessage channels, so declare the public parent contract on its Block and let completion check the inferred implementation channels. An acquired executable's `operations.operation(model, ...args)` applies the owning `update` or `inMessageUpdate` transition and returns the readable executed result. Ordinary pure Steps remain directly callable. TypeScript may erase a connected Binding function's result through a method returning `void`; outside the graph, that invocation only constructs and discards passive configuration and executes no child work.
 
@@ -467,8 +471,8 @@ Use `Update.combineSteps` when a later Step should receive the Model produced by
 
 When the OutMessage is already known while constructing a new result, include it directly: `{ model, commands, outMessage }`. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper: `pipe(dialogClose, Update.withOutMessage(outMessage))`. When constructing the plain return in the same expression, pass it first: `Update.withOutMessage({ model, commands }, outMessage)`.
 
-Inline an ordinary unkeyed policy as
-`makeBinding(WholeChildBlock, ...).withOutMessagePolicy({ fold: FeatureBlock.makeOutMessageFold(WholeChildBlock, handlers) })`.
+For a required-field child, inline an ordinary policy as
+`FeatureBlock.makeRequiredFieldBinding(WholeChildBlock, ...).withOutMessagePolicy({ fold: FeatureBlock.makeOutMessageFold(WholeChildBlock, handlers) })`.
 Every fold passes the whole passive child contract explicitly, whether inline,
 extracted, adapted for keyed policy, or staged for reciprocal composition.
 Name every variant directly, including a singleton union. Command requirements
@@ -513,20 +517,20 @@ Choose the helper when authoring a Step. Inside a local `makeStep` callback, ret
 When a Binding handles an OutMessage locally, select the callable fold under `withOutMessagePolicy({ fold })`. Add the callable `forward` only for variants that continue upward. A derived parent OutMessage takes precedence over forwarding for that dispatch.
 
 For dynamic initialization that only places a child, use the optional
-`foldkit/bindingInit` helpers with the Binding, current parent Model and child
+`foldkit/binding` helpers with the Binding, current parent Model and child
 `args`, plus `key` for keyed storage. Use `initAndSet` for required/optional direct
 fields and keyed Option wrappers containing only the key and child fields. A
 custom unkeyed accessor may reuse its existing `init.toParentFields` projection.
 Use `initAndAppend` for keyed arrays already declaring `init.instances` and
 `init.toItem`, or `initAndInsert` for direct-value Record/HashMap storage from
-`ParentBlock.makeMapBinding`. Destructure and export the factory from a split
+`makeRecordBinding` or `makeHashMapBinding`. Destructure and export the factory from a split
 feature's `block.ts`, then import it from that owning module. Append and insert
 reject duplicate keys. Keep explicit `Binding.init`
 for additional wrapper metadata, sibling changes, parent Commands, array/map
 replacement or whole tagged variants. Do not add an unnecessary startup policy
 for a helper. Preserve recipes intact so child Commands and registration survive.
 
-Use `makeInitIfMissingStep` from `foldkit/bindingInit` when a direct-value
+Use `makeInitIfMissingStep` from `foldkit/binding` when a direct-value
 Record/HashMap child should be retained if already present. Its `{ key, args }`
 form snapshots a static selection. When selection depends on the current Model,
 pass a pure producer returning `Option.some({ key, args })` or `Option.none()`;

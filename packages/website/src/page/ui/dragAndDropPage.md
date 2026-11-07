@@ -8,7 +8,7 @@ Sortable lists and cross-container movement with pointer tracking, keyboard navi
 
 DragAndDrop is different from other Foldkit UI components in two ways. First, it doesn’t have a `view()` function. Instead, you spread `draggable()` and `droppable()` attributes onto your own elements. Second, its update function can return `Reordered` and `Cancelled` through the optional `outMessage` field. You handle those OutMessages to decide how to reorder your data.
 
-Integration requires four pieces: a `DragAndDropBlock.Model` field in your Model, one Binding created with `ParentBlock.makeBinding(DragAndDropBlock, config)` and selected through `withOutMessagePolicy({ fold })`, that Binding included in the parent’s `bindings`, and an embedded view whose `toView` callback receives bound `draggable`, `droppable`, and `sortable` attribute helpers. The parent chooses all markup and spreads the supplied child attributes directly.
+Integration requires four pieces: a `DragAndDropBlock.Model` field in your Model, one Binding created with `ParentBlock.makeRequiredFieldBinding(DragAndDropBlock, config)` and selected through `withOutMessagePolicy({ fold })`, that Binding included in the parent’s `bindings`, and an embedded view whose `toView` callback receives bound `draggable`, `droppable`, and `sortable` attribute helpers. The parent chooses all markup and spreads the supplied child attributes directly.
 
 :::Info{label="See it in an app"}
 Check out how DragAndDrop is wired up in the [kanban example](https://github.com/foldkit/foldkit/tree/main/examples/kanban/src) or the [UI showcase](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/dragAndDrop.ts).

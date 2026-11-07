@@ -3,13 +3,13 @@ import { AsyncData, type Block, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
-  makeBinding,
   makeCommandsStep,
   makeComposition,
   makeFieldsStep,
-  makeMapBinding,
   makeNoopStep,
   makeOutMessageFold,
+  makeRecordBinding,
+  makeRequiredFieldBinding,
   makeStep,
 } from './block'
 import {
@@ -39,17 +39,20 @@ import {
 } from './steps/issues'
 import { changeIssueFilters, closeIssue, openIssue } from './steps/navigation'
 
-export const ActiveMemberListboxBinding = makeBinding(StringListboxBlock, {
-  field: 'activeMemberListbox',
-  init: { contextToArgs: () => [{ id: 'workspace-active-member' }] },
-}).withOutMessagePolicy({
+export const ActiveMemberListboxBinding = makeRequiredFieldBinding(
+  StringListboxBlock,
+  {
+    field: 'activeMemberListbox',
+    init: { contextToArgs: () => [{ id: 'workspace-active-member' }] },
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(StringListboxBlock, {
     Selected: ({ value }) =>
       makeFieldsStep(() => ({ activeMemberId: () => value })),
   }),
 })
 
-export const IssueDetailsBinding = makeMapBinding(IssueDetailBlock, {
+export const IssueDetailsBinding = makeRecordBinding(IssueDetailBlock, {
   field: 'issueDetails',
   delivery: {
     toUpdateContext: (model, issueId) => [
@@ -72,7 +75,7 @@ export const IssueDetailsBinding = makeMapBinding(IssueDetailBlock, {
   }),
 })
 
-export const CreateIssueBinding = makeBinding(CreateIssueBlock, {
+export const CreateIssueBinding = makeRequiredFieldBinding(CreateIssueBlock, {
   field: 'createIssue',
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(CreateIssueBlock, {
@@ -91,15 +94,18 @@ export const CreateIssueBinding = makeBinding(CreateIssueBlock, {
   }),
 })
 
-export const NotificationCenterBinding = makeBinding(NotificationCenterBlock, {
-  field: 'notificationCenter',
-}).withOutMessagePolicy({
+export const NotificationCenterBinding = makeRequiredFieldBinding(
+  NotificationCenterBlock,
+  {
+    field: 'notificationCenter',
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(NotificationCenterBlock, {
     SelectedIssue: ({ issueId }) => openIssue(issueId),
   }),
 })
 
-export const IssueListBinding = makeBinding(IssueListBlock, {
+export const IssueListBinding = makeRequiredFieldBinding(IssueListBlock, {
   field: 'issueList',
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(IssueListBlock, {
@@ -166,7 +172,7 @@ export const IssueListBinding = makeBinding(IssueListBlock, {
   }),
 })
 
-export const IssueBoardsBinding = makeMapBinding(IssueBoardBlock, {
+export const IssueBoardsBinding = makeRecordBinding(IssueBoardBlock, {
   field: 'issueBoards',
 }).withOutMessagePolicy({
   fold: projectId =>
@@ -178,9 +184,12 @@ export const IssueBoardsBinding = makeMapBinding(IssueBoardBlock, {
     }),
 })
 
-export const CommandPaletteBinding = makeBinding(CommandPaletteBlock, {
-  field: 'commandPalette',
-}).withOutMessagePolicy({
+export const CommandPaletteBinding = makeRequiredFieldBinding(
+  CommandPaletteBlock,
+  {
+    field: 'commandPalette',
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(CommandPaletteBlock, {
     SelectedIssue: ({ issueId }) => openIssue(issueId),
     SelectedProject: ({ projectId }) =>
@@ -190,11 +199,14 @@ export const CommandPaletteBinding = makeBinding(CommandPaletteBlock, {
   }),
 })
 
-export const MemberDirectoryBinding = makeBinding(MemberDirectoryBlock, {
-  field: 'memberDirectory',
-})
+export const MemberDirectoryBinding = makeRequiredFieldBinding(
+  MemberDirectoryBlock,
+  {
+    field: 'memberDirectory',
+  },
+)
 
-export const ProjectSettingsBinding = makeMapBinding(ProjectSettingsBlock, {
+export const ProjectSettingsBinding = makeRecordBinding(ProjectSettingsBlock, {
   field: 'projectSettings',
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(ProjectSettingsBlock, {

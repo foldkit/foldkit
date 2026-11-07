@@ -592,9 +592,12 @@ const GraphFullSaveLayer = GraphFullSave.toLayer<
     )
   }),
 )
-const GraphFullChildBinding = GraphFullDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-})
+const GraphFullChildBinding = GraphFullDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
+  },
+)
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const GraphFullComposition = GraphFullDefinition.makeComposition({
   bindings: [GraphFullChildBinding],
@@ -697,7 +700,7 @@ const ParentDefinition = Block.makeDefinition('DualUpdatePrototypeParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+const ChildBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.

@@ -449,7 +449,7 @@ if (false) {
     Model: ParentModel,
     Message,
   })
-  const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+  const ChildBinding = ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
   })
   const RegisteredComposition = ParentDefinition.makeComposition({

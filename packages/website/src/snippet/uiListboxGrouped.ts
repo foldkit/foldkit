@@ -40,8 +40,12 @@ export const CharacterPickerBlock = Block.make('CharacterPicker', {
   Message,
 })
 
-const { makeFieldsStep, makeOutMessageFold, makeBinding, makeComposition } =
-  CharacterPickerBlock
+const {
+  makeFieldsStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = CharacterPickerBlock
 
 // At module scope, fold the OutMessage into your own Model. On selection, the
 // `Selected` variant carries the chosen item's string value (the result of
@@ -57,7 +61,7 @@ const foldListboxOutMessage = makeOutMessageFold(CharacterListbox, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const ListboxBinding = makeBinding(CharacterListbox, {
+const ListboxBinding = makeRequiredFieldBinding(CharacterListbox, {
   field: 'listbox',
   init: { contextToArgs: () => [{ id: 'character' }] },
 }).withOutMessagePolicy({ fold: foldListboxOutMessage })

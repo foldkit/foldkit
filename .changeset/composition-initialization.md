@@ -22,7 +22,7 @@ Keep the initial state transition and Command with the child that owns them. The
 For example, the website's API Reference and Example Detail Bindings select their prerendered inputs in the root Composition:
 
 ```ts
-const ApiReferenceBinding = ApplicationDefinition.makeBinding(
+const ApiReferenceBinding = ApplicationDefinition.makeRequiredFieldBinding(
   ApiReferenceBlock,
   {
     field: 'apiReference',
@@ -30,7 +30,7 @@ const ApiReferenceBinding = ApplicationDefinition.makeBinding(
   },
 )
 
-const ExampleDetailBinding = ApplicationDefinition.makeBinding(
+const ExampleDetailBinding = ApplicationDefinition.makeRequiredFieldBinding(
   ExampleDetailBlock,
   {
     field: 'exampleDetail',
@@ -112,7 +112,7 @@ Then declare the child inputs with the Binding in composition.ts. The Definition
 ```ts
 import { ApplicationDefinition } from './definition'
 import { SettingsBlock } from './settings'
-export const SettingsBinding = ApplicationDefinition.makeBinding(
+export const SettingsBinding = ApplicationDefinition.makeRequiredFieldBinding(
   SettingsBlock,
   {
     field: 'settings',
@@ -149,7 +149,7 @@ import { modifyFields } from 'foldkit/struct'
 import { ApplicationDefinition } from './definition'
 import { SettingsBlock } from './settings'
 
-export const SettingsBinding = ApplicationDefinition.makeBinding(
+export const SettingsBinding = ApplicationDefinition.makeCustomBinding(
   SettingsBlock,
   {
     read: model => Option.some(model.settings),
@@ -167,14 +167,17 @@ export const SettingsBinding = ApplicationDefinition.makeBinding(
 
 The assembler calls selected child initializers once in `bindings` order and merges their fields with the parent-owned fields. It preserves parent Commands first, child init Commands second, and startup Step Commands last. The Runtime still executes Commands independently; collection order does not sequence their completion. A child initializes its own descendants through its completed init; the assembler does not initialize them a second time.
 
-The final Model determines active occurrences. Init Commands for children absent or gated by `presentWhen` are omitted. `subscriptions.when` only gates Subscription Streams. A boot Step may update initialized child state without discarding its init Commands.
+The final Model determines active occurrences. Init Commands for children absent or gated by `activeWhen` are omitted. `subscriptions.when` only gates Subscription Streams. A boot Step may update initialized child state without discarding its init Commands.
 
 When a child initializer takes no arguments, a required direct field needs no `init` property:
 
 ```ts
-const SearchBinding = ApplicationDefinition.makeBinding(SearchBlock, {
-  field: 'search',
-})
+const SearchBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  SearchBlock,
+  {
+    field: 'search',
+  },
+)
 ```
 
 Use `init: false` when that required direct field is parent-owned at startup. Omit `init` for parent-owned optional, keyed, and accessor storage. Use `init.contextToArgs` when Composition should choose unkeyed optional presence, and use `init.instances` only when it should construct an exact keyed array.
@@ -190,19 +193,22 @@ import { Array } from 'effect'
 import { ApplicationDefinition } from './definition'
 import { CounterBlock } from './counter'
 const INITIAL_COUNTER_COUNT = 3
-const CountersBinding = ApplicationDefinition.makeBinding(CounterBlock, {
-  field: 'counters',
-  key: 'id',
-  childField: 'counter',
-  init: {
-    instances: () =>
-      Array.makeBy(INITIAL_COUNTER_COUNT, counterId => ({
-        key: `counter-${counterId}`,
-        args: [],
-      })),
-    toItem: ({ key }, counter) => ({ id: key, counter }),
+const CountersBinding = ApplicationDefinition.makeKeyedArrayBinding(
+  CounterBlock,
+  {
+    field: 'counters',
+    key: 'id',
+    childField: 'counter',
+    init: {
+      instances: () =>
+        Array.makeBy(INITIAL_COUNTER_COUNT, counterId => ({
+          key: `counter-${counterId}`,
+          args: [],
+        })),
+      toItem: ({ key }, counter) => ({ id: key, counter }),
+    },
   },
-})
+)
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [CountersBinding],
 })

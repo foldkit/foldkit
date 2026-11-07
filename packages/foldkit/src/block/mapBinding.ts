@@ -2,6 +2,10 @@ import type { Schema } from 'effect'
 
 import type { BindChild, BindChildConstructorResult } from './bindChild.js'
 import type { BindableBlock, BindingStorageEvidence } from './binding.js'
+import type {
+  MapRelationship,
+  MapRelationshipField,
+} from './bindingRelationshipTypes.js'
 import type { InstanceKey } from './instanceContext.js'
 import type {
   KeyedMapField,
@@ -237,13 +241,33 @@ export type MapBindingResultConfig<
     }>
   >
 
-/** Call signature for `Definition.makeMapBinding`. See {@link Definition} for
- * the owned constructor's storage and initialization contract. */
+/** Shared call contract for parent-owned Record and HashMap Binding constructors.
+ *
+ * `makeRecordBinding` selects a required `Schema.Record` field whose keys decode
+ * to strings. `makeHashMapBinding` selects a required `Schema.HashMap` field whose
+ * keys decode to strings or numbers; numeric occurrence values must be finite.
+ * The container key supplies occurrence identity, independently of child data.
+ * `childField` projects an exact child Model from a closed parent-owned wrapper;
+ * writes preserve its metadata and replace only existing entries.
+ *
+ * Parents own membership and ordering. Removing an entry ends its occurrence.
+ * Direct child values support `initAndInsert` and `makeInitIfMissingStep` from
+ * `foldkit/binding`. Wrappers and custom parent changes use `Binding.init` with
+ * explicit `toParentModel` placement. Use `makeCustomKeyedBinding` for custom
+ * writers, enumeration, or separate storage and primitive occurrence keys.
+ *
+ * @example
+ * ```ts
+ * const { makeRecordBinding } = ParentBlock
+ * const EditorsBinding = makeRecordBinding(EditorBlock, { field: 'editors' })
+ * ```
+ */
 export interface MakeMapBinding<
   ParentModelSchema extends AnySchema,
   ParentMessageSchema extends AnySchema,
   ParentOutMessageSchema extends AnySchema | undefined,
   ParentChildInitContext = never,
+  Relationship extends MapRelationship = 'Implicit',
 > {
   <
     const BlockValue extends BindableBlock,
@@ -264,6 +288,7 @@ export interface MakeMapBinding<
       > &
       Readonly<{
         field: Field &
+          MapRelationshipField<ParentModelSchema, Relationship, Field> &
           ValidField<BlockValue, ParentModelSchema, Keys, ChildField>
         childField?: ChildField
       }> &

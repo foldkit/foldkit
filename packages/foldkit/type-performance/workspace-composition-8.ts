@@ -56,7 +56,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ApplicationModel,
   Message: ApplicationMessage,
 })
-const WorkspaceGroup001Binding = ApplicationDefinition.makeBinding(
+const WorkspaceGroup001Binding = ApplicationDefinition.makeRequiredFieldBinding(
   WorkspaceGroup001Block,
   {
     field: 'workspaceGroup001',
@@ -69,7 +69,7 @@ const WorkspaceGroup001Binding = ApplicationDefinition.makeBinding(
       })),
   }),
 })
-const WorkspaceGroup002Binding = ApplicationDefinition.makeBinding(
+const WorkspaceGroup002Binding = ApplicationDefinition.makeRequiredFieldBinding(
   WorkspaceGroup002Block,
   {
     field: 'workspaceGroup002',
@@ -82,7 +82,7 @@ const WorkspaceGroup002Binding = ApplicationDefinition.makeBinding(
       })),
   }),
 })
-const WorkspaceGroup003Binding = ApplicationDefinition.makeBinding(
+const WorkspaceGroup003Binding = ApplicationDefinition.makeRequiredFieldBinding(
   WorkspaceGroup003Block,
   {
     field: 'workspaceGroup003',
@@ -95,7 +95,7 @@ const WorkspaceGroup003Binding = ApplicationDefinition.makeBinding(
       })),
   }),
 })
-const WorkspaceGroup004Binding = ApplicationDefinition.makeBinding(
+const WorkspaceGroup004Binding = ApplicationDefinition.makeRequiredFieldBinding(
   WorkspaceGroup004Block,
   {
     field: 'workspaceGroup004',
@@ -108,7 +108,7 @@ const WorkspaceGroup004Binding = ApplicationDefinition.makeBinding(
       })),
   }),
 })
-const WorkspaceGroup005Binding = ApplicationDefinition.makeBinding(
+const WorkspaceGroup005Binding = ApplicationDefinition.makeRequiredFieldBinding(
   WorkspaceGroup005Block,
   {
     field: 'workspaceGroup005',
@@ -121,7 +121,7 @@ const WorkspaceGroup005Binding = ApplicationDefinition.makeBinding(
       })),
   }),
 })
-const WorkspaceGroup006Binding = ApplicationDefinition.makeBinding(
+const WorkspaceGroup006Binding = ApplicationDefinition.makeRequiredFieldBinding(
   WorkspaceGroup006Block,
   {
     field: 'workspaceGroup006',
@@ -134,7 +134,7 @@ const WorkspaceGroup006Binding = ApplicationDefinition.makeBinding(
       })),
   }),
 })
-const WorkspaceGroup007Binding = ApplicationDefinition.makeBinding(
+const WorkspaceGroup007Binding = ApplicationDefinition.makeRequiredFieldBinding(
   WorkspaceGroup007Block,
   {
     field: 'workspaceGroup007',
@@ -147,7 +147,7 @@ const WorkspaceGroup007Binding = ApplicationDefinition.makeBinding(
       })),
   }),
 })
-const WorkspaceGroup008Binding = ApplicationDefinition.makeBinding(
+const WorkspaceGroup008Binding = ApplicationDefinition.makeRequiredFieldBinding(
   WorkspaceGroup008Block,
   {
     field: 'workspaceGroup008',

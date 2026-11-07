@@ -66,7 +66,7 @@ const Parent = makeDefinition('MessageFreeKeyedRuntimeParent', {
   Model: ParentModel,
   Message: Schema.Never,
 })
-const SilentBinding = Parent.makeBinding(SilentBlock, {
+const SilentBinding = Parent.makeCustomKeyedBinding(SilentBlock, {
   readAll: model => model.entries,
   key: entry => entry.id,
   read: entry => entry.child,
@@ -166,23 +166,26 @@ it('constructs Message-free keyed field Bindings without Message delivery', () =
     Model,
     Message: Schema.Never,
   })
-  const ChildrenBinding = ParentDefinition.makeBinding(ChildBlock, {
+  const ChildrenBinding = ParentDefinition.makeKeyedArrayBinding(ChildBlock, {
     placement: 'children',
     field: 'children',
     key: 'id',
   })
-  const EntriesBinding = ParentDefinition.makeBinding(ChildBlock, {
+  const EntriesBinding = ParentDefinition.makeKeyedArrayBinding(ChildBlock, {
     placement: 'entries',
     field: 'entries',
     key: 'key',
     childField: 'child',
   })
-  const OptionalEntryBinding = ParentDefinition.makeBinding(ChildBlock, {
-    placement: 'maybeEntry',
-    field: 'maybeEntry',
-    key: 'key',
-    childField: 'child',
-  })
+  const OptionalEntryBinding = ParentDefinition.makeOptionalKeyedFieldBinding(
+    ChildBlock,
+    {
+      placement: 'maybeEntry',
+      field: 'maybeEntry',
+      key: 'key',
+      childField: 'child',
+    },
+  )
   const Composition = ParentDefinition.makeComposition({
     bindings: [ChildrenBinding, EntriesBinding, OptionalEntryBinding],
   })
@@ -199,9 +202,25 @@ it('constructs Message-free keyed field Bindings without Message delivery', () =
   expectTypeOf(EntriesBinding.fold).parameter(2).toEqualTypeOf<never>()
   expectTypeOf(OptionalEntryBinding.fold).parameter(2).toEqualTypeOf<never>()
 
-  for (const field of ['toParentMessage', 'delivery', 'keySchema']) {
+  for (const { field, expected } of [
+    {
+      field: 'toParentMessage',
+      expected:
+        '[foldkit] Unknown Binding configuration field "toParentMessage".',
+    },
+    {
+      field: 'delivery',
+      expected:
+        '[foldkit] A Message-free child cannot configure Message delivery.',
+    },
+    {
+      field: 'keySchema',
+      expected:
+        '[foldkit] makeKeyedArrayBinding does not support the keySchema configuration field.',
+    },
+  ]) {
     expect(() =>
-      Reflect.apply(ParentDefinition.makeBinding, undefined, [
+      Reflect.apply(ParentDefinition.makeKeyedArrayBinding, undefined, [
         ChildBlock,
         {
           field: 'entries',
@@ -210,17 +229,13 @@ it('constructs Message-free keyed field Bindings without Message delivery', () =
           [field]: () => undefined,
         },
       ]),
-    ).toThrow(
-      field === 'toParentMessage'
-        ? '[foldkit] Unknown Binding configuration field "toParentMessage".'
-        : '[foldkit] A Message-free child cannot configure Message delivery.',
-    )
+    ).toThrow(expected)
   }
 })
 
 it('rejects generated delivery configuration for a Message-free child', () => {
   expect(() =>
-    Reflect.apply(Parent.makeBinding, undefined, [
+    Reflect.apply(Parent.makeCustomKeyedBinding, undefined, [
       SilentBlock,
       {
         readAll: (model: ParentModel) => model.entries,

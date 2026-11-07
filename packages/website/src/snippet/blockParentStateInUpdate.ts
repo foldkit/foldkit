@@ -80,7 +80,7 @@ const ProfileBlock = Block.make('Profile', {
   Message: ProfileMessage,
 })
 
-export const AccountSettingsBinding = ProfileBlock.makeBinding(
+export const AccountSettingsBinding = ProfileBlock.makeRequiredFieldBinding(
   AccountSettingsBlock,
   {
     field: 'accountSettings',

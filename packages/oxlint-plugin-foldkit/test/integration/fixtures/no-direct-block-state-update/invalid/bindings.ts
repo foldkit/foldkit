@@ -11,7 +11,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const SettingsBinding = ApplicationDefinition.makeBinding(BoundSettings.Settings, {read: (model: Model) => Option.some(model.settings),
+const SettingsBinding = ApplicationDefinition.makeCustomBinding(BoundSettings.Settings, {read: (model: Model) => Option.some(model.settings),
 write: (model, nextSettings) => modifyFields(model, { settings: () => nextSettings }),
 parentMessage: Message.GotSettingsMessage,
 fromParentMessage: false})

@@ -74,10 +74,10 @@ const joinedRoom: RoomModel = {
   exitCountdownSecondsLeft: 0,
 }
 
-const toHomeMessage = (message: HomeMessage) =>
+const messageInHome = (message: HomeMessage) =>
   Story.messageIn(HomeBinding, message)
 
-const toRoomMessage = (roomId: string, message: RoomMessage) =>
+const messageInRoom = (roomId: string, message: RoomMessage) =>
   Story.messageIn(MaybeRoomInstanceBinding, roomId, message)
 
 const givenHomeRoute = Story.given<Model>({
@@ -149,7 +149,7 @@ describe('key presses on the Home route', () => {
       return Story.story(
         application,
         givenHomeRoute,
-        toHomeMessage(HomeBlock.Message.PressedKey({ key: 'ArrowDown' })),
+        messageInHome(HomeBlock.Message.PressedKey({ key: 'ArrowDown' })),
         Story.model(model => {
           expect(model.home.homeStep).toMatchObject({
             _tag: 'SelectAction',
@@ -166,7 +166,7 @@ describe('key presses on the Home route', () => {
     return Story.story(
       application,
       givenHomeRoute,
-      toRoomMessage('r1', RoomBlock.Message.PressedKey({ key: 'Enter' })),
+      messageInRoom('r1', RoomBlock.Message.PressedKey({ key: 'Enter' })),
       Story.model(model => {
         expect(model.maybeRoomInstance).toEqual(Option.none())
       }),
@@ -180,7 +180,7 @@ describe('key presses on the Room route', () => {
     return Story.story(
       application,
       givenRoomRoute,
-      toRoomMessage('r1', RoomBlock.Message.PressedKey({ key: 'Enter' })),
+      messageInRoom('r1', RoomBlock.Message.PressedKey({ key: 'Enter' })),
       Story.Command.resolve(StartGame, RoomBlock.Message.SucceededStartGame()),
       Story.model(model => {
         expect(model.home).toEqual(selectActionHome)
@@ -299,7 +299,7 @@ describe('Room occurrence identity', () => {
         Story.story(
           application,
           Story.given(initialModel),
-          toRoomMessage(ROOM_A, staleMessage),
+          messageInRoom(ROOM_A, staleMessage),
           Story.model(model => {
             expect(model).toBe(initialModel)
           }),
@@ -327,7 +327,7 @@ describe('Room occurrence identity', () => {
       return Story.story(
         application,
         Story.given(initialModel),
-        toRoomMessage(
+        messageInRoom(
           ROOM_A,
           RoomBlock.Message.PressedKey({ key: 'Backspace' }),
         ),
@@ -359,7 +359,7 @@ describe('Room occurrence identity', () => {
       return Story.story(
         application,
         Story.given(initialModel),
-        toRoomMessage(ROOM_A, RoomBlock.Message.PressedKey({ key: 'Enter' })),
+        messageInRoom(ROOM_A, RoomBlock.Message.PressedKey({ key: 'Enter' })),
         Story.Command.resolveAllExact([
           StartGame({ roomId: ROOM_A, playerId: alice.id }),
           RoomBlock.Message.SucceededStartGame(),
@@ -469,7 +469,7 @@ describe('Home and Room coordination', () => {
     return Story.story(
       application,
       Story.given(initialModel),
-      toHomeMessage(homeMessage),
+      messageInHome(homeMessage),
       Story.model(model => {
         const roomInstance = getRoomInstance(model)
 
@@ -506,7 +506,7 @@ describe('Home and Room coordination', () => {
     return Story.story(
       application,
       Story.given(initialModel),
-      toHomeMessage(
+      messageInHome(
         HomeBlock.Message.SucceededCreateRoom({
           roomId: ROOM_A,
           player: bob,

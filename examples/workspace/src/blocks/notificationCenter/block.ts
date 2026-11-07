@@ -19,7 +19,7 @@ export const NotificationCenterBlock = Block.make('NotificationCenter', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,

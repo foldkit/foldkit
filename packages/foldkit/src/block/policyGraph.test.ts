@@ -53,62 +53,62 @@ const ApplicationDefinition = Block.makeDefinition('Parent', {
   Message: defineMessageUnion({ ClickedNotify: {} }),
 })
 
-const b0 = ApplicationDefinition.makeBinding(ChildBlock, {
+const b0 = ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'b0',
   init: { contextToArgs: () => [] },
 })
 
-const b1 = ApplicationDefinition.makeBinding(ChildBlock, {
+const b1 = ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'b1',
   init: { contextToArgs: () => [] },
 })
 
-const b2 = ApplicationDefinition.makeBinding(ChildBlock, {
+const b2 = ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'b2',
   init: { contextToArgs: () => [] },
 })
 
-const b3 = ApplicationDefinition.makeBinding(ChildBlock, {
+const b3 = ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'b3',
   init: { contextToArgs: () => [] },
 })
 
-const b4 = ApplicationDefinition.makeBinding(ChildBlock, {
+const b4 = ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'b4',
   init: { contextToArgs: () => [] },
 })
 
-const b5 = ApplicationDefinition.makeBinding(ChildBlock, {
+const b5 = ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'b5',
   init: { contextToArgs: () => [] },
 })
 
-const b6 = ApplicationDefinition.makeBinding(ChildBlock, {
+const b6 = ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'b6',
   init: { contextToArgs: () => [] },
 })
 
-const b7 = ApplicationDefinition.makeBinding(ChildBlock, {
+const b7 = ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'b7',
   init: { contextToArgs: () => [] },
 })
 
-const b8 = ApplicationDefinition.makeBinding(ChildBlock, {
+const b8 = ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'b8',
   init: { contextToArgs: () => [] },
 })
 
-const b9 = ApplicationDefinition.makeBinding(ChildBlock, {
+const b9 = ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'b9',
   init: { contextToArgs: () => [] },
 })
 
-const b10 = ApplicationDefinition.makeBinding(ChildBlock, {
+const b10 = ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'b10',
   init: { contextToArgs: () => [] },
 })
 
-const b11 = ApplicationDefinition.makeBinding(ChildBlock, {
+const b11 = ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'b11',
   init: { contextToArgs: () => [] },
 })

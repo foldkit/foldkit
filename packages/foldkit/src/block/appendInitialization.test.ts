@@ -67,7 +67,7 @@ const ParentDefinition = Block.makeDefinition('AppendParent', {
   Model,
   Message,
 })
-const EntriesBinding = ParentDefinition.makeBinding(ChildBlock, {
+const EntriesBinding = ParentDefinition.makeKeyedArrayBinding(ChildBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -117,7 +117,7 @@ beforeEach(() => {
 
 describe('initAndAppend', () => {
   it('resolves deferred storage against the active graph and snapshots its arguments', () => {
-    const DeferredBinding = ParentDefinition.makeBinding(ChildBlock, {
+    const DeferredBinding = ParentDefinition.makeKeyedArrayBinding(ChildBlock, {
       field: 'entries',
       key: 'id',
       childField: 'child',
@@ -315,7 +315,7 @@ describe('initAndAppend', () => {
   })
 
   it('rejects a Binding without stored initialization metadata', () => {
-    const binding = ParentDefinition.makeBinding(ChildBlock, {
+    const binding = ParentDefinition.makeKeyedArrayBinding(ChildBlock, {
       field: 'entries',
       key: 'id',
       childField: 'child',
@@ -333,7 +333,7 @@ describe('initAndAppend', () => {
   it.each(['wrong key', 'reconstructed child', 'discarded child'])(
     'rejects init.toItem with %s',
     mode => {
-      const binding = ParentDefinition.makeBinding(ChildBlock, {
+      const binding = ParentDefinition.makeKeyedArrayBinding(ChildBlock, {
         field: 'entries',
         key: 'id',
         childField: 'child',

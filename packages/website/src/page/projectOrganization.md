@@ -15,7 +15,7 @@ The [Workspace example](/example-apps/workspace) applies these conventions to sh
 | Implementation    | `layer.ts` or compact `block.ts`   | Acquire child implementations through the constructor and return init, update, view, lifecycle declarations, and local handlers. |
 | Host              | `entry.ts`                         | Select the Program, supply Services, and start Runtime.                                                                          |
 
-`makeBinding` declares a relationship against the child's public contract. `makeComposition` registers it. `FeatureBlock.makeLayer` checks the effectful constructor without running it. The host later acquires that implementation Layer; init and update remain synchronous pure functions.
+A storage-specific Binding constructor declares a relationship against the child's public contract. `makeComposition` registers it. `FeatureBlock.makeLayer` checks the effectful constructor without running it. The host later acquires that implementation Layer; init and update remain synchronous pure functions.
 
 ## Starting Simple
 
@@ -97,7 +97,7 @@ This Panel Block declares Model and Message. Its Composition registers the Mount
 
 ### Substantial Binding Policy
 
-A Binding also contains the parent's integration policy for its child. Inline a short unkeyed policy with `makeBinding(ChildBlock, ...).withOutMessagePolicy({ fold: ParentBlock.makeOutMessageFold(ChildBlock, handlers) })`. A fold always names its child contract, including when it is inline. Use contextual `makeOutMessageForward(handlers)` when the parent declares OutMessages and forwards at least one variant; pass the child contract explicitly when extracting the forward. Extract a supporting file when the policy includes substantial OutMessage handling, custom Model writes, or Command lifting. For example, an Editor's Dialog policy may save the draft when the Dialog closes:
+A Binding also contains the parent's integration policy for its child. For a required-field child, inline a short policy with `ParentBlock.makeRequiredFieldBinding(ChildBlock, ...).withOutMessagePolicy({ fold: ParentBlock.makeOutMessageFold(ChildBlock, handlers) })`. Other storage forms select the same policy on their storage-specific Binding. A fold always names its child contract, including when it is inline. Use contextual `makeOutMessageForward(handlers)` when the parent declares OutMessages and forwards at least one variant; pass the child contract explicitly when extracting the forward. Extract a supporting file when the policy includes substantial OutMessage handling, custom Model writes, or Command lifting. For example, an Editor's Dialog policy may save the draft when the Dialog closes:
 
 ::Snippet{name="organizationDialogPolicy" label="Extracted Dialog integration policy"}
 
@@ -179,7 +179,7 @@ The Runtime builds the selected handler recipes and `ApplicationLayer` once per 
 
 A feature's `EffectsLayer` supplies handlers. Its Subscriptions, ManagedResources, and Mounts declare the lifecycle work Foldkit manages. The root `ApplicationBlock.makeComposition` call includes the child graphs through their registered Bindings.
 
-The Binding's storage and generated delivery connect child work to the parent. A direct Option field containing `None`, a false `presentWhen`, or a custom reader returning `None` stops that child's lifecycle work. A keyed Binding creates independent scopes for active keys. The same Binding supplies update folding and `embedView`.
+The Binding's storage and generated delivery connect child work to the parent. A direct Option field containing `None`, a false `activeWhen`, or a custom reader returning `None` stops that child's lifecycle work. A keyed Binding creates independent scopes for active keys. The same Binding supplies update folding and `embedView`.
 
 Stateful UI components compose in the same way. Include a component Binding in `bindings` to collect its handlers, lifecycle declarations, and Mount evidence. View-only components need no Binding.
 
@@ -223,7 +223,7 @@ Consumers use `Products.ProductsBlock.Model` when composing parent Model Schemas
 
 ::Snippet{name="indexUsage" label="Feature contracts and domain namespaces"}
 
-`ProductsBlock` exposes the feature contracts without revealing its internal file layout. Parent composition starts from `ApplicationBlock.makeBinding(ProductsBlock, ...)`.
+`ProductsBlock` exposes the feature contracts without revealing its internal file layout. Parent composition starts from `ApplicationBlock.makeRequiredFieldBinding(ProductsBlock, ...)`.
 
 ### Keep Model Schema dependencies small
 

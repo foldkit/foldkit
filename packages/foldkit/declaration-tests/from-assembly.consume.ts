@@ -162,7 +162,7 @@ export const HeadlessEmbedding = HeadlessBinding.embedView({
   viewInputs: { label: 'Alternate' },
 })
 
-export const ReplacedViewedBinding = ParentDefinition.makeBinding(
+export const ReplacedViewedBinding = ParentDefinition.makeRequiredFieldBinding(
   ReplacedViewed,
   { field: 'child' },
 )

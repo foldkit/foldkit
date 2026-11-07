@@ -46,7 +46,7 @@ const AccessorParentDefinition = makeDefinition('GeneratedAccessorParent', {
   Model: AccessorParentModel,
   Message: AccessorParentMessage,
 })
-const AccessorBinding = AccessorParentDefinition.makeBinding(
+const AccessorBinding = AccessorParentDefinition.makeCustomBinding(
   AccessorChildBlock,
   {
     read: model => Option.some(model.child),
@@ -150,7 +150,7 @@ const RestContextChildBlock: Block.FromAssemblyWithView<
   typeof prepareRestContextChildBlock
 > = Block.assemble(prepareRestContextChildBlock)
 
-const optionalContextBinding = AccessorParentDefinition.makeBinding(
+const optionalContextBinding = AccessorParentDefinition.makeCustomBinding(
   OptionalContextChildBlock,
   {
     placement: 'optionalContext',
@@ -160,7 +160,7 @@ const optionalContextBinding = AccessorParentDefinition.makeBinding(
     delivery: { toUpdateContext: model => [model.amount] },
   },
 )
-const defaultContextBinding = AccessorParentDefinition.makeBinding(
+const defaultContextBinding = AccessorParentDefinition.makeCustomBinding(
   DefaultContextChildBlock,
   {
     placement: 'defaultContext',
@@ -170,7 +170,7 @@ const defaultContextBinding = AccessorParentDefinition.makeBinding(
     delivery: { toUpdateContext: model => [model.amount] },
   },
 )
-const restContextBinding = AccessorParentDefinition.makeBinding(
+const restContextBinding = AccessorParentDefinition.makeCustomBinding(
   RestContextChildBlock,
   {
     placement: 'restContext',
@@ -233,14 +233,17 @@ const KeyedParentDefinition = makeDefinition('GeneratedKeyedParent', {
   Model: KeyedParentModel,
   Message: KeyedParentMessage,
 })
-const KeyedBinding = KeyedParentDefinition.makeBinding(KeyedChildBlock, {
-  field: 'children',
-  key: 'id',
-  delivery: {
-    when: (model, key) => model.isEnabled && key !== 'blocked',
-    toUpdateContext: model => [model.amount],
+const KeyedBinding = KeyedParentDefinition.makeKeyedArrayBinding(
+  KeyedChildBlock,
+  {
+    field: 'children',
+    key: 'id',
+    delivery: {
+      when: (model, key) => model.isEnabled && key !== 'blocked',
+      toUpdateContext: model => [model.amount],
+    },
   },
-})
+)
 const KeyedParentComposition = KeyedParentDefinition.makeComposition({
   bindings: [KeyedBinding],
 })
@@ -267,23 +270,26 @@ const RoomParentDefinition = makeDefinition('GeneratedRoomParent', {
 const readRooms = (model: RoomParentModel): ReadonlyArray<Room> => model.rooms
 const roomId = (room: Room): string => room.roomId
 const readRoomChild = (room: Room): KeyedChildModel => room.child
-const RoomBinding = RoomParentDefinition.makeBinding(KeyedChildBlock, {
-  readAll: readRooms,
-  key: roomId,
-  keySchema: Room.fields.roomId,
-  read: readRoomChild,
-  writeAt: (model, roomId, nextChild) =>
-    modifyFields(model, {
-      rooms: Array.map(room =>
-        room.roomId === roomId
-          ? modifyFields(room, { child: () => nextChild })
-          : room,
-      ),
-    }),
-  delivery: {
-    toUpdateContext: model => [model.amount],
+const RoomBinding = RoomParentDefinition.makeCustomKeyedBinding(
+  KeyedChildBlock,
+  {
+    readAll: readRooms,
+    key: roomId,
+    keySchema: Room.fields.roomId,
+    read: readRoomChild,
+    writeAt: (model, roomId, nextChild) =>
+      modifyFields(model, {
+        rooms: Array.map(room =>
+          room.roomId === roomId
+            ? modifyFields(room, { child: () => nextChild })
+            : room,
+        ),
+      }),
+    delivery: {
+      toUpdateContext: model => [model.amount],
+    },
   },
-})
+)
 const RoomParentComposition = RoomParentDefinition.makeComposition({
   bindings: [RoomBinding],
 })
@@ -307,14 +313,17 @@ const WrappedParentDefinition = makeDefinition('GeneratedWrappedParent', {
   Model: WrappedParentModel,
   Message: WrappedParentMessage,
 })
-const WrappedBinding = WrappedParentDefinition.makeBinding(KeyedChildBlock, {
-  field: 'rooms',
-  key: 'roomId',
-  childField: 'child',
-  delivery: {
-    toUpdateContext: model => [model.amount],
+const WrappedBinding = WrappedParentDefinition.makeKeyedArrayBinding(
+  KeyedChildBlock,
+  {
+    field: 'rooms',
+    key: 'roomId',
+    childField: 'child',
+    delivery: {
+      toUpdateContext: model => [model.amount],
+    },
   },
-})
+)
 const WrappedParentComposition = WrappedParentDefinition.makeComposition({
   bindings: [WrappedBinding],
 })
@@ -430,19 +439,23 @@ it('uses an explicit key Schema for generated general keyed delivery', () => {
 })
 
 it('validates generated selector keys against the decoded side of a transformed refinement', () => {
-  const binding = Reflect.apply(RoomParentDefinition.makeBinding, undefined, [
-    KeyedChildBlock,
-    {
-      readAll: readRooms,
-      key: () => 1,
-      keySchema: Schema.NumberFromString.check(Schema.isGreaterThan(0)),
-      read: readRoomChild,
-      writeAt: (model: RoomParentModel) => model,
-      delivery: {
-        toUpdateContext: (model: RoomParentModel) => [model.amount],
+  const binding = Reflect.apply(
+    RoomParentDefinition.makeCustomKeyedBinding,
+    undefined,
+    [
+      KeyedChildBlock,
+      {
+        readAll: readRooms,
+        key: () => 1,
+        keySchema: Schema.NumberFromString.check(Schema.isGreaterThan(0)),
+        read: readRoomChild,
+        writeAt: (model: RoomParentModel) => model,
+        delivery: {
+          toUpdateContext: (model: RoomParentModel) => [model.amount],
+        },
       },
-    },
-  ])
+    ],
+  )
   const initial = RoomParentModel.make({
     rooms: [{ roomId: 'one', child: { id: 'child-one', count: 2 } }],
     amount: 5,
@@ -454,19 +467,23 @@ it('validates generated selector keys against the decoded side of a transformed 
 })
 
 it('rejects an erased selector result outside the generated key Schema', () => {
-  const binding = Reflect.apply(RoomParentDefinition.makeBinding, undefined, [
-    KeyedChildBlock,
-    {
-      readAll: readRooms,
-      key: () => 1,
-      keySchema: Schema.String,
-      read: readRoomChild,
-      writeAt: (model: RoomParentModel) => model,
-      delivery: {
-        toUpdateContext: (model: RoomParentModel) => [model.amount],
+  const binding = Reflect.apply(
+    RoomParentDefinition.makeCustomKeyedBinding,
+    undefined,
+    [
+      KeyedChildBlock,
+      {
+        readAll: readRooms,
+        key: () => 1,
+        keySchema: Schema.String,
+        read: readRoomChild,
+        writeAt: (model: RoomParentModel) => model,
+        delivery: {
+          toUpdateContext: (model: RoomParentModel) => [model.amount],
+        },
       },
-    },
-  ])
+    ],
+  )
   const initial = RoomParentModel.make({
     rooms: [{ roomId: 'one', child: { id: 'child-one', count: 2 } }],
     amount: 5,
@@ -502,19 +519,23 @@ it('derives wrapped keyed field envelopes from the wrapper key Schema', () => {
 })
 
 it('reports an invalid general keyed collection at the Binding boundary', () => {
-  const binding = Reflect.apply(RoomParentDefinition.makeBinding, undefined, [
-    KeyedChildBlock,
-    {
-      readAll: () => ({ roomId: 'not-an-array' }),
-      key: roomId,
-      keySchema: Room.fields.roomId,
-      read: readRoomChild,
-      writeAt: (model: RoomParentModel) => model,
-      delivery: {
-        toUpdateContext: (model: RoomParentModel) => [model.amount],
+  const binding = Reflect.apply(
+    RoomParentDefinition.makeCustomKeyedBinding,
+    undefined,
+    [
+      KeyedChildBlock,
+      {
+        readAll: () => ({ roomId: 'not-an-array' }),
+        key: roomId,
+        keySchema: Room.fields.roomId,
+        read: readRoomChild,
+        writeAt: (model: RoomParentModel) => model,
+        delivery: {
+          toUpdateContext: (model: RoomParentModel) => [model.amount],
+        },
       },
-    },
-  ])
+    ],
+  )
 
   expect(() =>
     runtimeBindingOf(binding).select(
@@ -532,21 +553,25 @@ it('rejects removed authored parent Message mapping fields', () => {
     'fromParentMessage',
   ]) {
     expect(() =>
-      Reflect.apply(AccessorParentDefinition.makeBinding, undefined, [
-        AccessorChildBlock,
-        {
-          field: 'child',
-          [removedField]: () => AccessorParentMessage.ClickedParent(),
-          delivery: { toUpdateContext: () => [1] },
-        },
-      ]),
+      Reflect.apply(
+        AccessorParentDefinition.makeRequiredFieldBinding,
+        undefined,
+        [
+          AccessorChildBlock,
+          {
+            field: 'child',
+            [removedField]: () => AccessorParentMessage.ClickedParent(),
+            delivery: { toUpdateContext: () => [1] },
+          },
+        ],
+      ),
     ).toThrow(
       `[foldkit] Unknown Binding configuration field "${removedField}".`,
     )
   }
 
   expect(() =>
-    Reflect.apply(RoomParentDefinition.makeBinding, undefined, [
+    Reflect.apply(RoomParentDefinition.makeCustomKeyedBinding, undefined, [
       KeyedChildBlock,
       {
         readAll: readRooms,
@@ -560,15 +585,13 @@ it('rejects removed authored parent Message mapping fields', () => {
       },
     ]),
   ).toThrow(
-    '[foldkit] A generated general keyed Binding keySchema must decode to a string or number.',
+    '[foldkit] makeCustomKeyedBinding requires keySchema to decode to a string or finite number occurrence key.',
   )
 })
 
 if (false) {
-  AccessorParentDefinition.makeBinding(AccessorChildBlock, {
-    // @ts-expect-error A missing delivery context makes the accessor config ineligible.
+  AccessorParentDefinition.makeCustomBinding(AccessorChildBlock, {
     read: (model: AccessorParentModel) => Option.some(model.child),
-    // @ts-expect-error A missing delivery context makes the accessor config ineligible.
     write: (model: AccessorParentModel, child: AccessorChildModel) =>
       modifyFields(model, { child: () => child }),
     // @ts-expect-error Contextual generated delivery requires its context selector.
@@ -576,7 +599,7 @@ if (false) {
   })
 
   // @ts-expect-error General generated keyed delivery requires an exact key Schema.
-  RoomParentDefinition.makeBinding(KeyedChildBlock, {
+  RoomParentDefinition.makeCustomKeyedBinding(KeyedChildBlock, {
     readAll: readRooms,
     key: roomId,
     read: readRoomChild,

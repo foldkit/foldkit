@@ -21,10 +21,14 @@ const DeleteIssueBlock = Block.make('DeleteIssue', {
   Message,
 })
 
-const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
-  DeleteIssueBlock
+const {
+  makeNoopStep,
+  makeRequiredFieldBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = DeleteIssueBlock
 
-const DialogBinding = makeBinding(Dialog.DialogBlock, {
+const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'delete-issue' }] },
 }).withOutMessagePolicy({

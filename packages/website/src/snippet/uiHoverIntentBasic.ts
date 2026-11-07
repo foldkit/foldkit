@@ -23,8 +23,12 @@ export const HoverIntentExampleBlock = Block.make('HoverIntentExample', {
   Message,
 })
 
-const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
-  HoverIntentExampleBlock
+const {
+  makeNoopStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = HoverIntentExampleBlock
 
 const foldHoverIntentOutMessage = makeOutMessageFold(
   HoverIntent.HoverIntentBlock,
@@ -34,12 +38,15 @@ const foldHoverIntentOutMessage = makeOutMessageFold(
   },
 )
 
-const HoverIntentBinding = makeBinding(HoverIntent.HoverIntentBlock, {
-  field: 'hoverIntent',
-  init: {
-    contextToArgs: () => [{ openDelay: 200, closeDelay: 300 }],
+const HoverIntentBinding = makeRequiredFieldBinding(
+  HoverIntent.HoverIntentBlock,
+  {
+    field: 'hoverIntent',
+    init: {
+      contextToArgs: () => [{ openDelay: 200, closeDelay: 300 }],
+    },
   },
-}).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
+).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
 
 const HoverIntentExampleComposition = makeComposition({
   bindings: [HoverIntentBinding],

@@ -68,7 +68,7 @@ const Record = Parent.makeCommand('Record', {
     return () => Effect.succeed(ParentMessage.CompletedRecord())
   },
 })
-const ItemsBinding = Parent.makeBinding(child, {
+const ItemsBinding = Parent.makeKeyedArrayBinding(child, {
   field: 'items',
   key: 'id',
   childField: 'child',
@@ -141,10 +141,10 @@ describe('Binding initialization Schema checks', () => {
       Model: ParentModel,
       Message: Schema.Never,
     })
-    const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+    const ChildBinding = ParentDefinition.makeOptionalFieldBinding(ChildBlock, {
       field: 'child',
     })
-    const ItemsBinding = ParentDefinition.makeBinding(ChildBlock, {
+    const ItemsBinding = ParentDefinition.makeKeyedArrayBinding(ChildBlock, {
       field: 'items',
       key: 'id',
       childField: 'child',
@@ -210,7 +210,7 @@ describe('connected initialization', () => {
       args: [4],
       toParentModel: child => ({ items: [{ id: 'first', child }] }),
     })
-    const ForeignItemsBinding = Parent.makeBinding(child, {
+    const ForeignItemsBinding = Parent.makeKeyedArrayBinding(child, {
       placement: 'foreign-items',
       field: 'items',
       key: 'id',
@@ -473,7 +473,7 @@ const Direct = makeDefinition('DirectInitializationParent', {
   Model: DirectModel,
   Message: DirectMessage,
 })
-const DirectBinding = Direct.makeBinding(child, {
+const DirectBinding = Direct.makeOptionalFieldBinding(child, {
   field: 'child',
 })
 const DirectComposition = Direct.makeComposition({
@@ -636,11 +636,11 @@ const RecordSequencedInitialization = SequencedParent.makeCommand(
     },
   },
 )
-const FirstSequencedBinding = SequencedParent.makeBinding(child, {
+const FirstSequencedBinding = SequencedParent.makeOptionalFieldBinding(child, {
   placement: 'first',
   field: 'first',
 })
-const SecondSequencedBinding = SequencedParent.makeBinding(child, {
+const SecondSequencedBinding = SequencedParent.makeOptionalFieldBinding(child, {
   placement: 'second',
   field: 'second',
 })
@@ -739,7 +739,7 @@ const CompleteKeyed = makeDefinition('CompleteKeyedInitializationParent', {
   Model: CompleteKeyedModel,
   Message: ParentMessage,
 })
-const CompleteItemsBinding = CompleteKeyed.makeBinding(child, {
+const CompleteItemsBinding = CompleteKeyed.makeKeyedArrayBinding(child, {
   field: 'items',
   key: 'id',
   childField: 'child',

@@ -5,8 +5,7 @@
     "noEmit": true,
     "skipLibCheck": false,
     "paths": {
-      "foldkit": ["../src/index.ts"],
-      "foldkit/variantBinding": ["../src/block/variantBinding.ts"]
+      "foldkit": ["../src/index.ts"]
     },
     "lib": ["ESNext", "DOM", "DOM.Iterable"]
   },

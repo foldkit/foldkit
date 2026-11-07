@@ -3,14 +3,14 @@ import type { Block } from 'foldkit'
 import { Dialog } from '@foldkit/ui'
 
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 
-export const DialogBinding = makeBinding(Dialog.DialogBlock, {
+export const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: {
     contextToArgs: () => [{ id: 'workspace-command-palette' }],

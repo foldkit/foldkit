@@ -59,12 +59,10 @@ export const ObserveParent = DeclarationViewHelperParentDefinition.makeMount(
     },
   },
 )
-export const ChildBinding = DeclarationViewHelperParentDefinition.makeBinding(
-  ChildBlock,
-  {
+export const ChildBinding =
+  DeclarationViewHelperParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
-  },
-)
+  })
 export const DeclarationViewHelperParentComposition =
   DeclarationViewHelperParentDefinition.makeComposition({
     bindings: [ChildBinding],

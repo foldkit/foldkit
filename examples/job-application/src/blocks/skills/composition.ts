@@ -1,9 +1,9 @@
 import { Array } from 'effect'
 
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
+  makeKeyedArrayBinding,
   makeOutMessageFold,
 } from './block'
 import { SkillsEntryBlock } from './blocks/skillsEntry'
@@ -16,7 +16,7 @@ const foldEntryOutMessage = (entryId: string) =>
       })),
   })
 
-export const EntriesBinding = makeBinding(SkillsEntryBlock, {
+export const EntriesBinding = makeKeyedArrayBinding(SkillsEntryBlock, {
   field: 'entries',
   key: 'id',
   init: {

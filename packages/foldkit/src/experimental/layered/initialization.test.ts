@@ -53,7 +53,7 @@ const makeFixture = () => {
     }),
     Message,
   })
-  const ChildBinding = Definition.makeBinding(ChildBlock, {
+  const ChildBinding = Definition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     init: { contextToArgs: () => [2] },
   })

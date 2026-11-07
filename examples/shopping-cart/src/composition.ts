@@ -1,16 +1,16 @@
 import type { Block } from 'foldkit'
 
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 import { ProductsBlock } from './blocks'
 import { products } from './data/products'
 import { Cart } from './domain'
 
-export const ProductsPageBinding = makeBinding(ProductsBlock, {
+export const ProductsPageBinding = makeRequiredFieldBinding(ProductsBlock, {
   field: 'productsPage',
   init: { contextToArgs: () => [products] },
 }).withOutMessagePolicy({

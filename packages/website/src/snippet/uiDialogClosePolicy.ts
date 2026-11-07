@@ -8,7 +8,7 @@ import {
   makeOutMessageFold,
   makeNoopStep,
   makeFieldsStep,
-  makeBinding,
+  makeRequiredFieldBinding,
 } from './editor/block'
 
 const foldDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
@@ -20,7 +20,7 @@ const foldDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
   CompletedClose: makeNoopStep,
 })
 
-export const DialogBinding = makeBinding(Dialog.DialogBlock, {
+export const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 

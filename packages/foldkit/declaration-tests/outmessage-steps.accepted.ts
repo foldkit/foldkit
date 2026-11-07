@@ -85,10 +85,13 @@ export const ParentDefinition = Block.makeDefinition('OutMessageStepsParent', {
   Message: Schema.Never,
   OutMessage: ParentOutMessage,
 })
-export const ChildBinding = ParentDefinition.makeBinding(OutMessageStepsBlock, {
-  field: 'child',
-  init: false,
-})
+export const ChildBinding = ParentDefinition.makeRequiredFieldBinding(
+  OutMessageStepsBlock,
+  {
+    field: 'child',
+    init: false,
+  },
+)
 export const foldChildOutMessage = ParentDefinition.makeOutMessageFold(
   OutMessageStepsBlock,
   {

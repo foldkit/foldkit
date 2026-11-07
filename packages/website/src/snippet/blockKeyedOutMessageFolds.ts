@@ -34,9 +34,9 @@ const CatalogBlock = Block.make('Catalog', {
   Message: Schema.Never,
   Init: Schema.Tuple([]),
 })
-const { makeMapBinding, makeFieldsStep, makeOutMessageFold } = CatalogBlock
+const { makeRecordBinding, makeFieldsStep, makeOutMessageFold } = CatalogBlock
 
-export const CategoriesBinding = makeMapBinding(ItemBlock, {
+export const CategoriesBinding = makeRecordBinding(ItemBlock, {
   field: 'categories',
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(ItemBlock, {
@@ -47,7 +47,7 @@ export const CategoriesBinding = makeMapBinding(ItemBlock, {
   }),
 })
 
-export const ItemsBinding = makeMapBinding(ItemBlock, {
+export const ItemsBinding = makeRecordBinding(ItemBlock, {
   field: 'items',
 }).withOutMessagePolicy({
   fold: itemId =>

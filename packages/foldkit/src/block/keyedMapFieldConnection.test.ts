@@ -84,26 +84,29 @@ expectTypeOf<HashMapStorageDetected>().toEqualTypeOf<true>()
 expectTypeOf<HashMapValue>().toEqualTypeOf<typeof ChildModel.Type>()
 expectTypeOf<HashMapKey>().toExtend<string | number>()
 expectTypeOf<HashMapFieldRequired>().toEqualTypeOf<true>()
-const ChildrenByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+const ChildrenByIdBinding = ParentDefinition.makeRecordBinding(ChildBlock, {
   field: 'childrenById',
 })
-const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+const RowsByIdBinding = ParentDefinition.makeRecordBinding(ChildBlock, {
   field: 'rowsById',
   childField: 'child',
 })
-const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(ChildBlock, {
-  field: 'childrenByNumber',
-})
-const HashRowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+const ChildrenByNumberBinding = ParentDefinition.makeHashMapBinding(
+  ChildBlock,
+  {
+    field: 'childrenByNumber',
+  },
+)
+const HashRowsByIdBinding = ParentDefinition.makeHashMapBinding(ChildBlock, {
   field: 'hashRowsById',
   childField: 'child',
 })
-const LowerChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+const LowerChildrenBinding = ParentDefinition.makeRecordBinding(ChildBlock, {
   field: 'pairsById',
   childField: 'lower',
   placement: 'lowerChildren',
 })
-const UpperChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+const UpperChildrenBinding = ParentDefinition.makeRecordBinding(ChildBlock, {
   field: 'pairsById',
   childField: 'upper',
   placement: 'upperChildren',
@@ -200,8 +203,8 @@ it('keeps extracted map constructors passive and owned by their Definition', () 
     typeof ChildModel,
     typeof prepare
   > = Block.assemble(prepare)
-  const { makeMapBinding } = ParentDefinition
-  const DetachedBinding = makeMapBinding(PassiveChildBlock, {
+  const { makeRecordBinding } = ParentDefinition
+  const DetachedBinding = makeRecordBinding(PassiveChildBlock, {
     field: 'childrenById',
     placement: 'detachedChildren',
   })
@@ -269,7 +272,7 @@ it('keeps a whole Record child Model in an ordinary direct Binding', () => {
     Model: Schema.Struct({ flags: FlagsBlock.Model }),
     Message: ParentMessage,
   })
-  const FlagsBinding = ParentDefinition.makeBinding(FlagsBlock, {
+  const FlagsBinding = ParentDefinition.makeRequiredFieldBinding(FlagsBlock, {
     field: 'flags',
   })
   const Composition = ParentDefinition.makeComposition({
@@ -290,7 +293,7 @@ it('keeps a whole Record child Model in an ordinary direct Binding', () => {
     ready: true,
   })
   expect(() =>
-    Reflect.apply(ParentDefinition.makeMapBinding, undefined, [
+    Reflect.apply(ParentDefinition.makeRecordBinding, undefined, [
       FlagsBlock,
       { field: 'flags' },
     ]),
@@ -330,7 +333,7 @@ it('keeps a whole HashMap child Model in an ordinary direct Binding', () => {
     Model: Schema.Struct({ flags: FlagsBlock.Model }),
     Message: ParentMessage,
   })
-  const FlagsBinding = ParentDefinition.makeBinding(FlagsBlock, {
+  const FlagsBinding = ParentDefinition.makeRequiredFieldBinding(FlagsBlock, {
     field: 'flags',
   })
   const Composition = ParentDefinition.makeComposition({
@@ -352,7 +355,7 @@ it('keeps a whole HashMap child Model in an ordinary direct Binding', () => {
     ),
   ).toEqual(Option.some(true))
   expect(() =>
-    Reflect.apply(ParentDefinition.makeMapBinding, undefined, [
+    Reflect.apply(ParentDefinition.makeHashMapBinding, undefined, [
       FlagsBlock,
       { field: 'flags' },
     ]),
@@ -566,27 +569,31 @@ it('rejects conflicting adapters and unsupported key and value Schemas at runtim
     Message: Schema.Never,
   })
 
-  for (const field of [
-    'numericRecord',
-    'compositeMap',
-    'neverRecord',
-    'neverMap',
-    'wrongValues',
-  ]) {
+  for (const field of ['numericRecord', 'neverRecord', 'wrongValues']) {
     expect(() =>
-      Reflect.apply(InvalidParentDefinition.makeMapBinding, undefined, [
+      Reflect.apply(InvalidParentDefinition.makeRecordBinding, undefined, [
+        ChildBlock,
+        { field },
+      ]),
+    ).toThrow()
+  }
+  for (const field of ['compositeMap', 'neverMap']) {
+    expect(() =>
+      Reflect.apply(InvalidParentDefinition.makeHashMapBinding, undefined, [
         ChildBlock,
         { field },
       ]),
     ).toThrow()
   }
   expect(() =>
-    Reflect.apply(ParentDefinition.makeMapBinding, undefined, [
+    Reflect.apply(ParentDefinition.makeRecordBinding, undefined, [
       ChildBlock,
       {
         field: 'childrenById',
         readAll: () => [],
       },
     ]),
-  ).toThrow('cannot supply field or presentWhen')
+  ).toThrow(
+    'makeRecordBinding does not support the readAll configuration field',
+  )
 })

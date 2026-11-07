@@ -481,7 +481,7 @@ export const makeSymbolicBinding = (
           'write',
           'writeAt',
           'placement',
-          'presentWhen',
+          'activeWhen',
           'init',
           'subscriptions',
           'delivery',

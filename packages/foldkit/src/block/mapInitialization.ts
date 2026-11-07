@@ -220,7 +220,7 @@ const mapEntry = (
 
 /**
  * Creates a passive initialization recipe that inserts one absent child into
- * an exact Record or Effect HashMap Binding made by `makeMapBinding`.
+ * an exact Record or Effect HashMap Binding made by `makeRecordBinding` or `makeHashMapBinding`.
  *
  * The map value must be the child Model itself. Parent-owned wrapper metadata
  * keeps the explicit `Binding.init` writer. Return the recipe intact from a
@@ -294,7 +294,7 @@ export function initAndInsert(
  * Creates a connected Step that initializes and inserts a child only when its
  * key is absent from the Binding's declared Record or Effect HashMap field.
  *
- * Pass one concrete `makeMapBinding` Binding whose values are child Models,
+ * Pass one concrete Record or HashMap Binding whose values are child Models,
  * plus its exact key and child init argument tuple, or a Model-first producer
  * returning an Option of that configuration. No field selector or
  * separate presence check is needed. Wrapped values and custom accessors keep

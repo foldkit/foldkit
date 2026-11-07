@@ -629,7 +629,7 @@ const GraphParentBaseDefinition = GraphParentNamespace.makeDefinition({
   Model: GraphParentModel,
   Message: GraphParentMessage,
 })
-const GraphChildBinding = GraphParentBaseDefinition.makeBinding(
+const GraphChildBinding = GraphParentBaseDefinition.makeCustomBinding(
   GraphChildBlock,
   {
     placement: 'child',
@@ -680,14 +680,12 @@ const SelectedGraphParentBaseDefinition = makeNamespace(
   Model: GraphParentModel,
   Message: GraphParentMessage,
 })
-const SelectedGraphChildBinding = SelectedGraphParentBaseDefinition.makeBinding(
-  SelectedGraphChild,
-  {
+const SelectedGraphChildBinding =
+  SelectedGraphParentBaseDefinition.makeCustomBinding(SelectedGraphChild, {
     placement: 'selected-child',
     read: (model: GraphParentModel) => Option.some(model.child),
     write: (model, child) => ({ ...model, child }),
-  },
-)
+  })
 
 const SelectedGraphParentComposition =
   SelectedGraphParentBaseDefinition.makeComposition({
@@ -726,9 +724,8 @@ const PolicyParentBaseDefinition = PolicyParentNamespace.makeDefinition({
   Model: PolicyParentModel,
   Message: PolicyParentMessage,
 })
-const ChoiceWithPolicyCommandBinding = PolicyParentBaseDefinition.makeBinding(
-  StringChoice,
-  {
+const ChoiceWithPolicyCommandBinding =
+  PolicyParentBaseDefinition.makeCustomBinding(StringChoice, {
     placement: 'choice',
     read: (model: PolicyParentModel) => Option.some(model.choice),
     write: (
@@ -738,13 +735,12 @@ const ChoiceWithPolicyCommandBinding = PolicyParentBaseDefinition.makeBinding(
       ...model,
       choice,
     }),
-  },
-).withOutMessagePolicy({
-  fold: () => (model: PolicyParentModel) => ({
-    model,
-    commands: [CreateRoom()],
-  }),
-})
+  }).withOutMessagePolicy({
+    fold: () => (model: PolicyParentModel) => ({
+      model,
+      commands: [CreateRoom()],
+    }),
+  })
 
 const policyParentComposition = PolicyParentBaseDefinition.makeComposition({
   bindings: [ChoiceWithPolicyCommandBinding],
@@ -864,11 +860,14 @@ const PolicyConflictParentBaseDefinition = makeNamespace(
   Message: PolicyConflictParentMessage,
 })
 const PolicyConflictChildBinding =
-  PolicyConflictParentBaseDefinition.makeBinding(PolicyConflictChildBlock, {
-    placement: 'policy-conflict-child',
-    read: (model: PolicyConflictParentModel) => Option.some(model.child),
-    write: (model, child) => ({ ...model, child }),
-  }).withOutMessagePolicy({
+  PolicyConflictParentBaseDefinition.makeCustomBinding(
+    PolicyConflictChildBlock,
+    {
+      placement: 'policy-conflict-child',
+      read: (model: PolicyConflictParentModel) => Option.some(model.child),
+      write: (model, child) => ({ ...model, child }),
+    },
+  ).withOutMessagePolicy({
     fold:
       (
         _outMessage: PolicyConflictChildOutMessage,
@@ -1301,7 +1300,7 @@ if (false) {
     // @ts-expect-error A bound render config cannot erase its parent Message with any.
     h.block(erasedParentMessage)
 
-    const OmittedChoiceBinding = PolicyParentBaseDefinition.makeBinding(
+    const OmittedChoiceBinding = PolicyParentBaseDefinition.makeCustomBinding(
       StringChoice,
       {
         placement: 'omitted-compact-evidence',
@@ -1433,13 +1432,13 @@ if (false) {
     Message: GraphParentMessage,
   })
   const UnregisteredGraphChildBinding =
-    UnregisteredGraphParentDefinition.makeBinding(GraphChildBlock, {
+    UnregisteredGraphParentDefinition.makeCustomBinding(GraphChildBlock, {
       placement: 'unregistered-child',
       read: (model: GraphParentModel) => Option.some(model.child),
       write: (model, child) => ({ ...model, child }),
     })
   const RegisteredGraphChildBinding =
-    UnregisteredGraphParentDefinition.makeBinding(GraphChildBlock, {
+    UnregisteredGraphParentDefinition.makeCustomBinding(GraphChildBlock, {
       placement: 'registered-child',
       read: (model: GraphParentModel) => Option.some(model.child),
       write: (model, child) => ({ ...model, child }),
@@ -1517,20 +1516,18 @@ if (false) {
       Model: GraphParentModel,
       Message: GraphParentMessage,
     })
-  const ForeignCommandBinding = ForeignCommandParentBaseDefinition.makeBinding(
-    StringChoice,
-    {
+  const ForeignCommandBinding =
+    ForeignCommandParentBaseDefinition.makeCustomBinding(StringChoice, {
       placement: 'foreign-command-message',
       read: (_model: GraphParentModel) =>
         Option.some(StringChoice.Model.make({ value: 'One' })),
       write: (model: GraphParentModel) => model,
-    },
-  ).withOutMessagePolicy({
-    fold: () => (model: GraphParentModel) => ({
-      model,
-      commands: [CreateRoom()],
-    }),
-  })
+    }).withOutMessagePolicy({
+      fold: () => (model: GraphParentModel) => ({
+        model,
+        commands: [CreateRoom()],
+      }),
+    })
   // @ts-expect-error A child policy Command must produce this Composition's complete Message.
   ForeignCommandParentBaseDefinition.makeComposition({
     bindings: [ForeignCommandBinding],
@@ -1544,17 +1541,15 @@ if (false) {
       Message: GraphParentMessage,
       OutMessage: ParentOutMessage,
     })
-  const ForeignForwardBinding = ForeignForwardParentBaseDefinition.makeBinding(
-    StringChoice,
-    {
+  const ForeignForwardBinding =
+    ForeignForwardParentBaseDefinition.makeCustomBinding(StringChoice, {
       placement: 'foreign-forward',
       read: (_model: GraphParentModel) =>
         Option.some(StringChoice.Model.make({ value: 'One' })),
       write: (model: GraphParentModel) => model,
-    },
-  ).withOutMessagePolicy({
-    forward: () => HomeOutMessage.CreatedRoom({ roomId: 'foreign' }),
-  })
+    }).withOutMessagePolicy({
+      forward: () => HomeOutMessage.CreatedRoom({ roomId: 'foreign' }),
+    })
   // @ts-expect-error A child forward policy must produce the parent's OutMessage.
   ForeignForwardParentBaseDefinition.makeComposition({
     bindings: [ForeignForwardBinding],
@@ -1564,7 +1559,7 @@ if (false) {
       Model: GraphParentModel,
       Message: GraphParentMessage,
     })
-  MissingForwardParentBaseDefinition.makeBinding(StringChoice, {
+  MissingForwardParentBaseDefinition.makeCustomBinding(StringChoice, {
     placement: 'missing-forward',
     read: (_model: GraphParentModel) =>
       Option.some(StringChoice.Model.make({ value: 'One' })),
@@ -1580,20 +1575,18 @@ if (false) {
       Message: GraphParentMessage,
       OutMessage: ParentOutMessage,
     })
-  const ForeignDerivedBinding = ForeignDerivedParentBaseDefinition.makeBinding(
-    StringChoice,
-    {
+  const ForeignDerivedBinding =
+    ForeignDerivedParentBaseDefinition.makeCustomBinding(StringChoice, {
       placement: 'foreign-derived-out-message',
       read: (_model: GraphParentModel) =>
         Option.some(StringChoice.Model.make({ value: 'One' })),
       write: (model: GraphParentModel) => model,
-    },
-  ).withOutMessagePolicy({
-    fold: () => (model: GraphParentModel) => ({
-      model,
-      outMessage: HomeOutMessage.CreatedRoom({ roomId: 'foreign' }),
-    }),
-  })
+    }).withOutMessagePolicy({
+      fold: () => (model: GraphParentModel) => ({
+        model,
+        outMessage: HomeOutMessage.CreatedRoom({ roomId: 'foreign' }),
+      }),
+    })
   // @ts-expect-error A child fold policy must produce the parent's OutMessage.
   ForeignDerivedParentBaseDefinition.makeComposition({
     bindings: [ForeignDerivedBinding],
@@ -2299,7 +2292,7 @@ describe('Block authoring', () => {
   })
 
   it('scopes a foreign handler explicitly supplied by the host', async () => {
-    const Binding = PolicyBindingParent.makeBinding(
+    const Binding = PolicyBindingParent.makeCustomBinding(
       PolicyParentWithHostProvider,
       {
         placement: 'Policy',
@@ -2364,7 +2357,7 @@ describe('Block authoring', () => {
 
   it('retains explicit host provenance for keyed bindings', async () => {
     const model = PolicyParentWithHostProvider.init().model
-    const Binding = PolicyKeyedParent.makeBinding(
+    const Binding = PolicyKeyedParent.makeCustomKeyedBinding(
       PolicyParentWithHostProvider,
       {
         placement: 'Policies',

@@ -47,7 +47,7 @@ export const SkillsEntryBlock = Block.make('SkillsEntry', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
   makeFieldsStep,
   makeOutMessageFold,

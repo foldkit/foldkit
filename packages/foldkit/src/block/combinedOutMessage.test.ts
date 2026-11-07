@@ -64,7 +64,7 @@ const EditorDefinition = Block.makeDefinition('CombinedOutMessageEditor', {
   Message: EditorMessage,
   OutMessage: EditorOutMessage,
 })
-const DialogBinding = EditorDefinition.makeBinding(DialogBlock, {
+const DialogBinding = EditorDefinition.makeRequiredFieldBinding(DialogBlock, {
   field: 'dialog',
 })
 const EditorComposition = EditorDefinition.makeComposition({
@@ -144,7 +144,7 @@ it('runs the parent OutMessage policy after the nested combination', () => {
     Model: ParentModel,
     Message: ParentMessage,
   })
-  const EditorBinding = ParentDefinition.makeBinding(EditorBlock, {
+  const EditorBinding = ParentDefinition.makeRequiredFieldBinding(EditorBlock, {
     field: 'editor',
   }).withOutMessagePolicy({
     fold: ParentDefinition.makeOutMessageFold(EditorBlock, {

@@ -33,7 +33,7 @@ After: create the Animation Binding before its OutMessage fold, then handle `Sta
 ```ts
 import { Animation } from '@foldkit/ui'
 
-const AnimationBinding = ParentDefinition.makeBinding(
+const AnimationBinding = ParentDefinition.makeRequiredFieldBinding(
   Animation.AnimationBlock,
   {
     field: 'animation',

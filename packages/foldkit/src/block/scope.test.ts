@@ -73,7 +73,7 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
     typeof prepareBlock
   > = Block.assemble(prepareBlock)
   const bind = (placement: string) =>
-    ScopeParent.makeBinding(block, {
+    ScopeParent.makeCustomBinding(block, {
       placement,
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
@@ -188,7 +188,7 @@ describe('Block capability contexts', () => {
         Layer.provide(Layer.succeed(ValueSource, { value: 'left' })),
       ),
     )
-    const LeftBinding = ScopeParent.makeBinding(leftBlock, {
+    const LeftBinding = ScopeParent.makeCustomBinding(leftBlock, {
       placement: 'Left',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
@@ -198,7 +198,7 @@ describe('Block capability contexts', () => {
         Layer.provide(Layer.succeed(ValueSource, { value: 'right' })),
       ),
     )
-    const RightBinding = ScopeParent.makeBinding(rightBlock, {
+    const RightBinding = ScopeParent.makeCustomBinding(rightBlock, {
       placement: 'Right',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
@@ -277,7 +277,7 @@ describe('Block capability contexts', () => {
         Layer.provide(Layer.succeed(ValueSource, { value: 'selected' })),
       ),
     )
-    const SelectedBinding = ScopeParent.makeBinding(selectedBlock, {
+    const SelectedBinding = ScopeParent.makeCustomBinding(selectedBlock, {
       placement: 'Selected',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,

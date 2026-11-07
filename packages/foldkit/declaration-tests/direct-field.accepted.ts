@@ -120,61 +120,61 @@ export const ParentDefinition = Block.makeDefinition(
     Message: ParentMessage,
   },
 )
-export const RequiredBinding = ParentDefinition.makeBinding(childBlock, {
-  field: 'child',
-})
-export const OptionalBinding = ParentDefinition.makeBinding(childBlock, {
-  field: 'maybeChild',
-  presentWhen: model => model.route === 'Home',
-})
-export const SuspendedOptionalBinding = ParentDefinition.makeBinding(
+export const RequiredBinding = ParentDefinition.makeRequiredFieldBinding(
   childBlock,
   {
-    field: 'suspendedMaybeChild',
+    field: 'child',
   },
 )
-export const NestedRequiredBinding = ParentDefinition.makeBinding(
+export const OptionalBinding = ParentDefinition.makeOptionalFieldBinding(
+  childBlock,
+  {
+    field: 'maybeChild',
+    activeWhen: model => model.route === 'Home',
+  },
+)
+export const SuspendedOptionalBinding =
+  ParentDefinition.makeOptionalFieldBinding(childBlock, {
+    field: 'suspendedMaybeChild',
+  })
+export const NestedRequiredBinding = ParentDefinition.makeRequiredFieldBinding(
   nestedOptionChildBlock,
   {
     field: 'nestedChild',
   },
 )
-export const NestedOptionalBinding = ParentDefinition.makeBinding(
+export const NestedOptionalBinding = ParentDefinition.makeOptionalFieldBinding(
   nestedOptionChildBlock,
   {
     field: 'maybeNestedChild',
   },
 )
-export const ArrayChildBinding = ParentDefinition.makeBinding(arrayChildBlock, {
-  field: 'arrayChild',
-})
-export const CustomIgnoredMessageBinding = ParentDefinition.makeBinding(
-  childBlock,
+export const ArrayChildBinding = ParentDefinition.makeRequiredFieldBinding(
+  arrayChildBlock,
   {
-    placement: 'customIgnoredMessage',
-    field: 'suspendedMaybeChild',
+    field: 'arrayChild',
   },
 )
-export const InitializedRequiredBinding = ParentDefinition.makeBinding(
-  childBlock,
-  {
+export const CustomIgnoredMessageBinding =
+  ParentDefinition.makeOptionalFieldBinding(childBlock, {
+    placement: 'customIgnoredMessage',
+    field: 'suspendedMaybeChild',
+  })
+export const InitializedRequiredBinding =
+  ParentDefinition.makeRequiredFieldBinding(childBlock, {
     field: 'child',
     placement: 'initializedRequired',
     init: true,
-  },
-)
-export const InitializedArgumentBinding = ParentDefinition.makeBinding(
-  argumentChildBlock,
-  {
+  })
+export const InitializedArgumentBinding =
+  ParentDefinition.makeRequiredFieldBinding(argumentChildBlock, {
     field: 'argumentChild',
     init: {
       contextToArgs: (context: InitializationContext) => [context.count],
     },
-  },
-)
-export const InitializedOptionalBinding = ParentDefinition.makeBinding(
-  argumentChildBlock,
-  {
+  })
+export const InitializedOptionalBinding =
+  ParentDefinition.makeOptionalFieldBinding(argumentChildBlock, {
     field: 'maybeArgumentChild',
     init: {
       contextToArgs: (context: InitializationContext) => {
@@ -185,20 +185,17 @@ export const InitializedOptionalBinding = ParentDefinition.makeBinding(
         return Option.none()
       },
     },
-  },
-)
-export const NativeTupleOptionalBinding = ParentDefinition.makeBinding(
-  argumentChildBlock,
-  {
+  })
+export const NativeTupleOptionalBinding =
+  ParentDefinition.makeOptionalFieldBinding(argumentChildBlock, {
     field: 'maybeArgumentChild',
     placement: 'nativeTupleOptional',
     init: {
       contextToArgs: (context: Readonly<{ count: number }>) =>
         Option.some([context.count]),
     },
-  },
-)
-export const InitializedCustomBinding = ParentDefinition.makeBinding(
+  })
+export const InitializedCustomBinding = ParentDefinition.makeCustomBinding(
   argumentChildBlock,
   {
     placement: 'initializedCustom',
@@ -299,7 +296,7 @@ const folded = foldOptional(
 )
 void result
 void folded
-export const CustomBinding = ParentDefinition.makeBinding(childBlock, {
+export const CustomBinding = ParentDefinition.makeCustomBinding(childBlock, {
   placement: 'custom',
   read: model =>
     model.route === 'Home' ? Option.some(model.child) : Option.none(),
@@ -318,10 +315,10 @@ const GeneratedParentDefinition = Block.makeDefinition(
     Message: GeneratedParentMessage,
   },
 )
-export const GeneratedChildBinding = GeneratedParentDefinition.makeBinding(
-  childBlock,
-  { field: 'child' },
-)
+export const GeneratedChildBinding =
+  GeneratedParentDefinition.makeRequiredFieldBinding(childBlock, {
+    field: 'child',
+  })
 export const GeneratedDirectFieldParentComposition =
   GeneratedParentDefinition.makeComposition({
     bindings: [GeneratedChildBinding],
@@ -347,18 +344,14 @@ const CallableParentDefinition = Block.makeDefinition(
     Message: CallableParentMessage,
   },
 )
-export const CallableRequiredBinding = CallableParentDefinition.makeBinding(
-  childBlock,
-  {
+export const CallableRequiredBinding =
+  CallableParentDefinition.makeRequiredFieldBinding(childBlock, {
     field: 'child',
-  },
-)
-export const CallableOptionalBinding = CallableParentDefinition.makeBinding(
-  childBlock,
-  {
+  })
+export const CallableOptionalBinding =
+  CallableParentDefinition.makeOptionalFieldBinding(childBlock, {
     field: 'maybeChild',
-  },
-)
+  })
 // eslint-disable-next-line foldkit/block-name-matches-variable
 export const callableComposition = CallableParentDefinition.makeComposition({
   bindings: [CallableRequiredBinding],

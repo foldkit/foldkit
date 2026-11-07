@@ -1,0 +1,67 @@
+{
+  "timedCodeCommit": "bf92d1da26453a7c80031d9480935967886880a4",
+  "mainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+  "originalPrivateDirectory": "/private/tmp/foldkit-binding-adoption-rendering-20261106-prepared",
+  "retainedTimingSamples": 32,
+  "discardedTimingSamples": 0,
+  "files": {
+    "analysis.json": {
+      "source": "/private/tmp/foldkit-binding-adoption-rendering-20261106-prepared/timing-analysis.json",
+      "sourceSha256": "ca4631b0bc7ebc0531c6a4c60eb072f9aa5b3e62e8ed9e8a0919cf7b4c32c7ee",
+      "transformation": "Omit only top-level artifacts; add explicit curation metadata; all other parsed fields deep-equal."
+    },
+    "artifacts-summary.json": {
+      "source": "/private/tmp/foldkit-binding-adoption-rendering-20261106-prepared/final-artifact-receipt.json",
+      "sourceSha256": "837a73fb1fb1f996d4841c5f3650f29af8cb1293487422a72e51c22e63fd6c85",
+      "transformation": "Digest, count, pin, bundle, driver, workload, toolchain and limitation summary of the full private artifact receipt and preparation manifests."
+    },
+    "source-inventory.json": {
+      "source": "/private/tmp/foldkit-binding-adoption-rendering-20261106-prepared/candidate/source.json",
+      "sourceSha256": "0506175a5aa608143663fb1f9e62a132526a5afe939ed16d33a7ab67c61f95fd",
+      "sourceBytes": 414434,
+      "entryCount": 1883,
+      "transformation": "Byte-identical copy."
+    },
+    "timing-final-execution.json": {
+      "source": "/private/tmp/foldkit-binding-adoption-rendering-20261106-prepared/timing-final-execution.json",
+      "sourceSha256": "7b5f65f4d6a7befd6c5c8a80e715bda82c8546aacfb478bde2fe2c52d242c86c",
+      "transformation": "Unchanged parsed JSON; repository formatting may change bytes."
+    },
+    "analysis-controls.json": {
+      "source": "/private/tmp/foldkit-binding-adoption-rendering-20261106-prepared/analysis-controls.json",
+      "sourceSha256": "80332da1cbe71624e24224ecb0bb112f98cf62b2b76ddf830fbda580fc1e6241",
+      "transformation": "Unchanged parsed JSON; repository formatting may change bytes."
+    },
+    "candidate-build.json": {
+      "source": "/private/tmp/foldkit-binding-adoption-rendering-20261106-prepared/candidate-build.json",
+      "sourceSha256": "186b0e6b93792aa78a637d7cf8ebcbd2c614a96d8ce94d6d1fae649113393e4a",
+      "transformation": "Unchanged parsed JSON; repository formatting may change bytes."
+    },
+    "host-before.json": {
+      "source": "/private/tmp/foldkit-binding-adoption-rendering-20261106-prepared/host-before.json",
+      "sourceSha256": "321a2cadec60729896ee85535d8fb0bf32c4c62eb58cf372bcae513c3e5b423e",
+      "transformation": "Unchanged parsed JSON; repository formatting may change bytes."
+    },
+    "host-after.json": {
+      "source": "/private/tmp/foldkit-binding-adoption-rendering-20261106-prepared/host-after.json",
+      "sourceSha256": "9bb50d6072d233bf9cd8d123cfda70705f2009bbd3f7dc83fd5bf8bea14a6dd3",
+      "transformation": "Unchanged parsed JSON; repository formatting may change bytes."
+    },
+    "preflight-final/results.json": {
+      "source": "/private/tmp/foldkit-binding-adoption-rendering-20261106-prepared/preflight-final/results.json",
+      "sourceSha256": "1e8bb808b91fdf05a5e2b28886a400ab7593c768fa82406b8ca7a5b8053ad07a",
+      "transformation": "Unchanged parsed JSON; repository formatting may change bytes."
+    }
+  },
+  "timingLog": {
+    "source": "/private/tmp/foldkit-binding-adoption-rendering-20261106-prepared/timing-final.log",
+    "sha256": "45e2a282b20fd39deaeed36d57ead37c97f49bc6e654f4da4462a28c26c6bd35",
+    "copyIsByteIdentical": true
+  },
+  "preflightLogsByteIdentical": true,
+  "notes": [
+    "The complete private artifact and Source inventories remain at the original packet path and are pinned by artifacts-summary.json.",
+    "The copied harness has no Git metadata; the unchanged driver prints unknown and a Git diagnostic. Preparation independently pins its archive and tracked-file hashes.",
+    "Canonical distributions matched the frozen copies when analysed. Frozen copies remain available if canonical build output changes later."
+  ]
+}

@@ -167,7 +167,7 @@ The source snapshot is `90746b32d2ca8bc0476de7a051ace396ca590ae0`. It includes t
 
 The source snapshot is `f3be22cfeefed437164ad614d08b16d9000e0703`. It already includes checked `Block.assemble(prepare)` exports, record-only `makeUpdate`, focused Step producer callbacks, and aggregate ManagedResource Layers. Keep the existing child graph and follow [Layer-based construction](#adopt-layer-based-block-construction) for the target completion API.
 
-After installing one coherent target, replace standalone `makeMapBinding` calls with the [parent Block method](#move-map-bindings-to-their-parent-block). The `foldkit/mapBinding` import is removed. Applications without map Bindings need no API migration for this change.
+After installing one coherent target, replace implicit or standalone Binding calls with the [storage-specific parent Block constructors](#move-map-bindings-to-their-parent-block). The `foldkit/mapBinding` import is removed. Every authored Binding must select its storage constructor.
 
 [Route.parsePathWithFallback](/core/routing-and-navigation#parse-relative-paths) is available for decoding origin-relative paths; it does not require changing existing Routes. The shared [optional convenience](#optional-convenience) section covers Model-selected map initialization and focused Step producers for every starting snapshot.
 
@@ -252,7 +252,7 @@ Reciprocal Binding policies now resolve converging paths without repeatedly expa
 The following additions are optional:
 
 - Paths stored in query parameters can use [Route.parsePathWithFallback](/core/routing-and-navigation#parse-relative-paths). Decode return locations through the query Schema and store typed Routes in the Model; application selectors can then use those values directly.
-- Schema-backed Record and HashMap child fields can use [ParentBlock.makeMapBinding](/core/block#keyed-map-fields), removing repeated lookup and replacement configuration. Existing standalone calls need the [map Binding migration](#move-map-bindings-to-their-parent-block). General keyed Bindings remain supported for custom relationships.
+- Schema-backed Record and HashMap child fields can use [makeRecordBinding and makeHashMapBinding](/core/block#keyed-map-fields), removing repeated lookup and replacement configuration. Existing standalone calls need the [map Binding migration](#move-map-bindings-to-their-parent-block). General keyed Bindings remain supported for custom relationships.
 - A closed, fully attached ManagedResource registry supplies its handler recipes through [managedResources.layer](/core/managed-resources), matching Subscriptions. Empty registries supply `Layer.empty`; mixed attached/host-owned registries require explicit provider selection.
 - Story and Scene helpers can inspect captured Command arguments through [Command.argsOf](/testing/story#inspect-captured-command-arguments), matching the original Definition's source identity without changing the pending Command or selecting an occurrence.
 - Whole tagged child variants can use [makeVariantBinding](/core/block#whole-tagged-variants). [Dynamic storage helpers](/core/init-and-flags#dynamic-storage-helpers) set singular children, append initialized keyed arrays, and insert direct-value map entries without repeating storage writers.
@@ -289,9 +289,9 @@ Popover, Menu, and Listbox report trigger clicks as `ClickedButton`. Include tha
 
 For a Popover with the default focus policy, use `Scene.focusLeave(panel)` instead of `Scene.blur(panel)` when testing dismissal as focus leaves the panel. Moving focus between the panel and its descendants keeps it open. With `contentFocus: true`, the application owns focus and dismissal.
 
-Optional `makeVariantBinding` from `foldkit/variantBinding` replaces manual accessors when a child occupies one complete tagged member of the parent `Schema.Union`. Include the actual child Model Schema in that union. Parent update still owns variant switches and explicit initialization. See [whole tagged variants](/core/block#whole-tagged-variants).
+`ParentBlock.makeVariantBinding(ChildBlock)` replaces manual accessors when a child occupies one complete tagged member of the parent `Schema.Union`. Include the actual child Model Schema in that union. Parent update still owns variant switches and explicit initialization. See [whole tagged variants](/core/block#whole-tagged-variants).
 
-The optional `foldkit/bindingInit` module adds `initAndSet` for required/optional direct fields and exact key/child Option wrappers, `initAndAppend` for arrays with an existing `init.instances`/`init.toItem` policy, and `initAndInsert` for direct-value Record/HashMap storage. Pass the Binding, current parent Model and `{ args }`, adding `key` for keyed storage. Append and insert reject occupied keys. Keep explicit initialization for additional wrapper metadata, sibling changes, parent Commands, or whole tagged variants. See [dynamic storage helpers](/core/init-and-flags#dynamic-storage-helpers).
+The optional `foldkit/binding` module adds `initAndSet` for required/optional direct fields and exact key/child Option wrappers, `initAndAppend` for arrays with an existing `init.instances`/`init.toItem` policy, and `initAndInsert` for direct-value Record/HashMap storage. Pass the Binding, current parent Model and `{ args }`, adding `key` for keyed storage. Append and insert reject occupied keys. Keep explicit initialization for additional wrapper metadata, sibling changes, parent Commands, or whole tagged variants. See [dynamic storage helpers](/core/init-and-flags#dynamic-storage-helpers).
 
 ## Update the Application Boundary
 
@@ -335,28 +335,46 @@ Canonical routing Messages can be passed directly when their payloads are `{ req
 
 ::Snippet{name="serverRenderingBlockServerEntry" label="Rendering the root Block and Layer"}
 
-## Move Map Bindings to Their Parent Block
+## Choose Explicit Binding Storage {#move-map-bindings-to-their-parent-block}
 
-Remove the standalone `makeMapBinding` import from `foldkit/mapBinding`. Call the parent Block's `makeMapBinding` method with the child Block and existing config. The parent Block is no longer a positional argument. The standalone subpath is removed.
+Replace `makeBinding` and `makeMapBinding` with the parent Block constructor that describes the stored child Model:
 
-For a split feature, destructure and export `makeMapBinding` from its `block.ts`, then import that factory from the feature module. Its parent contracts remain attached when destructured. Keep the existing Binding registration, key Schema, storage, OutMessage policy, and initialization. See [map Bindings](/core/block#keyed-map-fields) for the current calls.
+| Previous call and storage                                  | Current parent method                      |
+| ---------------------------------------------------------- | ------------------------------------------ |
+| `makeBinding` with one required child field                | `makeRequiredFieldBinding`                 |
+| `makeBinding` with one Option child field                  | `makeOptionalFieldBinding`                 |
+| `makeBinding` with one keyed Option wrapper                | `makeOptionalKeyedFieldBinding`            |
+| `makeBinding` with a direct or wrapped keyed array         | `makeKeyedArrayBinding`                    |
+| `makeMapBinding` with a Record field                       | `makeRecordBinding`                        |
+| `makeMapBinding` with a HashMap field                      | `makeHashMapBinding`                       |
+| `makeBinding` with `read` and `write`                      | `makeCustomBinding`                        |
+| `makeBinding` with `readAll`, `key`, `read`, and `writeAt` | `makeCustomKeyedBinding`                   |
+| Standalone `makeVariantBinding(parent, child, config)`     | `parent.makeVariantBinding(child, config)` |
+
+The field, key, childField, delivery and OutMessage policies keep their existing roles. Select from the actual parent Schema rather than whether the child happens to be present during startup. Keyed identity can describe one optional occurrence as well as a collection.
+
+Rename direct-field `presentWhen` to `activeWhen`. Its semantics are unchanged: false deactivates the whole child occurrence while retaining its stored Model. A required child field can be inactive. `delivery.when` only admits incoming child Messages, and `subscriptions.when` only gates Streams. The rename does not add activity predicates to keyed, map, custom or variant configurations.
+
+Move initialization-helper imports from `foldkit/bindingInit` to `foldkit/binding`; the helper names and calling forms are unchanged. Remove `foldkit/variantBinding` and call the parent's `makeVariantBinding`. Older standalone map calls from `foldkit/mapBinding` also move to the appropriate parent method, dropping the parent positional argument. These removed names and subpaths have no compatibility aliases.
+
+Split features may export their needed destructured constructors from `block.ts`. They preserve the parent contracts when imported into composition modules. Register the policy-complete Binding and yield that same relationship in the constructor; no child implementation or lifecycle migration is required. See [Binding constructors](/core/block#binding-constructors) for supported shapes and [map fields](/core/block#keyed-map-fields) for key and initialization rules.
 
 ## Rename Definition Authoring Factories
 
 Block-owned factories now use the same `make*` naming as `makeInit`, `makeUpdate`, and `makeView`. Replace each removed name:
 
-| Previous preview                   | Current API                              |
-| ---------------------------------- | ---------------------------------------- |
-| `Definition.command(...)`          | `FeatureBlock.makeCommand(...)`          |
-| `Definition.mount(...)`            | `FeatureBlock.makeMount(...)`            |
-| `Definition.mountStream(...)`      | `FeatureBlock.makeMountStream(...)`      |
-| `Definition.resource(...)`         | `FeatureBlock.makeResource(...)`         |
-| `Definition.subscriptions(...)`    | `FeatureBlock.makeSubscriptions(...)`    |
-| `Definition.managedResources(...)` | `FeatureBlock.makeManagedResources(...)` |
-| `Definition.bindChild(...)`        | `FeatureBlock.makeBinding(...)`          |
-| `Definition.step(...)`             | `FeatureBlock.makeStep(...)`             |
-| `Definition.stepFields(...)`       | `FeatureBlock.makeFieldsStep(...)`       |
-| `Definition.stepNoop()`            | `FeatureBlock.makeNoopStep()`            |
+| Previous preview                   | Current API                                    |
+| ---------------------------------- | ---------------------------------------------- |
+| `Definition.command(...)`          | `FeatureBlock.makeCommand(...)`                |
+| `Definition.mount(...)`            | `FeatureBlock.makeMount(...)`                  |
+| `Definition.mountStream(...)`      | `FeatureBlock.makeMountStream(...)`            |
+| `Definition.resource(...)`         | `FeatureBlock.makeResource(...)`               |
+| `Definition.subscriptions(...)`    | `FeatureBlock.makeSubscriptions(...)`          |
+| `Definition.managedResources(...)` | `FeatureBlock.makeManagedResources(...)`       |
+| `Definition.bindChild(...)`        | The storage-specific Binding constructor above |
+| `Definition.step(...)`             | `FeatureBlock.makeStep(...)`                   |
+| `Definition.stepFields(...)`       | `FeatureBlock.makeFieldsStep(...)`             |
+| `Definition.stepNoop()`            | `FeatureBlock.makeNoopStep()`                  |
 
 Apply the primitive factory renames to an early Namespace used by a generic Block factory as well. `FeatureBlock.makeCommandsStep(...)` retains its name but now requires the [callback argument below](#pass-a-callback-to-makecommandsstep). Keep completion fields such as `subscriptions` and `managedResources`, public Block metadata, and standalone Command and Update APIs unchanged. The removed factory names have no compatibility aliases.
 
@@ -474,7 +492,7 @@ The checklist below applies to the older `c701daa80af1`, `396b19976386`, and `bf
 - Replace Animation `viewInputs.content` with a top-level `toView` renderer.
 - Replace `Animation.defaultLeaveCommand` and its Model read or `liftCommand` wiring with the bound `requestWaitForLeaveSettlement()` operation. Preserve custom leave Commands that also watch movement or another completion signal.
 - Replace module-level `Toast.test` calls with the selected Toast contract's fixture and exact Binding.
-- Move every child OutMessage policy out of the previous preview's `bindChild` config, rename that factory to `makeBinding`, and select the policy with `.withOutMessagePolicy({ fold?, forward? })`. Build every callable fold with `ParentBlock.makeOutMessageFold(ChildBlock, handlers)`, including inline folds. The forwarding API is unchanged. Export and register the policy-complete `<Child>Binding`. Keep an unconfigured base internal when self-referential or reciprocal helpers need it to break a dependency cycle. No raw child matcher or return annotation is needed.
+- Move every child OutMessage policy out of the previous preview's `bindChild` config, choose its storage-specific Binding constructor, and select the policy with `.withOutMessagePolicy({ fold?, forward? })`. Build every callable fold with `ParentBlock.makeOutMessageFold(ChildBlock, handlers)`, including inline folds. The forwarding API is unchanged. Export and register the policy-complete `<Child>Binding`. Keep an unconfigured base internal when self-referential or reciprocal helpers need it to break a dependency cycle. No raw child matcher or return annotation is needed.
 - Run typechecking against every `makeInit` plan and connected Binding Step. An ordinary Step must return an update result. Preserve a deferred connected operation through the owning Block's `makeStep`, and execute it only inside the Composition that registered its Binding. The stronger checks also retain Command requirements from combined initialization Steps.
 - Keep callbacks at the top level of `viewInputs`. A callback nested in a record, array, tuple, union, or `Option` is rejected because its dispatch boundary is ambiguous. Return callback-bearing Html from a top-level renderer such as `toView` instead.
 
@@ -498,7 +516,7 @@ Converting existing value/collection arguments is required. Adopting focused hel
 
 ### Simplify keyed storage
 
-An exact required `Schema.Option` field containing one keyed Struct wrapper can use the `field`, `key`, and `childField` Binding shorthand. `None` means absent, and `Binding.init` remains responsible for creating an occurrence. Existing explicit `readAll`, `read`, `writeAt`, and `keySchema` policies remain supported. See [Optional keyed children](/core/block#fold-child-at) before choosing the shorthand.
+An exact required `Schema.Option` field containing one keyed Struct wrapper uses `makeOptionalKeyedFieldBinding` with `field`, `key`, and `childField`. `None` means absent, and `Binding.init` remains responsible for creating an occurrence. Existing explicit `readAll`, `read`, and `writeAt` policies remain supported. A Message-bearing child also supplies `keySchema`; a Message-free child omits it. See [Optional keyed children](/core/block#fold-child-at) before choosing the shorthand.
 
 ### Select map initialization from the Model
 

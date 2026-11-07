@@ -10,36 +10,36 @@ import {
   SilentParentDefinition,
 } from './strict-routing.accepted.js'
 
-ParentDefinition.makeBinding(ContextChildBlock, {
-  // @ts-expect-error The missing context selector makes the contextual config ineligible.
+ParentDefinition.makeRequiredFieldBinding(ContextChildBlock, {
   field: 'contextualChild',
   // @ts-expect-error A contextual child requires generated delivery context.
   delivery: {},
 })
 
-ParentDefinition.makeBinding(ContextChildBlock, {
-  // @ts-expect-error The incomplete delivery makes the contextual config ineligible.
+ParentDefinition.makeRequiredFieldBinding(ContextChildBlock, {
   field: 'contextualChild',
-  // @ts-expect-error Generated delivery must supply the complete update context tuple.
   delivery: {
+    // @ts-expect-error Generated delivery must supply the complete update context tuple.
     toUpdateContext: () => [],
   },
 })
 
-ParentDefinition.makeBinding(ChildBlock, {
-  // @ts-expect-error A context-free child cannot declare generated update context.
+ParentDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
   // @ts-expect-error A context-free child cannot declare generated update context.
   delivery: { toUpdateContext: () => [] },
 })
 
-const ConflictingBinding = ParentDefinition.makeBinding(ContextChildBlock, {
-  field: 'contextualChild',
-  placement: 'child',
-  delivery: {
-    toUpdateContext: model => [{ multiplier: model.multiplier }],
+const ConflictingBinding = ParentDefinition.makeRequiredFieldBinding(
+  ContextChildBlock,
+  {
+    field: 'contextualChild',
+    placement: 'child',
+    delivery: {
+      toUpdateContext: model => [{ multiplier: model.multiplier }],
+    },
   },
-})
+)
 
 // @ts-expect-error Generated child placements must be unique among sibling Bindings.
 ParentDefinition.makeComposition({

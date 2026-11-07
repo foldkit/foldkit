@@ -1,0 +1,31 @@
+$ node scripts/check-block-type-performance.ts
+[block-type-performance] TypeScript 7.1.0-beta; --singleThreaded diagnostics
+[block-type-performance] Measuring baseline...
+[block-type-performance] Measuring deep-composition-8...
+type-performance/deep-composition-8.ts(90,59): error TS2554: Expected 3 arguments, but got 2.
+type-performance/deep-composition-8.ts(119,59): error TS2554: Expected 3 arguments, but got 2.
+type-performance/deep-composition-8.ts(151,59): error TS2554: Expected 3 arguments, but got 2.
+type-performance/deep-composition-8.ts(183,59): error TS2554: Expected 3 arguments, but got 2.
+type-performance/deep-composition-8.ts(215,59): error TS2554: Expected 3 arguments, but got 2.
+type-performance/deep-composition-8.ts(247,59): error TS2554: Expected 3 arguments, but got 2.
+type-performance/deep-composition-8.ts(279,59): error TS2554: Expected 3 arguments, but got 2.
+type-performance/deep-composition-8.ts(311,59): error TS2554: Expected 3 arguments, but got 2.
+type-performance/deep-composition-8.ts(341,51): error TS2554: Expected 3 arguments, but got 2.
+Files:              527
+Lines:           329730
+Identifiers:     276373
+Symbols:         223570
+Types:            56097
+Instantiations:  629798
+Memory used:    133929K
+Memory allocs:  1092241
+Config time:     0.000s
+Parse time:      0.125s
+Bind time:       0.035s
+Check time:      0.215s
+Emit time:       0.000s
+Total time:      0.376s
+[block-type-performance] Compiler failed for deep-composition-8.
+/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] foldkit@0.170.0 check:block-type-performance: `node scripts/check-block-type-performance.ts`
+Exit status 1

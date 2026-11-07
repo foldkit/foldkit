@@ -13,7 +13,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const SettingsBinding = ApplicationDefinition.makeBinding(
+const SettingsBinding = ApplicationDefinition.makeRequiredFieldBinding(
   BoundSettings.BoundSettingsBlock,
   {
     field: 'settings',

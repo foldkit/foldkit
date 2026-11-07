@@ -42,8 +42,12 @@ export const NotificationsBlock = Block.make('Notifications', {
   Message,
 })
 
-const { makeFieldsStep, makeOutMessageFold, makeBinding, makeComposition } =
-  NotificationsBlock
+const {
+  makeFieldsStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = NotificationsBlock
 
 // At module scope, fold the OutMessage into your own Model, lifting the
 // DismissedToast event into domain state. The arm returns an Update.Step over
@@ -57,7 +61,7 @@ const foldToastOutMessage = makeOutMessageFold(Toast, {
 })
 
 // The Binding retains the child contract; construction supplies its implementation.
-const ToastBinding = makeBinding(Toast, {
+const ToastBinding = makeRequiredFieldBinding(Toast, {
   field: 'toast',
   init: {
     contextToArgs: () => [{ id: 'app-toast', swipeToDismiss: {} }],

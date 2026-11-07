@@ -36,7 +36,7 @@ const {
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
 } = SortableListBlock
 
@@ -63,10 +63,13 @@ const foldDragAndDropOutMessage = makeOutMessageFold(
 )
 
 // The Binding retains the child contract; construction supplies its implementation.
-const DragAndDropBinding = makeBinding(DragAndDrop.DragAndDropBlock, {
-  field: 'dragAndDrop',
-  init: { contextToArgs: () => [{ id: 'sortable-list' }] },
-}).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
+const DragAndDropBinding = makeRequiredFieldBinding(
+  DragAndDrop.DragAndDropBlock,
+  {
+    field: 'dragAndDrop',
+    init: { contextToArgs: () => [{ id: 'sortable-list' }] },
+  },
+).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
 
 const SortableListComposition = makeComposition({
   bindings: [DragAndDropBinding],

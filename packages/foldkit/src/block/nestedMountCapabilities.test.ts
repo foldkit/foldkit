@@ -45,7 +45,7 @@ const MountCapabilityMiddle = makeDefinition('MountCapabilityMiddle', {
   Model: MiddleModel,
   Message: Schema.Never,
 })
-const LeafBinding = MountCapabilityMiddle.makeBinding(leafBlock, {
+const LeafBinding = MountCapabilityMiddle.makeRequiredFieldBinding(leafBlock, {
   field: 'leaf',
   init: false,
 })
@@ -86,10 +86,13 @@ const MountCapabilityRoot = makeDefinition('MountCapabilityRoot', {
   Model: RootModel,
   Message: Schema.Never,
 })
-const MiddleBinding = MountCapabilityRoot.makeBinding(middleBlock, {
-  field: 'middle',
-  init: false,
-})
+const MiddleBinding = MountCapabilityRoot.makeRequiredFieldBinding(
+  middleBlock,
+  {
+    field: 'middle',
+    init: false,
+  },
+)
 const rootRegistered = MountCapabilityRoot.makeComposition({
   bindings: [MiddleBinding],
 })

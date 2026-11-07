@@ -101,9 +101,12 @@ it('emits a derived OutMessage from an inferred Binding policy', () => {
     Message,
     OutMessage: ParentOutMessage,
   })
-  const SelectionBinding = ParentDefinition.makeBinding(SelectionBlock, {
-    field: 'selection',
-  }).withOutMessagePolicy({
+  const SelectionBinding = ParentDefinition.makeRequiredFieldBinding(
+    SelectionBlock,
+    {
+      field: 'selection',
+    },
+  ).withOutMessagePolicy({
     fold: ParentDefinition.makeOutMessageFold(SelectionBlock, {
       Selected: ({ value }) =>
         ParentDefinition.makeOutMessageStep(() =>

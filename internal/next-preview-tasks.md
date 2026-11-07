@@ -1,5 +1,41 @@
 # Next preview tasks
 
+## November 6 explicit Binding relationships
+
+The user approved adoption on `codex/explicit-binding-adoption-20261106`, based on
+the integrated preparation commit `d782b73e62c95a1bfba60c11bbfdaf99c496b153`.
+Its [prototype report](binding-relationships-20261106/README.md) and
+[migration](binding-relationships-20261106/MIGRATION.md) cover the nine
+parent-owned constructors, `activeWhen` and the `foldkit/binding` helper path.
+
+- [x] Inspect existing storage support and prior compiler experiments before
+      selecting the flat constructor family. Preserve all existing Models.
+- [x] Exercise actual Typing Game Home/Room, Workspace Records, Counters arrays
+      and generic Toast wrappers. Keep custom and HashMap proofs in framework
+      fixtures rather than inventing application storage.
+- [x] Verify passive runtime mismatches, source/relocated declarations, exact
+      key/init/context/OutMessage contracts, Services/errors and registration.
+      Negative controls reject the corresponding invalid wiring.
+- [x] Run all eight compiler workloads with constructor-name changes only and
+      unchanged budgets. Six pass; the two Workspace ceilings remain exceeded
+      by about 0.3% instantiations and 1.3–1.9% types.
+- [x] Obtain approval for the measured cost. Revise only the two Workspace
+      instantiation/type ceilings to the exact prototype measurements; all eight
+      unchanged workloads now pass. This is not rendering-performance approval.
+- [x] Complete repository-wide consumer and fixture adoption, obsolete public
+      runtime surface removal, and lint/docs/skill migration.
+- [x] Pass full source/emitted/relocated checks, compiler diagnostics, native
+      completions/docs, runtime tests, and focused app/UI/lint verification.
+- [x] Complete the frozen [rendering comparison](binding-relationships-20261106/rendering/README.md),
+      retaining all samples, raw logs and analysis controls. The variable batch
+      shows an optimized timing concern and added bundle cost; approval of the
+      compiler ceilings does not accept either runtime cost.
+- [ ] Finish normal pre-push gates and exact-commit review before pushing the
+      adoption branch.
+- [ ] Freeze the complete adopted candidate and obtain the applicable security
+      review and separate publication approval. This prototype is outside the
+      already reviewed release-preparation snapshot.
+
 ## November 6 incoming feedback
 
 - [x] Reproduce #1897's DevTools stack overflow against the built preview.
@@ -14,8 +50,12 @@
       outside this stabilization change.
 - [x] Complete the separately authorized Daybreak addendum and final artifact
       verification for the Chunk fix and release-preparation follow-up.
-- [ ] Integrate the reviewed preparation branch through protected checks and
+- [x] Integrate the reviewed preparation branch through protected checks and
       prepend #1655's preparation notice without replacing published Ready.
+      PR #1901 merged as `d782b73e62c95a1bfba60c11bbfdaf99c496b153`; its tree
+      exactly matches reviewed `4f6a740d923b9a25b2c0360e79071eda898057ab`.
+      Both merge-group workflows passed. #1655's fresh body was preserved
+      verbatim below the preparation prefix and the update was read back.
 
 ## November 6 release documentation
 

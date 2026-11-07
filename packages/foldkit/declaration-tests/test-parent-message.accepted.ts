@@ -81,7 +81,7 @@ const CounterParentDefinition = Block.makeDefinition('TestMessageParent', {
   Model: CounterParentModel,
   Message: Schema.Never,
 })
-export const AccessorBinding = CounterParentDefinition.makeBinding(
+export const AccessorBinding = CounterParentDefinition.makeCustomBinding(
   CounterBlock,
   {
     placement: 'selected',
@@ -91,7 +91,7 @@ export const AccessorBinding = CounterParentDefinition.makeBinding(
     delivery: { toUpdateContext: model => [model.amount] },
   },
 )
-export const MessageFreeBinding = CounterParentDefinition.makeBinding(
+export const MessageFreeBinding = CounterParentDefinition.makeCustomBinding(
   MessageFreeBlock,
   {
     placement: 'silent',
@@ -100,7 +100,7 @@ export const MessageFreeBinding = CounterParentDefinition.makeBinding(
       modifyFields(model, { selected: () => Option.some(nextCounter) }),
   },
 )
-export const KeyedFieldBinding = CounterParentDefinition.makeBinding(
+export const KeyedFieldBinding = CounterParentDefinition.makeKeyedArrayBinding(
   CounterBlock,
   {
     field: 'counters',
@@ -109,7 +109,7 @@ export const KeyedFieldBinding = CounterParentDefinition.makeBinding(
     delivery: { toUpdateContext: model => [model.amount] },
   },
 )
-export const WrappedBinding = CounterParentDefinition.makeBinding(
+export const WrappedBinding = CounterParentDefinition.makeKeyedArrayBinding(
   CounterBlock,
   {
     field: 'wrappedEntries',
@@ -119,7 +119,7 @@ export const WrappedBinding = CounterParentDefinition.makeBinding(
     delivery: { toUpdateContext: model => [model.amount] },
   },
 )
-export const NumericBinding = CounterParentDefinition.makeBinding(
+export const NumericBinding = CounterParentDefinition.makeCustomKeyedBinding(
   CounterBlock,
   {
     placement: 'numeric',
@@ -139,7 +139,7 @@ export const NumericBinding = CounterParentDefinition.makeBinding(
     delivery: { toUpdateContext: model => [model.amount] },
   },
 )
-export const LiteralBinding = CounterParentDefinition.makeBinding(
+export const LiteralBinding = CounterParentDefinition.makeCustomKeyedBinding(
   CounterBlock,
   {
     placement: 'literal',
@@ -239,10 +239,10 @@ const PolicyParentDefinition = Block.makeDefinition('TestPolicyParent', {
   Model: PolicyParentModel,
   Message: Schema.Never,
 })
-export const PolicyBindingWithoutPolicy = PolicyParentDefinition.makeBinding(
-  PolicyChildBlock,
-  { field: 'child' },
-)
+export const PolicyBindingWithoutPolicy =
+  PolicyParentDefinition.makeRequiredFieldBinding(PolicyChildBlock, {
+    field: 'child',
+  })
 export const PolicyBinding = PolicyBindingWithoutPolicy.withOutMessagePolicy({
   fold: PolicyParentDefinition.makeOutMessageFold(PolicyChildBlock, {
     Incremented: ({ count }) =>
@@ -309,7 +309,7 @@ const GenericParentDefinition = Block.makeDefinition('GenericValueParent', {
   Model: GenericParentModel,
   Message: Schema.Never,
 })
-export const PrimaryChoiceBinding = GenericParentDefinition.makeBinding(
+export const PrimaryChoiceBinding = GenericParentDefinition.makeCustomBinding(
   PrimaryChoice,
   {
     placement: 'primaryChoice',
@@ -318,7 +318,7 @@ export const PrimaryChoiceBinding = GenericParentDefinition.makeBinding(
       modifyFields(model, { primaryChoice: () => nextValue }),
   },
 )
-export const SecondaryChoiceBinding = GenericParentDefinition.makeBinding(
+export const SecondaryChoiceBinding = GenericParentDefinition.makeCustomBinding(
   SecondaryChoice,
   {
     placement: 'secondaryChoice',
@@ -360,10 +360,10 @@ const NestedParentDefinition = Block.makeDefinition('NestedParent', {
   Model: NestedParentModel,
   Message: Schema.Never,
 })
-export const NestedChildBinding = NestedParentDefinition.makeBinding(
-  NestedChildBlock,
-  { field: 'child' },
-)
+export const NestedChildBinding =
+  NestedParentDefinition.makeRequiredFieldBinding(NestedChildBlock, {
+    field: 'child',
+  })
 const NestedParentComposition = NestedParentDefinition.makeComposition({
   bindings: [NestedChildBinding],
 })
@@ -384,7 +384,7 @@ const RootDefinition = Block.makeDefinition('NestedRoot', {
   Model: RootModel,
   Message: Schema.Never,
 })
-export const NestedParentBinding = RootDefinition.makeBinding(
+export const NestedParentBinding = RootDefinition.makeOptionalFieldBinding(
   NestedParentBlock,
   { field: 'maybeParent' },
 )

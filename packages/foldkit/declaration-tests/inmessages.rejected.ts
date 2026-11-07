@@ -237,10 +237,13 @@ SilentDefinition.makeBlock(
   }),
 )
 
-const UnregisteredBinding = ParentDefinition.makeBinding(CounterContract, {
-  field: 'counter',
-  placement: 'unregistered-counter',
-}).withOutMessagePolicy({
+const UnregisteredBinding = ParentDefinition.makeRequiredFieldBinding(
+  CounterContract,
+  {
+    field: 'counter',
+    placement: 'unregistered-counter',
+  },
+).withOutMessagePolicy({
   forward: ParentDefinition.makeOutMessageForward(CounterContract, {
     Reported: ({ label }) => ParentOutMessage.ChildReported({ label }),
   }),

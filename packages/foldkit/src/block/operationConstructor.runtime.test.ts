@@ -129,7 +129,7 @@ const Parent = makeDefinition('OperationConstructorRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = Parent.makeBinding(Block, {
+const ChildBinding = Parent.makeCustomBinding(Block, {
   placement: 'child',
   read: model => model.maybeChild,
   write: (model, nextChild) =>
@@ -142,18 +142,11 @@ const ChildBinding = Parent.makeBinding(Block, {
     ChangedValue: () => model => ({ model }),
   }),
 })
-const EntryBinding = Parent.makeBinding(Block, {
+const EntryBinding = Parent.makeKeyedArrayBinding(Block, {
   placement: 'entries',
-  readAll: model => model.entries,
-  key: entry => entry.id,
-  keySchema: Schema.String,
-  read: entry => entry.child,
-  writeAt: (model, id, nextChild) =>
-    modifyFields(model, {
-      entries: Array.map(entry =>
-        entry.id === id ? Entry.make({ id, child: nextChild }) : entry,
-      ),
-    }),
+  field: 'entries',
+  key: 'id',
+  childField: 'child',
   delivery: {
     toUpdateContext: () => [{ prefix: 'routed' }],
   },

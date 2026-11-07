@@ -153,7 +153,7 @@ describe('Subscription startup supervision', () => {
       Model,
       Message,
     })
-    const ChildBinding = ApplicationDefinition.makeBinding(block, {
+    const ChildBinding = ApplicationDefinition.makeCustomBinding(block, {
       read: model => model.maybeChild,
       write: (model, nextChild) =>
         modifyFields(model, { maybeChild: () => Option.some(nextChild) }),

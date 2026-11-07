@@ -19,7 +19,7 @@ export const IssueBoardBlock = Block.make('IssueBoard', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,

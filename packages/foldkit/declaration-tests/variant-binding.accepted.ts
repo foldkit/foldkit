@@ -1,6 +1,5 @@
 import { Effect, Layer, Schema, Stream, Tuple } from 'effect'
 import { Block, Message, Struct, Update } from 'foldkit'
-import { makeVariantBinding } from 'foldkit/variantBinding'
 
 export const Active = Schema.Struct({
   _tag: Schema.Literal('Active'),
@@ -108,20 +107,16 @@ export const ParentDefinition = Block.makeDefinition('VariantParent', {
 const foldChildOutMessage = ParentDefinition.makeOutMessageFold(ChildBlock, {
   NotifiedCount: ParentDefinition.makeNoopStep,
 })
-export const UnselectedBinding = makeVariantBinding(
-  ParentDefinition,
-  ChildBlock,
-)
+export const UnselectedBinding = ParentDefinition.makeVariantBinding(ChildBlock)
 export const ChildBinding = UnselectedBinding.withOutMessagePolicy({
   fold: foldChildOutMessage,
 })
-export const GatedBinding = makeVariantBinding(ParentDefinition, ChildBlock, {
+export const GatedBinding = ParentDefinition.makeVariantBinding(ChildBlock, {
   placement: 'gatedActive',
   subscriptions: { when: model => model._tag === 'Active' && model.count > 0 },
   delivery: { when: model => model._tag === 'Active' && model.count > 0 },
 }).withOutMessagePolicy({ fold: foldChildOutMessage })
-export const StreamGatedBinding = makeVariantBinding(
-  ParentDefinition,
+export const StreamGatedBinding = ParentDefinition.makeVariantBinding(
   ChildBlock,
   {
     subscriptions: { when: { activity: model => model._tag === 'Active' } },
@@ -175,8 +170,7 @@ export const ContextChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Active,
   typeof prepareContextChild
 > = Block.assemble(prepareContextChild)
-export const ContextBinding = makeVariantBinding(
-  ParentDefinition,
+export const ContextBinding = ParentDefinition.makeVariantBinding(
   ContextChild,
   {
     delivery: {
@@ -200,7 +194,7 @@ export const SilentChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Active,
   typeof prepareSilentChild
 > = Block.assemble(prepareSilentChild)
-export const SilentBinding = makeVariantBinding(ParentDefinition, SilentChild)
+export const SilentBinding = ParentDefinition.makeVariantBinding(SilentChild)
 
 type OutMessageOf<Output> = 'outMessage' extends keyof Output
   ? Output extends Readonly<{ outMessage?: infer OutMessage }>
@@ -284,8 +278,7 @@ export const OptionalContextChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Active,
   typeof prepareOptionalContextChild
 > = Block.assemble(prepareOptionalContextChild)
-export const OptionalContextBinding = makeVariantBinding(
-  ParentDefinition,
+export const OptionalContextBinding = ParentDefinition.makeVariantBinding(
   OptionalContextChild,
   { delivery: { toUpdateContext: () => Tuple.make() } },
 )
@@ -316,8 +309,7 @@ export const DefaultContextChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Active,
   typeof prepareDefaultContextChild
 > = Block.assemble(prepareDefaultContextChild)
-export const DefaultContextBinding = makeVariantBinding(
-  ParentDefinition,
+export const DefaultContextBinding = ParentDefinition.makeVariantBinding(
   DefaultContextChild,
   { delivery: { toUpdateContext: () => Tuple.make() } },
 )
@@ -347,8 +339,7 @@ export const RestContextChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Active,
   typeof prepareRestContextChild
 > = Block.assemble(prepareRestContextChild)
-export const RestContextBinding = makeVariantBinding(
-  ParentDefinition,
+export const RestContextBinding = ParentDefinition.makeVariantBinding(
   RestContextChild,
   { delivery: { toUpdateContext: () => Tuple.make(1, 2) } },
 )

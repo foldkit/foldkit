@@ -16,7 +16,7 @@ export const HomeBlock = Block.make('Home', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,

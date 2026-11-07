@@ -5,7 +5,7 @@ import {
   makeCommandsStep,
   makeNoopStep,
   makeOutMessageFold,
-  makeBinding,
+  makeRequiredFieldBinding,
 } from '../block'
 import { SaveDraft } from '../command'
 
@@ -16,6 +16,6 @@ const foldDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
     makeCommandsStep(model => [SaveDraft({ contents: model.contents })]),
 })
 
-export const DialogBinding = makeBinding(Dialog.DialogBlock, {
+export const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })

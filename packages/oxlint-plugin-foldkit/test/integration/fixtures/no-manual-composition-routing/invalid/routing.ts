@@ -13,13 +13,13 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-ApplicationDefinition.makeBinding(DialogBlock, {
+ApplicationDefinition.makeRequiredFieldBinding(DialogBlock, {
   field: 'dialog',
   parentMessage: Message.GotDialogMessage,
   fromParentMessage: false,
 })
 
-ApplicationDefinition.makeBinding(PickerBlock, {
+ApplicationDefinition.makeRequiredFieldBinding(PickerBlock, {
   field: 'picker',
   toParentMessage: message => Message.GotPickerEvent({ event: message }),
 })

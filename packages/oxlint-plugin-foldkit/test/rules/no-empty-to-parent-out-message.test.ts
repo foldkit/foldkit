@@ -346,7 +346,7 @@ it('rejects an empty forward policy on a completed Block binding', () => {
     callee: {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('makeBinding'),
+      property: Testing.id('makeRequiredFieldBinding'),
       computed: false,
     },
     arguments: [Testing.id('Settings'), configuration],
@@ -374,7 +374,7 @@ it('rejects an empty forward on a fluent Binding policy', () => {
     callee: {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('makeBinding'),
+      property: Testing.id('makeRequiredFieldBinding'),
       computed: false,
     },
     arguments: [

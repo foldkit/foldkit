@@ -180,14 +180,17 @@ export const ParentDefinition = Block.makeDefinition(
     Message: ParentMessage,
   },
 )
-export const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-}).withOutMessagePolicy({
+export const ChildBinding = ParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
+  },
+).withOutMessagePolicy({
   fold: ChildOutMessage.match<Update.Step<ParentModel, ParentMessage>>({
     ChangedValue: () => model => ({ model }),
   }),
 })
-export const EntryBinding = ParentDefinition.makeBinding(ChildBlock, {
+export const EntryBinding = ParentDefinition.makeKeyedArrayBinding(ChildBlock, {
   placement: 'entries',
   field: 'entries',
   key: 'id',

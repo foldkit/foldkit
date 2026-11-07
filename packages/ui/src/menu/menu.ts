@@ -805,10 +805,13 @@ const foldAnimationOutMessage = MenuBlock.makeOutMessageFold(
   },
 )
 
-const AnimationBinding = MenuBlock.makeBinding(Animation.AnimationBlock, {
-  field: 'animation',
-  init: { contextToArgs: config => [{ id: `${config.id}-items` }] },
-}).withOutMessagePolicy({ fold: foldAnimationOutMessage })
+const AnimationBinding = MenuBlock.makeRequiredFieldBinding(
+  Animation.AnimationBlock,
+  {
+    field: 'animation',
+    init: { contextToArgs: config => [{ id: `${config.id}-items` }] },
+  },
+).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
 const MenuComposition = MenuBlock.makeComposition({
   mounts,

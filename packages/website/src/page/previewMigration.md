@@ -152,7 +152,7 @@ Make these changes together:
 
 1. Delete the parent's authored `GotSettingsMessage` variant.
 2. Declare `SettingsBlock` and complete its construction Layer with init, update, primary view, lifecycle declarations and local handlers. Keep OutMessage and public operation contracts on the declaration.
-3. Replace the `Update.foldChild` configuration with `ParentBlock.makeBinding(SettingsBlock, ...)`. Move its Model access, delivery context, presence, key, and OutMessage policy into the Binding.
+3. Replace the `Update.foldChild` configuration with the constructor matching the child's storage. The required Settings field shown here uses `ParentBlock.makeRequiredFieldBinding(SettingsBlock, ...)`; optional fields, keyed arrays and other storage forms use their corresponding Binding constructors. Keep the existing delivery context, activity gates and OutMessage policy on the Binding.
 4. Register that Binding with `ParentBlock.makeComposition({ bindings: [SettingsBinding] })`.
 5. Delete `toParentMessage` and the local update branch that unpacks the child Message. Author the parent update with `ParentComposition.makeUpdate`; it matches only the parent's local Message union.
 
@@ -206,7 +206,7 @@ Prefer the narrowest Binding that represents the parent's actual storage:
 - Add `key` for a direct array or keyed wrapper whose stable identity field is a string or finite number.
 - Add `childField` when the collection item wraps the child Model with parent-owned data.
 - Use explicit accessors for a custom relationship that the field forms cannot represent.
-- Use `presentWhen` only when the whole child occurrence, including its lifecycle, is conditionally present. Use a Subscription gate when only one Subscription should stop.
+- Use `activeWhen` only when the whole child occurrence, including its lifecycle, is conditionally present. Use a Subscription gate when only one Subscription should stop.
 
 The direct collection form keeps each child occurrence's identity in the parent Model:
 
@@ -216,7 +216,7 @@ Never key repeated occurrences by array position. Generated delivery records the
 
 ### Fold OutMessages in the Parent
 
-A child OutMessage reports a fact across the boundary. The parent owns the response. Pass the child contract explicitly whether a fold is inline or named: `makeBinding(ChildBlock, ...).withOutMessagePolicy({ fold: ParentBlock.makeOutMessageFold(ChildBlock, handlers) })`.
+A child OutMessage reports a fact across the boundary. The parent owns the response. Select policy on the storage-specific Binding and pass the child contract explicitly whether a fold is inline or named. For a required-field child: `ParentBlock.makeRequiredFieldBinding(ChildBlock, ...).withOutMessagePolicy({ fold: ParentBlock.makeOutMessageFold(ChildBlock, handlers) })`.
 
 ::Snippet{name="blockOutMessagePolicy" label="Parent-owned child OutMessage policy"}
 

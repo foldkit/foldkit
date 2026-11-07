@@ -144,18 +144,21 @@ const impossibleOutMessagePolicy = {
 }
 // @ts-expect-error A direct policy must accept every child OutMessage.
 // oxfmt-ignore
-DirectParent.makeBinding(DirectChildBlock, { field: 'child', }).withOutMessagePolicy(impossibleOutMessagePolicy)
+DirectParent.makeRequiredFieldBinding(DirectChildBlock, { field: 'child', }).withOutMessagePolicy(impossibleOutMessagePolicy)
 
 const narrowKeyPolicy = {
   fold: (_key: 'Primary', _outMessage: typeof Choice.OutMessage.Type) =>
     DeclarationWrappedKeyedFieldParentDefinition.makeStep(model => ({ model })),
 }
 const NarrowKeyPolicyBinding =
-  DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, {
-    field: 'literalChoices',
-    key: 'kind',
-    childField: 'choice',
-  })
+  DeclarationWrappedKeyedFieldParentDefinition.makeKeyedArrayBinding(
+    Choice.block,
+    {
+      field: 'literalChoices',
+      key: 'kind',
+      childField: 'choice',
+    },
+  )
 // @ts-expect-error A keyed shorthand policy must accept every collection key.
 NarrowKeyPolicyBinding.withOutMessagePolicy(narrowKeyPolicy)
 

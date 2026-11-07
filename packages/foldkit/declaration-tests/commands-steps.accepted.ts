@@ -121,9 +121,12 @@ export const ParentDefinition = Block.makeDefinition('CommandsStepParent', {
   Model: ParentModel,
   Message,
 })
-export const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'child',
-})
+export const ChildBinding = ParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'child',
+  },
+)
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })

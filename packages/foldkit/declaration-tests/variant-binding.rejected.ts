@@ -1,6 +1,7 @@
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
-import { makeVariantBinding } from 'foldkit/variantBinding'
+// @ts-expect-error Variant relationships are authored through the owning parent Block.
+import { makeVariantBinding as legacyMakeVariantBinding } from 'foldkit/variantBinding'
 
 import {
   Active,
@@ -17,12 +18,14 @@ import {
   UnselectedBinding,
 } from './variant-binding.accepted.js'
 
+void legacyMakeVariantBinding
+
 const MissingTag = Block.makeDefinition('MissingTag', {
   Model: Schema.Union([Schema.Struct({ count: Schema.Number }), Inactive]),
   Message: Schema.Never,
 })
 // @ts-expect-error MissingTag does not declare the exact complete child variant.
-makeVariantBinding(MissingTag, ChildBlock)
+MissingTag.makeVariantBinding(ChildBlock)
 
 const WrongTag = Block.makeDefinition('WrongTag', {
   Model: Schema.Union([
@@ -32,7 +35,7 @@ const WrongTag = Block.makeDefinition('WrongTag', {
   Message: Schema.Never,
 })
 // @ts-expect-error WrongTag does not declare the exact complete child variant.
-makeVariantBinding(WrongTag, ChildBlock)
+WrongTag.makeVariantBinding(ChildBlock)
 
 const OptionalTag = Block.makeDefinition('OptionalTag', {
   Model: Schema.Union([
@@ -45,7 +48,7 @@ const OptionalTag = Block.makeDefinition('OptionalTag', {
   Message: Schema.Never,
 })
 // @ts-expect-error OptionalTag does not declare the exact complete child variant.
-makeVariantBinding(OptionalTag, ChildBlock)
+OptionalTag.makeVariantBinding(ChildBlock)
 
 const WideTag = Block.makeDefinition('WideTag', {
   Model: Schema.Union([
@@ -55,7 +58,7 @@ const WideTag = Block.makeDefinition('WideTag', {
   Message: Schema.Never,
 })
 // @ts-expect-error WideTag does not declare the exact complete child variant.
-makeVariantBinding(WideTag, ChildBlock)
+WideTag.makeVariantBinding(ChildBlock)
 
 const TemplateTag = Block.makeDefinition('TemplateTag', {
   Model: Schema.Union([
@@ -68,7 +71,7 @@ const TemplateTag = Block.makeDefinition('TemplateTag', {
   Message: Schema.Never,
 })
 // @ts-expect-error TemplateTag does not declare the exact complete child variant.
-makeVariantBinding(TemplateTag, ChildBlock)
+TemplateTag.makeVariantBinding(ChildBlock)
 
 const WrongCount = Block.makeDefinition('WrongCount', {
   Model: Schema.Union([
@@ -78,7 +81,7 @@ const WrongCount = Block.makeDefinition('WrongCount', {
   Message: Schema.Never,
 })
 // @ts-expect-error WrongCount does not declare the exact complete child variant.
-makeVariantBinding(WrongCount, ChildBlock)
+WrongCount.makeVariantBinding(ChildBlock)
 
 const WiderCount = Block.makeDefinition('WiderCount', {
   Model: Schema.Union([
@@ -91,7 +94,7 @@ const WiderCount = Block.makeDefinition('WiderCount', {
   Message: Schema.Never,
 })
 // @ts-expect-error WiderCount does not declare the exact complete child variant.
-makeVariantBinding(WiderCount, ChildBlock)
+WiderCount.makeVariantBinding(ChildBlock)
 
 const ExtraParentField = Block.makeDefinition('ExtraParentField', {
   Model: Schema.Union([
@@ -105,7 +108,7 @@ const ExtraParentField = Block.makeDefinition('ExtraParentField', {
   Message: Schema.Never,
 })
 // @ts-expect-error ExtraParentField does not declare the exact complete child variant.
-makeVariantBinding(ExtraParentField, ChildBlock)
+ExtraParentField.makeVariantBinding(ChildBlock)
 
 const OptionalParentField = Block.makeDefinition('OptionalParentField', {
   Model: Schema.Union([
@@ -119,7 +122,7 @@ const OptionalParentField = Block.makeDefinition('OptionalParentField', {
   Message: Schema.Never,
 })
 // @ts-expect-error OptionalParentField does not declare the exact complete child variant.
-makeVariantBinding(OptionalParentField, ChildBlock)
+OptionalParentField.makeVariantBinding(ChildBlock)
 
 const Wrapper = Block.makeDefinition('Wrapper', {
   Model: Schema.Union([
@@ -133,7 +136,7 @@ const Wrapper = Block.makeDefinition('Wrapper', {
   Message: Schema.Never,
 })
 // @ts-expect-error Wrapper does not declare the exact complete child variant.
-makeVariantBinding(Wrapper, ChildBlock)
+Wrapper.makeVariantBinding(ChildBlock)
 
 const Ambiguous = Block.makeDefinition('Ambiguous', {
   Model: Schema.Union([
@@ -148,19 +151,19 @@ const Ambiguous = Block.makeDefinition('Ambiguous', {
   Message: Schema.Never,
 })
 // @ts-expect-error The same tag cannot select two distinct members.
-makeVariantBinding(Ambiguous, ChildBlock)
+Ambiguous.makeVariantBinding(ChildBlock)
 const Duplicate = Block.makeDefinition('Duplicate', {
   Model: Schema.Union([Active, Active, Inactive]),
   Message: Schema.Never,
 })
 // @ts-expect-error Duplicate member tags are rejected even if their Types match.
-makeVariantBinding(Duplicate, ChildBlock)
+Duplicate.makeVariantBinding(ChildBlock)
 const Nested = Block.makeDefinition('Nested', {
   Model: Schema.Struct({ slot: ParentModel }),
   Message: Schema.Never,
 })
 // @ts-expect-error Wrapped/nested storage requires the native accessor Binding.
-makeVariantBinding(Nested, ChildBlock)
+Nested.makeVariantBinding(ChildBlock)
 const UnionComposition = Block.makeDefinition('UnionChild', {
   Model: ParentModel,
   Message: Schema.Never,
@@ -177,31 +180,31 @@ const UnionChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof prepareUnion
 > = Block.assemble(prepareUnion)
 // @ts-expect-error A child must occupy exactly one literal tag.
-makeVariantBinding(ParentDefinition, UnionChild)
+ParentDefinition.makeVariantBinding(UnionChild)
 const customReader = { read: () => undefined }
 // @ts-expect-error A derived variant Binding cannot mix in custom accessors.
-makeVariantBinding(ParentDefinition, ChildBlock, customReader)
+ParentDefinition.makeVariantBinding(ChildBlock, customReader)
 const customWriter = { write: (model: typeof ParentModel.Type) => model }
 // @ts-expect-error Writing is determined by exact whole-member storage.
-makeVariantBinding(ParentDefinition, ChildBlock, customWriter)
-// @ts-expect-error A variant tag determines membership, not a separate presence switch.
-makeVariantBinding(ParentDefinition, ChildBlock, { presentWhen: () => true })
+ParentDefinition.makeVariantBinding(ChildBlock, customWriter)
+// @ts-expect-error Variant membership is determined by the active tag, not activeWhen.
+ParentDefinition.makeVariantBinding(ChildBlock, { activeWhen: () => true })
 // @ts-expect-error This helper does not invent collection or keyed identity.
-makeVariantBinding(ParentDefinition, ChildBlock, { key: 'count' })
+ParentDefinition.makeVariantBinding(ChildBlock, { key: 'count' })
 // @ts-expect-error Parent initialization remains explicit.
-makeVariantBinding(ParentDefinition, ChildBlock, { init: { args: [0] } })
+ParentDefinition.makeVariantBinding(ChildBlock, { init: { args: [0] } })
 // @ts-expect-error Contextful child delivery must select exact update context.
-makeVariantBinding(ParentDefinition, ContextChild)
+ParentDefinition.makeVariantBinding(ContextChild)
 const missingContext = { delivery: { when: () => true } }
 // @ts-expect-error Contextful child delivery cannot omit toUpdateContext.
-makeVariantBinding(ParentDefinition, ContextChild, missingContext)
+ParentDefinition.makeVariantBinding(ContextChild, missingContext)
 const wrongContext = { delivery: { toUpdateContext: () => ['wrong'] } }
 // @ts-expect-error The child context is one number.
-makeVariantBinding(ParentDefinition, ContextChild, wrongContext)
+ParentDefinition.makeVariantBinding(ContextChild, wrongContext)
 // @ts-expect-error Message-free children cannot configure delivery.
-makeVariantBinding(ParentDefinition, SilentChild, missingContext)
+ParentDefinition.makeVariantBinding(SilentChild, missingContext)
 // @ts-expect-error Only actual child Subscription keys can be gated.
-makeVariantBinding(ParentDefinition, ChildBlock, {
+ParentDefinition.makeVariantBinding(ChildBlock, {
   subscriptions: { when: { missing: () => true } },
 })
 // @ts-expect-error Every emitting child still needs an explicit OutMessage policy.
@@ -230,7 +233,7 @@ const BrandedCount = Block.makeDefinition('BrandedVariantCount', {
   Message: Schema.Never,
 })
 // @ts-expect-error A child with ordinary numbers cannot replace a branded parent field.
-makeVariantBinding(BrandedCount, ChildBlock)
+BrandedCount.makeVariantBinding(ChildBlock)
 const NarrowCount = Block.makeDefinition('NarrowVariantCount', {
   Model: Schema.Union([
     Schema.Struct({ _tag: Schema.Literal('Active'), count: Schema.Literal(0) }),
@@ -239,7 +242,7 @@ const NarrowCount = Block.makeDefinition('NarrowVariantCount', {
   Message: Schema.Never,
 })
 // @ts-expect-error A child with ordinary numbers cannot replace a literal parent field.
-makeVariantBinding(NarrowCount, ChildBlock)
+NarrowCount.makeVariantBinding(ChildBlock)
 const OpenMember = Block.makeDefinition('OpenVariantMember', {
   Model: Schema.Union([
     Schema.StructWithRest(Active, [
@@ -250,41 +253,41 @@ const OpenMember = Block.makeDefinition('OpenVariantMember', {
   Message: Schema.Never,
 })
 // @ts-expect-error Open members have parent-owned properties outside the complete child Model.
-makeVariantBinding(OpenMember, ChildBlock)
+OpenMember.makeVariantBinding(ChildBlock)
 
 const subscriptionsExtra = { subscriptions: { extra: true } }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, subscriptionsExtra)
+ParentDefinition.makeVariantBinding(ChildBlock, subscriptionsExtra)
 
 const subscriptionsNumber = { subscriptions: 1 }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, subscriptionsNumber)
+ParentDefinition.makeVariantBinding(ChildBlock, subscriptionsNumber)
 
 const subscriptionsNull = { subscriptions: null }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, subscriptionsNull)
+ParentDefinition.makeVariantBinding(ChildBlock, subscriptionsNull)
 
 const subscriptionsArray = { subscriptions: [] }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, subscriptionsArray)
+ParentDefinition.makeVariantBinding(ChildBlock, subscriptionsArray)
 
 const subscriptionsFunction = { subscriptions: () => true }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, subscriptionsFunction)
+ParentDefinition.makeVariantBinding(ChildBlock, subscriptionsFunction)
 
 const subscriptionsLayer = { subscriptions: { when: { layer: () => true } } }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, subscriptionsLayer)
+ParentDefinition.makeVariantBinding(ChildBlock, subscriptionsLayer)
 
 const subscriptionsNarrow = {
   subscriptions: { when: (model: typeof Active.Type) => model.count > 0 },
 }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, subscriptionsNarrow)
+ParentDefinition.makeVariantBinding(ChildBlock, subscriptionsNarrow)
 
 const subscriptionsNonBoolean = { subscriptions: { when: () => 1 } }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, subscriptionsNonBoolean)
+ParentDefinition.makeVariantBinding(ChildBlock, subscriptionsNonBoolean)
 
 const subscriptionsEntryNarrow = {
   subscriptions: {
@@ -292,76 +295,76 @@ const subscriptionsEntryNarrow = {
   },
 }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, subscriptionsEntryNarrow)
+ParentDefinition.makeVariantBinding(ChildBlock, subscriptionsEntryNarrow)
 
 const subscriptionsEntryNumber = {
   subscriptions: { when: { activity: () => 1 } },
 }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, subscriptionsEntryNumber)
+ParentDefinition.makeVariantBinding(ChildBlock, subscriptionsEntryNumber)
 
 const subscriptionsGateNull = { subscriptions: { when: null } }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, subscriptionsGateNull)
+ParentDefinition.makeVariantBinding(ChildBlock, subscriptionsGateNull)
 
 const subscriptionsGateArray = { subscriptions: { when: [] } }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, subscriptionsGateArray)
+ParentDefinition.makeVariantBinding(ChildBlock, subscriptionsGateArray)
 
 const deliveryExtra = { delivery: { extra: true } }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, deliveryExtra)
+ParentDefinition.makeVariantBinding(ChildBlock, deliveryExtra)
 
 const deliveryNumber = { delivery: 1 }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, deliveryNumber)
+ParentDefinition.makeVariantBinding(ChildBlock, deliveryNumber)
 
 const deliveryNull = { delivery: null }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, deliveryNull)
+ParentDefinition.makeVariantBinding(ChildBlock, deliveryNull)
 
 const deliveryArray = { delivery: [] }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, deliveryArray)
+ParentDefinition.makeVariantBinding(ChildBlock, deliveryArray)
 
 const deliveryFunction = { delivery: () => true }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, deliveryFunction)
+ParentDefinition.makeVariantBinding(ChildBlock, deliveryFunction)
 
 const deliveryNarrow = {
   delivery: { when: (model: typeof Active.Type) => model.count > 0 },
 }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, deliveryNarrow)
+ParentDefinition.makeVariantBinding(ChildBlock, deliveryNarrow)
 
 const deliveryNonBoolean = { delivery: { when: () => 1 } }
 // @ts-expect-error Nested options preserve their complete object and callback contracts.
-makeVariantBinding(ParentDefinition, ChildBlock, deliveryNonBoolean)
+ParentDefinition.makeVariantBinding(ChildBlock, deliveryNonBoolean)
 
 const narrowContext = {
   delivery: { toUpdateContext: (model: typeof Active.Type) => [model.count] },
 }
 // @ts-expect-error Context selection receives the whole parent union.
-makeVariantBinding(ParentDefinition, ContextChild, narrowContext)
+ParentDefinition.makeVariantBinding(ContextChild, narrowContext)
 const extraContext = { delivery: { toUpdateContext: () => [1, 2] } }
 // @ts-expect-error The required context is exactly one argument.
-makeVariantBinding(ParentDefinition, ContextChild, extraContext)
+ParentDefinition.makeVariantBinding(ContextChild, extraContext)
 // @ts-expect-error The outer options container is an object record.
-makeVariantBinding(ParentDefinition, ChildBlock, [])
+ParentDefinition.makeVariantBinding(ChildBlock, [])
 // @ts-expect-error The outer options container is an object record.
-makeVariantBinding(ParentDefinition, ChildBlock, () => ({}))
+ParentDefinition.makeVariantBinding(ChildBlock, () => ({}))
 
 // @ts-expect-error Every contextful child needs an explicit context selector.
-makeVariantBinding(ParentDefinition, OptionalContextChild)
+ParentDefinition.makeVariantBinding(OptionalContextChild)
 // @ts-expect-error Context tuple element types remain exact.
-makeVariantBinding(ParentDefinition, OptionalContextChild, wrongContext)
+ParentDefinition.makeVariantBinding(OptionalContextChild, wrongContext)
 
 // @ts-expect-error Every contextful child needs an explicit context selector.
-makeVariantBinding(ParentDefinition, DefaultContextChild)
+ParentDefinition.makeVariantBinding(DefaultContextChild)
 // @ts-expect-error Context tuple element types remain exact.
-makeVariantBinding(ParentDefinition, DefaultContextChild, wrongContext)
+ParentDefinition.makeVariantBinding(DefaultContextChild, wrongContext)
 
 // @ts-expect-error Every contextful child needs an explicit context selector.
-makeVariantBinding(ParentDefinition, RestContextChild)
+ParentDefinition.makeVariantBinding(RestContextChild)
 // @ts-expect-error Context tuple element types remain exact.
-makeVariantBinding(ParentDefinition, RestContextChild, wrongContext)
+ParentDefinition.makeVariantBinding(RestContextChild, wrongContext)

@@ -51,9 +51,12 @@ export const ShellDefinition = Block.makeDefinition('EmbeddedViewPlanFixture', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-export const ChildBinding = ShellDefinition.makeBinding(Definition.contract, {
-  field: 'child',
-})
+export const ChildBinding = ShellDefinition.makeRequiredFieldBinding(
+  Definition.contract,
+  {
+    field: 'child',
+  },
+)
 export const ShellComposition = ShellDefinition.makeComposition({
   bindings: [ChildBinding],
 })
@@ -133,10 +136,11 @@ export const HeadlessParentDefinition = Block.makeDefinition(
     Init: Schema.Tuple([]),
   },
 )
-export const HeadlessBinding = HeadlessParentDefinition.makeBinding(
-  HeadlessDefinition.contract,
-  { field: 'child' },
-)
+export const HeadlessBinding =
+  HeadlessParentDefinition.makeRequiredFieldBinding(
+    HeadlessDefinition.contract,
+    { field: 'child' },
+  )
 export const HeadlessParentComposition =
   HeadlessParentDefinition.makeComposition({ bindings: [HeadlessBinding] })
 export const headlessParentView = HeadlessParentComposition.makeView(
@@ -163,7 +167,7 @@ export const KeyedParentDefinition = Block.makeDefinition(
     Init: Schema.Tuple([]),
   },
 )
-export const KeyedBinding = KeyedParentDefinition.makeMapBinding(
+export const KeyedBinding = KeyedParentDefinition.makeRecordBinding(
   HeadlessDefinition.contract,
   { field: 'children' },
 )

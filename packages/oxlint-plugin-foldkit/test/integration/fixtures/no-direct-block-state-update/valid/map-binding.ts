@@ -20,8 +20,8 @@ const ApplicationDefinition = Block.makeDefinition('MapApplication', {
   Model,
   Message,
 })
-const { makeMapBinding: bindMap } = ApplicationDefinition
-const EntriesBinding = ApplicationDefinition.makeMapBinding(
+const { makeHashMapBinding: bindMap } = ApplicationDefinition
+const EntriesBinding = ApplicationDefinition.makeHashMapBinding(
   KeyedEntry.KeyedEntryBlock,
   { field: 'entriesById' },
 )

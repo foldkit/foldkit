@@ -57,7 +57,7 @@ const CompleteParentInit = Parent.makeCommand('CompleteParentInit', {
       Effect.succeed(ParentMessage.CompletedParentInit({ label }))
   },
 })
-const ChildBinding = Parent.makeBinding(childBlock, {
+const ChildBinding = Parent.makeOptionalFieldBinding(childBlock, {
   field: 'child',
   init: false,
 })
@@ -112,7 +112,7 @@ const Keyed = makeDefinition('InitRecipeSnapshotKeyedParent', {
   Model: KeyedModel,
   Message: Schema.Never,
 })
-const KeyedBinding = Keyed.makeBinding(childBlock, {
+const KeyedBinding = Keyed.makeKeyedArrayBinding(childBlock, {
   field: 'items',
   key: 'id',
   childField: 'child',

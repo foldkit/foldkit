@@ -39,7 +39,7 @@ export const WorkHistoryBlock = Block.make('WorkHistory', {
 })
 
 export const {
-  makeBinding,
+  makeKeyedArrayBinding,
   makeCommand,
   makeCommandsStep,
   makeComposition,

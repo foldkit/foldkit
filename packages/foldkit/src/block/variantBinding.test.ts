@@ -29,7 +29,17 @@ import { canonicalBindingOf } from './composition.js'
 import { type ActiveInstance, CurrentInstance } from './instanceContext.js'
 import * as Block from './public.js'
 import { qualifyLayer } from './scope.js'
-import { makeVariantBinding } from './variantBinding.js'
+
+const invokeVariantBinding = (
+  definition: object,
+  child: object,
+  config?: unknown,
+) =>
+  Reflect.apply(
+    Reflect.get(definition, 'makeVariantBinding'),
+    definition,
+    config === undefined ? [child] : [child, config],
+  )
 
 it('uses each child id as the default placement for whole-variant relationships', () => {
   const ActiveKey = Symbol('DefaultActiveVariant')
@@ -56,12 +66,10 @@ it('uses each child id as the default placement for whole-variant relationships'
     Init: Schema.Tuple([]),
     isMessageFree: true,
   })
-  const ActiveBinding = makeVariantBinding(
-    ParentDefinition,
+  const ActiveBinding = ParentDefinition.makeVariantBinding(
     ActiveDefinition.contract,
   )
-  const InactiveBinding = makeVariantBinding(
-    ParentDefinition,
+  const InactiveBinding = ParentDefinition.makeVariantBinding(
     InactiveDefinition.contract,
   )
 
@@ -123,8 +131,7 @@ it.effect(
       OutMessage: ParentOutMessage,
       Init: Schema.Tuple([Schema.Number]),
     })
-    const ChildBinding = makeVariantBinding(
-      ParentDefinition,
+    const ChildBinding = ParentDefinition.makeVariantBinding(
       ChildDefinition.contract,
     ).withOutMessagePolicy({
       fold: ParentDefinition.makeOutMessageFold(ChildDefinition.contract, {
@@ -309,11 +316,11 @@ const ParentDefinition = Block.makeDefinition('VariantParent', {
 const foldChildOutMessage = ParentDefinition.makeOutMessageFold(ChildBlock, {
   NotifiedCount: ParentDefinition.makeNoopStep,
 })
-const UnselectedBinding = makeVariantBinding(ParentDefinition, ChildBlock)
+const UnselectedBinding = ParentDefinition.makeVariantBinding(ChildBlock)
 const ChildBinding = UnselectedBinding.withOutMessagePolicy({
   fold: foldChildOutMessage,
 })
-const GatedBinding = makeVariantBinding(ParentDefinition, ChildBlock, {
+const GatedBinding = ParentDefinition.makeVariantBinding(ChildBlock, {
   placement: 'gatedActive',
   subscriptions: { when: model => model._tag === 'Active' && model.count > 0 },
   delivery: { when: model => model._tag === 'Active' && model.count > 0 },
@@ -583,8 +590,7 @@ it('rejects erased ineligible Schemas and mixed configuration', () => {
       Message: Schema.Never,
     })
     assert.throws(
-      () =>
-        Reflect.apply(makeVariantBinding, undefined, [definition, ChildBlock]),
+      () => invokeVariantBinding(definition, ChildBlock),
       /Variant Binding/,
       `invalid parent ${index}`,
     )
@@ -594,17 +600,12 @@ it('rejects erased ineligible Schemas and mixed configuration', () => {
     { write: (model: unknown) => model },
     { field: 'child' },
     { key: 'id' },
-    { presentWhen: () => false },
+    { activeWhen: () => false },
     { init: { args: [0] } },
     { subscriptions: { when: { missing: () => true } } },
   ]) {
     assert.throws(
-      () =>
-        Reflect.apply(makeVariantBinding, undefined, [
-          ParentDefinition,
-          ChildBlock,
-          config,
-        ]),
+      () => invokeVariantBinding(ParentDefinition, ChildBlock, config),
       /Variant Binding|Subscription/,
       `invalid config ${Object.keys(config)}`,
     )
@@ -625,8 +626,7 @@ it('rejects erased ineligible Schemas and mixed configuration', () => {
       Message: Schema.Never,
     })
     assert.throws(
-      () =>
-        Reflect.apply(makeVariantBinding, undefined, [definition, ChildBlock]),
+      () => invokeVariantBinding(definition, ChildBlock),
       /include the child Block.Model Schema itself/,
     )
   }
@@ -678,7 +678,7 @@ const ContextChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Active,
   typeof prepareContextChild
 > = Block.assemble(prepareContextChild)
-const ContextBinding = makeVariantBinding(ParentDefinition, ContextChild, {
+const ContextBinding = ParentDefinition.makeVariantBinding(ContextChild, {
   delivery: {
     toUpdateContext: model =>
       Tuple.make(model._tag === 'Active' ? model.count : 0),
@@ -737,12 +737,7 @@ it('rejects erased malformed nested option records', () => {
       { delivery: invalid },
     ]) {
       assert.throws(
-        () =>
-          Reflect.apply(makeVariantBinding, undefined, [
-            ParentDefinition,
-            ChildBlock,
-            config,
-          ]),
+        () => invokeVariantBinding(ParentDefinition, ChildBlock, config),
         /Variant Binding.*object record/,
       )
     }
@@ -759,12 +754,7 @@ it('rejects erased malformed nested option records', () => {
     { delivery: { toUpdateContext: 1 } },
   ]) {
     assert.throws(
-      () =>
-        Reflect.apply(makeVariantBinding, undefined, [
-          ParentDefinition,
-          ChildBlock,
-          config,
-        ]),
+      () => invokeVariantBinding(ParentDefinition, ChildBlock, config),
       /Variant Binding/,
     )
   }

@@ -205,23 +205,23 @@ callbacks remain invalid; move them to a top-level input rather than casting.
 
 ## Bind a child
 
-`makeBinding` describes one relationship. Adding the Binding to
+A storage-specific Binding constructor describes one relationship. Adding the Binding to
 `bindings` registers it. Binding construction is passive relationship configuration. In the constructor, `yield* SettingsBinding` acquires the Layer-provided child implementation and returns its exact connection; include that value under `children`. A missing child provider is a construction requirement, not an invented Model fallback.
 
 Choose the narrowest storage form that describes the parent Model:
 
-| Parent storage                                                                       | Binding shape                                                   |
-| ------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| Exact Struct field containing `Child.Model` or `Option<Child.Model>`                 | `field`                                                         |
-| Exact array of child Models with a declared stable string or finite-number key field | `field` and string `key`                                        |
-| Standard `Schema.Array(ChildBlock.Instance)`                                         | `field`, `key: 'key'`, and `childField: 'model'`                |
-| Exact array of closed wrappers around the child Model                                | `field`, string `key`, and distinct `childField`                |
-| Exact `Option` of one closed wrapper around the child Model                          | `field`, string `key`, and distinct `childField`                |
-| Exact `Schema.Record` or `Schema.HashMap` of child Models                            | `ParentBlock.makeMapBinding(ChildBlock, { field })`             |
-| Exact Record/HashMap of closed wrappers around the child Model                       | `ParentBlock.makeMapBinding(ChildBlock, { field, childField })` |
-| One exact tagged member of the parent Schema.Union                                   | `makeVariantBinding(parent, child)`                             |
-| Nested, wrapped, opaque, open, or custom static storage                              | `read` and `write`                                              |
-| Custom keyed storage or enumeration                                                  | `readAll`, function `key`, `read`, and `writeAt`                |
+| Parent storage                                                    | Parent Block constructor        | Configuration                                                                         |
+| ----------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------- |
+| One exact child Model field                                       | `makeRequiredFieldBinding`      | `field`                                                                               |
+| One required `Option<ChildModel>` field                           | `makeOptionalFieldBinding`      | `field`                                                                               |
+| One closed keyed Option wrapper                                   | `makeOptionalKeyedFieldBinding` | `field`, string `key`, distinct `childField`                                          |
+| Array of child Models with a declared identity field              | `makeKeyedArrayBinding`         | `field`, string `key`                                                                 |
+| Array of closed wrappers or standard `ChildBlock.Instance` values | `makeKeyedArrayBinding`         | `field`, string `key`, distinct `childField`                                          |
+| Required Record of child Models or closed wrappers                | `makeRecordBinding`             | `field`, optional `childField`                                                        |
+| Required HashMap of child Models or closed wrappers               | `makeHashMapBinding`            | `field`, optional `childField`                                                        |
+| One complete tagged child member of the parent union              | `makeVariantBinding`            | Optional placement and delivery/Subscription policies                                 |
+| Custom unkeyed storage                                            | `makeCustomBinding`             | `read`, `write`                                                                       |
+| Custom keyed storage or enumeration                               | `makeCustomKeyedBinding`        | `readAll`, function `key`, `read`, `writeAt`; `keySchema` for a Message-bearing child |
 
 A Binding's `write` or `writeAt` places the next child Model into parent storage. Keep parent reactions to child transitions in its OutMessage policy. Do not compare old and new child state in a writer to generate announcements, trigger sibling changes, or maintain unrelated parent fields. Nested storage, keyed replacement, presence checks, and preservation of wrapper metadata remain legitimate custom writes. If a parent needs a child fact that is not exposed, add a truthful public OutMessage rather than using the writer as an event hook.
 
@@ -232,11 +232,12 @@ and a different key leave the exact parent Model unchanged. Neither form
 inserts a missing occurrence. The parent remains responsible for presence and
 collection membership.
 
-Call `ParentBlock.makeMapBinding(ChildBlock, config)` for Record/HashMap fields.
+Call `ParentBlock.makeRecordBinding(ChildBlock, config)` for Record fields or
+`ParentBlock.makeHashMapBinding(ChildBlock, config)` for HashMap fields.
 The factory derives the key contract from the parent Model Schema and defaults
 placement to the storage field.
 
-A split feature can destructure and export `makeMapBinding` from its `block.ts`,
+A split feature can destructure and export the needed constructor from its `block.ts`,
 then import that factory from the owning module. It retains the parent Block's
 contracts when destructured.
 
@@ -250,7 +251,7 @@ that child occurrence's lifecycle. Use dynamic `Binding.init`
 for explicit creation and keep general keyed accessors for custom writers or
 separate composite storage keys and primitive occurrence identity.
 
-Import `makeVariantBinding` from `foldkit/variantBinding` only when the child
+Call `ParentBlock.makeVariantBinding(ChildBlock)` when the child
 occupies one complete tagged member of the parent `Schema.Union`. Include the
 actual `ChildBlock.Model` Schema directly; one required literal `_tag` selects
 presence, and all parent members have distinct tags. The helper accepts only
@@ -269,11 +270,11 @@ occurrence's key identifies one runtime child under that placement. Override
 placement only to resolve a sibling collision or preserve a deliberate stable
 graph identity.
 
-Add `presentWhen` only when parent policy gates an entire direct child. A direct
+Add `activeWhen` to required or optional direct-field Bindings when parent policy gates an entire child occurrence without clearing its stored Model. The predicate gates folds, operations, Subscriptions, ManagedResources and Mounts. Keyed, map and variant constructors do not accept this field; custom readers express absence themselves. A direct
 `Option` field is absent while it is `None`; folds and operations do not create
 it. Use `subscriptions.when` only for Stream activation.
 
-`makeBinding` derives child delivery from the independent child contract. Do not add a
+The Binding constructor derives child delivery from the independent child contract. Do not add a
 child wrapper variant to the parent's authored Message or write message
 mappers. The generated envelope records the Binding placement, keyed occurrence
 when present, and runtime generation. The Composition routes it only to that
@@ -281,16 +282,19 @@ exact live occurrence.
 
 Use `delivery.when` when parent policy decides whether an occurrence can receive
 a child Message. Use `delivery.toUpdateContext` when the child update requires
-context from the parent Model or keyed occurrence. A custom keyed Binding also
-provides the exact `keySchema` used to encode and validate generated delivery.
-These policies run at the Binding boundary and do not become parent-authored
-Message variants. A child whose Message Schema is `Schema.Never` needs no
-delivery policy.
+context from the parent Model or keyed occurrence. A custom keyed Binding for a
+Message-bearing child also provides the exact `keySchema` used to encode and
+validate generated delivery. Omit `keySchema` when the child's Message is
+`Schema.Never` and no delivery envelope exists. These policies run at the
+Binding boundary and do not become parent-authored Message variants.
 
 ```ts
-export const SettingsBinding = ProfileBlock.makeBinding(SettingsBlock, {
-  field: 'settings',
-}).withOutMessagePolicy({ fold: foldSettingsOutMessage })
+export const SettingsBinding = ProfileBlock.makeRequiredFieldBinding(
+  SettingsBlock,
+  {
+    field: 'settings',
+  },
+).withOutMessagePolicy({ fold: foldSettingsOutMessage })
 
 export const ProfileComposition = ProfileBlock.makeComposition({
   bindings: [SettingsBinding],
@@ -308,8 +312,8 @@ instead map to a local Message handled by update. Render through
 
 ## OutMessages and sibling policy
 
-Inline an ordinary unkeyed fold as
-`makeBinding(WholeChildBlock, ...).withOutMessagePolicy({ fold: ParentBlock.makeOutMessageFold(WholeChildBlock, handlers) })`.
+For a required-field child, inline an ordinary fold as
+`ParentBlock.makeRequiredFieldBinding(WholeChildBlock, ...).withOutMessagePolicy({ fold: ParentBlock.makeOutMessageFold(WholeChildBlock, handlers) })`.
 Pass the passive child contract explicitly to `makeOutMessageFold` whether the fold is
 inline, extracted, adapted for keyed policy, or staged for reciprocal
 composition. Keep substantial transition helpers beside their fold. Name every variant directly
@@ -345,8 +349,8 @@ OutMessage or `undefined`, and every variant remains named even when it stops.
 Local handling still runs for a forwarded variant, and a derived parent
 OutMessage takes precedence for that dispatch.
 
-Select the callable `fold` and `forward` through
-`makeBinding(...).withOutMessagePolicy({ fold?, forward? })`. The returned value is
+Select the callable `fold` and `forward` through the storage-specific Binding's
+`.withOutMessagePolicy({ fold?, forward? })`. The returned value is
 the full Binding to register and use. Keep an ordinary one-way policy fluent.
 When a fold calls an operation on the same Binding, or two policies call each
 other's Binding operations, declare the original `FooBinding` values first.
@@ -456,7 +460,7 @@ contains only parent-owned fields. Composition initializes children once in
 
 Parent Commands come first, retained child init Commands follow, and Step
 Commands come last. Collection order does not sequence their effects or completion.
-Foldkit drops init Commands for occurrences absent or `presentWhen`-inactive in
+Foldkit drops init Commands for occurrences absent or `activeWhen`-inactive in
 the final Model. `subscriptions.when` gates Streams and does not gate init.
 
 Use the exact registered `Binding.init({ key?, args, toParentModel,
@@ -474,13 +478,13 @@ metadata cannot reconstruct TypeScript's required, optional, defaulted, and rest
 parameter distinctions.
 
 For dynamic initialization that only places the child, use the optional
-`foldkit/bindingInit` helpers with the Binding, current parent Model and `{ args }`,
+`foldkit/binding` helpers with the Binding, current parent Model and `{ args }`,
 plus `key` for keyed storage. `initAndSet` replaces a required/optional direct
 field or a keyed Option wrapper containing only its key and child fields. Direct
 fields need no startup policy; a custom unkeyed accessor can reuse an existing
 `init.toParentFields` projection. `initAndAppend` reuses a keyed array's existing
 `init.instances` and `init.toItem` policy. `initAndInsert` inserts into direct-value
-Record/HashMap storage declared through `ParentBlock.makeMapBinding`.
+Record storage declared through `makeRecordBinding` or HashMap storage declared through `makeHashMapBinding`.
 
 All preserve passive recipes, child init Commands and registration. Append and
 insert reject occupied keys. Additional
@@ -489,7 +493,7 @@ array/map replacement and whole tagged variants retain explicit `Binding.init`.
 Do not add a startup policy solely to enable a helper.
 
 For direct-value Record/HashMap children that should be retained, use
-`makeInitIfMissingStep` from `foldkit/bindingInit`. The `{ key, args }` form
+`makeInitIfMissingStep` from `foldkit/binding`. The `{ key, args }` form
 snapshots a static selection at construction. A pure producer may instead return
 `Option.some({ key, args })` or `Option.none()` from the current Step Model; the
 Binding contextually supplies the exact Model, key and init argument types.
@@ -552,7 +556,7 @@ changing sibling parent fields. `args` retains the child's exact init tuple.
 For example:
 
 ```ts
-const CountersBinding = ApplicationBlock.makeBinding(CounterBlock, {
+const CountersBinding = ApplicationBlock.makeKeyedArrayBinding(CounterBlock, {
   field: 'counters',
   key: 'key',
   childField: 'model',

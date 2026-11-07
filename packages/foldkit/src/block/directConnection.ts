@@ -26,20 +26,63 @@ type Equal<Left, Right> =
     : false
 
 /** @internal Exact required Struct fields storing a child Model or its Option. */
-export type DirectField<Model, Child> = Extract<
+export type DirectField<
+  Model,
+  Child,
+  Kind extends 'Required' | 'Optional' | 'Implicit' = 'Implicit',
+> = Extract<
   {
     [Field in keyof Model]-?: {} extends Pick<Model, Field>
       ? never
       : 0 extends 1 & Model[Field]
         ? never
-        : Equal<Model[Field], Child> extends true
-          ? Field
-          : Equal<Model[Field], Option.Option<Child>> extends true
+        : Kind extends 'Optional'
+          ? Equal<Model[Field], Option.Option<Child>> extends true
             ? Field
             : never
+          : Equal<Model[Field], Child> extends true
+            ? Field
+            : Kind extends 'Required'
+              ? never
+              : Equal<Model[Field], Option.Option<Child>> extends true
+                ? Field
+                : never
   }[keyof Model],
   string
 >
+
+/** @internal Classifies one declared direct-field relationship without reading
+ * a Model value or invoking any Binding callbacks. */
+export const directFieldRelationshipOf = (
+  parentModel: unknown,
+  childModel: unknown,
+  field: unknown,
+): 'Optional' | 'Required' | undefined => {
+  const fields = Schema.isSchema(parentModel)
+    ? Reflect.get(parentModel, 'fields')
+    : undefined
+  if (
+    !Predicate.isString(field) ||
+    !Predicate.isObject(fields) ||
+    !Object.hasOwn(fields, field)
+  ) {
+    return undefined
+  }
+
+  const fieldSchema = Reflect.get(fields, field)
+  if (!Schema.isSchema(fieldSchema) || SchemaAST.isOptional(fieldSchema.ast)) {
+    return undefined
+  }
+
+  if (hasSameDecodedSchemaShape(fieldSchema, childModel)) {
+    return 'Required'
+  }
+
+  return Schema.isSchema(childModel) &&
+    hasSameDecodedSchemaShape(fieldSchema, Schema.Option(childModel))
+    ? 'Optional'
+    : undefined
+}
 
 type DirectConfig<
   BlockValue extends BindableBlock,
@@ -59,7 +102,7 @@ type DirectConfig<
   Readonly<{
     Model: ModelSchema
     field: Field
-    presentWhen?: (model: NoInfer<ModelSchema['Type']>) => boolean
+    activeWhen?: (model: NoInfer<ModelSchema['Type']>) => boolean
     read?: never
     write?: never
     readAll?: never
@@ -275,7 +318,7 @@ export const normalizeConnectionConfig = (
     'Model',
     'field',
     'placement',
-    'presentWhen',
+    'activeWhen',
     'read',
     'write',
     'parentMessage',
@@ -312,9 +355,9 @@ export const normalizeConnectionConfig = (
       }
     }
 
-    if (Object.hasOwn(mapped, 'presentWhen')) {
+    if (Object.hasOwn(mapped, 'activeWhen')) {
       throw new Error(
-        '[foldkit] presentWhen belongs to a direct field Binding. Use read to determine presence for a custom relationship.',
+        '[foldkit] activeWhen belongs to a direct field Binding. Use read to determine presence for a custom relationship.',
       )
     }
 
@@ -331,7 +374,7 @@ export const normalizeConnectionConfig = (
     return policy
   }
 
-  const { Model, field, presentWhen, init: _, ...policy } = mapped
+  const { Model, field, activeWhen, init: _, ...policy } = mapped
   const fields = Schema.isSchema(Model)
     ? Reflect.get(Model, 'fields')
     : undefined
@@ -356,8 +399,8 @@ export const normalizeConnectionConfig = (
     )
   }
 
-  if (presentWhen !== undefined && !Predicate.isFunction(presentWhen)) {
-    throw new Error('[foldkit] presentWhen must be a parent Model predicate.')
+  if (activeWhen !== undefined && !Predicate.isFunction(activeWhen)) {
+    throw new Error('[foldkit] activeWhen must be a parent Model predicate.')
   }
 
   const fieldSchema = Reflect.get(fields, field)
@@ -380,15 +423,15 @@ export const normalizeConnectionConfig = (
     )
   }
   const isPresent = (model: object): boolean => {
-    if (presentWhen === undefined) {
+    if (activeWhen === undefined) {
       return true
     }
 
-    const result = presentWhen(model)
+    const result = activeWhen(model)
 
     if (!Predicate.isBoolean(result)) {
       throw new Error(
-        `[foldkit] presentWhen for Binding field "${field}" must return a boolean.`,
+        `[foldkit] activeWhen for Binding field "${field}" must return a boolean.`,
       )
     }
 

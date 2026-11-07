@@ -6,11 +6,11 @@ import { DragAndDrop } from '@foldkit/ui'
 
 import { Issue } from '../../domain'
 import {
-  makeBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
   makeStep,
 } from './block'
 import {
@@ -42,10 +42,13 @@ const maybeMoveRequestFromReorder = (reordered: ReorderedDragAndDrop) => {
   })
 }
 
-export const DragAndDropBinding = makeBinding(DragAndDrop.DragAndDropBlock, {
-  field: 'dragAndDrop',
-  init: { contextToArgs: () => [{ id: 'workspace-issue-board' }] },
-}).withOutMessagePolicy({
+export const DragAndDropBinding = makeRequiredFieldBinding(
+  DragAndDrop.DragAndDropBlock,
+  {
+    field: 'dragAndDrop',
+    init: { contextToArgs: () => [{ id: 'workspace-issue-board' }] },
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(DragAndDrop.DragAndDropBlock, {
     StartedKeyboardDrag: () =>
       makeFieldsStep(() => ({

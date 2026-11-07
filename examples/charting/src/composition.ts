@@ -3,9 +3,9 @@ import { AsyncData, type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
-  makeBinding,
   makeComposition,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
   makeStep,
 } from './block'
 import { FetchTelemetry, SyncChart } from './command'
@@ -73,7 +73,7 @@ const selectControl = (updateModel: (model: Model) => Model) =>
     }
   })
 
-export const ChartModeRadioGroupBinding = makeBinding(
+export const ChartModeRadioGroupBinding = makeRequiredFieldBinding(
   ChartModeRadioGroupBlock,
   {
     field: 'chartModeRadioGroup',
@@ -86,20 +86,26 @@ export const ChartModeRadioGroupBinding = makeBinding(
   }),
 })
 
-export const PeriodRadioGroupBinding = makeBinding(PeriodRadioGroupBlock, {
-  field: 'periodRadioGroup',
-  init: { contextToArgs: () => [{ id: PERIOD_RADIO_GROUP_ID }] },
-}).withOutMessagePolicy({
+export const PeriodRadioGroupBinding = makeRequiredFieldBinding(
+  PeriodRadioGroupBlock,
+  {
+    field: 'periodRadioGroup',
+    init: { contextToArgs: () => [{ id: PERIOD_RADIO_GROUP_ID }] },
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(PeriodRadioGroupBlock, {
     Selected: ({ value }) =>
       selectControl(modifyFields({ period: () => value })),
   }),
 })
 
-export const PackageRadioGroupBinding = makeBinding(PackageRadioGroupBlock, {
-  field: 'packageRadioGroup',
-  init: { contextToArgs: () => [{ id: PACKAGE_RADIO_GROUP_ID }] },
-}).withOutMessagePolicy({
+export const PackageRadioGroupBinding = makeRequiredFieldBinding(
+  PackageRadioGroupBlock,
+  {
+    field: 'packageRadioGroup',
+    init: { contextToArgs: () => [{ id: PACKAGE_RADIO_GROUP_ID }] },
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(PackageRadioGroupBlock, {
     Selected: ({ value }) =>
       selectControl(modifyFields({ selectedPackageId: () => value })),

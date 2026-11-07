@@ -35,8 +35,12 @@ export const PeoplePickerBlock = Block.make('PeoplePicker', {
   Message,
 })
 
-const { makeFieldsStep, makeOutMessageFold, makeBinding, makeComposition } =
-  PeoplePickerBlock
+const {
+  makeFieldsStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = PeoplePickerBlock
 
 // At module scope, fold the OutMessage into your own Model. `Selected` carries
 // the activated value. The parent owns the selection and decides what it
@@ -56,7 +60,7 @@ const foldListboxMultiOutMessage = makeOutMessageFold(PeopleListbox, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const ListboxMultiBinding = makeBinding(PeopleListbox, {
+const ListboxMultiBinding = makeRequiredFieldBinding(PeopleListbox, {
   field: 'listboxMulti',
   init: { contextToArgs: () => [{ id: 'people' }] },
 }).withOutMessagePolicy({ fold: foldListboxMultiOutMessage })

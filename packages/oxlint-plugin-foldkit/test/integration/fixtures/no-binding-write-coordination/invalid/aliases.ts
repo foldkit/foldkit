@@ -14,4 +14,4 @@ const write = (parent: typeof ParentDefinition.Model.Type, nextChild: typeof Chi
 }
 const config = { read, write }
 const selectedConfig = config
-Owner.makeBinding(ChildBlock, selectedConfig)
+Owner.makeCustomBinding(ChildBlock, selectedConfig)

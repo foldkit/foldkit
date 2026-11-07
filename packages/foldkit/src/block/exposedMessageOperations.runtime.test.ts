@@ -159,10 +159,10 @@ const foldChildOutMessage = ChildOutMessage.match<
 >({
   ChangedValue: () => model => ({ model }),
 })
-const ChildBinding = Parent.makeBinding(ChildBlock, {
+const ChildBinding = Parent.makeOptionalFieldBinding(ChildBlock, {
   field: 'maybeChild',
 }).withOutMessagePolicy({ fold: foldChildOutMessage })
-const EntryBinding = Parent.makeBinding(ChildBlock, {
+const EntryBinding = Parent.makeCustomKeyedBinding(ChildBlock, {
   placement: 'entries',
   readAll: model => model.entries,
   key: entry => entry.id,

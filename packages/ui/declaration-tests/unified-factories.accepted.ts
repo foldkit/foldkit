@@ -274,10 +274,13 @@ export const UnifiedFactoryParentBlock = Block.make('UnifiedFactoryParent', {
   Message: Schema.Never,
   Init: Schema.Tuple([]),
 })
-export const PickerBinding = UnifiedFactoryParentBlock.makeBinding(Picker, {
-  field: 'picker',
-  init: { contextToArgs: () => [{ id: 'child' }] },
-}).withOutMessagePolicy({
+export const PickerBinding = UnifiedFactoryParentBlock.makeRequiredFieldBinding(
+  Picker,
+  {
+    field: 'picker',
+    init: { contextToArgs: () => [{ id: 'child' }] },
+  },
+).withOutMessagePolicy({
   fold: UnifiedFactoryParentBlock.makeOutMessageFold(Picker, {
     Selected: ({ value }) => {
       const _fruit: Fruit = value
@@ -302,7 +305,7 @@ export const ListboxParentBlock = Block.make('ListboxParent', {
   Init: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
-export const FruitListboxBinding = ListboxParentBlock.makeBinding(
+export const FruitListboxBinding = ListboxParentBlock.makeRequiredFieldBinding(
   FruitOptionListbox,
   {
     field: 'fruitListbox',

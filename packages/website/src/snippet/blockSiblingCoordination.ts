@@ -1,12 +1,16 @@
-import { makeBinding, makeOutMessageFold, makeComposition } from './block'
+import {
+  makeRequiredFieldBinding,
+  makeOutMessageFold,
+  makeComposition,
+} from './block'
 import * as Home from './home'
 import * as Room from './room'
 
-const BaseHomeBinding = makeBinding(Home.HomeBlock, {
+const BaseHomeBinding = makeRequiredFieldBinding(Home.HomeBlock, {
   field: 'home',
 })
 
-const BaseRoomBinding = makeBinding(Room.RoomBlock, {
+const BaseRoomBinding = makeRequiredFieldBinding(Room.RoomBlock, {
   field: 'room',
 })
 

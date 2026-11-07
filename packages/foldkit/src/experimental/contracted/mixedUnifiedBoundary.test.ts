@@ -31,7 +31,7 @@ const UnifiedParent = Block.make('MixedUnifiedParent', {
   isMessageFree: true,
   Init: Schema.Tuple([]),
 })
-const LegacyChildBinding = UnifiedParent.makeBinding(LegacyChild, {
+const LegacyChildBinding = UnifiedParent.makeRequiredFieldBinding(LegacyChild, {
   field: 'child',
 })
 const UnifiedParentComposition = UnifiedParent.makeComposition({
@@ -72,9 +72,12 @@ const LegacyParent = Block.makeDefinition('MixedLegacyParent', {
   isMessageFree: true,
   Init: Schema.Tuple([]),
 })
-const UnifiedChildBinding = LegacyParent.makeBinding(UnifiedChild, {
-  field: 'child',
-})
+const UnifiedChildBinding = LegacyParent.makeRequiredFieldBinding(
+  UnifiedChild,
+  {
+    field: 'child',
+  },
+)
 const LegacyParentComposition = LegacyParent.makeComposition({
   bindings: [UnifiedChildBinding],
 })

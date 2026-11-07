@@ -100,7 +100,7 @@ const makeAuthoring = <Item extends string, ItemEncoded>(
   )
 
   const itemUpdate = makeUpdateHandlers(
-    ComboboxDefinition.makeBinding,
+    ComboboxDefinition.makeRequiredFieldBinding,
     ComboboxDefinition.makeOutMessageFold,
     ComboboxDefinition.makeStep,
     ComboboxDefinition.makeFieldsStep,

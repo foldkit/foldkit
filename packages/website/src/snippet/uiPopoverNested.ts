@@ -25,27 +25,34 @@ export const AccountMenuBlock = Block.make('AccountMenu', {
   Message,
 })
 
-const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
-  AccountMenuBlock
+const {
+  makeNoopStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = AccountMenuBlock
 
 const foldPopoverOutMessage = makeOutMessageFold(Popover.PopoverBlock, {
   Opened: makeNoopStep,
   Closed: makeNoopStep,
 })
 
-const AccountPopoverBinding = makeBinding(Popover.PopoverBlock, {
+const AccountPopoverBinding = makeRequiredFieldBinding(Popover.PopoverBlock, {
   field: 'accountPopover',
   init: {
     contextToArgs: () => [{ id: 'account-popover', contentFocus: true }],
   },
 }).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-const AccountDetailsPopoverBinding = makeBinding(Popover.PopoverBlock, {
-  field: 'accountDetailsPopover',
-  init: {
-    contextToArgs: () => [{ id: 'account-details-popover' }],
+const AccountDetailsPopoverBinding = makeRequiredFieldBinding(
+  Popover.PopoverBlock,
+  {
+    field: 'accountDetailsPopover',
+    init: {
+      contextToArgs: () => [{ id: 'account-details-popover' }],
+    },
   },
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
 const AccountMenuComposition = makeComposition({
   bindings: [AccountPopoverBinding, AccountDetailsPopoverBinding],

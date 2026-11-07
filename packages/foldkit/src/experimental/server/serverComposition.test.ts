@@ -80,7 +80,7 @@ const RootApplicationDefinition = Block.makeDefinition('Application', {
 })
 const PlainMessage = Schema.Never
 type PlainMessage = typeof PlainMessage.Type
-const ChildBinding = RootApplicationDefinition.makeBinding(childBlock, {
+const ChildBinding = RootApplicationDefinition.makeCustomBinding(childBlock, {
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
 })

@@ -20,10 +20,14 @@ export const ConfirmBlock = Block.make('Confirm', {
   view: { kind: 'Element' },
 })
 
-const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
-  ConfirmBlock
+const {
+  makeNoopStep,
+  makeRequiredFieldBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = ConfirmBlock
 
-const DialogBinding = makeBinding(Dialog.DialogBlock, {
+const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'confirm' }] },
 }).withOutMessagePolicy({

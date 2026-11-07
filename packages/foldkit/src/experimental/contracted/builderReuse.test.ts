@@ -163,9 +163,12 @@ describe('constructed view builder reuse', () => {
       Init: Schema.Tuple([]),
       view: { kind: 'Element' },
     })
-    const ChildBinding = PageDefinition.makeBinding(ChildDefinition.contract, {
-      field: 'child',
-    })
+    const ChildBinding = PageDefinition.makeRequiredFieldBinding(
+      ChildDefinition.contract,
+      {
+        field: 'child',
+      },
+    )
     const PageComposition = PageDefinition.makeComposition({
       bindings: [ChildBinding],
     })

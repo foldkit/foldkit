@@ -374,7 +374,9 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
         declaration.initializer === undefined ||
         !isCallExpression(declaration.initializer)
       ) {
-        return fail(`Expected ${check.binding} to call makeBinding.`)
+        return fail(
+          `Expected ${check.binding} to call its relationship constructor.`,
+        )
       }
 
       const bindingCall =
@@ -966,6 +968,12 @@ const checks: ReadonlyArray<
     consumers: ['variant-binding.consume.ts'],
   },
   {
+    name: 'binding-relationships',
+    accepted: ['binding-relationships.accepted.ts'],
+    rejected: ['binding-relationships.rejected.ts'],
+    consumers: ['binding-relationships.consume.ts'],
+  },
+  {
     name: 'command-args',
     accepted: ['command-args.accepted.ts', 'command-args.helper.ts'],
     rejected: ['command-args.rejected.ts'],
@@ -1230,6 +1238,7 @@ const main = async (): Promise<void> => {
     'keyed-map-field',
     'map-binding-method',
     'variant-binding',
+    'binding-relationships',
     'codec-contract',
     'managed-resource-contract',
     'managed-resource-registry',

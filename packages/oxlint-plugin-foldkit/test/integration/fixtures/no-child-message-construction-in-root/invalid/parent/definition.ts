@@ -10,4 +10,4 @@ export const ParentDefinition = Block.makeDefinition('Parent', {
   Message,
 })
 
-export const { makeMapBinding } = ParentDefinition
+export const { makeHashMapBinding } = ParentDefinition

@@ -62,7 +62,7 @@ For an exact unkeyed `Option` field, omitting `init` leaves presence with the pa
 
 An exact keyed Option wrapper also leaves presence with the parent. Create it through `initAndSet` or the registered `Binding.init({ key, args, toParentModel })` operation described below. Automatic `init.instances` is available only for keyed arrays. Accessor Bindings likewise remain parent-owned unless the parent initializes them explicitly.
 
-The final parent Model determines which initialized occurrences are active. Init Commands for absent or `presentWhen`-inactive children are omitted. A `subscriptions.when` policy only gates Subscription Streams; it does not suppress child init Commands. Initial Steps may change the child Model without discarding its init Commands.
+The final parent Model determines which initialized occurrences are active. Init Commands for absent or `activeWhen`-inactive children are omitted. A `subscriptions.when` policy only gates Subscription Streams; it does not suppress child init Commands. Initial Steps may change the child Model without discarding its init Commands.
 
 For custom storage or deliberate replacement, call the registered Binding's explicit `init` operation. Pass `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `args` is the exact child init tuple. `toParentModel` receives the initialized child Model and constructs the complete parent Model. `Binding.init` returns a passive initialization recipe. The recipe has no `.model` or `.commands` fields to project. Standard Instance arrays can instead use the field-Step creation path below.
 
@@ -90,7 +90,7 @@ This path covers required top-level arrays with standard string-keyed Instance s
 
 ### Dynamic storage helpers
 
-The optional `foldkit/bindingInit` module reuses declared storage when dynamic initialization only places a child:
+The optional `foldkit/binding` module reuses declared storage when dynamic initialization only places a child:
 
 | Storage                                                      | Helper          | Existing child         |
 | ------------------------------------------------------------ | --------------- | ---------------------- |
@@ -107,7 +107,7 @@ For example, assume `MaybeRoomInstanceBinding` declares `field: 'maybeRoomInstan
 
 Direct fields need no startup policy for `initAndSet`. A custom unkeyed accessor may reuse an existing `init.toParentFields` projection. Keep explicit `Binding.init` when creating additional wrapper metadata, changing sibling fields, selecting a different accessor target, adding parent Commands, or replacing an entire tagged parent variant. Do not add a startup policy solely to enable a helper.
 
-For a direct-value map created with `ParentBlock.makeMapBinding`, insertion keeps every other entry and rejects an occupied key before child init. Assume `EditorsBinding` stores Issue editor Models by Issue ID:
+For direct-value storage created with `makeRecordBinding` or `makeHashMapBinding`, insertion keeps every other entry and rejects an occupied key before child init. Assume `EditorsBinding` stores Issue editor Models by Issue ID:
 
 ::Snippet{name="initInsertMappedChild" label="Inserting a mapped child"}
 
@@ -155,7 +155,7 @@ The assembler validates the entire occurrence plan before calling child init. Du
 
 This startup adapter applies to exact `field` / `key` keyed arrays, with or without `childField`. General keyed accessors keep explicit initialization so their custom storage and write policy remain visible.
 
-When an array already declares that startup policy, `initAndAppend` from `foldkit/bindingInit` reuses its `init.toItem` for dynamic creation. Pass the Binding, current parent Model, and `{ key, args }`. It returns a passive recipe that initializes and appends one child when the registered Composition interprets it, retaining the child's Commands and preserving the other items and their order. An existing key is rejected. Keep a presence check in an application transition named `init...IfMissing` when an existing occurrence should be retained.
+When an array already declares that startup policy, `initAndAppend` from `foldkit/binding` reuses its `init.toItem` for dynamic creation. Pass the Binding, current parent Model, and `{ key, args }`. It returns a passive recipe that initializes and appends one child when the registered Composition interprets it, retaining the child's Commands and preserving the other items and their order. An existing key is rejected. Keep a presence check in an application transition named `init...IfMissing` when an existing occurrence should be retained.
 
 Assume `ProjectSettingsBinding` stores `{ projectId, model }` wrappers in `projectSettingsInstances` and already declares `init.toItem`. This Step keeps an existing project editor and initializes an absent one:
 

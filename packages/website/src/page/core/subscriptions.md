@@ -195,16 +195,16 @@ Most entries should use the first `dependencies` argument directly. Reach for `r
 
 ## Lifting Subscriptions
 
-When a parent embeds a Block with Subscriptions, its Binding lifts the child's Messages into the parent Message type and applies the same presence policy used by update. `None` in a direct Option field, `false` from `presentWhen`, or `None` from a custom `read` stops every child Stream without reading child dependencies.
+When a parent embeds a Block with Subscriptions, its Binding lifts the child's Messages into the parent Message type and applies the same presence policy used by update. `None` in a direct Option field, `false` from `activeWhen`, or `None` from a custom `read` stops every child Stream without reading child dependencies.
 
-`ParentBlock.makeBinding(ChildBlock, { field, ... })` performs that lift once for a direct child field. Custom storage uses `read` and `write`. Include the Binding in the parent's `bindings` list, and the parent collects the lifted entries under placement-qualified keys. The same Composition routes the child's generated envelopes through its Binding and installs the collected graph through `FeatureBlock.makeLayer`.
+`makeRequiredFieldBinding` and `makeOptionalFieldBinding` perform that lift for their respective direct fields. `makeCustomBinding` uses explicit `read` and `write` for custom storage. Include the Binding in the parent's `bindings` list, and the parent collects the lifted entries under placement-qualified keys. The same Composition routes the child's generated envelopes through its Binding and installs the collected graph through `FeatureBlock.makeLayer`.
 
 ### Gating Child Subscriptions
 
 The optional `when` field lets the parent add a Stream condition the child cannot see. One predicate can gate the whole record, or a map can gate selected entries. Put the policy under `subscriptions.when` in the Binding. The child's own entry gate also applies. This gate controls Stream lifetime only: it does not make the child absent, stop ManagedResources or Mounts, or prevent `binding.fold` from running.
 
-Use direct-field `presentWhen` when the condition governs the whole child rather than its Streams. That predicate makes the Binding absent for updates and every lifecycle channel. A custom accessor expresses the same policy by returning `None` from `read`.
+Use direct-field `activeWhen` when the condition governs the whole child rather than its Streams. That predicate makes the Binding absent for updates and every lifecycle channel. A custom accessor expresses the same policy by returning `None` from `read`.
 
-The child continues to own its dependency projection. For a direct array of child Models with declared Struct key fields, use `makeBinding` with `field` and a string-valued `key`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration retain general keyed accessors; Foldkit starts one independently scoped Stream set per active key. See [Subscription Organization](/patterns/subscription-organization) for the full composition pattern.
+The child continues to own its dependency projection. For a direct array of child Models with declared Struct key fields, use `makeKeyedArrayBinding` with `field` and a string-valued `key`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration use `makeCustomKeyedBinding`; Foldkit starts one independently scoped Stream set per active key. See [Subscription Organization](/patterns/subscription-organization) for the full composition pattern.
 
 The application now has state transitions, one-shot Commands, element-scoped Mounts, and ongoing Subscriptions. The remaining question is where the first Model and startup Commands come from. [Init & Flags](/core/init-and-flags) defines that boundary.

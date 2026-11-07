@@ -2312,10 +2312,13 @@ describe('Menu', () => {
       Init: Schema.Tuple([]),
       view: { kind: 'Element' },
     })
-    const MenuBinding = DynamicMenuBlock.makeBinding(ActionsMenuBlock, {
-      field: 'menu',
-      init: { contextToArgs: () => [{ id: 'test' }] },
-    }).withOutMessagePolicy({
+    const MenuBinding = DynamicMenuBlock.makeRequiredFieldBinding(
+      ActionsMenuBlock,
+      {
+        field: 'menu',
+        init: { contextToArgs: () => [{ id: 'test' }] },
+      },
+    ).withOutMessagePolicy({
       fold: DynamicMenuBlock.makeOutMessageFold(ActionsMenuBlock, {
         Closed: () => DynamicMenuBlock.makeNoopStep(),
         Selected: () => DynamicMenuBlock.makeNoopStep(),

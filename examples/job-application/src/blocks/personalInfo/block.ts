@@ -58,7 +58,7 @@ export const PersonalInfoBlock = Block.make('PersonalInfo', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeCommand,
   makeComposition,
   makeFieldsStep,

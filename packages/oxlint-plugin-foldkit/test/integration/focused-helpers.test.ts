@@ -82,7 +82,7 @@ const Model = Schema.Struct({
 })
 const Message = defineMessageUnion({ RequestedChange: { label: Schema.String } })
 const ParentDefinition = Block.makeDefinition('Parent', { Model, Message })
-const ChildBinding = ParentDefinition.makeBinding(Child.ChildBlock, { field: 'child' })
+const ChildBinding = ParentDefinition.makeRequiredFieldBinding(Child.ChildBlock, { field: 'child' })
 const ParentComposition = ParentDefinition.makeComposition({ bindings: [ChildBinding] })
 `
 
@@ -445,7 +445,7 @@ export const { makeFieldsStep } = ParentDefinition
 import { modifyFields } from 'foldkit/struct'
 import * as Child from './child'
 import { ParentDefinition, makeFieldsStep as fieldsStep } from './imported-fields-definition'
-const ChildBinding = ParentDefinition.makeBinding(Child.ChildBlock, { field: 'child' })
+const ChildBinding = ParentDefinition.makeRequiredFieldBinding(Child.ChildBlock, { field: 'child' })
 const ParentComposition = ParentDefinition.makeComposition({ bindings: [ChildBinding] })
 const changeFields = message => ({
   child: child => modifyFields(child, { theme: () => 'Light' }),
@@ -620,7 +620,7 @@ export const { makeFieldsStep } = OtherDefinition
 import { modifyFields } from 'foldkit/struct'
 import * as Child from './child'
 import { ParentDefinition, makeFieldsStep } from './wrong-fields-definition'
-const ChildBinding = ParentDefinition.makeBinding(Child.ChildBlock, { field: 'child' })
+const ChildBinding = ParentDefinition.makeRequiredFieldBinding(Child.ChildBlock, { field: 'child' })
 const ParentComposition = ParentDefinition.makeComposition({ bindings: [ChildBinding] })
 const changeChild = makeFieldsStep(() => ({
   child: child => modifyFields(child, { theme: () => 'Light' }),
@@ -1373,7 +1373,7 @@ export const { makeFieldsStep } = ParentDefinition
 import { modifyFields } from 'foldkit/struct'
 import * as Child from './child'
 import { ParentDefinition, makeFieldsStep as fields } from './${name}-definition'
-const ChildBinding = ParentDefinition.makeBinding(Child.ChildBlock, { field: 'child' })
+const ChildBinding = ParentDefinition.makeRequiredFieldBinding(Child.ChildBlock, { field: 'child' })
 const ParentComposition = ParentDefinition.makeComposition({ bindings: [ChildBinding] })
 const changeChild = fields.fromMessage(input => ({ child: ${childTransform} }))
 const { ${method}: authorUpdate } = ParentComposition

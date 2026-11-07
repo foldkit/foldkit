@@ -68,11 +68,11 @@ const ${groupName}ObserveGroup = TypePerformance${groupName}Definition.makeMount
     return ({ element }) => store.observe(element).pipe(Effect.as(${groupName}Message.CompletedObserveGroup()))
   },
 })
-const ${groupName}ControlBinding = TypePerformance${groupName}Definition.makeBinding(ControlBlock, { field: 'control' })
-const ${groupName}EditorBinding = TypePerformance${groupName}Definition.makeBinding(EditorBlock, {
+const ${groupName}ControlBinding = TypePerformance${groupName}Definition.makeRequiredFieldBinding(ControlBlock, { field: 'control' })
+const ${groupName}EditorBinding = TypePerformance${groupName}Definition.makeOptionalKeyedFieldBinding(EditorBlock, {
   field: 'maybeEditor', key: 'issueId', childField: 'model', placement: 'editor',
 })
-const ${groupName}RowsBinding = TypePerformance${groupName}Definition.makeBinding(EditorBlock, {
+const ${groupName}RowsBinding = TypePerformance${groupName}Definition.makeKeyedArrayBinding(EditorBlock, {
   field: 'rows', key: 'issueId', childField: 'model', placement: 'rows',
   init: {
     instances: () => [{ key: '${groupName}-row', args: ['${groupName}-row'] }],
@@ -207,7 +207,7 @@ const ApplicationMessage = ${isIncludingSaveAll ? 'defineMessageUnion({ Requeste
 const ApplicationDefinition = Block.makeDefinition('Application', { Model: ApplicationModel, Message: ApplicationMessage })
 ${groups
   .map(
-    groupName => `const ${groupName}Binding = ApplicationDefinition.makeBinding(${groupName}Block, {
+    groupName => `const ${groupName}Binding = ApplicationDefinition.makeRequiredFieldBinding(${groupName}Block, {
   field: '${groupName.charAt(0).toLowerCase() + groupName.slice(1)}',
 }).withOutMessagePolicy({ fold: ApplicationDefinition.makeOutMessageFold(${groupName}Block, {
   SavedIssue: ({ groupId, issueId }) => ApplicationDefinition.makeFieldsStep(() => ({

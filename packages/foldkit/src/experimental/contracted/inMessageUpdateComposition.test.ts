@@ -103,9 +103,12 @@ const SaveDraft = ApplicationDefinition.makeCommand('SaveDraft', {
       store.save(text).pipe(Effect.as(Message.CompletedSaveDraft()))
   },
 })
-const EditorBinding = ApplicationDefinition.makeBinding(EditorBlock, {
-  field: 'editor',
-}).withOutMessagePolicy({
+const EditorBinding = ApplicationDefinition.makeRequiredFieldBinding(
+  EditorBlock,
+  {
+    field: 'editor',
+  },
+).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(EditorBlock, {
     Edited: () => makeFieldsStep(() => ({ count: count => count + 1 })),
   }),

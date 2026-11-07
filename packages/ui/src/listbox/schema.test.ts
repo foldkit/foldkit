@@ -96,10 +96,13 @@ const ListboxSchemaParentBlock = Block.make('ListboxSchemaParent', {
   Message: Schema.Never,
 })
 
-const FruitBinding = ListboxSchemaParentBlock.makeBinding(FruitListbox, {
-  field: 'fruitListbox',
-  init: { contextToArgs: () => [{ id: 'fruit' }] },
-}).withOutMessagePolicy({
+const FruitBinding = ListboxSchemaParentBlock.makeRequiredFieldBinding(
+  FruitListbox,
+  {
+    field: 'fruitListbox',
+    init: { contextToArgs: () => [{ id: 'fruit' }] },
+  },
+).withOutMessagePolicy({
   fold: ListboxSchemaParentBlock.makeOutMessageFold(FruitListbox, {
     Selected: ({ value }) =>
       ListboxSchemaParentBlock.makeFieldsStep(() => ({
@@ -108,10 +111,13 @@ const FruitBinding = ListboxSchemaParentBlock.makeBinding(FruitListbox, {
   }),
 })
 
-const ColorBinding = ListboxSchemaParentBlock.makeBinding(ColorListbox, {
-  field: 'colorListbox',
-  init: { contextToArgs: () => [{ id: 'color' }] },
-}).withOutMessagePolicy({
+const ColorBinding = ListboxSchemaParentBlock.makeRequiredFieldBinding(
+  ColorListbox,
+  {
+    field: 'colorListbox',
+    init: { contextToArgs: () => [{ id: 'color' }] },
+  },
+).withOutMessagePolicy({
   fold: ListboxSchemaParentBlock.makeOutMessageFold(ColorListbox, {
     Selected: ({ value }) =>
       ListboxSchemaParentBlock.makeFieldsStep(() => ({

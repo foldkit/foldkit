@@ -48,7 +48,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ApplicationModel,
   Message: ApplicationMessage,
 })
-const WorkspaceGroup001Binding = ApplicationDefinition.makeBinding(
+const WorkspaceGroup001Binding = ApplicationDefinition.makeRequiredFieldBinding(
   WorkspaceGroup001Block,
   {
     field: 'workspaceGroup001',
@@ -61,7 +61,7 @@ const WorkspaceGroup001Binding = ApplicationDefinition.makeBinding(
       })),
   }),
 })
-const WorkspaceGroup002Binding = ApplicationDefinition.makeBinding(
+const WorkspaceGroup002Binding = ApplicationDefinition.makeRequiredFieldBinding(
   WorkspaceGroup002Block,
   {
     field: 'workspaceGroup002',
@@ -74,7 +74,7 @@ const WorkspaceGroup002Binding = ApplicationDefinition.makeBinding(
       })),
   }),
 })
-const WorkspaceGroup003Binding = ApplicationDefinition.makeBinding(
+const WorkspaceGroup003Binding = ApplicationDefinition.makeRequiredFieldBinding(
   WorkspaceGroup003Block,
   {
     field: 'workspaceGroup003',
@@ -87,7 +87,7 @@ const WorkspaceGroup003Binding = ApplicationDefinition.makeBinding(
       })),
   }),
 })
-const WorkspaceGroup004Binding = ApplicationDefinition.makeBinding(
+const WorkspaceGroup004Binding = ApplicationDefinition.makeRequiredFieldBinding(
   WorkspaceGroup004Block,
   {
     field: 'workspaceGroup004',

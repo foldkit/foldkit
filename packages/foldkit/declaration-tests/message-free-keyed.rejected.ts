@@ -12,7 +12,7 @@ import {
 } from './message-free-keyed.accepted.js'
 
 // @ts-expect-error An exact Message-free child rejects obsolete outgoing Message mappers.
-ParentDefinition.makeBinding(SilentBlock, {
+ParentDefinition.makeCustomKeyedBinding(SilentBlock, {
   placement: 'mapped-silent',
   readAll: (model: typeof ParentModel.Type) => model.entries,
   key: (entry: typeof Entry.Type) => entry.key,
@@ -30,21 +30,21 @@ const wrappedFieldConfig: Readonly<{
   key: 'key',
   childField: 'silent',
 }
-FieldParentDefinition.makeBinding(SilentBlock, wrappedFieldConfig)
+FieldParentDefinition.makeKeyedArrayBinding(SilentBlock, wrappedFieldConfig)
 
 const mappedFieldConfig = {
   ...wrappedFieldConfig,
   toParentMessage: () => ({ _tag: 'ClickedParent' }),
 }
 // @ts-expect-error A Message-free keyed field does not accept a parent Message mapper.
-FieldParentDefinition.makeBinding(SilentBlock, mappedFieldConfig)
+FieldParentDefinition.makeKeyedArrayBinding(SilentBlock, mappedFieldConfig)
 
 const deliveredFieldConfig = {
   ...wrappedFieldConfig,
   delivery: { when: () => true },
 }
 // @ts-expect-error A Message-free keyed field cannot configure generated Message delivery.
-FieldParentDefinition.makeBinding(SilentBlock, deliveredFieldConfig)
+FieldParentDefinition.makeKeyedArrayBinding(SilentBlock, deliveredFieldConfig)
 
 const MessagefulMessage = defineMessageUnion({ ChangedReady: {} })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
@@ -70,7 +70,7 @@ const MessagefulBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 > = Block.assemble(prepareMessagefulBlock)
 
 // @ts-expect-error A messageful general keyed Binding requires an exact key Schema for generated delivery.
-ParentDefinition.makeBinding(MessagefulBlock, {
+ParentDefinition.makeCustomKeyedBinding(MessagefulBlock, {
   readAll: (model: typeof ParentModel.Type) => model.entries,
   key: (entry: typeof Entry.Type) => entry.key,
   read: (entry: typeof Entry.Type) =>

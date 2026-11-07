@@ -351,7 +351,7 @@ const DeclarationTestsDirectInitDefinition = Block.makeDefinition(
   },
 )
 export const DirectInitChildBinding =
-  DeclarationTestsDirectInitDefinition.makeBinding(ChildBlock, {
+  DeclarationTestsDirectInitDefinition.makeCustomBinding(ChildBlock, {
     placement: 'direct-init-child',
     read: model => Option.some(model),
     write: (_model, nextChild) => nextChild,
@@ -403,7 +403,7 @@ const DeclarationTestsParentDefinition = Block.makeNamespace(
   Message: ParentMessage,
 })
 
-export const ChildBinding = DeclarationTestsParentDefinition.makeBinding(
+export const ChildBinding = DeclarationTestsParentDefinition.makeCustomBinding(
   ChildBlock,
   {
     placement: 'child',
@@ -412,13 +412,11 @@ export const ChildBinding = DeclarationTestsParentDefinition.makeBinding(
   },
 )
 
-export const DirectChildBinding = DeclarationTestsParentDefinition.makeBinding(
-  ChildBlock,
-  {
+export const DirectChildBinding =
+  DeclarationTestsParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     init: false,
-  },
-)
+  })
 
 export const childInspection = Block.inspectBinding(ChildBinding)
 
@@ -649,11 +647,15 @@ const DeclarationTestsChoiceParentDefinition = Block.makeDefinition(
 )
 const ChoiceParent = DeclarationTestsChoiceParentDefinition
 
-export const RefinedChoiceBinding = ChoiceParent.makeBinding(RefinedChoice, {
-  placement: 'refined-choice',
-  read: model => Option.some(model.choice),
-  write: (_model, nextChoice) => ChoiceParentModel.make({ choice: nextChoice }),
-}).withOutMessagePolicy({
+export const RefinedChoiceBinding = ChoiceParent.makeCustomBinding(
+  RefinedChoice,
+  {
+    placement: 'refined-choice',
+    read: model => Option.some(model.choice),
+    write: (_model, nextChoice) =>
+      ChoiceParentModel.make({ choice: nextChoice }),
+  },
+).withOutMessagePolicy({
   fold: outMessage => ChoiceParent.makeStep(model => ({ model, outMessage })),
 })
 

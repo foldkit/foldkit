@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import * as Helpers from '../shared/definition'
 
-const bindMap = Helpers.makeMapBinding
+const bindMap = Helpers.makeRecordBinding
 const alias = bindMap
 
 const writer = {

@@ -69,11 +69,15 @@ const RegisteredParentBaseDefinition = makeNamespace(
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = RegisteredParentBaseDefinition.makeBinding(ChildBlock, {
-  placement: 'child',
-  read: (model: ParentModel) => Option.some(model.child),
-  write: (model, nextChild) => ParentModel.make({ ...model, child: nextChild }),
-})
+const ChildBinding = RegisteredParentBaseDefinition.makeCustomBinding(
+  ChildBlock,
+  {
+    placement: 'child',
+    read: (model: ParentModel) => Option.some(model.child),
+    write: (model, nextChild) =>
+      ParentModel.make({ ...model, child: nextChild }),
+  },
+)
 
 const RegisteredParent = RegisteredParentBaseDefinition.makeComposition({
   bindings: [ChildBinding],
@@ -84,14 +88,12 @@ const OmittedParentBaseDefinition = makeNamespace(
   Model: ParentModel,
   Message: ParentMessage,
 })
-const AlternateChildBinding = OmittedParentBaseDefinition.makeBinding(
-  ChildBlock,
-  {
+const AlternateChildBinding =
+  OmittedParentBaseDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     placement: 'alternate',
     init: false,
-  },
-)
+  })
 const OmittedParent = OmittedParentBaseDefinition.makeComposition({
   bindings: [AlternateChildBinding],
 })
@@ -537,7 +539,7 @@ const UnusedChildParentBaseDefinition = makeNamespace(
   Message: ParentMessage,
 })
 const UnusedRegisteredChildBinding =
-  UnusedChildParentBaseDefinition.makeBinding(ChildBlock, {
+  UnusedChildParentBaseDefinition.makeCustomBinding(ChildBlock, {
     placement: 'child',
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
@@ -592,9 +594,8 @@ const RegisteredKeyedParentBaseDefinition = makeNamespace(
   Model: ParentModel,
   Message: KeyedParentMessage,
 })
-const ChildrenBinding = RegisteredKeyedParentBaseDefinition.makeBinding(
-  ChildBlock,
-  {
+const ChildrenBinding =
+  RegisteredKeyedParentBaseDefinition.makeCustomKeyedBinding(ChildBlock, {
     placement: 'children',
     keySchema: Schema.Number,
     readAll: (model: ParentModel) => model.children,
@@ -607,8 +608,7 @@ const ChildrenBinding = RegisteredKeyedParentBaseDefinition.makeBinding(
           childModel.count === key ? nextChild : childModel,
         ),
       }),
-  },
-)
+  })
 
 const RegisteredKeyedParent =
   RegisteredKeyedParentBaseDefinition.makeComposition({
@@ -620,17 +620,15 @@ const OmittedKeyedParentBaseDefinition = makeNamespace(
   Model: ParentModel,
   Message: KeyedParentMessage,
 })
-const AlternateChildrenBinding = OmittedKeyedParentBaseDefinition.makeBinding(
-  ChildBlock,
-  {
+const AlternateChildrenBinding =
+  OmittedKeyedParentBaseDefinition.makeCustomKeyedBinding(ChildBlock, {
     placement: 'alternate-children',
     keySchema: Schema.Number,
     readAll: model => model.children,
     key: child => child.count,
     read: child => child,
     writeAt: model => model,
-  },
-)
+  })
 const OmittedKeyedParent = OmittedKeyedParentBaseDefinition.makeComposition({
   bindings: [AlternateChildrenBinding],
 })
@@ -829,7 +827,7 @@ const PolicyParentBaseDefinition = makeNamespace(
   Model: ParentModel,
   Message: PolicyParentMessage,
 })
-const SecondaryChildBinding = PolicyParentBaseDefinition.makeBinding(
+const SecondaryChildBinding = PolicyParentBaseDefinition.makeCustomBinding(
   ChildBlock,
   {
     placement: 'secondary-child',
@@ -845,7 +843,7 @@ const unsupportedNestedRawChild = Update.foldChildStep({
   write: (_model, nextModel) => nextModel,
   toParentMessage: (message: Message) => message,
 })
-const PolicyChildBinding = PolicyParentBaseDefinition.makeBinding(
+const PolicyChildBinding = PolicyParentBaseDefinition.makeCustomBinding(
   PolicyChildBlock,
   {
     placement: 'policy-child',
@@ -868,28 +866,26 @@ const OmittedPolicyParentBaseDefinition = makeNamespace(
   Message: PolicyParentMessage,
 })
 const OmittedSecondaryChildBinding =
-  OmittedPolicyParentBaseDefinition.makeBinding(ChildBlock, {
+  OmittedPolicyParentBaseDefinition.makeCustomBinding(ChildBlock, {
     placement: 'secondary-child',
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
   })
-const OmittedPolicyChildBinding = OmittedPolicyParentBaseDefinition.makeBinding(
-  PolicyChildBlock,
-  {
+const OmittedPolicyChildBinding =
+  OmittedPolicyParentBaseDefinition.makeCustomBinding(PolicyChildBlock, {
     placement: 'policy-child',
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-  },
-).withOutMessagePolicy({
-  fold: (_outMessage: PolicyOutMessage) =>
-    OmittedPolicyParentBaseDefinition.makeStep(() =>
-      OmittedSecondaryChildBinding.reset(),
-    ),
-})
+  }).withOutMessagePolicy({
+    fold: (_outMessage: PolicyOutMessage) =>
+      OmittedPolicyParentBaseDefinition.makeStep(() =>
+        OmittedSecondaryChildBinding.reset(),
+      ),
+  })
 const AlternateSecondaryChildBinding =
-  OmittedPolicyParentBaseDefinition.makeBinding(ChildBlock, {
+  OmittedPolicyParentBaseDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     placement: 'alternate-secondary',
     init: false,
@@ -952,56 +948,8 @@ const KeyedPolicyParentBaseDefinition = makeNamespace(
   Message: KeyedPolicyParentMessage,
 })
 const childModelKey = (childModel: ChildModel) => childModel.count
-const SecondaryChildrenBinding = KeyedPolicyParentBaseDefinition.makeBinding(
-  ChildBlock,
-  {
-    placement: 'secondary-children',
-    keySchema: Schema.Number,
-    readAll: (model: ParentModel) => model.children,
-    key: childModelKey,
-    read: childModel => childModel,
-    writeAt: (model, key, nextChild) =>
-      ParentModel.make({
-        ...model,
-        children: model.children.map(childModel =>
-          childModel.count === key ? nextChild : childModel,
-        ),
-      }),
-  },
-)
-const PolicyChildrenBinding = KeyedPolicyParentBaseDefinition.makeBinding(
-  PolicyChildBlock,
-  {
-    placement: 'policy-children',
-    keySchema: Schema.Number,
-    readAll: (model: ParentModel) => model.children,
-    key: childModelKey,
-    read: childModel => childModel,
-    writeAt: (model, key, nextChild) =>
-      ParentModel.make({
-        ...model,
-        children: model.children.map(childModel =>
-          childModel.count === key ? nextChild : childModel,
-        ),
-      }),
-  },
-).withOutMessagePolicy({
-  fold: (_key: number, _outMessage: PolicyOutMessage) =>
-    SecondaryChildrenBinding.reset(0),
-})
-
-const RegisteredKeyedPolicyParent =
-  KeyedPolicyParentBaseDefinition.makeComposition({
-    bindings: [PolicyChildrenBinding, SecondaryChildrenBinding],
-  })
-const OmittedKeyedPolicyParentBaseDefinition = makeNamespace(
-  'OmittedKeyedPolicyParent',
-).makeDefinition({
-  Model: ParentModel,
-  Message: KeyedPolicyParentMessage,
-})
-const OmittedSecondaryChildrenBinding =
-  OmittedKeyedPolicyParentBaseDefinition.makeBinding(ChildBlock, {
+const SecondaryChildrenBinding =
+  KeyedPolicyParentBaseDefinition.makeCustomKeyedBinding(ChildBlock, {
     placement: 'secondary-children',
     keySchema: Schema.Number,
     readAll: (model: ParentModel) => model.children,
@@ -1015,8 +963,8 @@ const OmittedSecondaryChildrenBinding =
         ),
       }),
   })
-const OmittedPolicyChildrenBinding =
-  OmittedKeyedPolicyParentBaseDefinition.makeBinding(PolicyChildBlock, {
+const PolicyChildrenBinding =
+  KeyedPolicyParentBaseDefinition.makeCustomKeyedBinding(PolicyChildBlock, {
     placement: 'policy-children',
     keySchema: Schema.Number,
     readAll: (model: ParentModel) => model.children,
@@ -1031,10 +979,57 @@ const OmittedPolicyChildrenBinding =
       }),
   }).withOutMessagePolicy({
     fold: (_key: number, _outMessage: PolicyOutMessage) =>
+      SecondaryChildrenBinding.reset(0),
+  })
+
+const RegisteredKeyedPolicyParent =
+  KeyedPolicyParentBaseDefinition.makeComposition({
+    bindings: [PolicyChildrenBinding, SecondaryChildrenBinding],
+  })
+const OmittedKeyedPolicyParentBaseDefinition = makeNamespace(
+  'OmittedKeyedPolicyParent',
+).makeDefinition({
+  Model: ParentModel,
+  Message: KeyedPolicyParentMessage,
+})
+const OmittedSecondaryChildrenBinding =
+  OmittedKeyedPolicyParentBaseDefinition.makeCustomKeyedBinding(ChildBlock, {
+    placement: 'secondary-children',
+    keySchema: Schema.Number,
+    readAll: (model: ParentModel) => model.children,
+    key: childModelKey,
+    read: childModel => childModel,
+    writeAt: (model, key, nextChild) =>
+      ParentModel.make({
+        ...model,
+        children: model.children.map(childModel =>
+          childModel.count === key ? nextChild : childModel,
+        ),
+      }),
+  })
+const OmittedPolicyChildrenBinding =
+  OmittedKeyedPolicyParentBaseDefinition.makeCustomKeyedBinding(
+    PolicyChildBlock,
+    {
+      placement: 'policy-children',
+      keySchema: Schema.Number,
+      readAll: (model: ParentModel) => model.children,
+      key: childModelKey,
+      read: childModel => childModel,
+      writeAt: (model, key, nextChild) =>
+        ParentModel.make({
+          ...model,
+          children: model.children.map(childModel =>
+            childModel.count === key ? nextChild : childModel,
+          ),
+        }),
+    },
+  ).withOutMessagePolicy({
+    fold: (_key: number, _outMessage: PolicyOutMessage) =>
       OmittedSecondaryChildrenBinding.reset(0),
   })
 const AlternateSecondaryChildrenBinding =
-  OmittedKeyedPolicyParentBaseDefinition.makeBinding(ChildBlock, {
+  OmittedKeyedPolicyParentBaseDefinition.makeCustomKeyedBinding(ChildBlock, {
     placement: 'alternate-secondary',
     keySchema: Schema.Number,
     readAll: model => model.children,
@@ -1071,14 +1066,14 @@ const FoldOutMessageParentBaseDefinition = makeNamespace(
   Message: PolicyParentMessage,
 })
 const FoldOutMessageChildBinding =
-  FoldOutMessageParentBaseDefinition.makeBinding(ChildBlock, {
+  FoldOutMessageParentBaseDefinition.makeCustomBinding(ChildBlock, {
     placement: 'child',
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
   })
 const FoldOutMessageSecondaryChildBinding =
-  FoldOutMessageParentBaseDefinition.makeBinding(ChildBlock, {
+  FoldOutMessageParentBaseDefinition.makeCustomBinding(ChildBlock, {
     placement: 'secondary-child',
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
@@ -1095,24 +1090,30 @@ const OmittedFoldOutMessageParentBaseDefinition = makeNamespace(
   Message: PolicyParentMessage,
 })
 const OmittedFoldOutMessageChildBinding =
-  OmittedFoldOutMessageParentBaseDefinition.makeBinding(ChildBlock, {
+  OmittedFoldOutMessageParentBaseDefinition.makeCustomBinding(ChildBlock, {
     placement: 'child',
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
   })
 const AlternateInitPrimaryBinding =
-  OmittedFoldOutMessageParentBaseDefinition.makeBinding(ChildBlock, {
-    field: 'child',
-    placement: 'alternate-primary',
-    init: false,
-  })
+  OmittedFoldOutMessageParentBaseDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'child',
+      placement: 'alternate-primary',
+      init: false,
+    },
+  )
 const AlternateInitSecondaryBinding =
-  OmittedFoldOutMessageParentBaseDefinition.makeBinding(ChildBlock, {
-    field: 'child',
-    placement: 'alternate-secondary',
-    init: false,
-  })
+  OmittedFoldOutMessageParentBaseDefinition.makeRequiredFieldBinding(
+    ChildBlock,
+    {
+      field: 'child',
+      placement: 'alternate-secondary',
+      init: false,
+    },
+  )
 const OmittedFoldOutMessageParent =
   OmittedFoldOutMessageParentBaseDefinition.makeComposition({
     bindings: [AlternateInitPrimaryBinding, AlternateInitSecondaryBinding],
@@ -1212,15 +1213,13 @@ const LifecycleOnlyParentBaseDefinition = makeNamespace(
   Model: ParentModel,
   Message,
 })
-const LifecycleChildBinding = LifecycleOnlyParentBaseDefinition.makeBinding(
-  LifecycleChild,
-  {
+const LifecycleChildBinding =
+  LifecycleOnlyParentBaseDefinition.makeCustomBinding(LifecycleChild, {
     placement: 'lifecycle-child',
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-  },
-)
+  })
 
 const LifecycleOnlyParent = LifecycleOnlyParentBaseDefinition.makeComposition({
   bindings: [LifecycleChildBinding],

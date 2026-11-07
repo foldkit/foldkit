@@ -37,10 +37,13 @@ const GenericMenuBindingIdentityBlock = Block.make(
   },
 )
 
-const MenuBinding = GenericMenuBindingIdentityBlock.makeBinding(RefinedMenu, {
-  field: 'menu',
-  init: { contextToArgs: config => [config] },
-}).withOutMessagePolicy({
+const MenuBinding = GenericMenuBindingIdentityBlock.makeRequiredFieldBinding(
+  RefinedMenu,
+  {
+    field: 'menu',
+    init: { contextToArgs: config => [config] },
+  },
+).withOutMessagePolicy({
   fold: GenericMenuBindingIdentityBlock.makeOutMessageFold(RefinedMenu, {
     Selected: ({ value }) =>
       GenericMenuBindingIdentityBlock.makeStep(model => ({

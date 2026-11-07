@@ -1,0 +1,10 @@
+$ node scripts/check-block-type-performance.ts workspace-composition-4
+[block-type-performance] TypeScript 7.1.0-beta; --singleThreaded diagnostics
+[block-type-performance] Measuring baseline...
+[block-type-performance] Measuring workspace-composition-4...
+fixture                  instDelta  instMax    typesDelta  typesMax  symbolsDelta  status                       
+-----------------------  ---------  ---------  ----------  --------  ------------  -----------------------------
+workspace-composition-4  1,605,283  1,604,687  116,798     116,418   162,419       failed: Instantiations, Types
+/private/tmp/foldkit-unified-recovery-20261103/packages/foldkit:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] foldkit@0.170.0 check:block-type-performance: `node scripts/check-block-type-performance.ts workspace-composition-4`
+Exit status 1

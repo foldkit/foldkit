@@ -121,13 +121,13 @@ const RootBaseDefinition = RootNamespace.makeDefinition({
   Model: RootModel,
   Message: RootMessage,
 })
-const OptionalChildBinding = RootBaseDefinition.makeBinding(childBlock, {
+const OptionalChildBinding = RootBaseDefinition.makeCustomBinding(childBlock, {
   read: (model: RootModel) => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
   subscriptions: { when: model => model.subscriptionState === 'Active' },
 })
-const EntriesBinding = RootBaseDefinition.makeBinding(childBlock, {
+const EntriesBinding = RootBaseDefinition.makeCustomKeyedBinding(childBlock, {
   placement: 'Entries',
   readAll: (model: RootModel) => model.entries,
   key: entry => entry.id,
@@ -186,7 +186,7 @@ const NestedParentBaseDefinition = NestedParentNamespace.makeDefinition({
   Model: NestedParentModel,
   Message: Schema.Never,
 })
-const NestedEntriesBinding = NestedParentBaseDefinition.makeBinding(
+const NestedEntriesBinding = NestedParentBaseDefinition.makeCustomKeyedBinding(
   childBlock,
   {
     placement: 'entries',
@@ -225,7 +225,7 @@ const NestedRootBaseDefinition = NestedRootNamespace.makeDefinition({
   Model: NestedRootModel,
   Message: Schema.Never,
 })
-const NestedParentsBinding = NestedRootBaseDefinition.makeBinding(
+const NestedParentsBinding = NestedRootBaseDefinition.makeCustomKeyedBinding(
   nestedParentBlock,
   {
     placement: 'parents',

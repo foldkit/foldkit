@@ -3,9 +3,9 @@ import { AsyncData, type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
-  makeBinding,
   makeComposition,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
   makeStep,
 } from './block'
 import { FetchPosts, FetchStats } from './command'
@@ -62,7 +62,7 @@ const activateTab = (tab: Tab) => (model: Model) => {
   )
 }
 
-export const TabsBinding = makeBinding(ApplicationTabsBlock, {
+export const TabsBinding = makeRequiredFieldBinding(ApplicationTabsBlock, {
   field: 'tabs',
   init: { contextToArgs: () => [{ id: TABS_ID }] },
 }).withOutMessagePolicy({

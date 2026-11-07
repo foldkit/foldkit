@@ -1,10 +1,14 @@
 import type { Block } from 'foldkit'
 
-import { makeBinding, makeComposition, makeOutMessageForward } from './block'
+import {
+  makeComposition,
+  makeOutMessageForward,
+  makeRequiredFieldBinding,
+} from './block'
 import { LoginBlock } from './blocks/login'
 import { OutMessage } from './message'
 
-export const LoginModelBinding = makeBinding(LoginBlock, {
+export const LoginModelBinding = makeRequiredFieldBinding(LoginBlock, {
   field: 'loginModel',
   init: { contextToArgs: () => [] },
 }).withOutMessagePolicy({

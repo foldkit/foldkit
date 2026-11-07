@@ -1,6 +1,6 @@
 import { Option, pipe } from 'effect'
 import { Update } from 'foldkit'
-import { makeInitIfMissingStep } from 'foldkit/bindingInit'
+import { makeInitIfMissingStep } from 'foldkit/binding'
 
 import {
   IssueBoardsBinding,

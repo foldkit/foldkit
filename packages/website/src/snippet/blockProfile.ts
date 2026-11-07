@@ -3,15 +3,18 @@ import { Effect, Layer } from 'effect'
 import {
   ApplicationBlock,
   makeFieldsStep,
-  makeBinding,
+  makeRequiredFieldBinding,
   makeOutMessageFold,
   makeComposition,
 } from './blockProfileContract'
 import * as Settings from './blockSettings'
 
-export const SettingsBinding = makeBinding(Settings.SettingsBlock, {
-  field: 'settings',
-}).withOutMessagePolicy({
+export const SettingsBinding = makeRequiredFieldBinding(
+  Settings.SettingsBlock,
+  {
+    field: 'settings',
+  },
+).withOutMessagePolicy({
   fold: makeOutMessageFold(Settings.SettingsBlock, {
     ChangedTheme: ({ theme }) =>
       makeFieldsStep(() => ({

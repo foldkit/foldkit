@@ -358,31 +358,37 @@ const forwardSettingsOutMessage = ParentDefinition.makeOutMessageForward(
   },
 )
 
-export const SettingsBinding = ParentDefinition.makeBinding(SettingsBlock, {
-  field: 'settings',
-  delivery: {
-    toUpdateContext: model => {
-      expectNotAnyOrUnknown(model)
-      return [model.currentUser]
+export const SettingsBinding = ParentDefinition.makeRequiredFieldBinding(
+  SettingsBlock,
+  {
+    field: 'settings',
+    delivery: {
+      toUpdateContext: model => {
+        expectNotAnyOrUnknown(model)
+        return [model.currentUser]
+      },
     },
-  },
-  init: {
-    contextToArgs: (childInitContext: ParentChildInitContext) => {
-      expectExactParentStartup(childInitContext)
+    init: {
+      contextToArgs: (childInitContext: ParentChildInitContext) => {
+        expectExactParentStartup(childInitContext)
 
-      return [childInitContext.theme]
+        return [childInitContext.theme]
+      },
     },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   forward: forwardSettingsOutMessage,
 })
 
-export const StatusBinding = ParentDefinition.makeBinding(StatusBlock, {
-  field: 'status',
-  init: true,
-})
+export const StatusBinding = ParentDefinition.makeRequiredFieldBinding(
+  StatusBlock,
+  {
+    field: 'status',
+    init: true,
+  },
+)
 
-export const ProjectedStatusBinding = ParentDefinition.makeBinding(
+export const ProjectedStatusBinding = ParentDefinition.makeCustomBinding(
   StatusBlock,
   {
     placement: 'secondaryStatus',
@@ -400,7 +406,7 @@ export const ProjectedStatusBinding = ParentDefinition.makeBinding(
   },
 )
 
-export const RoomBinding = ParentDefinition.makeBinding(RoomBlock, {
+export const RoomBinding = ParentDefinition.makeCustomKeyedBinding(RoomBlock, {
   placement: 'room',
   readAll: model => Option.toArray(model.maybeRoom),
   key: room => room.id,
@@ -423,17 +429,23 @@ export const RoomBinding = ParentDefinition.makeBinding(RoomBlock, {
   },
 })
 
-export const FirstStatusBinding = ParentDefinition.makeBinding(StatusBlock, {
-  field: 'status',
-  placement: 'firstStatus',
-  init: false,
-})
+export const FirstStatusBinding = ParentDefinition.makeRequiredFieldBinding(
+  StatusBlock,
+  {
+    field: 'status',
+    placement: 'firstStatus',
+    init: false,
+  },
+)
 
-export const SecondStatusBinding = ParentDefinition.makeBinding(StatusBlock, {
-  field: 'status',
-  placement: 'secondStatus',
-  init: false,
-})
+export const SecondStatusBinding = ParentDefinition.makeRequiredFieldBinding(
+  StatusBlock,
+  {
+    field: 'status',
+    placement: 'secondStatus',
+    init: false,
+  },
+)
 
 export type ParentChildInitContext = Readonly<{
   theme: string
@@ -986,10 +998,13 @@ const NoStartupDefinition = Block.makeDefinition('NoStartup', {
   Model: NoStartupModel,
   Message: Schema.Never,
 })
-const NoStartupStatusBinding = NoStartupDefinition.makeBinding(StatusBlock, {
-  field: 'status',
-  init: true,
-})
+const NoStartupStatusBinding = NoStartupDefinition.makeRequiredFieldBinding(
+  StatusBlock,
+  {
+    field: 'status',
+    init: true,
+  },
+)
 export const NoStartupComposition = NoStartupDefinition.makeComposition({
   bindings: [NoStartupStatusBinding],
 })

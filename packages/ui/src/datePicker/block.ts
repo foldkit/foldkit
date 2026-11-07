@@ -134,7 +134,7 @@ export type DatePickerBlock = typeof DatePickerBlock
 // UPDATE
 
 /** @internal DatePicker's Popover relationship for typed test delivery. */
-export const BasePopoverBinding = DatePickerBlock.makeBinding(
+export const BasePopoverBinding = DatePickerBlock.makeRequiredFieldBinding(
   Popover.PopoverBlock,
   {
     field: 'popover',
@@ -153,7 +153,7 @@ export const BasePopoverBinding = DatePickerBlock.makeBinding(
 )
 
 /** @internal DatePicker's Calendar relationship for typed test delivery. */
-export const BaseCalendarBinding = DatePickerBlock.makeBinding(
+export const BaseCalendarBinding = DatePickerBlock.makeRequiredFieldBinding(
   UiCalendar.CalendarBlock,
   {
     field: 'calendar',

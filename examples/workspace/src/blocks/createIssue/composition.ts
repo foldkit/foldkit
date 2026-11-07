@@ -9,14 +9,14 @@ import {
   StringListboxBlock,
 } from '../../listbox'
 import {
-  makeBinding,
   makeComposition,
   makeNoopStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from './block'
 import { editIssueForm } from './draft'
 
-export const DialogBinding = makeBinding(Dialog.DialogBlock, {
+export const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: {
     contextToArgs: () => [{ id: 'workspace-create-issue-dialog' }],
@@ -29,36 +29,45 @@ export const DialogBinding = makeBinding(Dialog.DialogBlock, {
   }),
 })
 
-export const ProjectListboxBinding = makeBinding(StringListboxBlock, {
-  field: 'projectListbox',
-  init: {
-    contextToArgs: () => [{ id: 'create-issue-project' }],
+export const ProjectListboxBinding = makeRequiredFieldBinding(
+  StringListboxBlock,
+  {
+    field: 'projectListbox',
+    init: {
+      contextToArgs: () => [{ id: 'create-issue-project' }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: makeOutMessageFold(StringListboxBlock, {
     Selected: ({ value }) =>
       editIssueForm(model => modifyFields(model, { projectId: () => value })),
   }),
 })
 
-export const StatusListboxBinding = makeBinding(StatusListboxBlock, {
-  field: 'statusListbox',
-  init: {
-    contextToArgs: () => [{ id: 'create-issue-status' }],
+export const StatusListboxBinding = makeRequiredFieldBinding(
+  StatusListboxBlock,
+  {
+    field: 'statusListbox',
+    init: {
+      contextToArgs: () => [{ id: 'create-issue-status' }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: makeOutMessageFold(StatusListboxBlock, {
     Selected: ({ value }) =>
       editIssueForm(model => modifyFields(model, { status: () => value })),
   }),
 })
 
-export const PriorityListboxBinding = makeBinding(PriorityListboxBlock, {
-  field: 'priorityListbox',
-  init: {
-    contextToArgs: () => [{ id: 'create-issue-priority' }],
+export const PriorityListboxBinding = makeRequiredFieldBinding(
+  PriorityListboxBlock,
+  {
+    field: 'priorityListbox',
+    init: {
+      contextToArgs: () => [{ id: 'create-issue-priority' }],
+    },
   },
-}).withOutMessagePolicy({
+).withOutMessagePolicy({
   fold: makeOutMessageFold(PriorityListboxBlock, {
     Selected: ({ value }) =>
       editIssueForm(model => modifyFields(model, { priority: () => value })),

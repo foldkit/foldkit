@@ -198,9 +198,12 @@ describe('separate InMessage execution', () => {
           Message: ParentMessage,
           Init: Schema.Tuple([]),
         })
-        const ChildBinding = ParentDefinition.makeBinding(Definition.contract, {
-          field: 'child',
-        })
+        const ChildBinding = ParentDefinition.makeRequiredFieldBinding(
+          Definition.contract,
+          {
+            field: 'child',
+          },
+        )
         const ParentComposition = ParentDefinition.makeComposition({
           bindings: [ChildBinding],
         })
@@ -290,7 +293,7 @@ describe('separate InMessage execution', () => {
           isMessageFree: true,
           Init: Schema.Tuple([]),
         })
-        const ReporterBinding = ParentDefinition.makeBinding(
+        const ReporterBinding = ParentDefinition.makeRequiredFieldBinding(
           ReporterDefinition.contract,
           {
             field: 'reporter',

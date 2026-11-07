@@ -1,6 +1,6 @@
 import { Context, Effect, HashMap, Option, Schema, pipe } from 'effect'
 import { Block, Message, Update } from 'foldkit'
-import { initAndInsert, makeInitIfMissingStep } from 'foldkit/bindingInit'
+import { initAndInsert, makeInitIfMissingStep } from 'foldkit/binding'
 
 export class ReadService extends Context.Service<
   ReadService,
@@ -64,7 +64,7 @@ export const ParentDefinition = Block.makeDefinition(
   'DeclarationInsertParent',
   { Model: ParentModel, Message: ParentMessage },
 )
-const ChildrenByIdBindingWithoutPolicy = ParentDefinition.makeMapBinding(
+const ChildrenByIdBindingWithoutPolicy = ParentDefinition.makeRecordBinding(
   ChildBlock,
   { field: 'childrenById' },
 )
@@ -75,11 +75,11 @@ export const ChildrenByIdBinding =
         ChangedCount: () => ParentDefinition.makeNoopStep(),
       })(outMessage),
   })
-export const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(
+export const ChildrenByNumberBinding = ParentDefinition.makeHashMapBinding(
   ChildBlock,
   { field: 'childrenByNumber' },
 )
-export const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+export const RowsByIdBinding = ParentDefinition.makeRecordBinding(ChildBlock, {
   field: 'rowsById',
   childField: 'child',
 })
@@ -233,7 +233,7 @@ const ZeroParentDefinition = Block.makeDefinition(
   'DeclarationInsertZeroParent',
   { Model: ZeroParentModel, Message: Message.defineMessageUnion({}) },
 )
-export const ZeroChildrenByIdBinding = ZeroParentDefinition.makeMapBinding(
+export const ZeroChildrenByIdBinding = ZeroParentDefinition.makeRecordBinding(
   ZeroChildBlock,
   { field: 'childrenById' },
 )

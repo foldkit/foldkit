@@ -290,7 +290,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       }
     })
 
-  const EntriesAnimationBinding = ToastDefinition.makeBinding(
+  const EntriesAnimationBinding = ToastDefinition.makeKeyedArrayBinding(
     Animation.AnimationBlock,
     {
       field: 'entries',

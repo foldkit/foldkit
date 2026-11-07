@@ -1,8 +1,8 @@
 import { Child } from './child'
 import * as Helpers from './nested/definition'
-import { Message, NestedDefinition, makeMapBinding as bindMap } from './nested/definition'
+import { Message, NestedDefinition, makeHashMapBinding as bindMap } from './nested/definition'
 
-NestedDefinition.makeMapBinding(Child.block, {
+NestedDefinition.makeHashMapBinding(Child.block, {
   field: 'childrenById',
   delivery: {
     when: () => {
@@ -25,10 +25,10 @@ bindMap(Child.block, {
 
 const namespaceAlias = Helpers
 const namespaceAliasAgain = namespaceAlias
-const namespaceMethodAlias = namespaceAliasAgain.makeMapBinding
-const { makeMapBinding: namespaceDestructuredMap } = namespaceAliasAgain
+const namespaceMethodAlias = namespaceAliasAgain.makeHashMapBinding
+const { makeHashMapBinding: namespaceDestructuredMap } = namespaceAliasAgain
 
-Helpers.makeMapBinding(Child.block, {
+Helpers.makeHashMapBinding(Child.block, {
   field: 'childrenById',
   delivery: { when: () => { Message.ClickedSave(); return true } },
 })
@@ -43,7 +43,7 @@ namespaceDestructuredMap(Child.block, {
   delivery: { when: () => { Message.ClickedSave(); return true } },
 })
 
-namespaceAliasAgain.makeMapBinding(Child.block, {
+namespaceAliasAgain.makeHashMapBinding(Child.block, {
   field: 'childrenById',
   delivery: { when: () => { Message.ClickedSave(); return true } },
 })

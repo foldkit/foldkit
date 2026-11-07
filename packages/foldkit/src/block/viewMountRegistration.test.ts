@@ -95,10 +95,10 @@ const MountParent = makeDefinition('MountParent', {
   Model: ParentModel,
   Message: Schema.Never,
 })
-const ChildBinding = MountParent.makeBinding(firstBlock, {
+const ChildBinding = MountParent.makeRequiredFieldBinding(firstBlock, {
   field: 'child',
 })
-const EntriesBinding = MountParent.makeBinding(firstBlock, {
+const EntriesBinding = MountParent.makeKeyedArrayBinding(firstBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',

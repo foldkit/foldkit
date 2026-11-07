@@ -23,10 +23,14 @@ export const ApplicationBlock = Block.make('Application', {
   Message,
 })
 
-const { makeNoopStep, makeBinding, makeOutMessageFold, makeComposition } =
-  ApplicationBlock
+const {
+  makeNoopStep,
+  makeRequiredFieldBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = ApplicationBlock
 
-const SliderBinding = makeBinding(Slider.SliderBlock, {
+const SliderBinding = makeRequiredFieldBinding(Slider.SliderBlock, {
   field: 'slider',
   init: {
     contextToArgs: () => [{ id: 'volume', min: 0, max: 10, step: 1 }],

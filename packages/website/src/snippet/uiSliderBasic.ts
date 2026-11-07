@@ -25,8 +25,12 @@ export const VolumeSliderBlock = Block.make('VolumeSlider', {
   Message,
 })
 
-const { makeFieldsStep, makeOutMessageFold, makeBinding, makeComposition } =
-  VolumeSliderBlock
+const {
+  makeFieldsStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = VolumeSliderBlock
 
 // At module scope, fold the OutMessage into your own Model. `ChangedValue`
 // carries the new number. Lift it to domain state, validate, or persist on
@@ -45,7 +49,7 @@ const foldSliderOutMessage = makeOutMessageFold(Slider.SliderBlock, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const RatingDemoBinding = makeBinding(Slider.SliderBlock, {
+const RatingDemoBinding = makeRequiredFieldBinding(Slider.SliderBlock, {
   field: 'ratingDemo',
   init: {
     contextToArgs: () => [{ id: 'rating', min: 0, max: 10, step: 1 }],

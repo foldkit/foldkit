@@ -23,10 +23,13 @@ const foldHoverIntentOutMessage = HoverIntentSceneBlock.makeOutMessageFold(
   },
 )
 
-const HoverIntentBinding = HoverIntentSceneBlock.makeBinding(HoverIntentBlock, {
-  field: 'hoverIntent',
-  init: { contextToArgs: () => [{}] },
-}).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
+const HoverIntentBinding = HoverIntentSceneBlock.makeRequiredFieldBinding(
+  HoverIntentBlock,
+  {
+    field: 'hoverIntent',
+    init: { contextToArgs: () => [{}] },
+  },
+).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
 
 const HoverIntentSceneComposition = HoverIntentSceneBlock.makeComposition({
   bindings: [HoverIntentBinding],

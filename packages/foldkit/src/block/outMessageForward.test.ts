@@ -167,7 +167,7 @@ it('validates contextual forwarding against the selected child without running h
     Message: ParentMessage,
     OutMessage: ParentOutMessage,
   })
-  const ChildBinding = BindingDefinition.makeBinding(ChildBlock, {
+  const ChildBinding = BindingDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
     init: false,
   })

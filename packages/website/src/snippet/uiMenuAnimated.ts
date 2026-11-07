@@ -1,5 +1,5 @@
 // Use the basic example's Model, Messages, update and OutMessage fold.
-const MenuBinding = ActionMenuExample.makeBinding(ActionMenu, {
+const MenuBinding = ActionMenuExample.makeRequiredFieldBinding(ActionMenu, {
   field: 'menu',
   init: {
     contextToArgs: () => [{ id: 'actions', isAnimated: true }],

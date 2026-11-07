@@ -27,8 +27,12 @@ export const ActionMenuExampleBlock = Block.make('ActionMenuExample', {
   Message,
 })
 
-const { makeNoopStep, makeOutMessageFold, makeBinding, makeComposition } =
-  ActionMenuExampleBlock
+const {
+  makeNoopStep,
+  makeOutMessageFold,
+  makeRequiredFieldBinding,
+  makeComposition,
+} = ActionMenuExampleBlock
 
 const actions: ReadonlyArray<Action> = [
   'Edit',
@@ -52,7 +56,7 @@ const foldMenuOutMessage = makeOutMessageFold(ActionMenu, {
 
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
-const MenuBinding = makeBinding(ActionMenu, {
+const MenuBinding = makeRequiredFieldBinding(ActionMenu, {
   field: 'menu',
   init: { contextToArgs: () => [{ id: 'actions' }] },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })

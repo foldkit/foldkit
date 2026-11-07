@@ -14,7 +14,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const SettingsBinding = ApplicationDefinition.makeBinding(BoundSettings.Settings, {
+const SettingsBinding = ApplicationDefinition.makeRequiredFieldBinding(BoundSettings.Settings, {
   field: 'settings',
   parentMessage: Message.GotSettingsMessage,
   init: true,

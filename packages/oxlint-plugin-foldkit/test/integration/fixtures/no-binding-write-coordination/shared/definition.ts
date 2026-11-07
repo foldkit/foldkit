@@ -23,4 +23,4 @@ export const ParentDefinition = Block.makeDefinition('WriterParent', {
   Message: Schema.Never,
 })
 
-export const { makeMapBinding } = ParentDefinition
+export const { makeRecordBinding } = ParentDefinition

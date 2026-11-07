@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "foldkit": ["../src/index.ts"]
+    },
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "binding-relationships.accepted.ts",
+    "binding-relationships.consume.ts",
+    "binding-relationships.rejected.ts"
+  ]
+}

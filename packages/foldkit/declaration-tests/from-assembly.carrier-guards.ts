@@ -38,7 +38,10 @@ AnyReportingViewed satisfies Block.AnyBlock
 // @ts-expect-error The reporting headless carrier cannot launder any into AnyBlock.
 AnyReportingHeadless satisfies Block.AnyBlock
 // @ts-expect-error The carrier cannot register an any Producer as a valid child.
-ParentDefinition.makeBinding(AnyViewed, { field: 'child', init: false })
+ParentDefinition.makeRequiredFieldBinding(AnyViewed, {
+  field: 'child',
+  init: false,
+})
 // @ts-expect-error The carrier cannot complete a Program with an any Producer.
 Program.makeElement({ block: AnyViewed, container: null })
 
@@ -56,9 +59,15 @@ NeverResult satisfies Block.AnyBlock
 // @ts-expect-error A whole-never Producer keeps poisoned fields in the public carrier too.
 NeverProducer satisfies Block.AnyBlock
 // @ts-expect-error A never-result carrier cannot register a child.
-ParentDefinition.makeBinding(NeverResult, { field: 'child', init: false })
+ParentDefinition.makeRequiredFieldBinding(NeverResult, {
+  field: 'child',
+  init: false,
+})
 // @ts-expect-error A whole-never carrier cannot register a child.
-ParentDefinition.makeBinding(NeverProducer, { field: 'child', init: false })
+ParentDefinition.makeRequiredFieldBinding(NeverProducer, {
+  field: 'child',
+  init: false,
+})
 // @ts-expect-error A never-result carrier cannot complete a Program.
 Program.makeElement({ block: NeverResult, container: null })
 // @ts-expect-error A whole-never carrier cannot complete a Program.

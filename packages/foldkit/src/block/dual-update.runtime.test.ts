@@ -251,7 +251,7 @@ const Parent = makeDefinition('DualUpdateRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = Parent.makeBinding(ChildBlock, {
+const ChildBinding = Parent.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
 })
 const ParentComposition = Parent.makeComposition({

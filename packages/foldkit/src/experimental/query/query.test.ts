@@ -709,10 +709,13 @@ describe('Query Block binding', () => {
     Model,
     Message,
   })
-  const NotesChildBinding = QueryParentDefinition.makeBinding(notes, {
-    field: 'notes',
-    init: false,
-  })
+  const NotesChildBinding = QueryParentDefinition.makeRequiredFieldBinding(
+    notes,
+    {
+      field: 'notes',
+      init: false,
+    },
+  )
   const Composition = QueryParentDefinition.makeComposition({
     bindings: [NotesChildBinding],
   })
@@ -781,9 +784,12 @@ describe('Query Block binding', () => {
       Model: KeyedModel,
       Message: KeyedMessage,
     })
-    const KeyedNotesBinding = KeyedDefinition.makeBinding(noteById, {
-      field: 'notes',
-    })
+    const KeyedNotesBinding = KeyedDefinition.makeRequiredFieldBinding(
+      noteById,
+      {
+        field: 'notes',
+      },
+    )
     const KeyedComposition = KeyedDefinition.makeComposition({
       bindings: [KeyedNotesBinding],
     })
@@ -1597,9 +1603,12 @@ describe('Query handler requirements', () => {
       Model: ParentModel,
       Message: Schema.Never,
     })
-    const ServedNotesBinding = ParentDefinition.makeBinding(served, {
-      field: 'notes',
-    })
+    const ServedNotesBinding = ParentDefinition.makeRequiredFieldBinding(
+      served,
+      {
+        field: 'notes',
+      },
+    )
 
     expectTypeOf(ServedNotesBinding.fold)
       .parameter(1)
@@ -1709,7 +1718,7 @@ describe('Query types', () => {
       Model: ParentModel,
       Message: Schema.Never,
     })
-    const NotesChildBinding = ParentDefinition.makeBinding(notes, {
+    const NotesChildBinding = ParentDefinition.makeRequiredFieldBinding(notes, {
       field: 'notes',
     })
 
@@ -1732,9 +1741,12 @@ describe('Query types', () => {
         Message: Schema.Never,
       },
     )
-    const NoteByIdChildBinding = KeyedParentDefinition.makeBinding(noteById, {
-      field: 'notes',
-    })
+    const NoteByIdChildBinding = KeyedParentDefinition.makeRequiredFieldBinding(
+      noteById,
+      {
+        field: 'notes',
+      },
+    )
 
     expectTypeOf(
       NoteByIdChildBinding.requestLoadIfMissing,

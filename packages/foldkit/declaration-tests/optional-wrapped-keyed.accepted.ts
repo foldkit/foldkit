@@ -132,28 +132,40 @@ export const DeclarationOptionalWrappedKeyedParentDefinition =
   })
 
 export const RoomBinding =
-  DeclarationOptionalWrappedKeyedParentDefinition.makeBinding(RoomBlock, {
-    field: 'maybeRoomInstance',
-    key: 'roomId',
-    childField: 'model',
-    delivery: {
-      when: (model, roomId) =>
-        Option.exists(model.maybeRoomInstance, room => room.roomId === roomId),
-      toUpdateContext: (_model, roomId) => [{ roomId }],
+  DeclarationOptionalWrappedKeyedParentDefinition.makeOptionalKeyedFieldBinding(
+    RoomBlock,
+    {
+      field: 'maybeRoomInstance',
+      key: 'roomId',
+      childField: 'model',
+      delivery: {
+        when: (model, roomId) =>
+          Option.exists(
+            model.maybeRoomInstance,
+            room => room.roomId === roomId,
+          ),
+        toUpdateContext: (_model, roomId) => [{ roomId }],
+      },
+      subscriptions: {
+        when: (model, roomId) =>
+          model.isSubscriptionEnabled &&
+          Option.exists(
+            model.maybeRoomInstance,
+            room => room.roomId === roomId,
+          ),
+      },
     },
-    subscriptions: {
-      when: (model, roomId) =>
-        model.isSubscriptionEnabled &&
-        Option.exists(model.maybeRoomInstance, room => room.roomId === roomId),
-    },
-  })
+  )
 export const LiteralRoomBinding =
-  DeclarationOptionalWrappedKeyedParentDefinition.makeBinding(PlainRoomBlock, {
-    field: 'maybeLiteralRoomInstance',
-    key: 'roomId',
-    childField: 'model',
-    placement: 'literalRoom',
-  })
+  DeclarationOptionalWrappedKeyedParentDefinition.makeOptionalKeyedFieldBinding(
+    PlainRoomBlock,
+    {
+      field: 'maybeLiteralRoomInstance',
+      key: 'roomId',
+      childField: 'model',
+      placement: 'literalRoom',
+    },
+  )
 export const DeclarationOptionalWrappedKeyedParentComposition =
   DeclarationOptionalWrappedKeyedParentDefinition.makeComposition({
     bindings: [RoomBinding, LiteralRoomBinding],
@@ -191,7 +203,7 @@ export const makePayloadParent = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       Message: ParentMessage,
     })
   const Binding =
-    DeclarationOptionalWrappedKeyedPayloadParentDefinition.makeBinding(
+    DeclarationOptionalWrappedKeyedPayloadParentDefinition.makeOptionalKeyedFieldBinding(
       RoomBlock,
       {
         field: 'maybeRoomInstance',
@@ -274,7 +286,7 @@ export const CanonicalParentBlock = Block.make(
     view: { kind: 'Element' },
   },
 )
-export const CanonicalChildrenBinding = CanonicalParentBlock.makeMapBinding(
+export const CanonicalChildrenBinding = CanonicalParentBlock.makeRecordBinding(
   CanonicalChildBlock,
   { field: 'children' },
 )

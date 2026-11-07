@@ -9,4 +9,4 @@ export const NestedDefinition = Block.makeDefinition('Nested', {
   Message,
 })
 
-export const { makeMapBinding } = NestedDefinition
+export const { makeHashMapBinding } = NestedDefinition

@@ -1,0 +1,38 @@
+[
+  {
+    "slot": "foldkit-main",
+    "startedAt": "2026-11-07T00:23:48.998Z",
+    "completedAt": "2026-11-07T00:23:50.250Z",
+    "exitCode": 0,
+    "log": "foldkit-main.log",
+    "logSha256": "a2f6b88eb6db658a84e8655b99870af08261f33deaa6402f1d90762776c35b63",
+    "artifactReceiptSha256": "837a73fb1fb1f996d4841c5f3650f29af8cb1293487422a72e51c22e63fd6c85"
+  },
+  {
+    "slot": "foldkit-preview-final",
+    "startedAt": "2026-11-07T00:23:50.251Z",
+    "completedAt": "2026-11-07T00:23:51.172Z",
+    "exitCode": 0,
+    "log": "foldkit-preview-final.log",
+    "logSha256": "32e5abc86e73657c4bb65e56304dc5e9f7aa1a0b8d22f0d0677ed81d12bc2229",
+    "artifactReceiptSha256": "837a73fb1fb1f996d4841c5f3650f29af8cb1293487422a72e51c22e63fd6c85"
+  },
+  {
+    "slot": "foldkit-main-optimised",
+    "startedAt": "2026-11-07T00:23:51.172Z",
+    "completedAt": "2026-11-07T00:23:52.124Z",
+    "exitCode": 0,
+    "log": "foldkit-main-optimised.log",
+    "logSha256": "84afb338389aa8897ec1555a33e6f07c75bc1f73aa40f33d9eef652577bb92fe",
+    "artifactReceiptSha256": "837a73fb1fb1f996d4841c5f3650f29af8cb1293487422a72e51c22e63fd6c85"
+  },
+  {
+    "slot": "foldkit-preview-final-optimised",
+    "startedAt": "2026-11-07T00:23:52.124Z",
+    "completedAt": "2026-11-07T00:23:53.080Z",
+    "exitCode": 0,
+    "log": "foldkit-preview-final-optimised.log",
+    "logSha256": "92a8fdd135b04d810385059a40e6aa9e1ce2ba48c0db963ad51b25ab84557228",
+    "artifactReceiptSha256": "837a73fb1fb1f996d4841c5f3650f29af8cb1293487422a72e51c22e63fd6c85"
+  }
+]

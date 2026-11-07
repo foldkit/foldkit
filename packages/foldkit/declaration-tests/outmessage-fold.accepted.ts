@@ -173,21 +173,19 @@ export const foldConditionalChoice =
             },
     Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
   })
-export const ChildBinding = DeclarationFoldParentDefinition.makeBinding(
-  ChildBlock,
-  { field: 'child' },
-).withOutMessagePolicy({ fold: foldChoice })
-export const SiblingBinding = DeclarationFoldParentDefinition.makeBinding(
-  ChildBlock,
-  {
+export const ChildBinding =
+  DeclarationFoldParentDefinition.makeRequiredFieldBinding(ChildBlock, {
+    field: 'child',
+  }).withOutMessagePolicy({ fold: foldChoice })
+export const SiblingBinding =
+  DeclarationFoldParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'sibling',
-  },
-).withOutMessagePolicy({
-  fold: DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
-    Chose: () => DeclarationFoldParentDefinition.makeNoopStep(),
-    Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
-  }),
-})
+  }).withOutMessagePolicy({
+    fold: DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
+      Chose: () => DeclarationFoldParentDefinition.makeNoopStep(),
+      Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
+    }),
+  })
 export const foldWithInit = DeclarationFoldParentDefinition.makeOutMessageFold(
   ChildBlock,
   {
@@ -224,7 +222,7 @@ export const foldToSibling = DeclarationFoldParentDefinition.makeOutMessageFold(
   },
 )
 export const CoordinatedChildBinding =
-  DeclarationFoldParentDefinition.makeBinding(ChildBlock, {
+  DeclarationFoldParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
   }).withOutMessagePolicy({ fold: foldToSibling })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture compares two graphs authored by one Definition.
@@ -281,17 +279,15 @@ export const RootRecord = DeclarationFoldRootDefinition.makeCommand('Record', {
       store.record('Apple').pipe(Effect.as(RootMessage.CompletedRecord()))
   },
 })
-export const RootBinding = DeclarationFoldRootDefinition.makeBinding(
-  ChildBlock,
-  {
+export const RootBinding =
+  DeclarationFoldRootDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
-  },
-).withOutMessagePolicy({
-  fold: DeclarationFoldRootDefinition.makeOutMessageFold(ChildBlock, {
-    Chose: () => model => ({ model, commands: [RootRecord()] }),
-    Closed: () => DeclarationFoldRootDefinition.makeNoopStep(),
-  }),
-})
+  }).withOutMessagePolicy({
+    fold: DeclarationFoldRootDefinition.makeOutMessageFold(ChildBlock, {
+      Chose: () => model => ({ model, commands: [RootRecord()] }),
+      Closed: () => DeclarationFoldRootDefinition.makeNoopStep(),
+    }),
+  })
 export const DeclarationFoldRootComposition =
   DeclarationFoldRootDefinition.makeComposition({ bindings: [RootBinding] })
 export const rootInit = DeclarationFoldRootComposition.makeInit(() => ({

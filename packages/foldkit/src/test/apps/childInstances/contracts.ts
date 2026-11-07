@@ -45,11 +45,14 @@ const rejectInvalid = (model: Model) => {
     Message,
     Init: Schema.Tuple([]),
   })
-  const OtherCountersBinding = OtherDefinition.makeBinding(CounterBlock, {
-    field: 'counters',
-    key: 'key',
-    childField: 'model',
-  }).withOutMessagePolicy({ fold: () => OtherDefinition.makeNoopStep() })
+  const OtherCountersBinding = OtherDefinition.makeKeyedArrayBinding(
+    CounterBlock,
+    {
+      field: 'counters',
+      key: 'key',
+      childField: 'model',
+    },
+  ).withOutMessagePolicy({ fold: () => OtherDefinition.makeNoopStep() })
 
   makeFieldsStep(() => ({
     // @ts-expect-error Structural Model compatibility cannot transfer parent ownership.
@@ -104,7 +107,7 @@ const rejectMismatchedFields = () => {
     childField: 'model',
   })
   // @ts-expect-error A numeric child cannot occupy the string-specialized Instance field.
-  FamilyDefinition.makeBinding(NumberFamily.block, stringField)
+  FamilyDefinition.makeKeyedArrayBinding(NumberFamily.block, stringField)
 
   const { definition, recipe } = NumberFamily
   const options = { members: { Instance: Schema.String } }

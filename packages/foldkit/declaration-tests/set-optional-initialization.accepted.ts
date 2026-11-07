@@ -1,6 +1,6 @@
 import { Context, Effect, Option, Schema } from 'effect'
 import { Block, Message } from 'foldkit'
-import { initAndSet } from 'foldkit/bindingInit'
+import { initAndSet } from 'foldkit/binding'
 
 export class ReadService extends Context.Service<
   ReadService,
@@ -64,11 +64,14 @@ export const ParentDefinition = Block.makeDefinition(
   'DeclarationOptionalSetParent',
   { Model: ParentModel, Message: ParentMessage },
 )
-export const EntryBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'maybeEntry',
-  key: 'id',
-  childField: 'child',
-})
+export const EntryBinding = ParentDefinition.makeOptionalKeyedFieldBinding(
+  ChildBlock,
+  {
+    field: 'maybeEntry',
+    key: 'id',
+    childField: 'child',
+  },
+)
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [EntryBinding],
 })

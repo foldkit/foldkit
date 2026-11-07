@@ -17,7 +17,7 @@ export const UiBlock = Block.make('Ui', {
 })
 
 export const {
-  makeBinding,
+  makeRequiredFieldBinding,
   makeComposition,
   makeFieldsStep,
   makeNoopStep,

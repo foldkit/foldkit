@@ -96,11 +96,11 @@ export const ParentBlock = Block.make('ConstructorUnionParent', {
   isMessageFree: true,
   Init: Schema.Tuple([]),
 })
-export const FirstBinding = ParentBlock.makeBinding(ChildBlock, {
+export const FirstBinding = ParentBlock.makeRequiredFieldBinding(ChildBlock, {
   field: 'first',
   init: false,
 })
-export const SecondBinding = ParentBlock.makeBinding(ChildBlock, {
+export const SecondBinding = ParentBlock.makeRequiredFieldBinding(ChildBlock, {
   field: 'second',
   init: false,
 })

@@ -1,7 +1,7 @@
-import { makeBinding } from './block'
+import { makeRequiredFieldBinding } from './block'
 import * as Room from './room'
 
-const RoomBinding = makeBinding(Room.RoomBlock, {
+const RoomBinding = makeRequiredFieldBinding(Room.RoomBlock, {
   field: 'room',
   subscriptions: {
     when: { roomKeyPresses: model => model.route._tag === 'Room' },

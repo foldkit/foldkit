@@ -25,7 +25,7 @@ export const Prepare = ComposedInitDefinition.makeCommand('Prepare', {
     return () => Effect.succeed(LocalMessage.CompletedPrepare())
   },
 })
-export const ChildBinding = ComposedInitDefinition.makeBinding(
+export const ChildBinding = ComposedInitDefinition.makeRequiredFieldBinding(
   GeneratedDispatchChildBlock,
   { field: 'child' },
 )

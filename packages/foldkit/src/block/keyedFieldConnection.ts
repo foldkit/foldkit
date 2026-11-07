@@ -218,7 +218,7 @@ export type KeyedFieldConfig<
       ) => unknown)
     childField?: never
     parentMessage?: never
-    presentWhen?: never
+    activeWhen?: never
     readAll?: never
     read?: never
     write?: never
@@ -301,7 +301,7 @@ export type WrappedKeyedFieldConfig<
   Model?: never
   ChildModel?: never
   parentMessage?: never
-  presentWhen?: never
+  activeWhen?: never
   readAll?: never
   read?: never
   write?: never
@@ -352,7 +352,8 @@ const isOptionalField = (fieldSchema: unknown): boolean => {
   )
 }
 
-type RuntimeWrappedStorage =
+/** @internal Passive Schema metadata for a keyed array or optional-slot relationship. */
+export type KeyedFieldRelationshipStorage =
   | Readonly<{
       keyFields: object
       childField: string
@@ -369,7 +370,7 @@ const wrappedStorageOf = (
   childModel: unknown,
   field: string,
   childField: unknown,
-): Extract<RuntimeWrappedStorage, Readonly<{ childField: string }>> => {
+): Extract<KeyedFieldRelationshipStorage, Readonly<{ childField: string }>> => {
   const parentFields = fieldsOf(parentModel)
   const storageSchema = Predicate.isObject(parentFields)
     ? Reflect.get(parentFields, field)
@@ -440,6 +441,37 @@ const wrappedStorageOf = (
     keyFields: itemFields,
     childField,
     kind: isOptionStorage ? 'Option' : 'Array',
+  }
+}
+
+/** @internal Classifies keyed array and optional-slot field storage without
+ * reading a Model value or invoking any Binding callbacks. */
+export const keyedFieldRelationshipOf = (
+  parentModel: unknown,
+  childModel: unknown,
+  field: unknown,
+  childField?: unknown,
+): KeyedFieldRelationshipStorage => {
+  if (!Predicate.isString(field)) {
+    throw new Error(
+      '[foldkit] A keyed field relationship must select a declared parent Struct Model field.',
+    )
+  }
+
+  if (childField !== undefined) {
+    return wrappedStorageOf(parentModel, childModel, field, childField)
+  }
+
+  if (!isKeyedFieldStorage(parentModel, childModel, field)) {
+    throw new Error(
+      '[foldkit] A keyed field relationship without childField requires an exact array of the child Model.',
+    )
+  }
+
+  return {
+    keyFields: fieldsOf(childModel),
+    childField: undefined,
+    kind: 'Array',
   }
 }
 
@@ -573,7 +605,7 @@ export const normalizeKeyedFieldConfig = (config: unknown): unknown => {
     'read',
     'write',
     'writeAt',
-    'presentWhen',
+    'activeWhen',
     'parentMessage',
     'fromParentMessage',
     'init',
@@ -596,7 +628,10 @@ export const normalizeKeyedFieldConfig = (config: unknown): unknown => {
     )
   }
 
-  const storage: RuntimeWrappedStorage = Object.hasOwn(config, 'childField')
+  const storage: KeyedFieldRelationshipStorage = Object.hasOwn(
+    config,
+    'childField',
+  )
     ? wrappedStorageOf(
         Model,
         ChildModel,
@@ -659,12 +694,12 @@ export const normalizeKeyedFieldConfig = (config: unknown): unknown => {
     'read',
     'write',
     'writeAt',
-    'presentWhen',
+    'activeWhen',
     'parentMessage',
   ]) {
     if (Object.hasOwn(config, adapterField)) {
       throw new Error(
-        '[foldkit] A keyed field Binding cannot also supply custom accessors, presentWhen, or a parentMessage mapping.',
+        '[foldkit] A keyed field Binding cannot also supply custom accessors, activeWhen, or a parentMessage mapping.',
       )
     }
   }

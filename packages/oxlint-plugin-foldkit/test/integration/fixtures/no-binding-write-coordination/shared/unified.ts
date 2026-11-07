@@ -15,4 +15,4 @@ export const ParentBlock = Block.make('UnifiedWriterParent', {
   Message: Schema.Never,
   Init: Schema.Tuple([]),
 })
-export const { makeBinding } = ParentBlock
+export const { makeCustomBinding } = ParentBlock

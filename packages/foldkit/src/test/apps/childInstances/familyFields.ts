@@ -60,18 +60,24 @@ export const FamilyDefinition = Block.makeDefinition(
     Init: Schema.Tuple([]),
   },
 )
-export const NumbersBinding = FamilyDefinition.makeBinding(NumberFamily.block, {
-  field: 'numbers',
-  placement: 'numbers',
-  key: 'key',
-  childField: 'model',
-})
-export const StringsBinding = FamilyDefinition.makeBinding(StringFamily.block, {
-  field: 'strings',
-  placement: 'strings',
-  key: 'key',
-  childField: 'model',
-})
+export const NumbersBinding = FamilyDefinition.makeKeyedArrayBinding(
+  NumberFamily.block,
+  {
+    field: 'numbers',
+    placement: 'numbers',
+    key: 'key',
+    childField: 'model',
+  },
+)
+export const StringsBinding = FamilyDefinition.makeKeyedArrayBinding(
+  StringFamily.block,
+  {
+    field: 'strings',
+    placement: 'strings',
+    key: 'key',
+    childField: 'model',
+  },
+)
 const FamilyComposition = FamilyDefinition.makeComposition({
   bindings: [NumbersBinding, StringsBinding],
 })

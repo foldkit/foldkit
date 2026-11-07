@@ -115,11 +115,11 @@ const makeFixture = (
     Read: ({ value }) =>
       Definition.makeFieldsStep(() => ({ received: Array.append(value) })),
   })
-  const FirstBinding = Definition.makeBinding(ChildBlock, {
+  const FirstBinding = Definition.makeRequiredFieldBinding(ChildBlock, {
     field: 'first',
     init: { contextToArgs: () => [] },
   }).withOutMessagePolicy({ fold: foldRead })
-  const SecondBinding = Definition.makeBinding(ChildBlock, {
+  const SecondBinding = Definition.makeRequiredFieldBinding(ChildBlock, {
     field: 'second',
     init: { contextToArgs: () => [] },
   })
@@ -394,7 +394,7 @@ describe('Binding construction lifetimes', () => {
       Message: defineMessageUnion({}),
     })
     const binding = Reflect.apply(
-      ParentDefinition.makeBinding,
+      ParentDefinition.makeRequiredFieldBinding,
       ParentDefinition,
       [ChildBlock, { field: 'child' }],
     )

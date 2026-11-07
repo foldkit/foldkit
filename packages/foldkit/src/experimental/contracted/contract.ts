@@ -72,6 +72,7 @@ import type {
   ViewContract,
 } from '../constructed/contract.js'
 import type { InMessagePlanSourceValidation } from '../constructed/planSourceValidation.js'
+import type { RelationshipConstructors } from '../constructed/relationshipAuthoring.js'
 import type {
   AuthoringSource,
   Plan,
@@ -1323,35 +1324,43 @@ export interface DefinitionFields<
   OutMessageSchema extends AnySchema | undefined,
   ChildInitContextSchema extends AnySchema | undefined,
   Config extends ContractConfiguration,
-> extends Pick<
-  ConstructedDefinition<
-    NominalId<Id, Config['key']>,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    ChildInitContextSchema,
-    'Provided'
-  >,
-  | 'owner'
-  | 'Model'
-  | 'Message'
-  | 'mounts'
-  | 'bindings'
-  | 'makeStep'
-  | 'makeFieldsStep'
-  | 'makeNoopStep'
-  | 'makeCommandsStep'
-  | 'makeSubscriptions'
-  | 'makeManagedResources'
-  | 'makeBinding'
-  | 'makeMapBinding'
-  | 'makeOutMessageFold'
-  | 'makeOutMessageForward'
-  | 'makeCommand'
-  | 'makeMount'
-  | 'makeMountStream'
-  | 'makeResource'
-> {
+>
+  extends
+    Pick<
+      ConstructedDefinition<
+        NominalId<Id, Config['key']>,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        ChildInitContextSchema,
+        'Provided'
+      >,
+      | 'owner'
+      | 'Model'
+      | 'Message'
+      | 'mounts'
+      | 'bindings'
+      | 'makeStep'
+      | 'makeFieldsStep'
+      | 'makeNoopStep'
+      | 'makeCommandsStep'
+      | 'makeSubscriptions'
+      | 'makeManagedResources'
+      | 'makeOutMessageFold'
+      | 'makeOutMessageForward'
+      | 'makeCommand'
+      | 'makeMount'
+      | 'makeMountStream'
+      | 'makeResource'
+    >,
+    RelationshipConstructors<
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      ChildInitContextSchema,
+      'Provided',
+      Owner<NominalId<Id, Config['key']>, true>
+    > {
   readonly [DescriptorTypeId]: DeclaredFacts<
     MessageSchema,
     OutMessageSchema,

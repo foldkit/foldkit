@@ -61,13 +61,13 @@ const ParentDefinition = makeDefinition('BindingMatcherParent', {
   Message: Schema.Never,
 })
 
-const LeftBinding = ParentDefinition.makeBinding(ChildBlock, {
+const LeftBinding = ParentDefinition.makeCustomBinding(ChildBlock, {
   placement: 'Left',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
 })
 
-const RightBinding = ParentDefinition.makeBinding(ChildBlock, {
+const RightBinding = ParentDefinition.makeCustomBinding(ChildBlock, {
   placement: 'Right',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,

@@ -27,30 +27,29 @@ const DeclarationRejectedParentDefinition = Block.makeDefinition(
   },
 )
 const UnregisteredChildBinding =
-  DeclarationRejectedParentDefinition.makeBinding(ChildBlock, {
+  DeclarationRejectedParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
   }).withOutMessagePolicy({
     fold: () =>
       DeclarationRejectedParentDefinition.makeStep(model => ({ model })),
   })
 
-const MissingPolicyBinding = DeclarationRejectedParentDefinition.makeBinding(
-  ChildBlock,
-  {
+const MissingPolicyBinding =
+  DeclarationRejectedParentDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
-  },
-)
+  })
 // @ts-expect-error A child with OutMessages requires an OutMessage policy before Composition.
 DeclarationRejectedParentDefinition.makeComposition({
   bindings: [MissingPolicyBinding],
 })
 
-const PlainChildBinding = DeclarationRejectedParentDefinition.makeBinding(
-  PlainChildBlock,
-  {
-    field: 'child',
-  },
-)
+const PlainChildBinding =
+  DeclarationRejectedParentDefinition.makeRequiredFieldBinding(
+    PlainChildBlock,
+    {
+      field: 'child',
+    },
+  )
 // @ts-expect-error A child without OutMessages forbids an OutMessage policy.
 PlainChildBinding.withOutMessagePolicy({
   fold: () => (model: typeof ParentModel.Type) => ({ model }),
@@ -69,7 +68,7 @@ declare const optionalPolicyConfig: Readonly<{
   field: 'child'
   outMessage?: ChildPolicy
 }>
-DeclarationRejectedParentDefinition.makeBinding(
+DeclarationRejectedParentDefinition.makeRequiredFieldBinding(
   ChildBlock,
   // @ts-expect-error A potentially absent policy cannot handle a child's OutMessages.
   optionalPolicyConfig,
@@ -84,7 +83,7 @@ const configWithExtraField = {
   unexpected: true,
 }
 // @ts-expect-error Captured generated configs retain excess-field rejection.
-DeclarationRejectedParentDefinition.makeBinding(
+DeclarationRejectedParentDefinition.makeRequiredFieldBinding(
   ChildBlock,
   configWithExtraField,
 )
@@ -97,32 +96,30 @@ const DeclarationRejectedForwardingDefinition = Block.makeDefinition(
     OutMessage: ParentOutMessage,
   },
 )
-const WrongForwardBinding = DeclarationRejectedForwardingDefinition.makeBinding(
-  ChildBlock,
-  {
+const WrongForwardBinding =
+  DeclarationRejectedForwardingDefinition.makeRequiredFieldBinding(ChildBlock, {
     field: 'child',
-  },
-).withOutMessagePolicy({
-  forward: (_outMessage: typeof ChildBlock.OutMessage.Type) =>
-    ChildBlock.OutMessage.SelectedValue({ value: 'foreign' }),
-})
+  }).withOutMessagePolicy({
+    forward: (_outMessage: typeof ChildBlock.OutMessage.Type) =>
+      ChildBlock.OutMessage.SelectedValue({ value: 'foreign' }),
+  })
 // @ts-expect-error Forwarded OutMessages must belong to the parent.
 DeclarationRejectedForwardingDefinition.makeComposition({
   bindings: [WrongForwardBinding],
 })
 
 // @ts-expect-error Authored parent Message constructors are no longer Binding configuration.
-DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
+DeclarationRejectedParentDefinition.makeRequiredFieldBinding(PlainChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.ForeignMessage,
 })
 // @ts-expect-error Authored child-to-parent Message mappers are no longer Binding configuration.
-DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
+DeclarationRejectedParentDefinition.makeRequiredFieldBinding(PlainChildBlock, {
   field: 'child',
   toParentMessage: () => ParentMessage.ForeignMessage(),
 })
 // @ts-expect-error Authored parent-to-child Message routes are no longer Binding configuration.
-DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
+DeclarationRejectedParentDefinition.makeRequiredFieldBinding(PlainChildBlock, {
   field: 'child',
   fromParentMessage: {
     parentMessage: ParentMessage.ForeignMessage,
@@ -131,7 +128,7 @@ DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
   },
 })
 
-DeclarationRejectedParentDefinition.makeBinding(ChildBlock, {
+DeclarationRejectedParentDefinition.makeCustomKeyedBinding(ChildBlock, {
   readAll: model => model.entries,
   // @ts-expect-error Generated keyed delivery requires a stable string or number key.
   key: entry => ({ id: entry.id }),
@@ -162,16 +159,17 @@ const whenNamedEntryWithNumberKey = (
   _id: number,
 ) => true
 
-DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
+DeclarationRejectedParentDefinition.makeCustomKeyedBinding(PlainChildBlock, {
   readAll: readNamedEntries,
+  // @ts-expect-error writeAt receives the exact string returned by key.
   key: namedEntryKey,
+  // @ts-expect-error The key Schema retains the selector's exact string type.
   keySchema: NamedEntry.fields.id,
   read: readNamedEntry,
-  // @ts-expect-error writeAt receives the exact string returned by key.
   writeAt: writeAtNumberKey,
 })
 
-DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
+DeclarationRejectedParentDefinition.makeCustomKeyedBinding(PlainChildBlock, {
   readAll: readNamedEntries,
   key: namedEntryKey,
   keySchema: NamedEntry.fields.id,
@@ -183,7 +181,7 @@ DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
   },
 })
 
-DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
+DeclarationRejectedParentDefinition.makeCustomKeyedBinding(PlainChildBlock, {
   readAll: readNamedEntries,
   key: namedEntryKey,
   // @ts-expect-error The key Schema must decode to the selector's key type.
@@ -193,7 +191,7 @@ DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
 })
 
 // @ts-expect-error Generated general keyed Bindings require an exact key Schema.
-DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
+DeclarationRejectedParentDefinition.makeCustomKeyedBinding(PlainChildBlock, {
   readAll: readNamedEntries,
   key: namedEntryKey,
   read: readNamedEntry,
@@ -209,16 +207,17 @@ ChildBlock.connection
 // @ts-expect-error Keyed Bindings are also created by the parent.
 ChildBlock.keyedConnection
 
-const AlternativeChildBinding = DeclarationRejectedParentDefinition.makeBinding(
-  PlainChildBlock,
-  {
-    field: 'child',
-    placement: 'alternativeChild',
-    init: false,
-  },
-)
+const AlternativeChildBinding =
+  DeclarationRejectedParentDefinition.makeRequiredFieldBinding(
+    PlainChildBlock,
+    {
+      field: 'child',
+      placement: 'alternativeChild',
+      init: false,
+    },
+  )
 const AlternativeEntriesBinding =
-  DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
+  DeclarationRejectedParentDefinition.makeCustomKeyedBinding(PlainChildBlock, {
     readAll: model => model.entries,
     key: entry => entry.id,
     keySchema: Entry.fields.id,
@@ -226,7 +225,7 @@ const AlternativeEntriesBinding =
     writeAt: model => model,
   })
 const AlternativeNamedEntriesBinding =
-  DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
+  DeclarationRejectedParentDefinition.makeCustomKeyedBinding(PlainChildBlock, {
     placement: 'alternativeNamedEntries',
     readAll: model => model.namedEntries,
     key: entry => entry.id,
@@ -263,7 +262,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-ApplicationDefinition.makeBinding(ChildBlock, {
+ApplicationDefinition.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',
 }).withOutMessagePolicy({
   // @ts-expect-error An Application cannot forward an OutMessage to a parent.

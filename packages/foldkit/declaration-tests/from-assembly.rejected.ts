@@ -35,7 +35,10 @@ Block.assemble(() =>
 export const ErasedAsBlock: Block.AnyBlock = ErasedAnnotation
 
 // @ts-expect-error The never-producing annotation cannot register a child and erase Store.
-ParentDefinition.makeBinding(ErasedAnnotation, { field: 'child', init: false })
+ParentDefinition.makeRequiredFieldBinding(ErasedAnnotation, {
+  field: 'child',
+  init: false,
+})
 
 // @ts-expect-error A never-producing annotation cannot complete a Program.
 Program.makeElement({ block: ErasedAnnotation, container: null })

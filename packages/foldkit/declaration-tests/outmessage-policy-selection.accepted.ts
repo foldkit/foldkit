@@ -119,16 +119,25 @@ export const ReflectSelection = ParentDefinition.makeCommand(
   },
 )
 
-export const LeftBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'left',
-})
-export const RightBinding = ParentDefinition.makeBinding(ChildBlock, {
-  field: 'right',
-})
-export const RefinedBinding = ParentDefinition.makeBinding(RefinedChildBlock, {
-  field: 'left',
-  placement: 'refined',
-})
+export const LeftBinding = ParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'left',
+  },
+)
+export const RightBinding = ParentDefinition.makeRequiredFieldBinding(
+  ChildBlock,
+  {
+    field: 'right',
+  },
+)
+export const RefinedBinding = ParentDefinition.makeRequiredFieldBinding(
+  RefinedChildBlock,
+  {
+    field: 'left',
+    placement: 'refined',
+  },
+)
 
 export const exactContextAnnotatedFold: Block.OutMessageFold<
   typeof RefinedChildBlock.OutMessage.Type,
@@ -290,21 +299,24 @@ export const LeftBindingWithReselectedOutMessagePolicy =
     forward: forwardLeftOutMessage,
   })
 
-export const EntriesBinding = ParentDefinition.makeBinding(ChildBlock, {
-  readAll: model => model.entries,
-  key: entry => entry.id,
-  keySchema: Entry.fields.id,
-  read: entry => entry.child,
-  writeAt: (model, id, nextChild) =>
-    Struct.modifyFields(model, {
-      entries: entries =>
-        Array.map(entries, entry =>
-          entry.id === id
-            ? Struct.modifyFields(entry, { child: () => nextChild })
-            : entry,
-        ),
-    }),
-})
+export const EntriesBinding = ParentDefinition.makeCustomKeyedBinding(
+  ChildBlock,
+  {
+    readAll: model => model.entries,
+    key: entry => entry.id,
+    keySchema: Entry.fields.id,
+    read: entry => entry.child,
+    writeAt: (model, id, nextChild) =>
+      Struct.modifyFields(model, {
+        entries: entries =>
+          Array.map(entries, entry =>
+            entry.id === id
+              ? Struct.modifyFields(entry, { child: () => nextChild })
+              : entry,
+          ),
+      }),
+  },
+)
 export const EntriesBindingWithOutMessagePolicy =
   EntriesBinding.withOutMessagePolicy({
     fold: (id, outMessage, context) => {

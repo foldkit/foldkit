@@ -344,7 +344,7 @@ void generatedChoiceDelivery
 
 // @ts-expect-error Emitted wrapped keyed policies must accept every collection key.
 // oxfmt-ignore
-DeclarationWrappedKeyedFieldParentDefinition.makeBinding(Choice.block, { field: 'choices', key: 'id', childField: 'choice', }).withOutMessagePolicy({ fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => DeclarationWrappedKeyedFieldParentDefinition.makeStep(model => ({ model })) })
+DeclarationWrappedKeyedFieldParentDefinition.makeKeyedArrayBinding(Choice.block, { field: 'choices', key: 'id', childField: 'choice', }).withOutMessagePolicy({ fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => DeclarationWrappedKeyedFieldParentDefinition.makeStep(model => ({ model })) })
 
 // @ts-expect-error Emitted wrapped Bindings preserve branded keys.
 ChoicesBinding.refresh('first')

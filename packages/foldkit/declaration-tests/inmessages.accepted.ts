@@ -199,9 +199,12 @@ export const ParentDefinition = Block.makeDefinition('InMessagesParent', {
   effects: { services: [Storage], Error: HandlerUnavailable },
 })
 export const ParentContract = ParentDefinition.contract
-export const CounterBinding = ParentDefinition.makeBinding(CounterContract, {
-  field: 'counter',
-}).withOutMessagePolicy({
+export const CounterBinding = ParentDefinition.makeRequiredFieldBinding(
+  CounterContract,
+  {
+    field: 'counter',
+  },
+).withOutMessagePolicy({
   forward: ParentDefinition.makeOutMessageForward(CounterContract, {
     Reported: ({ label }) => ParentOutMessage.ChildReported({ label }),
   }),

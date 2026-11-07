@@ -31,7 +31,7 @@ const DraftParentDefinition = Block.makeDefinition(
 )
 
 // @ts-expect-error Bindings accept completed Blocks, not assembly drafts.
-DraftParentDefinition.makeBinding(ViewedDraft, { field: 'child' })
+DraftParentDefinition.makeRequiredFieldBinding(ViewedDraft, { field: 'child' })
 
 // @ts-expect-error Element Programs accept completed Blocks, not assembly drafts.
 Program.makeElement({ block: ViewedDraft, container: null })

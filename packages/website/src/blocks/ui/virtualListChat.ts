@@ -5,11 +5,11 @@ import { modifyFields } from 'foldkit/struct'
 import { VirtualList } from '@foldkit/ui'
 
 import {
-  makeBinding,
   makeCommand,
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
   makeStep,
 } from './block'
 import { ChatVirtualListBlock, HistoryModeRadioGroupBlock } from './controls'
@@ -125,14 +125,17 @@ export const FetchVirtualListChatHistory = makeCommand(
   },
 )
 
-const BaseVirtualListChatDemoBinding = makeBinding(ChatVirtualListBlock, {
-  field: 'virtualListChatDemo',
-  init: {
-    contextToArgs: () => [
-      virtualListChatInitConfig(VirtualListChatHistorySource.Unbounded()),
-    ],
+const BaseVirtualListChatDemoBinding = makeRequiredFieldBinding(
+  ChatVirtualListBlock,
+  {
+    field: 'virtualListChatDemo',
+    init: {
+      contextToArgs: () => [
+        virtualListChatInitConfig(VirtualListChatHistorySource.Unbounded()),
+      ],
+    },
   },
-})
+)
 
 export const requestVirtualListChatHistory = (
   requestedCount: number,
@@ -261,7 +264,7 @@ const selectVirtualListChatHistoryMode = (mode: VirtualListChatHistoryMode) =>
     })
   })
 
-export const VirtualListChatHistoryModeGroupBinding = makeBinding(
+export const VirtualListChatHistoryModeGroupBinding = makeRequiredFieldBinding(
   HistoryModeRadioGroupBlock,
   {
     field: 'virtualListChatHistoryModeGroup',

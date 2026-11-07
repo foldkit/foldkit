@@ -177,12 +177,10 @@ const DeclarationViewInputsParentDefinition = Block.makeDefinition(
   },
 )
 
-export const ChildBinding = DeclarationViewInputsParentDefinition.makeBinding(
-  block,
-  {
+export const ChildBinding =
+  DeclarationViewInputsParentDefinition.makeRequiredFieldBinding(block, {
     field: 'child',
-  },
-)
+  })
 
 export const childConfig = ChildBinding.embedView({
   slotId: 'child',

@@ -1,5 +1,5 @@
 import { Option, Record, pipe } from 'effect'
-import { makeInitIfMissingStep } from 'foldkit/bindingInit'
+import { makeInitIfMissingStep } from 'foldkit/binding'
 
 import { EntriesByIdBinding } from './blockKeyedMapFields'
 

@@ -4,10 +4,10 @@ import { modifyFields } from 'foldkit/struct'
 import { DragAndDrop } from '@foldkit/ui'
 
 import {
-  makeBinding,
   makeFieldsStep,
   makeNoopStep,
   makeOutMessageFold,
+  makeRequiredFieldBinding,
 } from '../block'
 import type { DemoColumn } from '../domain'
 
@@ -50,7 +50,7 @@ const reorderColumns = (
   })
 }
 
-export const DragAndDropDemoBinding = makeBinding(
+export const DragAndDropDemoBinding = makeRequiredFieldBinding(
   DragAndDrop.DragAndDropBlock,
   {
     field: 'dragAndDropDemo',

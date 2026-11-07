@@ -402,7 +402,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   ChildInitContext: Flags,
 })
 
-const InspectorTabsBinding = ApplicationDefinition.makeBinding(
+const InspectorTabsBinding = ApplicationDefinition.makeRequiredFieldBinding(
   InspectorTabsBlock,
   {
     field: 'inspectorTabs',
@@ -417,20 +417,19 @@ const InspectorTabsBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-const BlockFilterListboxBinding = ApplicationDefinition.makeBinding(
-  BlockFilterListboxBlock,
-  {
+const BlockFilterListboxBinding =
+  ApplicationDefinition.makeRequiredFieldBinding(BlockFilterListboxBlock, {
     field: 'blockFilterListbox',
     init: { contextToArgs: () => [{ id: BLOCK_FILTER_ID }] },
-  },
-).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(BlockFilterListboxBlock, {
-    Selected: ({ value }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
-        maybeBlockFilter: () => Option.liftPredicate(value, String.isNonEmpty),
-      })),
-  }),
-})
+  }).withOutMessagePolicy({
+    fold: ApplicationDefinition.makeOutMessageFold(BlockFilterListboxBlock, {
+      Selected: ({ value }) =>
+        ApplicationDefinition.makeFieldsStep(() => ({
+          maybeBlockFilter: () =>
+            Option.liftPredicate(value, String.isNonEmpty),
+        })),
+    }),
+  })
 
 type DevToolsScrubberBlock = ReturnType<typeof Slider.forRoot>
 
@@ -440,7 +439,7 @@ const makeApplicationComposition = (
   // NOTE: Pointer Messages update the thumb immediately, but jumping to and
   // inspecting the corresponding state is expensive. Keep only the latest host
   // index until TickedScrubFrame flushes one navigation on the next frame.
-  const ScrubberSliderBinding = ApplicationDefinition.makeBinding(
+  const ScrubberSliderBinding = ApplicationDefinition.makeRequiredFieldBinding(
     scrubberSliderBlock,
     {
       field: 'scrubberSlider',

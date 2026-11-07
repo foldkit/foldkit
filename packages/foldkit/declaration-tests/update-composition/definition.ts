@@ -38,6 +38,5 @@ export const {
   makeFieldsStep,
   makeCommandsStep,
   makeNoopStep,
-  makeMapBinding,
   makeComposition,
 } = ApplicationBlock
