@@ -157,6 +157,7 @@ export const makeRenderer = <Model, Message>({
       enqueueMessage,
       enqueueMessageEffect,
       drainPendingMessages,
+      drainDeferredNow,
       resetDrainBudget,
       isAnyMessageDeferred,
     } = messageQueue
@@ -187,6 +188,21 @@ export const makeRenderer = <Model, Message>({
     // from an ordinary frame that was already queued when jumpTo installed
     // the historical view.
     let isLiveViewRestorePending = false
+    // NOTE: a render frame requested ahead of any change, from a task
+    // after the frame that last rendered (see `armNextRenderFrame`).
+    // `scheduleRenderFrame` requests no frame of its own while one is armed.
+    let isRenderFrameArmed = false
+    let maybeArmRenderFrameChannel: MessageChannel | null = null
+
+    yield* Effect.addFinalizer(() =>
+      Effect.sync(() => {
+        if (maybeArmRenderFrameChannel !== null) {
+          maybeArmRenderFrameChannel.port1.close()
+          maybeArmRenderFrameChannel.port2.close()
+          maybeArmRenderFrameChannel = null
+        }
+      }),
+    )
 
     // NOTE: the Model behind the DOM currently on screen, which is what a
     // View Transition animates away from. Seeded with `initModel` because
@@ -676,9 +692,16 @@ export const makeRenderer = <Model, Message>({
     // would strand any `Render.afterCommit` registered against it, and
     // the Dom helpers that gate on it would never run their DOM work.
     const renderFramePlain = (): void => {
+      if (isLiveModelBehindQueue()) {
+        drainDeferredNow()
+      }
       // NOTE: retain the scheduled frame's pending commit while the drain waits.
       if (isLiveModelBehindQueue()) {
         requestAnimationFrame(renderFramePlain)
+        return
+      }
+      isRenderFrameArmed = false
+      if (!isRenderFrameScheduled) {
         return
       }
       isRenderFrameScheduled = false
@@ -717,11 +740,45 @@ export const makeRenderer = <Model, Message>({
       // the render runs later, inside the transition's update callback.
       if (Option.isNone(maybeResolvedViewTransition)) {
         runRenderFrameBody()
+        armNextRenderFrame()
         return
       }
       if (!startFrameViewTransition(maybeResolvedViewTransition.value)) {
         runRenderFrameBody()
       }
+      armNextRenderFrame()
+    }
+
+    // NOTE: a `requestAnimationFrame` call made while a frame's callbacks
+    // run belongs to the next frame. An animation frame Subscription, such
+    // as `Subscription.animationFrameEntry`, requests its next tick and
+    // then its Message is processed, so the render that Message schedules
+    // runs in the next frame, behind the next tick, and draws both ticks at
+    // once. Only every other frame draws. So after a frame renders, the
+    // next frame's render callback is requested from a task after this
+    // frame, which puts it behind every callback requested during this
+    // frame, the Subscription's included. In the next frame the tick runs
+    // first, its Message marks a render, and the armed callback draws it in
+    // the same frame. An armed callback that finds no render scheduled
+    // returns without arming again, so an idle runtime stops requesting
+    // frames.
+    const armNextRenderFrame = (): void => {
+      if (maybeArmRenderFrameChannel === null) {
+        maybeArmRenderFrameChannel = new MessageChannel()
+        maybeArmRenderFrameChannel.port2.onmessage = () => {
+          if (
+            isRenderFrameArmed ||
+            isRenderFrameScheduled ||
+            status.isRuntimeDisposed ||
+            status.isCrashed
+          ) {
+            return
+          }
+          isRenderFrameArmed = true
+          requestAnimationFrame(renderFramePlain)
+        }
+      }
+      maybeArmRenderFrameChannel.port1.postMessage(null)
     }
 
     // NOTE: render frames run as plain JavaScript inside the
@@ -739,6 +796,9 @@ export const makeRenderer = <Model, Message>({
       }
       isRenderFrameScheduled = true
       commitNotifier.markCommitPending()
+      if (isRenderFrameArmed) {
+        return
+      }
       requestAnimationFrame(renderFramePlain)
     }
 
