@@ -44,12 +44,8 @@ const runConstructorOperation = <Value>(operation: () => Value): Value => {
   }
 }
 
-const isDirectlyCopyable = (ast: SchemaAST.AST): boolean => {
-  if (
-    ast.checks !== undefined ||
-    ast.encoding !== undefined ||
-    ast.context !== undefined
-  ) {
+const isDirectlyCopyableType = (ast: SchemaAST.AST): boolean => {
+  if (ast.checks !== undefined || ast.encoding !== undefined) {
     return false
   }
 
@@ -82,20 +78,51 @@ const isDirectlyCopyable = (ast: SchemaAST.AST): boolean => {
   )
 }
 
-const getDirectPropertyNames = (
+const isDirectlyCopyable = (ast: SchemaAST.AST): boolean =>
+  ast.context === undefined && isDirectlyCopyableType(ast)
+
+const acceptsUndefined = (ast: SchemaAST.AST): boolean =>
+  Match.value(ast).pipe(
+    Match.withReturnType<boolean>(),
+    Match.tag('Undefined', 'Void', 'Unknown', 'Any', () => true),
+    Match.tag('Union', ({ types }) => types.some(acceptsUndefined)),
+    Match.orElse(() => false),
+  )
+
+type DirectPropertyKind = 'Required' | 'Optional' | 'ExactOptional'
+
+type DirectProperty = Readonly<{
+  name: PropertyKey
+  kind: DirectPropertyKind
+}>
+
+const getDirectProperties = (
   propertySignatures: ReadonlyArray<SchemaAST.PropertySignature>,
-): Array<PropertyKey> | undefined => {
-  const names: Array<PropertyKey> = []
+): Array<DirectProperty> | undefined => {
+  const properties: Array<DirectProperty> = []
 
   for (const { name, type } of propertySignatures) {
-    if (name !== '_tag' && !isDirectlyCopyable(SchemaAST.toType(type))) {
+    const typeAst = SchemaAST.toType(type)
+    const { context } = typeAst
+
+    if (name === '_tag' || isDirectlyCopyable(typeAst)) {
+      properties.push({ name, kind: 'Required' })
+    } else if (
+      context !== undefined &&
+      context.isOptional &&
+      context.constructorDefault === undefined &&
+      isDirectlyCopyableType(typeAst)
+    ) {
+      properties.push({
+        name,
+        kind: acceptsUndefined(typeAst) ? 'Optional' : 'ExactOptional',
+      })
+    } else {
       return undefined
     }
-
-    names.push(name)
   }
 
-  return names
+  return properties
 }
 
 const makeCallable = <Tag extends string, Fields extends Schema.Struct.Fields>(
@@ -103,16 +130,16 @@ const makeCallable = <Tag extends string, Fields extends Schema.Struct.Fields>(
   fields: Fields,
 ): CallableTaggedStruct<Tag, Fields> => {
   const schema = Schema.TaggedStruct(tag, fields)
-  const propertyNames = Object.hasOwn(fields, '_tag')
+  const directProperties = Object.hasOwn(fields, '_tag')
     ? undefined
-    : getDirectPropertyNames(schema.ast.propertySignatures)
+    : getDirectProperties(schema.ast.propertySignatures)
   const make = (value: unknown) =>
     schema.make(
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       (value ?? {}) as Parameters<typeof schema.make>[0],
     )
   const construct =
-    propertyNames !== undefined
+    directProperties !== undefined
       ? (value: unknown): Record<PropertyKey, unknown> => {
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
           const input = (value ?? {}) as Record<PropertyKey, unknown>
@@ -122,14 +149,24 @@ const makeCallable = <Tag extends string, Fields extends Schema.Struct.Fields>(
 
           const output: Record<PropertyKey, unknown> = {}
 
-          for (const name of propertyNames) {
-            const inputValue = runConstructorOperation(() => {
-              const hasProperty =
-                name === '__proto__'
-                  ? Object.hasOwn(input, name)
-                  : Reflect.has(input, name)
-              return hasProperty ? input[name] : undefined
-            })
+          for (const { name, kind } of directProperties) {
+            const hasProperty = runConstructorOperation(() =>
+              name === '__proto__'
+                ? Object.hasOwn(input, name)
+                : Reflect.has(input, name),
+            )
+
+            if (kind !== 'Required' && !hasProperty) {
+              continue
+            }
+
+            const inputValue = runConstructorOperation(() =>
+              hasProperty ? input[name] : undefined,
+            )
+
+            if (kind === 'ExactOptional' && inputValue === undefined) {
+              return make(value)
+            }
 
             if (name === '_tag') {
               if (inputValue !== undefined && inputValue !== tag) {
