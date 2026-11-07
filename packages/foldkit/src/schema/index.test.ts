@@ -838,7 +838,64 @@ describe('makeCallable', () => {
     expect(constructed.value).not.toBe(option)
   })
 
-  it('falls back to make for field context', () => {
+  it('falls back to make for required field context', () => {
+    const ChangedLabel = taggedStruct('ChangedLabel', {
+      label: Schema.String.annotateKey({ description: 'The new label' }),
+    })
+
+    expect(() =>
+      Reflect.apply(ChangedLabel, undefined, [{ label: 1 }]),
+    ).toThrow('Schema validation failed')
+    expect(ChangedLabel({ label: 'Ada' })).toStrictEqual({
+      _tag: 'ChangedLabel',
+      label: 'Ada',
+    })
+  })
+
+  it('matches make for optional keys present, absent, and undefined', () => {
+    const ChangedRect = taggedStruct('ChangedRect', {
+      width: Schema.Number,
+      fill: Schema.optional(Schema.String),
+      label: Schema.optionalKey(Schema.String),
+      height: Schema.Number,
+    })
+    const inputs = [
+      { width: 1, height: 2 },
+      { height: 2, fill: '#fff', width: 1, label: 'box' },
+      { width: 1, fill: undefined, height: 2 },
+      { label: 'box', width: 1, height: 2 },
+    ]
+
+    for (const input of inputs) {
+      expectSameObjectStructure(ChangedRect(input), ChangedRect.make(input))
+    }
+  })
+
+  it('matches make for an optional key inherited from the input prototype', () => {
+    const ChangedFill = taggedStruct('ChangedFill', {
+      fill: Schema.optional(Schema.String),
+    })
+    const input: { readonly fill?: string } = Object.create({ fill: '#fff' })
+
+    expectSameObjectStructure(ChangedFill(input), ChangedFill.make(input))
+  })
+
+  it('accepts a wrong optional field type that make rejects', () => {
+    const ChangedFill = taggedStruct('ChangedFill', {
+      fill: Schema.optional(Schema.String),
+    })
+    const input = { fill: 1 }
+
+    expect(() => Reflect.apply(ChangedFill.make, undefined, [input])).toThrow(
+      'Schema validation failed',
+    )
+    expect(Reflect.apply(ChangedFill, undefined, [input])).toStrictEqual({
+      _tag: 'ChangedFill',
+      fill: 1,
+    })
+  })
+
+  it('falls back to make for undefined in an exact optional key', () => {
     const ChangedLabel = taggedStruct('ChangedLabel', {
       label: Schema.optionalKey(Schema.String),
     })
@@ -846,6 +903,36 @@ describe('makeCallable', () => {
     expect(Reflect.apply(ChangedLabel, undefined, [{}])).toStrictEqual({
       _tag: 'ChangedLabel',
     })
+    expect(() =>
+      Reflect.apply(ChangedLabel, undefined, [{ label: undefined }]),
+    ).toThrow('Schema validation failed')
+  })
+
+  it('falls back to make for an optional key with a constructor default', () => {
+    const ChangedSize = taggedStruct('ChangedSize', {
+      size: Schema.optionalKey(Schema.Number).pipe(
+        Schema.withConstructorDefault(Effect.succeed(7)),
+      ),
+    })
+
+    expect(Reflect.apply(ChangedSize, undefined, [{}])).toStrictEqual({
+      _tag: 'ChangedSize',
+      size: 7,
+    })
+    expect(ChangedSize({ size: 3 })).toStrictEqual({
+      _tag: 'ChangedSize',
+      size: 3,
+    })
+  })
+
+  it('falls back to make for a checked optional key', () => {
+    const ChangedLabel = taggedStruct('ChangedLabel', {
+      label: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+    })
+
+    expect(() => ChangedLabel({ label: '' })).toThrow(
+      'Schema validation failed',
+    )
   })
 
   it('matches make when obsolete value-shaping parse options are annotated', () => {
