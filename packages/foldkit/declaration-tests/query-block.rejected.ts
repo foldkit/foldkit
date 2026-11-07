@@ -21,7 +21,7 @@ const RejectedDeclarationQueryParentDefinition = Block.makeDefinition(
     key: RejectedParentKey,
     Model: ParentModel,
     Message: ParentMessage,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 

@@ -8,7 +8,7 @@ import type { ViewInputs } from './viewInputs'
 export const SnippetCopyKey = Symbol('SnippetCopy')
 export const SnippetCopyBlock = Block.make('SnippetCopy', {
   key: SnippetCopyKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,

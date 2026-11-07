@@ -16,7 +16,7 @@ export const ConfirmBlock = Block.make('Confirm', {
   key: ConfirmKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 
@@ -71,10 +71,10 @@ const view = ConfirmComposition.makeView((model, h) =>
 
 export const layer = ConfirmBlock.makeLayer(
   Effect.gen(function* () {
-    const dialog = yield* DialogBinding
+    const children = yield* ConfirmComposition.acquireChildren()
 
     return {
-      children: [dialog],
+      children,
       init,
       update,
       view,

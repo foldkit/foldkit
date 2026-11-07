@@ -54,6 +54,9 @@ Story.Command.expectHas(FetchWeather({ zipCode: '90210' }))
 Story.Command.expectExact(FetchWeather, SaveBoard)
 Story.Command.expectExact(FetchWeather({ zipCode: '90210' }), SaveBoard)
 
+// Assert the exact dispatch order without running the effects.
+Story.Command.expectExactInOrder(FetchWeather({ zipCode: '90210' }), SaveBoard)
+
 // Assert no Commands were produced.
 Story.Command.expectNone()
 

@@ -58,7 +58,7 @@ export const MenuPicker = Menu.makeBlock<'Apple' | 'Pear'>()
 const MenuFoldModel = Schema.Struct({ selected: Item })
 export const MenuFoldFixtureBlock = Block.make('MenuFoldFixture', {
   key: MenuFoldFixtureKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: MenuFoldModel,
   Message: Schema.Never,
 })
@@ -122,7 +122,7 @@ const ToastFixtureModel = Schema.Struct({
 })
 const ToastFixtureBlock = Block.make('ToastFixture', {
   key: ToastFixtureKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: ToastFixtureModel,
   Message: Schema.Never,
 })
@@ -158,7 +158,7 @@ const ToastInstance = Schema.Struct({
 })
 const KeyedToastFixtureBlock = Block.make('KeyedToastFixture', {
   key: KeyedToastFixtureKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: Schema.Struct({ toasts: Schema.Array(ToastInstance) }),
   Message: Schema.Never,
 })
@@ -188,7 +188,7 @@ const DragAndDropFixtureModel = Schema.Struct({
 })
 const DragAndDropFixtureBlock = Block.make('DragAndDropFixture', {
   key: DragAndDropFixtureKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: DragAndDropFixtureModel,
   Message: Schema.Never,
 })
@@ -228,7 +228,7 @@ const DragAndDropInstance = Schema.Struct({
 })
 const KeyedDragAndDropFixtureBlock = Block.make('KeyedDragAndDropFixture', {
   key: KeyedDragAndDropFixtureKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: Schema.Struct({
     dragAndDrops: Schema.Array(DragAndDropInstance),
   }),
@@ -286,7 +286,7 @@ const AnimationInstance = Schema.Struct({
 })
 const KeyedAnimationFixtureBlock = Block.make('KeyedAnimationFixture', {
   key: KeyedAnimationFixtureKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: Schema.Struct({ animations: Schema.Array(AnimationInstance) }),
   Message: Schema.Never,
 })
@@ -325,7 +325,7 @@ export const ParentMessage = Message.defineMessageUnion({
 })
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message: ParentMessage,
@@ -700,7 +700,7 @@ const WithViewAndOutMessageBlock = Block.make('WithViewAndOutMessage', {
   Model: ShapeModel,
   Message: ShapeMessage,
   OutMessage: ShapeOutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: {
     kind: 'Element',
     Inputs: Block.makeInputContract<ShapeViewInputs>(),
@@ -731,7 +731,7 @@ const WithOutMessageOnlyBlock = Block.make('WithOutMessageOnly', {
   Model: ShapeModel,
   Message: ShapeMessage,
   OutMessage: ShapeOutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const WithOutMessageOnlyComposition = WithOutMessageOnlyBlock.makeComposition()
 export const WithOutMessageOnly = WithOutMessageOnlyBlock
@@ -753,7 +753,7 @@ const WithViewOnlyBlock = Block.make('WithViewOnly', {
   key: WithViewOnlyKey,
   Model: ShapeModel,
   Message: ShapeMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ShapeViewInputs>() },
 })
 const WithViewOnlyComposition = WithViewOnlyBlock.makeComposition()
@@ -779,7 +779,7 @@ const WithoutViewOrOutMessageBlock = Block.make('WithoutViewOrOutMessage', {
   key: WithoutViewOrOutMessageKey,
   Model: ShapeModel,
   Message: ShapeMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const WithoutViewOrOutMessageComposition =
   WithoutViewOrOutMessageBlock.makeComposition()

@@ -50,7 +50,7 @@ export type StreamFromMediaQueryConfig<Output> = Readonly<{
  *   key: ExampleKey,
  *   Model,
  *   Message,
- *   Init: Schema.Tuple([]),
+ *   InitArgs: Schema.Tuple([]),
  * })
  * const subscriptions = ExampleBlock.makeSubscriptions(entry => ({
  *   reducedMotion: entry('ReducedMotion', {

@@ -13,7 +13,7 @@ const CounterDefinition = Block.makeDefinition('ComposableViewCounter', {
   key: CounterKey,
   Model: CounterModel,
   Message: CounterMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const CounterComposition = CounterDefinition.makeComposition()
@@ -45,7 +45,7 @@ const PageDefinition = Block.makeDefinition('ComposableViewPage', {
   key: PageKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const CounterBinding = PageDefinition.makeRequiredFieldBinding(CounterBlock, {
@@ -95,7 +95,7 @@ const ForeignDefinition = Block.makeDefinition('ForeignComposableView', {
   key: ForeignKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const ForeignComposition = ForeignDefinition.makeComposition()
@@ -171,7 +171,7 @@ const ShellDefinition = Block.makeDefinition('AlternateViewShell', {
     second: PageDefinition.contract.Model,
   }),
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const FirstPageBinding = ShellDefinition.makeRequiredFieldBinding(
@@ -302,7 +302,7 @@ const ViewlessDefinition = Block.makeDefinition('ViewlessAlternateCounter', {
   key: ViewlessKey,
   Model: CounterModel,
   Message: CounterMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const ViewlessComposition = ViewlessDefinition.makeComposition()
 const ViewlessImplementation = ViewlessDefinition.makeBlock(
@@ -329,7 +329,7 @@ const ViewlessShellDefinition = Block.makeDefinition('ViewlessAlternateShell', {
   key: ViewlessShellKey,
   Model: Schema.Struct({ child: ViewlessDefinition.contract.Model }),
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const ViewlessBinding = ViewlessShellDefinition.makeRequiredFieldBinding(
@@ -379,7 +379,7 @@ const KeyedShellDefinition = Block.makeDefinition('KeyedAlternateShell', {
     children: Schema.Record(Schema.String, ViewlessDefinition.contract.Model),
   }),
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const KeyedChildBinding = KeyedShellDefinition.makeRecordBinding(

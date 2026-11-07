@@ -413,7 +413,7 @@ Init constructs the baseline Model and may return initial Commands. Author it th
 
 For a standard string-keyed array with no extra wrapper metadata, use `Schema.Array(ChildBlock.Instance)` and bind `{ field, key: 'key', childField: 'model' }`. The owning `makeFieldsStep` accepts passive `Binding.create({ key, args })` requests and checked execution initializes them before subsequent Steps, preserving init Commands and exact requirements. Keep Models ready-only and creation-bearing connected results intact. Startup may reuse the same transition in its `steps`. Use `ChildBlock.Instance.make` for seeded ready fixtures; decoding snapshots does not rerun init. Keep existing init helpers for other storage. Read [Instance-array creation](../foldkit/references/composition.md#create-children-in-instance-arrays) for ownership, duplicate keys, and lifecycle details.
 
-For a required exact direct field, omit `init` when the child's initializer can be called without arguments. A required-argument initializer uses `init: { contextToArgs }`; `init: false` makes the parent supply the initial field. An unkeyed optional direct field remains parent-owned when `init` is omitted; `init.contextToArgs` can choose `None` or automatic `Some(child)` creation. An exact keyed array uses `init.instances` and `init.toItem`. An exact Option-wrapped keyed occurrence uses the `field`, `key`, and `childField` shorthand but stays parent-owned until `Binding.init({ key, args, toParentModel })` creates it. Accessor storage likewise remains explicit. Plain tuple literals preserve contextual child parameters. Add an optional `ChildInitContext` Schema to the parent Block when selectors share context for direct child initializer arguments. Return only parent-owned fields from Composition-owned init; use `childInitContext` for that decoded value and `steps` for ordered transitions after the complete Model exists. ChildInitContext does not describe the current Block's own init arguments:
+For a required exact direct field, omit `init` when the child's initializer can be called without arguments. A required-argument initializer uses `init: { contextToArgs }`; `init: false` makes the parent supply the initial field. An unkeyed optional direct field remains parent-owned when `init` is omitted; `init.contextToArgs` can choose `None` or automatic `Some(child)` creation. An exact keyed array uses `init.instances`; direct child Model storage may omit `init.toItem`, while wrappers and parent metadata require it. An exact Option-wrapped keyed occurrence uses the `field`, `key`, and `childField` shorthand but stays parent-owned until `Binding.init({ key, args, toParentModel })` creates it. Accessor storage likewise remains explicit. Plain tuple literals preserve contextual child parameters. Add an optional `ChildInitContext` Schema to the parent Block when selectors share context for direct child initializer arguments. Return only parent-owned fields from Composition-owned init; use `childInitContext` for that decoded value and `steps` for ordered transitions after the complete Model exists. ChildInitContext does not describe the current Block's own init arguments:
 
 ```ts
 const init = ApplicationComposition.makeInit(() => ({
@@ -439,7 +439,7 @@ Declare one named Block even for a leaf. That same value exposes the public cont
 
 Author one canonical `init` through the Composition and pass it to assembly by shorthand. Do not retain a raw Model-returning `init` and wrap it at the assembly call. A pure Model constructor with its own domain purpose may remain separate.
 
-Establish `FooBlock` once at module scope with a unique `key`, Model, local Message, `Init` tuple, optional Context/OutMessage/ChildInitContext, view inputs and operation/effect contracts. Export `FooBlock = Block.make(...)` for parents. Register static relationships in `FooComposition`, author portable init/update/view plans, then complete with `FooBlock.makeLayer(Effect.gen(...))`: yield each Binding and return the acquired values under `children` with the plans and local effects. Export the implementation `layer` and provide child Layers there. Program and Server receive `{ block: ApplicationBlock, layer }`. Read [Block composition and Layers](../foldkit/references/composition.md) for the complete spelling and ownership rules.
+Establish `FooBlock` once at module scope with a unique `key`, Model, local Message, `InitArgs` tuple, optional Context/OutMessage/ChildInitContext, view inputs and operation/effect contracts. Export `FooBlock = Block.make(...)` for parents. Register static relationships in `FooComposition`, author portable init/update/view plans, then complete with `FooBlock.makeLayer(Effect.gen(...))`: acquire the registered tuple with `const children = yield* FooComposition.acquireChildren()` and return `children` with the plans and local effects. Export the implementation `layer` and provide child Layers there. Program and Server receive `{ block: ApplicationBlock, layer }`. Read [Block composition and Layers](../foldkit/references/composition.md) for the complete spelling and ownership rules.
 
 Static Composition uses `bindings`; the Layer-owned constructor yields those Bindings and returns acquired `children`. Public contracts carry no default implementation Layer. Provide the selected child modules' `layer` recipes through ordinary `.pipe(Layer.provide(...))` composition. Graph construction does not run init, handlers or occurrence lifecycles. HTTP/storage/socket Services stay in their normal handler constructors, and application workflow state remains in the Model.
 
@@ -473,6 +473,11 @@ When the OutMessage is already known while constructing a new result, include it
 
 For a required-field child, inline an ordinary policy as
 `FeatureBlock.makeRequiredFieldBinding(WholeChildBlock, ...).withOutMessagePolicy({ fold: FeatureBlock.makeOutMessageFold(WholeChildBlock, handlers) })`.
+Keep a single-use exhaustive fold inline with its Binding unless it substantially
+obscures that relationship. Extract shared folds or complicated transitions while
+leaving the tag-to-response mapping visible when practical. Keep explicit no-op
+cases; they document a deliberate parent response and do not suppress the child's
+own transition.
 Every fold passes the whole passive child contract explicitly, whether inline,
 extracted, adapted for keyed policy, or staged for reciprocal composition.
 Name every variant directly, including a singleton union. Command requirements
@@ -521,8 +526,9 @@ For dynamic initialization that only places a child, use the optional
 `args`, plus `key` for keyed storage. Use `initAndSet` for required/optional direct
 fields and keyed Option wrappers containing only the key and child fields. A
 custom unkeyed accessor may reuse its existing `init.toParentFields` projection.
-Use `initAndAppend` for keyed arrays already declaring `init.instances` and
-`init.toItem`, or `initAndInsert` for direct-value Record/HashMap storage from
+Use `initAndAppend` for keyed arrays already declaring `init.instances`, reusing
+direct storage or their explicit `init.toItem`, or use `initAndInsert` for
+direct-value Record/HashMap storage from
 `makeRecordBinding` or `makeHashMapBinding`. Destructure and export the factory from a split
 feature's `block.ts`, then import it from that owning module. Append and insert
 reject duplicate keys. Keep explicit `Binding.init`

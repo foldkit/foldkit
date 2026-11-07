@@ -1,16 +1,16 @@
-import { Effect, HashMap, Option } from 'effect'
+import { Effect, HashMap, Option, Result } from 'effect'
 import { Story } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
-import { test as baseTest } from 'vitest'
 
-import { makeMethods } from '@effect/vitest'
 import { Tabs } from '@foldkit/ui'
 
+import { FetchPostDetail, FetchPosts, FetchStats } from './command'
+import { TabsBinding } from './composition'
 import type { Post, PostDetail, Stats } from './data'
+import { ApplicationBlock, layer } from './index'
+import { Message } from './message'
 import {
   ApplicationTabsBlock,
   type Model,
-  PostDetailData,
   PostsData,
   StatsData,
   TABS_ID,
@@ -44,10 +44,10 @@ export const fixtureStats: Stats = {
   cacheHitRatePercent: 97,
 }
 
-const models = Story.withBlock(
+const loadingPostsModel = Story.withBlock(
   { block: ApplicationTabsBlock, layer: Tabs.layer },
   tabs => {
-    const loadingPostsModel: Model = {
+    const model: Model = {
       tabs: tabs.init({ id: TABS_ID }).model,
       activeTab: 'Posts',
       posts: PostsData.Loading(),
@@ -56,49 +56,73 @@ const models = Story.withBlock(
       stats: StatsData.Idle(),
     }
 
-    const loadedPostsModel: Model = modifyFields(loadingPostsModel, {
-      posts: () =>
-        PostsData.Success({
-          data: { posts: fixturePosts, fetchedAt: FETCHED_AT },
-        }),
-    })
-
-    const cachedFirstPostModel: Model = modifyFields(loadedPostsModel, {
-      postDetailById: () =>
-        HashMap.set(
-          HashMap.empty(),
-          'first-post',
-          PostDetailData.Success({
-            data: { detail: firstPostDetail, fetchedAt: FETCHED_AT },
-          }),
-        ),
-    })
-
-    const loadedStatsModel: Model = modifyFields(loadedPostsModel, {
-      activeTab: () => 'Stats',
-      stats: () =>
-        StatsData.Success({
-          data: { stats: fixtureStats, fetchedAt: FETCHED_AT },
-        }),
-    })
-
-    return {
-      loadingPostsModel,
-      loadedPostsModel,
-      cachedFirstPostModel,
-      loadedStatsModel,
-    }
+    return model
   },
 )
 
-export const it = makeMethods(
-  baseTest.extend<{ models: Effect.Success<typeof models> }>({
-    models: async ({}, use) => {
-      await Effect.runPromise(
-        models.pipe(
-          Effect.flatMap(models => Effect.promise(() => use(models))),
-        ),
-      )
-    },
-  }),
+const application = { block: ApplicationBlock, layer }
+
+const loadedPostsModel = Story.story(
+  application,
+  Story.init(),
+  Story.Command.resolve(
+    FetchPosts,
+    Message.CompletedFetchPosts({
+      result: Result.succeed({ posts: fixturePosts, fetchedAt: FETCHED_AT }),
+    }),
+  ),
 )
+
+const cachedFirstPostModel = Effect.gen(function* () {
+  const loadedPosts = yield* loadedPostsModel
+
+  return yield* Story.story(
+    application,
+    Story.given(loadedPosts),
+    Story.message(Message.ClickedPost({ postId: 'first-post' })),
+    Story.Command.resolve(
+      FetchPostDetail,
+      Message.CompletedFetchPostDetail({
+        postId: 'first-post',
+        result: Result.succeed({
+          detail: firstPostDetail,
+          fetchedAt: FETCHED_AT,
+        }),
+      }),
+    ),
+    Story.message(Message.ClickedBackToPosts()),
+  )
+})
+
+const loadedStatsModel = Effect.gen(function* () {
+  const loadedPosts = yield* loadedPostsModel
+
+  return yield* Story.story(
+    application,
+    Story.given(loadedPosts),
+    Story.messageIn(
+      TabsBinding,
+      ApplicationTabsBlock.Message.SelectedTab({ index: 1, value: 'Stats' }),
+    ),
+    Story.Command.resolve(
+      Tabs.test.FocusTab,
+      ApplicationTabsBlock.Message.CompletedFocusTab(),
+    ),
+    Story.Command.resolve(
+      FetchStats,
+      Message.CompletedFetchStats({
+        result: Result.succeed({
+          stats: fixtureStats,
+          fetchedAt: FETCHED_AT,
+        }),
+      }),
+    ),
+  )
+})
+
+export const fixtureEffects = {
+  loadingPostsModel,
+  loadedPostsModel,
+  cachedFirstPostModel,
+  loadedStatsModel,
+}

@@ -5,6 +5,7 @@
     "paths": {
       "foldkit/command": ["../src/command/public.ts"],
       "foldkit/message": ["../src/message/public.ts"],
+      "foldkit/scene": ["../src/scene/public.ts"],
       "foldkit/story": ["../src/test/story.ts"]
     },
     "rootDir": ".."

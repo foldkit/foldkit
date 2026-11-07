@@ -6,6 +6,7 @@ import {
   OutMessage,
   concurrentMessages,
   initialModel,
+  orderedSceneCommands,
   runConcurrentStory,
   update,
 } from './story-concurrency.accepted.js'
@@ -14,12 +15,16 @@ const finalModel = runConcurrentStory()
 const finalCount: number = finalModel.count
 
 void finalCount
+void orderedSceneCommands
 
 Story.story(
   update,
   Story.given(initialModel),
   concurrentMessages,
-  Story.Command.expectExact(Fetch({ requestId: 1 }), Fetch({ requestId: 2 })),
+  Story.Command.expectExactInOrder(
+    Fetch({ requestId: 1 }),
+    Fetch({ requestId: 2 }),
+  ),
   Story.Command.resolveAll(
     [
       Fetch({ requestId: 1 }),

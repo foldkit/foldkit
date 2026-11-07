@@ -16,7 +16,7 @@ import { Effect, Queue, Stream } from 'effect'
  *   key: ExampleKey,
  *   Model,
  *   Message,
- *   Init: Schema.Tuple([]),
+ *   InitArgs: Schema.Tuple([]),
  * })
  * const subscriptions = ExampleBlock.makeSubscriptions(entry => ({
  *   frame: entry(

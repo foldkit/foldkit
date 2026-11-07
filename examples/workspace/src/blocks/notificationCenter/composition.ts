@@ -9,17 +9,17 @@ import {
   makeRequiredFieldBinding,
 } from './block'
 
-const foldPopoverOutMessage = makeOutMessageFold(Popover.PopoverBlock, {
-  Opened: makeNoopStep,
-  Closed: makeNoopStep,
-})
-
 export const PopoverBinding = makeRequiredFieldBinding(Popover.PopoverBlock, {
   field: 'popover',
   init: {
     contextToArgs: () => [{ id: 'workspace-notifications' }],
   },
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(Popover.PopoverBlock, {
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+  }),
+})
 
 export const NotificationCenterComposition = makeComposition({
   bindings: [PopoverBinding],

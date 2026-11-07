@@ -68,7 +68,7 @@ export const TooltipBlock = Block.make(TooltipNamespace, {
   Model,
   Message,
   OutMessage,
-  Init: Block.makeInputContract<readonly [config: InitConfig]>(),
+  InitArgs: Block.makeInputContract<readonly [config: InitConfig]>(),
   view: {
     kind: 'Element',
     Inputs: Block.makeInputContract<ViewInputs>(),

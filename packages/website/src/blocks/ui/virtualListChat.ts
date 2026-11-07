@@ -202,33 +202,31 @@ const markVirtualListChatHistoryAnnounced = makeStep(model => {
   }
 })
 
-const foldVirtualListChatOutMessage = makeOutMessageFold(ChatVirtualListBlock, {
-  ObservedContainerScroll: makeNoopStep,
-  ApproachedLoadedStart: ({ distanceToLoadedStartPx, containerHeight }) =>
-    makeStep(model => {
-      const neededHeight =
-        containerHeight * CHAT_HISTORY_PREFETCH_VIEWPORTS -
-        distanceToLoadedStartPx
-      const minimumCount = VirtualListChatHistorySource.match(
-        model.virtualListChatHistorySource,
-        {
-          Unbounded: () => VIRTUAL_LIST_CHAT_UNBOUNDED_HISTORY_BATCH_SIZE,
-          Finite: () => VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE,
-        },
-      )
-      const requestedCount = Math.max(
-        minimumCount,
-        Math.ceil(neededHeight / COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX),
-      )
-
-      return requestVirtualListChatHistory(requestedCount, 'Scroll')
-    }),
-  EndedContainerScroll: () => markVirtualListChatHistoryAnnounced,
-})
-
 export const VirtualListChatDemoBinding =
   BaseVirtualListChatDemoBinding.withOutMessagePolicy({
-    fold: foldVirtualListChatOutMessage,
+    fold: makeOutMessageFold(ChatVirtualListBlock, {
+      ObservedContainerScroll: makeNoopStep,
+      ApproachedLoadedStart: ({ distanceToLoadedStartPx, containerHeight }) =>
+        makeStep(model => {
+          const neededHeight =
+            containerHeight * CHAT_HISTORY_PREFETCH_VIEWPORTS -
+            distanceToLoadedStartPx
+          const minimumCount = VirtualListChatHistorySource.match(
+            model.virtualListChatHistorySource,
+            {
+              Unbounded: () => VIRTUAL_LIST_CHAT_UNBOUNDED_HISTORY_BATCH_SIZE,
+              Finite: () => VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE,
+            },
+          )
+          const requestedCount = Math.max(
+            minimumCount,
+            Math.ceil(neededHeight / COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX),
+          )
+
+          return requestVirtualListChatHistory(requestedCount, 'Scroll')
+        }),
+      EndedContainerScroll: () => markVirtualListChatHistoryAnnounced,
+    }),
   })
 
 const selectVirtualListChatHistoryMode = (mode: VirtualListChatHistoryMode) =>

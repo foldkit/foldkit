@@ -22,7 +22,7 @@ type Message = typeof Message.Type
 export const CitiesPickerKey = Symbol('CitiesPicker')
 export const CitiesPickerBlock = Block.make('CitiesPicker', {
   key: CitiesPickerKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -37,21 +37,21 @@ const {
 } = CitiesPickerBlock
 
 // The parent toggles the committed value in the selection it owns.
-const foldComboboxMultiOutMessage = makeOutMessageFold(CitiesCombobox, {
-  Selected: ({ value }) =>
-    makeFieldsStep(() => ({
-      selectedCities: selectedCities =>
-        Array.contains(selectedCities, value)
-          ? Array.filter(selectedCities, city => city !== value)
-          : Array.append(selectedCities, value),
-    })),
-  ClearedSelection: makeNoopStep,
-})
-
 const ComboboxMultiBinding = makeRequiredFieldBinding(CitiesCombobox, {
   field: 'comboboxMulti',
   init: { contextToArgs: () => [{ id: 'cities-multi' }] },
-}).withOutMessagePolicy({ fold: foldComboboxMultiOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(CitiesCombobox, {
+    Selected: ({ value }) =>
+      makeFieldsStep(() => ({
+        selectedCities: selectedCities =>
+          Array.contains(selectedCities, value)
+            ? Array.filter(selectedCities, city => city !== value)
+            : Array.append(selectedCities, value),
+      })),
+    ClearedSelection: makeNoopStep,
+  }),
+})
 
 // Including the Binding collects its lifecycle and handler graph.
 
@@ -132,10 +132,10 @@ const view = CitiesPickerComposition.makeView((model, h) => {
 
 export const layer = CitiesPickerBlock.makeLayer(
   Effect.gen(function* () {
-    const combobox = yield* ComboboxMultiBinding
+    const children = yield* CitiesPickerComposition.acquireChildren()
 
     return {
-      children: [combobox],
+      children,
       init,
       update,
       view,

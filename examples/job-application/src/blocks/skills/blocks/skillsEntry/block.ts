@@ -37,7 +37,7 @@ export type OutMessage = typeof OutMessage.Type
 export const SkillsEntryKey = Symbol('SkillsEntry')
 export const SkillsEntryBlock = Block.make('SkillsEntry', {
   key: SkillsEntryKey,
-  Init: Schema.Tuple([Schema.String]),
+  InitArgs: Schema.Tuple([Schema.String]),
   view: { kind: 'Element' },
   Model,
   Message,

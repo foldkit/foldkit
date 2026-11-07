@@ -25,7 +25,7 @@ export type InMessage = typeof InMessage.Type
 export const SkillsKey = Symbol('Skills')
 export const SkillsBlock = Block.make('Skills', {
   key: SkillsKey,
-  Init: Schema.Tuple([Schema.String]),
+  InitArgs: Schema.Tuple([Schema.String]),
   view: { kind: 'Element' },
   effects: { services: [SecureRandom.SecureRandom] },
   Model,

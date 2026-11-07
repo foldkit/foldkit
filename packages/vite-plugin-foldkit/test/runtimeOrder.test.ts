@@ -2,6 +2,7 @@ import { createServer } from 'vite'
 import { expect, it, onTestFinished } from 'vitest'
 
 import { foldkit } from '../src/index.ts'
+import { listenOnEphemeralPort } from './listenOnEphemeralPort.ts'
 import {
   POLL_TIMEOUT,
   announceRuntime,
@@ -26,7 +27,7 @@ const startServer = async () => {
     plugins: [foldkit()],
   })
   onTestFinished(() => server.close().catch(() => undefined))
-  await server.listen()
+  await listenOnEphemeralPort(() => server.listen())
   const record = await waitUntilPublished(directories.root)
   const browser = await openWebSocket(
     `ws://127.0.0.1:${serverPort(server)}`,

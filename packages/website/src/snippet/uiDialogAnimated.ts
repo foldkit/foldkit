@@ -19,7 +19,7 @@ type Message = typeof Message.Type
 export const AnimatedDialogExampleKey = Symbol('AnimatedDialogExample')
 export const AnimatedDialogExampleBlock = Block.make('AnimatedDialogExample', {
   key: AnimatedDialogExampleKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -32,18 +32,18 @@ const {
   makeComposition,
 } = AnimatedDialogExampleBlock
 
-const foldDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
-  Opened: makeNoopStep,
-  Closed: makeNoopStep,
-  CompletedClose: makeNoopStep,
-})
-
 const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: {
     contextToArgs: () => [{ id: 'confirm', isAnimated: true }],
   },
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(Dialog.DialogBlock, {
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+    CompletedClose: makeNoopStep,
+  }),
+})
 
 const AnimatedDialogExampleComposition = makeComposition({
   bindings: [DialogBinding],
@@ -129,10 +129,10 @@ const view = AnimatedDialogExampleComposition.makeView((model, h) => {
 
 export const layer = AnimatedDialogExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const dialog = yield* DialogBinding
+    const children = yield* AnimatedDialogExampleComposition.acquireChildren()
 
     return {
-      children: [dialog],
+      children,
       init,
       update,
       view,

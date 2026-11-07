@@ -9,5 +9,5 @@ export const ChildBlock = Block.make('Child', {
   key: ChildKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })

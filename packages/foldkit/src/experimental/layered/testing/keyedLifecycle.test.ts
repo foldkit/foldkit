@@ -30,7 +30,7 @@ const ChildBlock = Block.make('KeyedLifecycleSceneChild', {
   Model: ChildModel,
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const Session = ChildBlock.makeResource<string>()('Session')
@@ -135,7 +135,7 @@ const ParentBlock = Block.make('KeyedLifecycleSceneParent', {
   key: ParentKey,
   Model: ParentModel,
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const foldChildOutMessage = ParentBlock.makeOutMessageFold(ChildBlock, {

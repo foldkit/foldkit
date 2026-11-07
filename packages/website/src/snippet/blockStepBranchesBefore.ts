@@ -9,7 +9,7 @@ export const CreateIssueKey = Symbol('CreateIssue')
 
 const CreateIssueBlock = Block.make('CreateIssue', {
   key: CreateIssueKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: Schema.Struct({
     projectId: Schema.String,
     createState: CreateState,

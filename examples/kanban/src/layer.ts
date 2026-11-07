@@ -3,7 +3,7 @@ import { Effect, Layer } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
-import { DragAndDropBinding } from './composition'
+import { ApplicationComposition } from './composition'
 import { EffectsLayer } from './effectsLayer'
 import { init } from './init'
 import { update } from './update'
@@ -11,10 +11,10 @@ import { view } from './view'
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const dragAndDrop = yield* DragAndDropBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [dragAndDrop],
+      children,
       init,
       update,
       view,

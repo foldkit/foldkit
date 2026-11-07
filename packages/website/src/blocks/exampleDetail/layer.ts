@@ -3,7 +3,7 @@ import { Effect, Layer } from 'effect'
 import { Tabs } from '@foldkit/ui'
 
 import { ExampleDetailBlock } from './block'
-import { SourceFileTabsBinding } from './composition'
+import { ExampleDetailComposition } from './composition'
 import { EffectsLayer, inMessageUpdate, init, update, view } from './example'
 
 export {
@@ -20,10 +20,10 @@ export {
 
 export const layer = ExampleDetailBlock.makeLayer(
   Effect.gen(function* () {
-    const sourceFileTabs = yield* SourceFileTabsBinding
+    const children = yield* ExampleDetailComposition.acquireChildren()
 
     return {
-      children: [sourceFileTabs],
+      children,
       init,
       update,
       inMessageUpdate,

@@ -28,7 +28,7 @@ const definePicker = <Value extends string>(Value: ValueSchema<Value>) => {
     Model,
     Message,
     OutMessage,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     view: {
       kind: 'Element',
       Inputs: Block.makeInputContract<ViewInputs<Value>>(),

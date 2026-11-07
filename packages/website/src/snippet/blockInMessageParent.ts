@@ -19,7 +19,7 @@ const ConversationBlock = Block.make('Conversation', {
   key: ConversationKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 
 const {

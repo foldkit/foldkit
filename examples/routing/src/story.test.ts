@@ -21,8 +21,6 @@ import {
   peopleRouter,
 } from './route'
 
-type PeopleMessage = typeof PeopleBlock.Message.Type
-
 const peoplePageWith = (searchInput: string) =>
   PeopleBlock.Model.make({
     searchInput,
@@ -34,9 +32,6 @@ const peoplePageWith = (searchInput: string) =>
   })
 
 const initialPeoplePage = peoplePageWith('')
-
-const peopleMessage = (message: PeopleMessage) =>
-  Story.messageIn(PeoplePageBinding, message)
 
 const home = Model.make({
   route: ApplicationRoute.Home(),
@@ -310,7 +305,10 @@ describe('update', () => {
       Story.story(
         { block: ApplicationBlock, layer },
         Story.given(onPeople('')),
-        peopleMessage(PeopleBlock.Message.ChangedSearchInput({ value: 'd' })),
+        Story.messageIn(
+          PeoplePageBinding,
+          PeopleBlock.Message.ChangedSearchInput({ value: 'd' }),
+        ),
         Story.model(model => {
           expect(model.peoplePage.searchInput).toBe('d')
         }),

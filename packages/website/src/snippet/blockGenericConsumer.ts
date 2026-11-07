@@ -22,7 +22,7 @@ export const FruitSelectionBlock = Block.make('FruitSelection', {
   key: FruitSelectionKey,
   Model: ParentModel,
   Message: ParentMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const {
@@ -62,10 +62,10 @@ const view = FruitSelectionComposition.makeView((model, h) =>
 
 export const layer = FruitSelectionBlock.makeLayer(
   Effect.gen(function* () {
-    const picker = yield* PickerBinding
+    const children = yield* FruitSelectionComposition.acquireChildren()
 
     return {
-      children: [picker],
+      children,
       init,
       update,
       view,

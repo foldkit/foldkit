@@ -1,9 +1,6 @@
 import { Effect, Result } from 'effect'
 import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
-import { test as baseTest } from 'vitest'
-
-import { makeMethods } from '@effect/vitest'
 
 import type { Post, PostDetail, Stats } from './data'
 import { ApplicationBlock, layer } from './index'
@@ -41,38 +38,40 @@ export const fixtureStats: Stats = {
   cacheHitRatePercent: 97,
 }
 
-const models = Effect.gen(function* () {
-  const application = { block: ApplicationBlock, layer }
+const application = { block: ApplicationBlock, layer }
 
-  const loadedPostsModel = yield* Story.story(
+const loadedPostsModel = Story.story(
+  application,
+  Story.init(),
+  Story.Command.resolve(
+    postsQuery.Fetch,
+    postsQuery.Message.CompletedFetch({
+      generation: 1,
+      result: Result.succeed({ posts: fixturePosts, fetchedAt: FETCHED_AT }),
+    }),
+  ),
+)
+
+const failedPostsModel = Story.story(
+  application,
+  Story.init(),
+  Story.Command.resolve(
+    postsQuery.Fetch,
+    postsQuery.Message.CompletedFetch({
+      generation: 1,
+      result: Result.fail('The server is down.'),
+    }),
+  ),
+)
+
+const firstPostArgs = { postId: 'first-post' }
+
+const cachedFirstPostModel = Effect.gen(function* () {
+  const loadedPosts = yield* loadedPostsModel
+
+  return yield* Story.story(
     application,
-    Story.init(),
-    Story.Command.resolve(
-      postsQuery.Fetch,
-      postsQuery.Message.CompletedFetch({
-        generation: 1,
-        result: Result.succeed({ posts: fixturePosts, fetchedAt: FETCHED_AT }),
-      }),
-    ),
-  )
-
-  const failedPostsModel = yield* Story.story(
-    application,
-    Story.init(),
-    Story.Command.resolve(
-      postsQuery.Fetch,
-      postsQuery.Message.CompletedFetch({
-        generation: 1,
-        result: Result.fail('The server is down.'),
-      }),
-    ),
-  )
-
-  const firstPostArgs = { postId: 'first-post' }
-
-  const cachedFirstPostModel = yield* Story.story(
-    application,
-    Story.given(loadedPostsModel),
+    Story.given(loadedPosts),
     Story.message(Message.ClickedPost(firstPostArgs)),
     Story.Command.resolve(
       postQuery.Fetch,
@@ -88,10 +87,14 @@ const models = Effect.gen(function* () {
     ),
     Story.message(Message.ClickedBackToPosts()),
   )
+})
 
-  const failedFirstPostModel = yield* Story.story(
+const failedFirstPostModel = Effect.gen(function* () {
+  const loadedPosts = yield* loadedPostsModel
+
+  return yield* Story.story(
     application,
-    Story.given(loadedPostsModel),
+    Story.given(loadedPosts),
     Story.message(Message.ClickedPost(firstPostArgs)),
     Story.Command.resolve(
       postQuery.Fetch,
@@ -104,10 +107,14 @@ const models = Effect.gen(function* () {
     ),
     Story.message(Message.ClickedBackToPosts()),
   )
+})
 
-  const loadedStatsModel = yield* Story.story(
+const loadedStatsModel = Effect.gen(function* () {
+  const loadedPosts = yield* loadedPostsModel
+
+  return yield* Story.story(
     application,
-    Story.given(modifyFields(loadedPostsModel, { activeTab: () => 'Stats' })),
+    Story.given(modifyFields(loadedPosts, { activeTab: () => 'Stats' })),
     Story.message(Message.ClickedRefreshStats()),
     Story.Command.resolve(
       statsQuery.Fetch,
@@ -117,24 +124,12 @@ const models = Effect.gen(function* () {
       }),
     ),
   )
-
-  return {
-    loadedPostsModel,
-    failedPostsModel,
-    cachedFirstPostModel,
-    failedFirstPostModel,
-    loadedStatsModel,
-  }
 })
 
-export const it = makeMethods(
-  baseTest.extend<{ models: Effect.Success<typeof models> }>({
-    models: async ({}, use) => {
-      await Effect.runPromise(
-        models.pipe(
-          Effect.flatMap(models => Effect.promise(() => use(models))),
-        ),
-      )
-    },
-  }),
-)
+export const fixtureEffects = {
+  loadedPostsModel,
+  failedPostsModel,
+  cachedFirstPostModel,
+  failedFirstPostModel,
+  loadedStatsModel,
+}

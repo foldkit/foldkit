@@ -39,6 +39,7 @@ import {
 import { foldkit } from '../src/index.ts'
 import { foldkitSsr } from '../src/ssr.ts'
 import { boundPort } from './boundPort.ts'
+import { listenOnEphemeralPort } from './listenOnEphemeralPort.ts'
 import { createServerCache } from './serverCache.ts'
 
 type RawResponse = Readonly<{
@@ -307,7 +308,7 @@ const startServer = async (
     },
   })
   onTestFinished(() => server.close().catch(() => undefined))
-  await server.listen()
+  await listenOnEphemeralPort(() => server.listen())
 
   return originOf(server.httpServer?.address())
 }
@@ -341,7 +342,11 @@ const startAutomaticIdentityServer = async (
     },
   })
   onTestFinished(() => server.close().catch(() => undefined))
-  await server.listen()
+  if (server.config.server.port === 0) {
+    await listenOnEphemeralPort(() => server.listen())
+  } else {
+    await server.listen()
+  }
 
   return {
     origin: originOf(server.httpServer?.address()),
@@ -1464,7 +1469,7 @@ const startHotDisposeServer = async (
     },
   })
   onTestFinished(() => server.close().catch(() => undefined))
-  await server.listen()
+  await listenOnEphemeralPort(() => server.listen())
 
   return { origin: originOf(server.httpServer?.address()), server }
 }

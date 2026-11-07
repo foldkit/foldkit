@@ -26,7 +26,7 @@ export type InMessage = typeof InMessage.Type
 export const EducationKey = Symbol('Education')
 export const EducationBlock = Block.make('Education', {
   key: EducationKey,
-  Init: Schema.Tuple([Calendar.CalendarDate, Schema.String]),
+  InitArgs: Schema.Tuple([Calendar.CalendarDate, Schema.String]),
   view: { kind: 'Element' },
   effects: { services: [SecureRandom.SecureRandom] },
   Model,

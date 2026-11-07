@@ -3,6 +3,7 @@ import { createServer } from 'vite'
 import { expect, it } from 'vitest'
 
 import { foldkit } from '../src/index.ts'
+import { listenOnEphemeralPort } from './listenOnEphemeralPort.ts'
 import {
   serverPort,
   useRelayRegistry,
@@ -39,7 +40,7 @@ it('keeps the dev server running after a malformed upgrade to the relay', async 
   })
 
   try {
-    await server.listen()
+    await listenOnEphemeralPort(() => server.listen())
     const record = await waitUntilPublished(directories.root)
 
     expect(

@@ -4,7 +4,7 @@ import { DatePicker, Listbox } from '@foldkit/ui'
 
 import { PersonalInfoBlock } from './block'
 import { ValidateEmailAsync } from './command'
-import { AvailableDateBinding, PronounsBinding } from './composition'
+import { PersonalInfoComposition } from './composition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { update } from './update'
@@ -12,11 +12,10 @@ import { view } from './view'
 
 export const layer = PersonalInfoBlock.makeLayer(
   Effect.gen(function* () {
-    const pronounsListbox = yield* PronounsBinding
-    const availableDatePicker = yield* AvailableDateBinding
+    const children = yield* PersonalInfoComposition.acquireChildren()
 
     return {
-      children: [pronounsListbox, availableDatePicker],
+      children,
       init,
       update,
       inMessageUpdate,

@@ -85,7 +85,7 @@ const OtherBlock = Block.make('AttributeAliasOther', {
   key: OtherKey,
   Model: Schema.Struct({}),
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', mounts: [ObserveOther] },
 })
 const OtherBinding = ParentBlock.makeRequiredFieldBinding(OtherBlock, {

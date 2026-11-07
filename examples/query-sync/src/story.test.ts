@@ -14,8 +14,6 @@ import { Message } from './message'
 import { DietListboxBlock, type Model, PeriodListboxBlock } from './model'
 import { ApplicationRoute, Sorting, browseRouter } from './route'
 
-type DietListboxMessage = typeof DietListboxBlock.Message.Type
-
 const browseModel: Model = {
   route: ApplicationRoute.Browse({
     search: Option.none(),
@@ -62,9 +60,6 @@ const browseModel: Model = {
     maybeLastButtonPointerType: Option.none(),
   }),
 }
-
-const dietMessage = (message: DietListboxMessage) =>
-  Story.messageIn(DietListboxBinding, message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -192,7 +187,8 @@ describe('update', () => {
         Story.story(
           { block: ApplicationBlock, layer },
           Story.given(browseModel),
-          dietMessage(
+          Story.messageIn(
+            DietListboxBinding,
             DietListboxBlock.Message.Opened({
               maybeActiveItemIndex: Option.none(),
             }),
@@ -201,7 +197,8 @@ describe('update', () => {
             Listbox.test.FocusListboxItems,
             DietListboxBlock.Message.CompletedFocusListboxItems(),
           ),
-          dietMessage(
+          Story.messageIn(
+            DietListboxBinding,
             DietListboxBlock.Message.SelectedItem({ item: 'Carnivore' }),
           ),
           Story.Command.resolve(

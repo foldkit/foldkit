@@ -9,7 +9,7 @@ import { Model } from './model'
 export const PeopleKey = Symbol('People')
 export const PeopleBlock = Block.make('People', {
   key: PeopleKey,
-  Init: Schema.Tuple([ApplicationRoute.People]),
+  InitArgs: Schema.Tuple([ApplicationRoute.People]),
   view: { kind: 'Element' },
   Model,
   Message,

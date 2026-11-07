@@ -4,6 +4,7 @@ import type {
   BindChildConfigKey,
   BindChildConstructorResult,
   BindChildContextualProperties,
+  DirectKeyedInitialBindingConfig,
   GeneralKeyedConfigKey,
   GeneralKeyedContextualProperties,
   GeneratedDeliveryRequirement,
@@ -11,6 +12,7 @@ import type {
   KeyForConfig,
   PlacementOfConfig,
   ValidateConcreteCompositionArguments,
+  ValidateDirectKeyedInitialBindingConfig,
   ValidateGeneralKeyedSourceWithoutPolicy,
   ValidateStaticBindingConfigWithoutPolicy,
 } from '../../block/bindChild.js'
@@ -78,13 +80,15 @@ export interface ConnectableFieldChild<
         InitialArguments,
         ChildInitContext
       > &
-      Readonly<{
-        readAll?: never
-        key?: KeyField
-        field?: Field
-        childField?: ChildField
-        writeAt?: never
-      }> &
+      (Relationship extends 'Implicit'
+        ? Readonly<{
+            readAll?: never
+            key?: KeyField
+            field?: Field
+            childField?: ChildField
+            writeAt?: never
+          }>
+        : unknown) &
       ([BlockValue['Message']['Type']] extends [never]
         ? Readonly<{ delivery?: never; keySchema?: never }>
         : GeneratedDeliveryRequirement<
@@ -128,6 +132,52 @@ export interface ConnectableFieldChild<
       connect: ConnectExecutable<
         BlockValue,
         PlacementOfConfig<BlockValue, Source>
+      >
+    }>
+  >
+  <
+    const BlockValue extends BindableBlock,
+    const Field extends keyof ParentModelSchema['Type'] & string,
+    const KeyField extends string,
+    const Config extends DirectKeyedInitialBindingConfig<
+      BlockValue,
+      ParentModelSchema,
+      Field,
+      KeyField,
+      Parameters<BlockValue['init']>,
+      ChildInitContext
+    >,
+  >(
+    block: BlockValue,
+    config: Relationship extends 'KeyedArray'
+      ? Config & Readonly<{ field: Field; key: KeyField }>
+      : never,
+    ...validation: readonly [
+      ...ValidateDirectKeyedInitialBindingConfig<
+        BlockValue,
+        ParentModelSchema,
+        NoInfer<Field>,
+        NoInfer<KeyField>,
+        Parameters<BlockValue['init']>,
+        ChildInitContext,
+        NoInfer<Config>
+      >,
+      ...ValidateConcreteCompositionArguments<BlockValue>,
+      ...('connect' extends keyof BlockValue['operations']
+        ? readonly [reservedConnectionOperation: never]
+        : readonly []),
+    ]
+  ): BindChildConstructorResult<
+    BlockValue,
+    ParentModelSchema,
+    ParentMessageSchema,
+    ParentOutMessageSchema,
+    Config,
+    ChildInitContext,
+    Readonly<{
+      connect: ConnectExecutable<
+        BlockValue,
+        PlacementOfConfig<BlockValue, Config>
       >
     }>
   >

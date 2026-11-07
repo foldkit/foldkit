@@ -65,8 +65,8 @@ describe('Issue Detail view', () => {
       return Scene.scene(
         {
           ...issueDetailSubject,
-          updateContext: [issue],
-          inMessageContext: [issue],
+          updateContext: [Option.some(issue)],
+          inMessageContext: [Option.some(issue)],
         },
         Scene.init(issue),
         Scene.expect(Scene.label('Assignee')).toHaveText('Maya Chen'),
@@ -111,8 +111,8 @@ describe('Issue Detail view', () => {
       return Scene.scene(
         {
           ...issueDetailSubject,
-          updateContext: [issue],
-          inMessageContext: [issue],
+          updateContext: [Option.some(issue)],
+          inMessageContext: [Option.some(issue)],
         },
         Scene.init(issue),
         Scene.type(Scene.label('Issue title'), draftTitle),
@@ -151,8 +151,8 @@ describe('Issue Detail view', () => {
       return Scene.scene(
         {
           ...issueDetailSubject,
-          updateContext: [issue],
-          inMessageContext: [issue],
+          updateContext: [Option.some(issue)],
+          inMessageContext: [Option.some(issue)],
         },
         Scene.init(issue),
         Scene.type(Scene.label('Issue title'), title),

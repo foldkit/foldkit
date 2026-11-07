@@ -52,7 +52,7 @@ const FruitComboboxTestKey = Symbol('FruitComboboxTest')
 
 const FruitComboboxTestBlock = Block.make('FruitComboboxTest', {
   key: FruitComboboxTestKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   operations: {
     requestSelectFruitAndClose: (item: Fruit) =>
       Tuple.make(FruitParentMessage.RequestedSelectFruitAndClose({ item })),
@@ -99,10 +99,10 @@ const fruitComboboxTest = {
   block: FruitComboboxTestBlock,
   layer: FruitComboboxTestBlock.makeLayer(
     Effect.gen(function* () {
-      const combobox = yield* ComboboxBinding
+      const children = yield* FruitComboboxTestComposition.acquireChildren()
 
       return {
-        children: [combobox],
+        children,
         init: FruitComboboxTestComposition.makeInit(() => ({
           model: { maybeSelectedFruit: Option.none() },
         })),

@@ -9,14 +9,6 @@ import {
 } from './block'
 import { EducationEntryBlock } from './blocks/educationEntry'
 
-const foldEntryOutMessage = (entryId: string) =>
-  makeOutMessageFold(EducationEntryBlock, {
-    Removed: () =>
-      makeFieldsStep(() => ({
-        entries: Array.filter(entry => entry.id !== entryId),
-      })),
-  })
-
 export const EntriesBinding = makeKeyedArrayBinding(EducationEntryBlock, {
   field: 'entries',
   key: 'id',
@@ -24,10 +16,15 @@ export const EntriesBinding = makeKeyedArrayBinding(EducationEntryBlock, {
     instances: ({ initialEntryId }) => [
       { key: initialEntryId, args: [initialEntryId] },
     ],
-    toItem: (_occurrence, entry) => entry,
   },
 }).withOutMessagePolicy({
-  fold: foldEntryOutMessage,
+  fold: entryId =>
+    makeOutMessageFold(EducationEntryBlock, {
+      Removed: () =>
+        makeFieldsStep(() => ({
+          entries: Array.filter(entry => entry.id !== entryId),
+        })),
+    }),
 })
 
 export const EducationComposition = makeComposition({

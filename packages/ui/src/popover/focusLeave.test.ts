@@ -11,7 +11,7 @@ type Model = typeof Model.Type
 const PopoverFocusLeaveTestKey = Symbol('PopoverFocusLeaveTest')
 const PopoverFocusLeaveTestBlock = Block.make('PopoverFocusLeaveTest', {
   key: PopoverFocusLeaveTestKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message: Schema.Never,
@@ -77,10 +77,11 @@ const makeProgram = (container: HTMLElement) => {
     block: PopoverFocusLeaveTestBlock,
     layer: PopoverFocusLeaveTestBlock.makeLayer(
       Effect.gen(function* () {
-        const popover = yield* PopoverBinding
+        const children =
+          yield* PopoverFocusLeaveTestComposition.acquireChildren()
 
         return {
-          children: [popover],
+          children,
           init: PopoverFocusLeaveTestComposition.makeInit(() =>
             PopoverBinding.init({
               args: [{ id: 'sort' }],

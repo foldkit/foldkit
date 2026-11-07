@@ -34,7 +34,7 @@ export const PairedDefinition = Block.makeDefinition('PairedCounterFields', {
   InMessage: PairedInMessage,
   Context: Schema.Tuple([Schema.Number]),
   InMessageContext: Schema.Tuple([Schema.Number]),
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   effects: { services: [CounterSource] },
 })
 const { makeFieldsStep, makeStep } = PairedDefinition

@@ -14,7 +14,7 @@ type Message = typeof Message.Type
 export const ArticlesKey = Symbol('Articles')
 const ArticlesBlock = Block.make('Articles', {
   key: ArticlesKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,

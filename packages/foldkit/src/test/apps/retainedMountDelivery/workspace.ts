@@ -11,7 +11,7 @@ export const WorkspaceBlock = Block.make('Workspace', {
   Model,
   Message: Schema.Never,
   OutMessage: Application.OutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: {
     kind: 'Element',
     Inputs: Schema.Struct({ form: Schema.Literals(['nested', 'published']) }),

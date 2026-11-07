@@ -776,7 +776,7 @@ const MenuBlock = Block.make(MenuNamespace, {
   Message,
   InMessage,
   OutMessage,
-  Init: Schema.Tuple([InitConfig]),
+  InitArgs: Schema.Tuple([InitConfig]),
   ChildInitContext: InitConfig,
   view: {
     kind: 'Element',
@@ -1402,10 +1402,10 @@ const view = MenuComposition.makeView.withInputs(menuViewImpl)
 /** @internal Acquired implementation used by focused library tests. */
 const canonicalLayer = MenuBlock.makeLayer(
   Effect.gen(function* () {
-    const animation = yield* AnimationBinding
+    const children = yield* MenuComposition.acquireChildren()
 
     return {
-      children: [animation],
+      children,
       init,
       update,
       inMessageUpdate,
@@ -1505,7 +1505,7 @@ type RefinedContract<Item extends string> = Block.Contract<
 type RefinedConfiguration<Item extends string> = Readonly<{
   key: typeof MenuKey
   InMessage: typeof InMessage
-  Init: Schema.Tuple<readonly [typeof InitConfig]>
+  InitArgs: Schema.Tuple<readonly [typeof InitConfig]>
   ChildInitContext: typeof InitConfig
   view: Readonly<{
     kind: 'Element'

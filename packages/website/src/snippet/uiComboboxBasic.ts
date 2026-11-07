@@ -22,7 +22,7 @@ type Message = typeof Message.Type
 export const CityPickerKey = Symbol('CityPicker')
 export const CityPickerBlock = Block.make('CityPicker', {
   key: CityPickerKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -37,18 +37,18 @@ const {
 } = CityPickerBlock
 
 // The parent stores the committed selection reported by the child.
-const foldComboboxOutMessage = makeOutMessageFold(CityCombobox, {
-  Selected: ({ value }) =>
-    makeFieldsStep(() => ({
-      maybeCity: () => Option.some(value),
-    })),
-  ClearedSelection: makeNoopStep,
-})
-
 const ComboboxBinding = makeRequiredFieldBinding(CityCombobox, {
   field: 'combobox',
   init: { contextToArgs: () => [{ id: 'city' }] },
-}).withOutMessagePolicy({ fold: foldComboboxOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(CityCombobox, {
+    Selected: ({ value }) =>
+      makeFieldsStep(() => ({
+        maybeCity: () => Option.some(value),
+      })),
+    ClearedSelection: makeNoopStep,
+  }),
+})
 
 // Including the Binding collects its lifecycle and handler graph.
 
@@ -122,10 +122,10 @@ const view = CityPickerComposition.makeView((model, h) => {
 
 export const layer = CityPickerBlock.makeLayer(
   Effect.gen(function* () {
-    const combobox = yield* ComboboxBinding
+    const children = yield* CityPickerComposition.acquireChildren()
 
     return {
-      children: [combobox],
+      children,
       init,
       update,
       view,

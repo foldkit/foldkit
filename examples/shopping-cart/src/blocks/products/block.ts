@@ -29,7 +29,7 @@ export type OutMessage = typeof OutMessage.Type
 export const ProductsKey = Symbol('Products')
 export const ProductsBlock = Block.make('Products', {
   key: ProductsKey,
-  Init: Schema.Tuple([Schema.Array(Item.Item)]),
+  InitArgs: Schema.Tuple([Schema.Array(Item.Item)]),
   view: { kind: 'Element', Inputs: Schema.Struct({ cart: Cart.Cart }) },
   Model,
   Message,

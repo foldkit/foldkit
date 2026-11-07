@@ -333,7 +333,7 @@ export type StreamFromEventFilterMapPreventDefaultConfig<
  *   key: ExampleKey,
  *   Model,
  *   Message,
- *   Init: Schema.Tuple([]),
+ *   InitArgs: Schema.Tuple([]),
  * })
  * const subscriptions = ExampleBlock.makeSubscriptions(entry => ({
  *   escapeKey: entry(
@@ -406,7 +406,7 @@ export const streamFromEventFilterMap = <
  *   key: ExampleKey,
  *   Model,
  *   Message,
- *   Init: Schema.Tuple([]),
+ *   InitArgs: Schema.Tuple([]),
  * })
  * const subscriptions = ExampleBlock.makeSubscriptions(entry => ({
  *   shortcut: entry(
@@ -488,7 +488,7 @@ export const streamFromEvent = <
  *   key: ExampleKey,
  *   Model,
  *   Message,
- *   Init: Schema.Tuple([]),
+ *   InitArgs: Schema.Tuple([]),
  * })
  * const subscriptions = ExampleBlock.makeSubscriptions(entry => ({
  *   wheelLock: entry(

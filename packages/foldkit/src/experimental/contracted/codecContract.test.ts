@@ -41,7 +41,7 @@ const EditorBlock = Block.make('CodecContractEditor', {
   key: EditorKey,
   Model: ChildModel,
   Message: ChildMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const childComposition = EditorBlock.makeComposition()
 const editorLayer = EditorBlock.makeLayer(
@@ -65,7 +65,7 @@ const ApplicationBlock = Block.make('CodecContractApplication', {
   key: ApplicationKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const EditorBinding = ApplicationBlock.makeRequiredFieldBinding(EditorBlock, {

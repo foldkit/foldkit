@@ -66,7 +66,7 @@ export const SurfaceBlock = Block.make(SurfaceNamespace, {
   Message,
   InMessage,
   OutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: {
     kind: 'Element',
     mounts: [ObserveSurface, ObserveRenamedSurface],

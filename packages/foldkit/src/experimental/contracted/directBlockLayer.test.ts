@@ -31,7 +31,7 @@ const Child = Block.make('DirectBlockLayerChild', {
   Model: ChildModel,
   Message: ChildMessage,
   isMessageFree: true,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const ChildComposition = Child.makeComposition()
 const childInit = ChildComposition.makeInit(() => ({ model: { value: 7 } }))
@@ -48,7 +48,7 @@ const Parent = Block.make('DirectBlockLayerParent', {
   Model: ParentModel,
   Message: ParentMessage,
   isMessageFree: true,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const ChildBinding = Parent.makeRequiredFieldBinding(Child, { field: 'child' })
@@ -108,7 +108,7 @@ const ForeignChild = Block.make('DirectBlockLayerForeignChild', {
   Model: ChildModel,
   Message: ChildMessage,
   isMessageFree: true,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const ForeignChildComposition = ForeignChild.makeComposition()
 const foreignChildLayer = ForeignChild.makeLayer(
@@ -125,7 +125,7 @@ const DocumentChild = Block.make('DirectBlockLayerDocumentChild', {
   Model: DocumentChildModel,
   Message: Schema.Never,
   isMessageFree: true,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Document' },
 })
 const ParentWithDocumentKey = Symbol('DirectBlockLayerParentWithDocument')
@@ -134,7 +134,7 @@ const ParentWithDocument = Block.make('DirectBlockLayerParentWithDocument', {
   Model: Schema.Struct({ document: DocumentChildModel }),
   Message: Schema.Never,
   isMessageFree: true,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Document' },
 })
 const DocumentStateBinding = ParentWithDocument.makeRequiredFieldBinding(
@@ -175,7 +175,7 @@ const PageBlock = Block.make('DirectBlockLayerPage', {
   key: PageKey,
   Model: Schema.Struct({ url: Url, language: Schema.String }),
   Message: PageMessage,
-  Init: Schema.Tuple([PageFlags, Url]),
+  InitArgs: Schema.Tuple([PageFlags, Url]),
   view: { kind: 'Document' },
 })
 const PageComposition = PageBlock.makeComposition()
@@ -208,7 +208,7 @@ const HandlerBlock = Block.make('DirectBlockLayerHandlers', {
   key: HandlerKey,
   Model: HandlerModel,
   Message: HandlerMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const Read = HandlerBlock.makeCommand('Read', {
@@ -415,7 +415,7 @@ const LifecycleBlock = Block.make('DirectBlockLayerLifecycle', {
   key: LifecycleKey,
   Model: Schema.Struct({ value: Schema.Number }),
   Message: LifecycleMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const Pulse = LifecycleBlock.makeMount('Pulse', {
@@ -486,7 +486,7 @@ const DocumentBlock = Block.make('DirectBlockLayerServerDocument', {
   Model: DocumentModel,
   Message: Schema.Never,
   isMessageFree: true,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Document' },
 })
 const DocumentComposition = DocumentBlock.makeComposition()

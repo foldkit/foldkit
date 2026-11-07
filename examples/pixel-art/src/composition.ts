@@ -99,26 +99,26 @@ export const PaletteRadioGroupBinding = makeRequiredFieldBinding(
   }),
 })
 
-const foldThemeListboxOutMessage = makeOutMessageFold(ThemeListboxBlock, {
-  Selected: ({ value }) =>
-    makeStep(model => {
-      const themeIndex = Number(value)
-      const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
-      if (Option.isNone(maybeNextTheme)) {
-        return { model }
-      }
-      const nextModel = modifyFields(model, {
-        paletteThemeIndex: () => themeIndex,
-        selectedColorIndex: () => DEFAULT_COLOR_INDEX,
-      })
-      return { model: nextModel, commands: [saveCanvas(nextModel)] }
-    }),
-})
-
 export const ThemeListboxBinding = makeRequiredFieldBinding(ThemeListboxBlock, {
   field: 'themeListbox',
   init: { contextToArgs: () => [{ id: 'theme-picker' }] },
-}).withOutMessagePolicy({ fold: foldThemeListboxOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(ThemeListboxBlock, {
+    Selected: ({ value }) =>
+      makeStep(model => {
+        const themeIndex = Number(value)
+        const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
+        if (Option.isNone(maybeNextTheme)) {
+          return { model }
+        }
+        const nextModel = modifyFields(model, {
+          paletteThemeIndex: () => themeIndex,
+          selectedColorIndex: () => DEFAULT_COLOR_INDEX,
+        })
+        return { model: nextModel, commands: [saveCanvas(nextModel)] }
+      }),
+  }),
+})
 
 export const ApplicationComposition = makeComposition({
   bindings: [

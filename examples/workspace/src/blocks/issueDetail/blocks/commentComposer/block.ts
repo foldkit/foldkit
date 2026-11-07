@@ -10,7 +10,7 @@ import { ViewInputs } from './viewInputs'
 export const CommentComposerKey = Symbol('CommentComposer')
 export const CommentComposerBlock = Block.make('CommentComposer', {
   key: CommentComposerKey,
-  Init: Schema.Tuple([Schema.String, Schema.optional(Schema.String)]),
+  InitArgs: Schema.Tuple([Schema.String, Schema.optional(Schema.String)]),
   view: { kind: 'Element', Inputs: ViewInputs },
   effects: { services: [WorkspaceRepository] },
   Model,

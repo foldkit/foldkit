@@ -14,7 +14,7 @@ const CreatorDefinition = makeDefinition('OccurrenceOperationCreator', {
   key: CreatorKey,
   Model: CreatorModel,
   Message: CreatorMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   operations: { create: CreatorMessage.RequestedCreate },
 })
 const CreatorBlock = CreatorDefinition.contract
@@ -37,7 +37,7 @@ const ApplicationDefinition = makeDefinition('OccurrenceOperationParent', {
   key: ApplicationKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const CreatorBinding = ApplicationDefinition.makeRequiredFieldBinding(
   CreatorBlock,

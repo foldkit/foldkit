@@ -3,7 +3,7 @@ import { Effect, Layer } from 'effect'
 import { Popover } from '@foldkit/ui'
 
 import { NotificationCenterBlock } from './block'
-import { PopoverBinding } from './composition'
+import { NotificationCenterComposition } from './composition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { subscriptions } from './subscription'
@@ -12,10 +12,10 @@ import { view } from './view'
 
 export const layer = NotificationCenterBlock.makeLayer(
   Effect.gen(function* () {
-    const popover = yield* PopoverBinding
+    const children = yield* NotificationCenterComposition.acquireChildren()
 
     return {
-      children: [popover],
+      children,
       init,
       update,
       inMessageUpdate,

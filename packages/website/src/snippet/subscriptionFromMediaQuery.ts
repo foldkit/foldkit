@@ -15,7 +15,7 @@ type Model = typeof Model.Type
 export const MotionPreferencesKey = Symbol('MotionPreferences')
 const MotionPreferencesBlock = Block.make('MotionPreferences', {
   key: MotionPreferencesKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

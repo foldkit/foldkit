@@ -14,8 +14,6 @@ import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import type { Model } from './model'
 
-type DragAndDropMessage = typeof DragAndDrop.DragAndDropBlock.Message.Type
-
 const card = (id: string, title: string, sortKey: string): Card => ({
   id,
   title,
@@ -69,9 +67,6 @@ const emptyModel: Model = {
   newCardTitle: '',
   announcement: '',
 }
-
-const dragAndDropMessage = (message: DragAndDropMessage) =>
-  Story.messageIn(DragAndDropBinding, message)
 
 describe('update', () => {
   describe('add card', () => {
@@ -168,7 +163,8 @@ describe('update', () => {
       return Story.story(
         { block: ApplicationBlock, layer },
         Story.given(emptyModel),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.PressedDraggable({
             itemId: firstCardId,
             containerId: 'todo',
@@ -177,7 +173,8 @@ describe('update', () => {
             screenY: 100,
           }),
         ),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.MovedPointer({
             screenX: 100,
             screenY: 200,
@@ -186,7 +183,8 @@ describe('update', () => {
             maybeDropTarget: Option.some({ containerId: 'todo', index: 3 }),
           }),
         ),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.ReleasedPointer(),
         ),
         Story.Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
@@ -203,7 +201,8 @@ describe('update', () => {
       return Story.story(
         { block: ApplicationBlock, layer },
         Story.given(emptyModel),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.PressedDraggable({
             itemId: cardId,
             containerId: 'todo',
@@ -212,7 +211,8 @@ describe('update', () => {
             screenY: 100,
           }),
         ),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.MovedPointer({
             screenX: 300,
             screenY: 100,
@@ -224,7 +224,8 @@ describe('update', () => {
             }),
           }),
         ),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.ReleasedPointer(),
         ),
         Story.Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
@@ -246,14 +247,16 @@ describe('update', () => {
       return Story.story(
         { block: ApplicationBlock, layer },
         Story.given(emptyModel),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.ActivatedKeyboardDrag({
             itemId: firstCardId,
             containerId: 'todo',
             index: 0,
           }),
         ),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.CompletedResolveKeyboardMove({
             keyboardDragGeneration: 1,
             targetContainerId: 'todo',
@@ -264,7 +267,8 @@ describe('update', () => {
           binding: DragAndDropBinding,
           itemId: firstCardId,
         }),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.ConfirmedKeyboardDrop(),
         ),
         DragAndDrop.test.settleFocus({
@@ -285,14 +289,16 @@ describe('update', () => {
       return Story.story(
         { block: ApplicationBlock, layer },
         Story.given(emptyModel),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.ActivatedKeyboardDrag({
             itemId: cardId,
             containerId: 'todo',
             index: 0,
           }),
         ),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.CompletedResolveKeyboardMove({
             keyboardDragGeneration: 1,
             targetContainerId: 'in-progress',
@@ -303,7 +309,8 @@ describe('update', () => {
           binding: DragAndDropBinding,
           itemId: cardId,
         }),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.ConfirmedKeyboardDrop(),
         ),
         DragAndDrop.test.settleFocus({
@@ -330,14 +337,16 @@ describe('update', () => {
       return Story.story(
         { block: ApplicationBlock, layer },
         Story.given(emptyModel),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.ActivatedKeyboardDrag({
             itemId: cardId,
             containerId: 'todo',
             index: 0,
           }),
         ),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.CancelledDrag(),
         ),
         DragAndDrop.test.settleFocus({
@@ -354,7 +363,8 @@ describe('update', () => {
       Story.story(
         { block: ApplicationBlock, layer },
         Story.given(emptyModel),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.PressedDraggable({
             itemId: emptyModel.columns[0]!.cards[0]!.id,
             containerId: 'todo',
@@ -363,7 +373,8 @@ describe('update', () => {
             screenY: 100,
           }),
         ),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.MovedPointer({
             screenX: 100,
             screenY: 200,
@@ -372,7 +383,8 @@ describe('update', () => {
             maybeDropTarget: Option.none(),
           }),
         ),
-        dragAndDropMessage(
+        Story.messageIn(
+          DragAndDropBinding,
           DragAndDrop.DragAndDropBlock.Message.CancelledDrag(),
         ),
         Story.model(model => {

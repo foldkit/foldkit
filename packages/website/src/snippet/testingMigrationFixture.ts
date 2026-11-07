@@ -18,7 +18,7 @@ type PinsInMessage = typeof PinsInMessage.Type
 export const PinsKey = Symbol('Pins')
 export const PinsBlock = Block.make('Pins', {
   key: PinsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 
   Model: PinsModel,
@@ -81,7 +81,7 @@ export type Message = typeof Message.Type
 export const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Document' },
   Model,
   Message,
@@ -107,10 +107,10 @@ export const view = ApplicationComposition.makeView((model, h) => ({
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const pins = yield* PinsBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [pins],
+      children,
       init,
       update,
       view,

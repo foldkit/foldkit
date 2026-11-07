@@ -9,13 +9,13 @@ const ChildBlock = Block.make('UnifiedChild', {
   Model: Schema.Struct({ title: Schema.String }),
   Message: Schema.Never,
   InMessage: defineInMessageUnion({ RequestedSave: {} }),
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const ApplicationBlock = Block.make('UnifiedApplication', {
   key: ApplicationKey,
   Model: Schema.Struct({ child: ChildBlock.Model }),
   Message: defineMessageUnion({ ClickedSave: {} }),
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const ChildBinding = ApplicationBlock.makeRequiredFieldBinding(ChildBlock, { field: 'child' })
 const ApplicationComposition = ApplicationBlock.makeComposition({ bindings: [ChildBinding] })

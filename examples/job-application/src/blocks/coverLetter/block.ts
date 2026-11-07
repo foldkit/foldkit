@@ -18,7 +18,7 @@ type Message = typeof Message.Type
 export const CoverLetterKey = Symbol('CoverLetter')
 export const CoverLetterBlock = Block.make('CoverLetter', {
   key: CoverLetterKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,

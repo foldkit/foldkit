@@ -10,12 +10,7 @@ import { GenerateSkillsEntryId } from './command'
 import { EntriesBinding } from './composition'
 import { SkillsBlock, layer } from './index'
 
-type SkillsEntryMessage = typeof SkillsEntryBlock.Message.Type
-
 const givenInitial = Story.init('skills-entry-1')
-
-const entryMessage = (entryId: string, message: SkillsEntryMessage) =>
-  Story.messageIn(EntriesBinding, entryId, message)
 
 describe('skills', () => {
   it.effect('ClickedAddEntry generates an id and appends an entry', () =>
@@ -38,7 +33,8 @@ describe('skills', () => {
     Story.story(
       { block: SkillsBlock, layer },
       givenInitial,
-      entryMessage(
+      Story.messageIn(
+        EntriesBinding,
         'skills-entry-1',
         SkillsEntryBlock.Message.ClickedRemoveSelf(),
       ),
@@ -52,7 +48,8 @@ describe('skills', () => {
     Story.story(
       { block: SkillsBlock, layer },
       givenInitial,
-      entryMessage(
+      Story.messageIn(
+        EntriesBinding,
         'skills-entry-1',
         SkillsEntryBlock.Message.UpdatedName({ value: 'TypeScript' }),
       ),

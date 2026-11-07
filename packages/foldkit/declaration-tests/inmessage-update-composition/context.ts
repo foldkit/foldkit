@@ -18,7 +18,7 @@ export const ContextBlock = Block.make('InputContexts', {
   Model,
   Message,
   InMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Context: Schema.Tuple([Schema.Number]),
   InMessageContext:
     Block.makeInputContract<

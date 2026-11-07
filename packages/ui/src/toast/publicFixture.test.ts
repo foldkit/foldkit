@@ -34,7 +34,7 @@ const ToastFixtureParentBlock = Block.make('ToastFixtureParent', {
   key: ToastFixtureParentKey,
   Model: ParentModel,
   Message: ParentMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   ChildInitContext: Schema.String,
 })
 
@@ -110,12 +110,10 @@ const ParentBlock = {
   block: ToastFixtureParentBlock,
   layer: ToastFixtureParentBlock.makeLayer(
     Effect.gen(function* () {
-      const left = yield* LeftBinding
-      const right = yield* RightBinding
-      const other = yield* OtherBinding
+      const children = yield* ToastFixtureParentComposition.acquireChildren()
 
       return {
-        children: [left, right, other],
+        children,
         init: parentInit,
         update,
       }
@@ -139,7 +137,7 @@ const KeyedToastFixtureParentBlock = Block.make('KeyedToastFixtureParent', {
   key: KeyedToastFixtureParentKey,
   Model: KeyedParentModel,
   Message: KeyedParentMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   ChildInitContext: Schema.String,
 })
 const foldKeyedToastOutMessage =
@@ -192,10 +190,11 @@ const KeyedParentBlock = {
   block: KeyedToastFixtureParentBlock,
   layer: KeyedToastFixtureParentBlock.makeLayer(
     Effect.gen(function* () {
-      const toast = yield* SlotsToastBinding
+      const children =
+        yield* KeyedToastFixtureParentComposition.acquireChildren()
 
       return {
-        children: [toast],
+        children,
         init: keyedInit,
         update: keyedUpdate,
       }

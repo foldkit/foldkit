@@ -10,7 +10,7 @@ import type { ViewInputs } from './viewInputs'
 export const ExampleDetailKey = Symbol('ExampleDetail')
 export const ExampleDetailBlock = Block.make('ExampleDetail', {
   key: ExampleDetailKey,
-  Init: Schema.Tuple([
+  InitArgs: Schema.Tuple([
     Schema.optional(Schema.Option(Schema.String)),
     Schema.optional(Schema.Option(ExampleSources)),
   ]),

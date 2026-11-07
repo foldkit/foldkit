@@ -7,7 +7,7 @@ import { Model } from './model'
 export const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Block.makeInputContract<readonly [url: Url]>(),
+  InitArgs: Block.makeInputContract<readonly [url: Url]>(),
   view: { kind: 'Document' },
   Model,
   Message,

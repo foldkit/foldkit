@@ -8,7 +8,7 @@ const RootMessage = Message.defineMessageUnion({
 export const ApplicationKey = Symbol('InferredPortableProgram')
 const ApplicationBlock = Block.make('InferredPortableProgram', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message: RootMessage,

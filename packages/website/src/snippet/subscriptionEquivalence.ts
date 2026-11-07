@@ -17,7 +17,7 @@ type Model = typeof Model.Type
 export const DragKey = Symbol('Drag')
 const DragBlock = Block.make('Drag', {
   key: DragKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

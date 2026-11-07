@@ -36,7 +36,7 @@ type Message = typeof Message.Type
 export const FilterDialogKey = Symbol('FilterDialog')
 export const FilterDialogBlock = Block.make('FilterDialog', {
   key: FilterDialogKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -50,29 +50,29 @@ const {
   makeComposition,
 } = FilterDialogBlock
 
-const foldDialogOutMessage = makeOutMessageFold(Dialog.DialogBlock, {
-  Opened: makeNoopStep,
-  Closed: makeNoopStep,
-  CompletedClose: makeNoopStep,
-})
-
-const foldComboboxOutMessage = makeOutMessageFold(CityCombobox, {
-  Selected: ({ value }) =>
-    makeFieldsStep(() => ({
-      maybeCity: () => Option.some(value),
-    })),
-  ClearedSelection: makeNoopStep,
-})
-
 const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'edit-filters' }] },
-}).withOutMessagePolicy({ fold: foldDialogOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(Dialog.DialogBlock, {
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+    CompletedClose: makeNoopStep,
+  }),
+})
 
 const ComboboxBinding = makeRequiredFieldBinding(CityCombobox, {
   field: 'combobox',
   init: { contextToArgs: () => [{ id: 'city' }] },
-}).withOutMessagePolicy({ fold: foldComboboxOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(CityCombobox, {
+    Selected: ({ value }) =>
+      makeFieldsStep(() => ({
+        maybeCity: () => Option.some(value),
+      })),
+    ClearedSelection: makeNoopStep,
+  }),
+})
 
 const FilterDialogComposition = makeComposition({
   bindings: [DialogBinding, ComboboxBinding],
@@ -150,11 +150,10 @@ const view = FilterDialogComposition.makeView((model, h) => {
 
 export const layer = FilterDialogBlock.makeLayer(
   Effect.gen(function* () {
-    const dialog = yield* DialogBinding
-    const combobox = yield* ComboboxBinding
+    const children = yield* FilterDialogComposition.acquireChildren()
 
     return {
-      children: [dialog, combobox],
+      children,
       init,
       update,
       view,

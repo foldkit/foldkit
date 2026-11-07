@@ -20,7 +20,7 @@ type OutMessage = typeof OutMessage.Type
 export const EditorKey = Symbol('Editor')
 const EditorBlock = Block.make('Editor', {
   key: EditorKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
   OutMessage,

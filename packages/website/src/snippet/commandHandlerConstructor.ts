@@ -7,7 +7,7 @@ import { Message, Model, fetchCount } from './counterHttpCommand'
 export const ApplicationKey = Symbol('Application')
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

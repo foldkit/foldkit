@@ -18,7 +18,7 @@ export const TabsBlock = Block.make(TabsNamespace, {
   Model,
   Message,
   OutMessage,
-  Init: Schema.Tuple([InitConfig]),
+  InitArgs: Schema.Tuple([InitConfig]),
   view: {
     kind: 'Element',
     Inputs: Block.makeInputContract<ViewInputs>(),

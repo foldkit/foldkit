@@ -45,7 +45,7 @@ export const ApplicationBlock = Block.make('RetainedMountDelivery', {
   Message,
   InMessage,
   OutMessage,
-  Init: Schema.Tuple([Schema.Boolean]),
+  InitArgs: Schema.Tuple([Schema.Boolean]),
   view: {
     kind: 'Element',
     Inputs: Schema.Struct({

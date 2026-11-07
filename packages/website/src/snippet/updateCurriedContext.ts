@@ -18,7 +18,7 @@ type DispatchContext = typeof DispatchContext.Type
 export const ContextualRefreshKey = Symbol('ContextualRefresh')
 export const ContextualRefreshBlock = Block.make('ContextualRefresh', {
   key: ContextualRefreshKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Context: Schema.Tuple([DispatchContext]),
 
   Model,

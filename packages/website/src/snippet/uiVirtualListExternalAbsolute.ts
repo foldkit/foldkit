@@ -24,7 +24,7 @@ type Message = typeof Message.Type
 export const ActivityFeedKey = Symbol('ActivityFeed')
 export const ActivityFeedBlock = Block.make('ActivityFeed', {
   key: ActivityFeedKey,
-  Init: Schema.Tuple([Schema.Array(Activity)]),
+  InitArgs: Schema.Tuple([Schema.Array(Activity)]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -99,10 +99,10 @@ const view = ActivityFeedComposition.makeView((model, h) =>
 
 export const layer = ActivityFeedBlock.makeLayer(
   Effect.gen(function* () {
-    const activityList = yield* ActivityListBinding
+    const children = yield* ActivityFeedComposition.acquireChildren()
 
     return {
-      children: [activityList],
+      children,
       init,
       update,
       view,

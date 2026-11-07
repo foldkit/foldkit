@@ -107,6 +107,19 @@ export type NominalId<Id extends string, Key extends symbol> = Id &
 type AnySchema = Schema.Codec<any, any, any, any>
 type AnySelfContainedSchema = Schema.Codec<any, any, never, never>
 type AnyFunction = (...args: ReadonlyArray<any>) => any
+type BindingAcquisition<Binding> =
+  Binding extends Readonly<{
+    [Symbol.iterator](): Effect.EffectIterator<
+      infer Acquisition extends Effect.Effect<any, any, any>
+    >
+  }>
+    ? Acquisition
+    : never
+type AcquiredChildren<Bindings extends ReadonlyArray<unknown>> = {
+  readonly [Index in keyof Bindings]: Effect.Success<
+    BindingAcquisition<Bindings[Index]>
+  >
+}
 type TupleContract =
   | Schema.Codec<ReadonlyArray<unknown>, any, any, any>
   | InputContract<ReadonlyArray<unknown>>
@@ -134,7 +147,7 @@ export interface OperationDeclaration {
 export interface ContractConfiguration {
   readonly key: symbol
   readonly isMessageFree?: true
-  readonly Init: TupleContract
+  readonly InitArgs: TupleContract
   readonly Context?: TupleContract
   readonly InMessage?: AnySchema
   readonly InMessageContext?: TupleContract
@@ -403,7 +416,7 @@ export type DeclaredFacts<
 > = Readonly<{
   identity: Config['key']
   isMessageFree: Config extends Readonly<{ isMessageFree: true }> ? true : false
-  initArgs: InputOf<Config['Init']>
+  initArgs: InputOf<Config['InitArgs']>
   init: ResultContract<never, Resources<Config> | RuntimeCapability<OwnerValue>>
   updateContext: UpdateContext<Config>
   update: ResultContract<
@@ -1213,7 +1226,29 @@ export type ContractComposition<
 > &
   AuthoringSourceEvidence<Source> &
   Readonly<{
-    makeInit: MakeInit<Source, InputOf<Config['Init']>>
+    /** Acquires every registered child implementation in Binding order.
+     * The returned Effect is passive until executed and does not initialize
+     * child Models or start their handlers and lifecycles. Use individual
+     * Binding yields when construction needs their acquired handles.
+     *
+     * @example
+     * ```ts
+     * const children = yield* ApplicationComposition.acquireChildren()
+     *
+     * return {
+     *   children,
+     *   init,
+     *   update,
+     *   view,
+     *   EffectsLayer,
+     * }
+     * ``` */
+    acquireChildren: () => Effect.Effect<
+      AcquiredChildren<Source['bindings']>,
+      Effect.Error<BindingAcquisition<Source['bindings'][number]>>,
+      Effect.Services<BindingAcquisition<Source['bindings'][number]>>
+    >
+    makeInit: MakeInit<Source, InputOf<Config['InitArgs']>>
     makeView: MakeView<Source, ViewInputs<Channel<Config, 'view'>>>
     makeUpdate: MakeComposableUpdatePlan<Source, UpdateContext<Config>>
   }> &
@@ -1256,7 +1291,7 @@ export interface MakeComposition<
       readonly [],
       readonly []
     >,
-    Readonly<{ key: Config['key']; Init: Config['Init'] }> &
+    Readonly<{ key: Config['key']; InitArgs: Config['InitArgs'] }> &
       (Config extends Readonly<{ Context: infer Context }>
         ? Readonly<{ Context: Context }>
         : unknown) &
@@ -1300,7 +1335,7 @@ export interface MakeComposition<
       Mounts,
       BindingSpecs<Bindings>
     >,
-    Readonly<{ key: Config['key']; Init: Config['Init'] }> &
+    Readonly<{ key: Config['key']; InitArgs: Config['InitArgs'] }> &
       (Config extends Readonly<{ Context: infer Context }>
         ? Readonly<{ Context: Context }>
         : unknown) &

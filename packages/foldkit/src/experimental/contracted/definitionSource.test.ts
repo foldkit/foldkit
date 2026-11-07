@@ -24,13 +24,13 @@ describe('Definition-owned construction plans', () => {
       key: FirstKey,
       Model,
       Message: FirstMessage,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
     })
     const SecondDefinition = Namespace.makeDefinition({
       key: SecondKey,
       Model,
       Message: SecondMessage,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
     })
     const SecondComposition = SecondDefinition.makeComposition()
     const foreign = Reflect.apply(FirstDefinition.makeBlock, undefined, [
@@ -58,13 +58,13 @@ describe('Definition-owned construction plans', () => {
       key: FirstKey,
       Model,
       Message,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
     })
     const SecondDefinition = Namespace.makeDefinition({
       key: SecondKey,
       Model,
       Message,
-      Init: Schema.Tuple([Schema.String]),
+      InitArgs: Schema.Tuple([Schema.String]),
     })
     const SecondComposition = SecondDefinition.makeComposition()
     const events: Array<string> = []
@@ -109,13 +109,13 @@ describe('Definition-owned construction plans', () => {
       key: FirstKey,
       Model,
       Message: FirstMessage,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
     })
     const SecondDefinition = Namespace.makeDefinition({
       key: SecondKey,
       Model,
       Message: SecondMessage,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
     })
     const FirstComposition = FirstDefinition.makeComposition()
     const SecondComposition = SecondDefinition.makeComposition()
@@ -156,7 +156,7 @@ describe('Definition-owned construction plans', () => {
       Model: Schema.Number,
       Message: Schema.Never,
       isMessageFree: true,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
     })
     const Composition = Definition.makeComposition()
     const body = Object.defineProperty(
@@ -190,7 +190,7 @@ describe('Definition-owned construction plans', () => {
             key: Key,
             Model,
             Message,
-            Init: Schema.Tuple([Schema.String]),
+            InitArgs: Schema.Tuple([Schema.String]),
           },
         )
         const FirstComposition = Definition.makeComposition()

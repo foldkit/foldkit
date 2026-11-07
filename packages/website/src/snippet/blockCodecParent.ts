@@ -14,7 +14,7 @@ export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const { makeRequiredFieldBinding, makeComposition, makeNoopStep } =
@@ -26,10 +26,10 @@ const ApplicationComposition = makeComposition({ bindings: [EditorBinding] })
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const editor = yield* EditorBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [editor],
+      children,
       init: ApplicationComposition.makeInit(() => ({ model: {} })),
       update: ApplicationComposition.makeUpdate({
         ClickedReload: makeNoopStep(),

@@ -25,7 +25,7 @@ type Message = typeof Message.Type
 export const PlanPickerKey = Symbol('PlanPicker')
 export const PlanPickerBlock = Block.make('PlanPicker', {
   key: PlanPickerKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -50,19 +50,19 @@ const descriptions: Record<Plan, string> = {
 // arm carries the chosen value (typed as `Plan`) and its index, and returns
 // a parent Step. This arm is also where the parent updates its own state or
 // dispatches Commands, for example to persist the choice or price the order.
-const foldPlanRadioGroupOutMessage = makeOutMessageFold(PlanRadioGroup, {
-  Selected: ({ value }) =>
-    makeFieldsStep(() => ({
-      maybePlan: () => Option.some(value),
-    })),
-})
-
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const PlanRadioGroupBinding = makeRequiredFieldBinding(PlanRadioGroup, {
   field: 'planRadioGroup',
   init: { contextToArgs: () => [{ id: 'plan' }] },
-}).withOutMessagePolicy({ fold: foldPlanRadioGroupOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(PlanRadioGroup, {
+    Selected: ({ value }) =>
+      makeFieldsStep(() => ({
+        maybePlan: () => Option.some(value),
+      })),
+  }),
+})
 
 const PlanPickerComposition = makeComposition({
   bindings: [PlanRadioGroupBinding],
@@ -122,10 +122,10 @@ const view = PlanPickerComposition.makeView((model, h) => {
 
 export const layer = PlanPickerBlock.makeLayer(
   Effect.gen(function* () {
-    const planRadioGroup = yield* PlanRadioGroupBinding
+    const children = yield* PlanPickerComposition.acquireChildren()
 
     return {
-      children: [planRadioGroup],
+      children,
       init,
       update,
       view,

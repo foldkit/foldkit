@@ -25,7 +25,7 @@ type Message = typeof Message.Type
 export const InvoiceTableKey = Symbol('InvoiceTable')
 export const InvoiceTableBlock = Block.make('InvoiceTable', {
   key: InvoiceTableKey,
-  Init: Schema.Tuple([Schema.Array(Invoice)]),
+  InitArgs: Schema.Tuple([Schema.Array(Invoice)]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -134,10 +134,10 @@ const view = InvoiceTableComposition.makeView((model, h) =>
 
 export const layer = InvoiceTableBlock.makeLayer(
   Effect.gen(function* () {
-    const invoiceRows = yield* InvoiceRowsBinding
+    const children = yield* InvoiceTableComposition.acquireChildren()
 
     return {
-      children: [invoiceRows],
+      children,
       init,
       update,
       view,

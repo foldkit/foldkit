@@ -48,7 +48,7 @@ const makeAuthoring = <Item, Value extends string, ValueEncoded>(
     Message: ValueMessage,
     InMessage,
     OutMessage: ValueOutMessage,
-    Init: Schema.Tuple([InitConfigSchema]),
+    InitArgs: Schema.Tuple([InitConfigSchema]),
     ChildInitContext: InitConfigSchema,
     view: {
       kind: 'Element',
@@ -99,6 +99,7 @@ const makeAuthoring = <Item, Value extends string, ValueEncoded>(
 
   return {
     Definition,
+    Composition: ListboxComposition,
     AnimationBinding: itemUpdate.AnimationBinding,
     init,
     update,
@@ -115,10 +116,10 @@ const construct = <Item, Value extends string, ValueEncoded>(
 ) =>
   authoring.Definition.makeLayer(
     Effect.gen(function* () {
-      const animation = yield* authoring.AnimationBinding
+      const children = yield* authoring.Composition.acquireChildren()
 
       return {
-        children: [animation],
+        children,
         init: authoring.init,
         update: authoring.update,
         inMessageUpdate: authoring.inMessageUpdate,

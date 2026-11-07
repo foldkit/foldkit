@@ -49,7 +49,7 @@ export type InMessage = typeof InMessage.Type
 export const PersonalInfoKey = Symbol('PersonalInfo')
 export const PersonalInfoBlock = Block.make('PersonalInfo', {
   key: PersonalInfoKey,
-  Init: Schema.Tuple([CalendarDate]),
+  InitArgs: Schema.Tuple([CalendarDate]),
   view: { kind: 'Element' },
   Model,
   Message,

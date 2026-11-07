@@ -13,7 +13,7 @@ type Message = typeof Message.Type
 export const HeartbeatKey = Symbol('Heartbeat')
 const HeartbeatBlock = Block.make('Heartbeat', {
   key: HeartbeatKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

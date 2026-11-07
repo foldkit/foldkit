@@ -32,7 +32,7 @@ const ItemDefinition = Block.makeDefinition('CancelableOccurrenceItem', {
   Model: ItemModel,
   Message: ItemMessage,
   OutMessage: ItemOutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   effects: { services: [TestControls] },
   view: { kind: 'Element' },
 })
@@ -153,7 +153,7 @@ const RootDefinition = Block.makeDefinition('CancelableOccurrenceRoot', {
   key: RootKey,
   Model: RootModel,
   Message: RootMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   effects: { services: [TestControls] },
   view: { kind: 'Element' },
 })

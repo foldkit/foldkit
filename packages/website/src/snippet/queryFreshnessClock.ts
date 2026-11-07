@@ -17,7 +17,7 @@ type Message = typeof Message.Type
 export const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })
@@ -57,10 +57,10 @@ const init = ApplicationComposition.makeInit(() => ({ model: {} }))
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const posts = yield* PostsBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [posts],
+      children,
       init,
       update,
       EffectsLayer: ReadCurrentTime.layer,

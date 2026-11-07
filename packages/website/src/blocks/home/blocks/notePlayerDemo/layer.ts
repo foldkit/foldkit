@@ -4,7 +4,7 @@ import { RadioGroup } from '@foldkit/ui'
 
 import { NotePlayerDemoBlock } from './block'
 import { DelayAdvanceNotePlayerPhase, PlayNote } from './command'
-import { NoteDurationRadioGroupBinding } from './composition'
+import { NotePlayerDemoComposition } from './composition'
 import { init } from './init'
 import { managedResources } from './resource'
 import { update } from './update'
@@ -12,10 +12,10 @@ import { view } from './view'
 
 export const layer = NotePlayerDemoBlock.makeLayer(
   Effect.gen(function* () {
-    const noteDurationRadioGroup = yield* NoteDurationRadioGroupBinding
+    const children = yield* NotePlayerDemoComposition.acquireChildren()
 
     return {
-      children: [noteDurationRadioGroup],
+      children,
       init,
       update,
       view,

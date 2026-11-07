@@ -10,7 +10,7 @@ type CreateState = typeof CreateState.Type
 export const CreateIssueKey = Symbol('CreateIssue')
 const CreateIssueBlock = Block.make('CreateIssue', {
   key: CreateIssueKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   isMessageFree: true,
 
   Model: Schema.Struct({

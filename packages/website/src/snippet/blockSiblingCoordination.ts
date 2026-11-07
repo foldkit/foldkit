@@ -14,20 +14,16 @@ const BaseRoomBinding = makeRequiredFieldBinding(Room.RoomBlock, {
   field: 'room',
 })
 
-const foldHomeOutMessage = makeOutMessageFold(Home.HomeBlock, {
-  SelectedRoom: ({ roomId }) => BaseRoomBinding.requestOpen(roomId),
-})
-
-const foldRoomOutMessage = makeOutMessageFold(Room.RoomBlock, {
-  SavedRoom: ({ roomId }) => BaseHomeBinding.informOfRoomSaved(roomId),
-})
-
 export const HomeBinding = BaseHomeBinding.withOutMessagePolicy({
-  fold: foldHomeOutMessage,
+  fold: makeOutMessageFold(Home.HomeBlock, {
+    SelectedRoom: ({ roomId }) => BaseRoomBinding.requestOpen(roomId),
+  }),
 })
 
 export const RoomBinding = BaseRoomBinding.withOutMessagePolicy({
-  fold: foldRoomOutMessage,
+  fold: makeOutMessageFold(Room.RoomBlock, {
+    SavedRoom: ({ roomId }) => BaseHomeBinding.informOfRoomSaved(roomId),
+  }),
 })
 
 export const ApplicationComposition = makeComposition({

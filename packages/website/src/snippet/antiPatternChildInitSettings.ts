@@ -27,7 +27,7 @@ export type Model = typeof Model.Type
 export const SettingsKey = Symbol('Settings')
 export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   inMessageOutputs: {
     RequestedRestore: { outMessage: OutMessage.RestoredTheme },
   },

@@ -40,7 +40,7 @@ export type Message = typeof Message.Type
 export const AsyncCounterDemoKey = Symbol('AsyncCounterDemo')
 export const AsyncCounterDemoBlock = Block.make('AsyncCounterDemo', {
   key: AsyncCounterDemoKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,

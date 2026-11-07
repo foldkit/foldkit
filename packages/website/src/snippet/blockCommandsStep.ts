@@ -11,7 +11,7 @@ type Message = typeof Message.Type
 export const NotificationKey = Symbol('Notification')
 const NotificationBlock = Block.make('Notification', {
   key: NotificationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

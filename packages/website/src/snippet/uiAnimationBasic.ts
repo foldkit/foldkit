@@ -20,7 +20,7 @@ type Message = typeof Message.Type
 export const AnimationExampleKey = Symbol('AnimationExample')
 export const AnimationExampleBlock = Block.make('AnimationExample', {
   key: AnimationExampleKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -43,23 +43,21 @@ const BaseAnimationBinding = makeRequiredFieldBinding(
   },
 )
 
-const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
-  // The operation asks Animation to wait for its wrapper's CSS to settle.
-  // A custom policy can race another signal against that settlement instead.
-  StartedLeaveAnimating: () =>
-    BaseAnimationBinding.requestWaitForLeaveSettlement(),
-  // TransitionedOut is Animation's signal that the leave has fully
-  // settled (your leave Command's EndedAnimation message has been
-  // processed). Return Commands for any post-animation work, for
-  // example: close a native dialog, remove an entry from a list,
-  // release a resource. No Commands here because animateSize keeps the
-  // element mounted (collapsed to zero height) so there's nothing to
-  // tear down.
-  TransitionedOut: makeNoopStep,
-})
-
 const AnimationBinding = BaseAnimationBinding.withOutMessagePolicy({
-  fold: foldAnimationOutMessage,
+  fold: makeOutMessageFold(Animation.AnimationBlock, {
+    // The operation asks Animation to wait for its wrapper's CSS to settle.
+    // A custom policy can race another signal against that settlement instead.
+    StartedLeaveAnimating: () =>
+      BaseAnimationBinding.requestWaitForLeaveSettlement(),
+    // TransitionedOut is Animation's signal that the leave has fully
+    // settled (your leave Command's EndedAnimation message has been
+    // processed). Return Commands for any post-animation work, for
+    // example: close a native dialog, remove an entry from a list,
+    // release a resource. No Commands here because animateSize keeps the
+    // element mounted (collapsed to zero height) so there's nothing to
+    // tear down.
+    TransitionedOut: makeNoopStep,
+  }),
 })
 
 const AnimationExampleComposition = makeComposition({
@@ -115,10 +113,10 @@ const view = AnimationExampleComposition.makeView((model, h) =>
 
 export const layer = AnimationExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const animation = yield* AnimationBinding
+    const children = yield* AnimationExampleComposition.acquireChildren()
 
     return {
-      children: [animation],
+      children,
       init,
       update,
       view,

@@ -653,6 +653,63 @@ describe('expectExactCommands', () => {
   })
 })
 
+describe('expectExactCommandsInOrder', () => {
+  test('passes when pending Commands match identity, args, count and dispatch order', () => {
+    Story.story(
+      update,
+      Story.given({ count: 0, log: [] }),
+      Story.message(CounterMessage.StartedMixedFetches()),
+      Story.Command.expectExactInOrder(
+        FetchCount,
+        FetchCount,
+        FetchCountById({ id: 99 }),
+        FetchCountById({ id: 99 }),
+      ),
+      Story.Command.resolveAll(
+        [FetchCount, CounterMessage.SucceededFetchCount({ count: 1 })],
+        [FetchCount, CounterMessage.SucceededFetchCount({ count: 2 })],
+        [
+          FetchCountById({ id: 99 }),
+          CounterMessage.SucceededFetchCount({ count: 3 }),
+        ],
+        [
+          FetchCountById({ id: 99 }),
+          CounterMessage.SucceededFetchCount({ count: 4 }),
+        ],
+      ),
+    )
+  })
+
+  test('rejects reordered or missing matchers', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.given({ count: 0, log: [] }),
+        Story.message(CounterMessage.StartedMixedFetches()),
+        Story.Command.expectExactInOrder(
+          FetchCountById({ id: 99 }),
+          FetchCountById({ id: 99 }),
+          FetchCount,
+          FetchCount,
+        ),
+      ),
+    ).toThrow('Expected exactly these Commands in order')
+
+    expect(() =>
+      Story.story(
+        update,
+        Story.given({ count: 0, log: [] }),
+        Story.message(CounterMessage.StartedMixedFetches()),
+        Story.Command.expectExactInOrder(
+          FetchCount,
+          FetchCount,
+          FetchCountById({ id: 99 }),
+        ),
+      ),
+    ).toThrow('Expected exactly these Commands in order')
+  })
+})
+
 describe('instance-strict Command matching', () => {
   test('expectHas with a Command instance matches by name AND args', () => {
     Story.story(

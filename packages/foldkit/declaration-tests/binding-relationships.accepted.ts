@@ -36,7 +36,7 @@ export const ChildBlock = Block.make('BindingRelationshipsChild', {
   key: ChildKey,
   Model: ChildModel,
   Message: ChildMessage,
-  Init: Schema.Tuple([ChildId, Schema.String]),
+  InitArgs: Schema.Tuple([ChildId, Schema.String]),
   effects: { services: [ChildStore], Error: HandlerUnavailable },
   operations: {
     requestRead: ChildMessage.RequestedRead,
@@ -51,7 +51,7 @@ export const ContextChildBlock = Block.make(
     key: ContextChildKey,
     Model: ChildModel,
     Message: ChildMessage,
-    Init: Schema.Tuple([ChildId, Schema.String]),
+    InitArgs: Schema.Tuple([ChildId, Schema.String]),
     Context: Schema.Tuple([Schema.Struct({ prefix: Schema.String })]),
     operations: {
       updateLabel: ChildMessage.UpdatedLabel,
@@ -94,7 +94,7 @@ export const OptionModelBlock = Block.make('BindingRelationshipsOptionModel', {
   key: OptionModelKey,
   Model: OptionModel,
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 
 export const ArrayModel = Schema.Array(Schema.String)
@@ -103,7 +103,7 @@ export const ArrayModelBlock = Block.make('BindingRelationshipsArrayModel', {
   key: ArrayModelKey,
   Model: ArrayModel,
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 
 export const OptionalChild = Schema.Struct({
@@ -141,7 +141,7 @@ export const ParentBlock = Block.make('BindingRelationshipsParent', {
   key: ParentKey,
   Model: ParentModel,
   Message: ParentMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   ChildInitContext: ParentChildInitContext,
 })
 
@@ -192,7 +192,6 @@ export const ChildrenBinding = makeKeyedArrayBinding(ChildBlock, {
         args: [ChildId.make('first'), `first-${seed}`],
       },
     ],
-    toItem: (_occurrence, child) => child,
   },
 })
 export const WrappedChildrenBinding = makeKeyedArrayBinding(ChildBlock, {
@@ -298,7 +297,7 @@ export const ServiceParentBlock = Block.make(
     key: ServiceParentKey,
     Model: ServiceParentModel,
     Message: Schema.Never,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     ChildInitContext: ServiceParentChildInitContext,
     effects: { services: [ChildStore], Error: HandlerUnavailable },
   },
@@ -394,7 +393,7 @@ export const VariantChildBlock = Block.make(
     key: VariantChildKey,
     Model: VariantChildModel,
     Message: Schema.Never,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 export const VariantParentKey = Symbol('BindingRelationshipsVariantParent')
@@ -404,7 +403,7 @@ export const VariantParentBlock = Block.make(
     key: VariantParentKey,
     Model: VariantParentModel,
     Message: Schema.Never,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 export const { makeVariantBinding } = VariantParentBlock
@@ -422,7 +421,7 @@ export const ReportingBlock = Block.make('BindingRelationshipsReporting', {
   Model: ChildModel,
   Message: ChildMessage,
   OutMessage: ReportingOutMessage,
-  Init: Schema.Tuple([ChildId, Schema.String]),
+  InitArgs: Schema.Tuple([ChildId, Schema.String]),
 })
 export const ReportingParentModel = Schema.Struct({ child: ChildModel })
 export const ReportingParentOutMessage = Message.defineMessageUnion({
@@ -436,7 +435,7 @@ export const ReportingParentBlock = Block.make(
     Model: ReportingParentModel,
     Message: ParentMessage,
     OutMessage: ReportingParentOutMessage,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 const ReportingBindingBase = ReportingParentBlock.makeRequiredFieldBinding(

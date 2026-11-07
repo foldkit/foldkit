@@ -1,5 +1,24 @@
 # Next preview release handoff
 
+## November 6 follow-up feedback
+
+The [follow-up report](preview-followup-feedback-20261106.md) and
+[task board](next-preview-tasks.md#november-6-follow-up-feedback) supersede the
+earlier readiness checkpoints below. The explicit Binding adoption is frozen in
+#1903; the new initializer, acquisition and testing follow-ups are separate work.
+The source/emitted/relocated consumer gate and all eight existing compiler
+workloads pass without budget changes. Focused application and UI verification
+is complete. The final full pre-push gate, rendering comparison, exact-commit
+review and protected integration remain in progress. No final candidate is
+frozen yet.
+
+Daybreak is held for this additional feedback. Do not act on the older pending
+authorization card for `3d3eb8998eeced834d4a7fa1810f72179796a3c3`. A later approval
+must cover the final integrated source. Publication is separately held, and
+`90746b32d2ca` remains the verified published snapshot. Rendering and bundle
+review still require the final candidate's evidence; earlier measurements below
+are historical comparisons rather than acceptance of the new candidate.
+
 ## November 6 preparation
 
 The [current release review](preview-release-review-20261106.md) supersedes the

@@ -8,7 +8,7 @@ import type { ViewInputs } from './viewInputs'
 export const HomeKey = Symbol('Home')
 export const HomeBlock = Block.make('Home', {
   key: HomeKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,

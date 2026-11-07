@@ -17,7 +17,7 @@ export const ItemBlock = Block.make('Item', {
   Model: ItemModel,
   Message: ItemMessage,
   OutMessage: ItemOutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 
 export const CatalogModel = Schema.Struct({
@@ -32,7 +32,7 @@ const CatalogBlock = Block.make('Catalog', {
   key: CatalogKey,
   Model: CatalogModel,
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const { makeRecordBinding, makeFieldsStep, makeOutMessageFold } = CatalogBlock
 

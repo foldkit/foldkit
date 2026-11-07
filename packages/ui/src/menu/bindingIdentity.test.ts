@@ -32,7 +32,7 @@ const GenericMenuBindingIdentityBlock = Block.make(
     Model,
     Message,
     OutMessage,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     ChildInitContext: Menu.InitConfig,
   },
 )
@@ -70,10 +70,11 @@ const block = {
   block: GenericMenuBindingIdentityBlock,
   layer: GenericMenuBindingIdentityBlock.makeLayer(
     Effect.gen(function* () {
-      const menu = yield* MenuBinding
+      const children =
+        yield* GenericMenuBindingIdentityComposition.acquireChildren()
 
       return {
-        children: [menu],
+        children,
         init,
         update,
       }

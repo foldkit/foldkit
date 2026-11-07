@@ -16,7 +16,7 @@ const ListboxTriggerClickTestBlock = Block.make('ListboxTriggerClickTest', {
   key: ListboxTriggerClickTestKey,
   Model,
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   ChildInitContext: InitConfig,
   view: { kind: 'Element' },
 })
@@ -66,10 +66,11 @@ const ApplicationBlock = {
   block: ListboxTriggerClickTestBlock,
   layer: ListboxTriggerClickTestBlock.makeLayer(
     Effect.gen(function* () {
-      const listbox = yield* ListboxBinding
+      const children =
+        yield* ListboxTriggerClickTestComposition.acquireChildren()
 
       return {
-        children: [listbox],
+        children,
         init,
         update,
         view,

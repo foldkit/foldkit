@@ -48,7 +48,7 @@ type Message = typeof Message.Type
 export const MessageListExampleKey = Symbol('MessageListExample')
 export const MessageListExampleBlock = Block.make('MessageListExample', {
   key: MessageListExampleKey,
-  Init: Schema.Tuple([Schema.Array(ChatMessage)]),
+  InitArgs: Schema.Tuple([Schema.Array(ChatMessage)]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -214,10 +214,10 @@ const view = MessageListExampleComposition.makeView((model, h) =>
 
 export const layer = MessageListExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const messageList = yield* MessageListBinding
+    const children = yield* MessageListExampleComposition.acquireChildren()
 
     return {
-      children: [messageList],
+      children,
       init,
       update,
       view,

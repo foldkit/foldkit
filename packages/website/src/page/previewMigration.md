@@ -48,14 +48,14 @@ Write down the intended child graph as parent → placement → child contract. 
 
 The candidate keeps typed Block and Composition builders and completes the implementation through an Effect constructor.
 
-| Value                | Responsibility                                                                                                                         |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Block declaration    | Declare the public Model, Message, Init, optional OutMessage, Context, view, operation, and effect contracts and expose typed helpers. |
-| Composition          | Register parent-owned Bindings and Mounts, then author init, update, and views with exact graph context.                               |
-| Implementation Layer | Acquire children by yielding Bindings and return `children`, init, update, view, and local handler and lifecycle declarations.         |
-| Program              | Select page or element hosting, Flags, routing, Ports, and DevTools.                                                                   |
+| Value                | Responsibility                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Block declaration    | Declare the public Model, Message, InitArgs, optional OutMessage, Context, view, operation, and effect contracts and expose typed helpers. |
+| Composition          | Register parent-owned Bindings and Mounts, then author init, update, and views with exact graph context.                                   |
+| Implementation Layer | Acquire children by yielding Bindings and return `children`, init, update, view, and local handler and lifecycle declarations.             |
+| Program              | Select page or element hosting, Flags, routing, Ports, and DevTools.                                                                       |
 
-Declare each feature once as `FooBlock = Block.make(...)`, with a module-level unique `key` and an `Init` tuple. Export that same Block and its implementation `layer`. Parents bind the Block; the constructor supplies child implementation Layers through ordinary `Layer.provide`.
+Declare each feature once as `FooBlock = Block.make(...)`, with a module-level unique `key` and an `InitArgs` tuple. Export that same Block and its implementation `layer`. Parents bind the Block; the constructor supplies child implementation Layers through ordinary `Layer.provide`.
 
 ::Snippet{name="blockFeatureExports" label="Public contract and implementation Layer"}
 
@@ -295,7 +295,7 @@ Stable `Runtime.makeApplication` combines the application state machine, lifecyc
 
 Declare the root as `ApplicationBlock` with the readable ID `Application`, then complete its construction Layer:
 
-1. Declare `ApplicationBlock` with its stable key, Model, local Message, Init, view, and effect contracts.
+1. Declare `ApplicationBlock` with its stable key, Model, local Message, InitArgs, view, and effect contracts.
 2. Rename a root route union named `AppRoute` to `ApplicationRoute`, including its imports and type queries.
 3. Build `ApplicationComposition` through `makeComposition({ bindings, mounts })` as needed.
 4. Author root init, update, and view through that Composition.

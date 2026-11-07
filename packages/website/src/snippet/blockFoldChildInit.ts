@@ -17,7 +17,7 @@ type ThemePickerMessage = typeof ThemePickerMessage.Type
 export const ThemePickerKey = Symbol('ThemePicker')
 export const ThemePickerBlock = Block.make('ThemePicker', {
   key: ThemePickerKey,
-  Init: Schema.Tuple([Theme]),
+  InitArgs: Schema.Tuple([Theme]),
   view: { kind: 'Element' },
   Model: ThemePickerModel,
   Message: ThemePickerMessage,
@@ -66,7 +66,7 @@ type ProfileChildInitContext = typeof ProfileChildInitContext.Type
 export const ProfileKey = Symbol('Profile')
 const ProfileBlock = Block.make('Profile', {
   key: ProfileKey,
-  Init: Schema.Tuple([ProfileChildInitContext]),
+  InitArgs: Schema.Tuple([ProfileChildInitContext]),
   Model: ProfileModel,
   Message: ProfileMessage,
   ChildInitContext: ProfileChildInitContext,

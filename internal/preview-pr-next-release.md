@@ -7,6 +7,7 @@ The next Blocks + Effect Layers preview is being prepared. The verified publishe
 - Declare the public contract once with `Block.make`, author through its helpers and Composition, and export its ordinary implementation `layer` with `FooBlock.makeLayer`. Application authoring no longer needs a separate Definition, preparation producer or assembly annotation. Parent code imports the child contract; Layers supply its implementation.
 - Select each child relationship with the storage-specific parent Block constructor: required field, optional field, optional keyed field, keyed array, Record, HashMap, custom unkeyed, custom keyed or whole variant. Replace `makeBinding`/`makeMapBinding`, move standalone variants onto the parent, rename `presentWhen` to `activeWhen`, and import initialization helpers from `foldkit/binding`. Storage and whole-occurrence activity are distinct.
 - Pass `{ block, layer }` to Program, Server, Story and Scene. Constructors yield the registered Bindings and return their connections under `children`. Provide child implementation Layers through ordinary `Layer.provide` composition.
+- Name the positional initializer Schema `InitArgs`. The initializer function and `makeInit` keep their names; `Init` is not a compatibility alias.
 - Rename UI child notification operations such as `informItemsChanged` to `informOfItemsChanged`. Generated `InformedOfX` methods retain the same preposition as `informOfX`; `RequestedX` continues to generate `requestX`.
 - Ensure Foldkit-managed Model and Message Codecs are synchronous and service-free, including generated child envelopes. Synchronous transformations, Option and Date remain supported. Effectful loading and normalization belong in Commands or other explicitly effectful boundaries.
 - Replace Listbox's generic-only factory arguments with runtime Value Schemas. Use `makeBlock()` for unrestricted strings, `makeBlock(Value)` for direct string values, or `makeBlock(Item, Value)` for richer view items, including Multi Listbox. Value governs the selection Message and OutMessage Codecs; Item is view-only. Provide the corresponding family Layer.
@@ -22,7 +23,9 @@ The active stable-to-preview and previous-preview guides cover these paths separ
 - InMessages have their own exhaustive `makeInMessageUpdate` record and can reuse ordinary Steps. `defineInMessageUnion` is the canonical case-record helper and catches invalid names at the declaration. Other valid Schema unions remain supported.
 - Exhaustive update records remain the ordinary approach. Focused updates can also be composed in order with `cases`, `each`, `on`, `except` and `compose`, preserving the original dispatch Model and every result channel.
 - Keyed OutMessage folds can use an authored fold directly when the key is unused or a key-dependent producer when needed. Existing explicit folds remain valid. Model-produced `makeInitIfMissingStep` requests select a key and init args from the current Model without manual child placement.
+- `Composition.acquireChildren()` collects the exact registered child tuple without repeating the inventory in the constructor. It preserves Layer requirements, errors, identities and Scope without initializing child Models. Direct keyed-array startup may omit an identity `toItem`; wrappers and metadata retain an explicit adapter.
 - `Story.messageIn` handles a local Message in a bound child and returns the composed parent result after the child update and Binding fold. It is distinct from a formal InMessage. Story's returned Model and `Story.models` support immutable observations. Keyed Scene Subscription and ManagedResource selections identify the occurrence explicitly. The repository's examples, Website, Typing Game, scaffolds and skills use the same patterns.
+- Nested Story delivery accepts checked Binding paths with keyed selection. `Story.Command.expectExactInOrder` and its Scene equivalent preserve exact ordered assertions without inspecting simulation internals; `expectExact` remains order-independent.
 
 Application-authored transitions use operation names such as `clearDraft` and `changeSearchQuery`. Framework APIs such as `makeStep`, `Update.Step` and `Update.combineSteps` keep their established names.
 
@@ -45,10 +48,10 @@ For example, the compiled [Profile snippet](https://github.com/foldkit/foldkit/b
 ```ts
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const settings = yield* SettingsBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [settings],
+      children,
       init,
       update,
       view,
@@ -72,7 +75,7 @@ The Model remains the source of truth, update stays pure, and Commands execute a
 
 ### Verification and remaining limits
 
-The explicit Binding migration and its revised compiler limits require final combined verification and a fresh authorized security review. The earlier snapshots below do not cover that new runtime/API work.
+The explicit Binding migration, initializer and testing follow-ups pass source/emitted/relocated checks and all eight existing compiler workloads without further budget changes. The complete pre-push gate, fresh rendering evidence, exact-commit review and protected integration must finish before freezing the next candidate. A fresh authorized security review must cover that final candidate. The earlier snapshots below do not cover this new runtime/API work.
 
 The [current review](https://github.com/foldkit/foldkit/blob/codex/layers-and-submodels/internal/preview-release-review-20261106.md) records source, emitted and relocated declaration checks, compiler workloads, runtime and browser tests, installed-consumer checks, and the authorized static security review. Both that review and the subsequent [Chunk-fix and release-documentation addendum](https://github.com/foldkit/foldkit/blob/codex/layers-and-submodels/internal/daybreak-20261106-addendum/README.md) found no substantiated new security or release-correctness defect in their frozen snapshots. Static inspection does not certify every registry artifact or deployment.
 

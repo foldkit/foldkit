@@ -33,7 +33,7 @@ const Definition = Namespace.makeDefinition({
   key: SurfaceKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', mounts: [ObserveSurface] },
 })
 const Composition = Definition.makeComposition({ mounts: [ObserveSurface] })

@@ -194,32 +194,22 @@ export const moveIssueInState = (
     status: input.status,
     version: issue.version + 1,
   })
+  const issuePlacement = Issue.place(
+    state.workspace.issues,
+    nextIssue,
+    input.insertionIndex,
+  )
   const nextWorkspace = Workspace.Workspace.make({
     ...state.workspace,
-    issues: Issue.place(
-      state.workspace.issues,
-      nextIssue,
-      input.insertionIndex,
-    ),
+    issues: issuePlacement.issues,
   })
-
-  const issuesInTargetStatus = Issue.forStatus(
-    Workspace.issuesForProject(nextWorkspace, nextIssue.projectId),
-    nextIssue.status,
-  )
-  const persistedInsertionIndex = Option.getOrThrow(
-    Array.findFirstIndex(
-      issuesInTargetStatus,
-      candidateIssue => candidateIssue.id === nextIssue.id,
-    ),
-  )
 
   return [
     Result.succeed(
       Issue.MoveResult.make({
         issueId: nextIssue.id,
         status: nextIssue.status,
-        insertionIndex: persistedInsertionIndex,
+        insertionIndex: issuePlacement.insertionIndex,
         version: nextIssue.version,
       }),
     ),

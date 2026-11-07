@@ -359,7 +359,7 @@ const VirtualListBlock = Block.make('VirtualList', {
   Message,
   InMessage,
   OutMessage,
-  Init: Schema.Tuple([InitConfig]),
+  InitArgs: Schema.Tuple([InitConfig]),
   view: {
     kind: 'Element',
     Inputs: Block.makeInputContract<InternalVirtualListViewInputs>(),
@@ -2696,7 +2696,7 @@ type RefinedContract<Item> = Block.Contract<
 type RefinedConfiguration<Item> = Readonly<{
   key: typeof VirtualListKey
   InMessage: typeof InMessage
-  Init: Schema.Tuple<readonly [typeof InitConfig]>
+  InitArgs: Schema.Tuple<readonly [typeof InitConfig]>
   view: Readonly<{
     kind: 'Element'
     Inputs: Block.InputContract<ViewInputs<Item>>

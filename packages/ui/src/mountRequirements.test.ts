@@ -33,7 +33,7 @@ const ComboboxMountRequirementsKey = Symbol('ComboboxMountRequirements')
 
 const ComboboxMountRequirementsBlock = Block.make('ComboboxMountRequirements', {
   key: ComboboxMountRequirementsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: TestCombobox.Model,
   Message: Schema.Never,
 })
@@ -65,7 +65,7 @@ const ListboxMountRequirementsKey = Symbol('ListboxMountRequirements')
 
 const ListboxMountRequirementsBlock = Block.make('ListboxMountRequirements', {
   key: ListboxMountRequirementsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: TestListbox.Model,
   Message: Schema.Never,
 })
@@ -98,7 +98,7 @@ const MenuMountRequirementsKey = Symbol('MenuMountRequirements')
 
 const MenuMountRequirementsBlock = Block.make('MenuMountRequirements', {
   key: MenuMountRequirementsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: TestMenu.Model,
   Message: Schema.Never,
 })

@@ -130,7 +130,7 @@ export const mounts = [AcquireResources]
 
 export const DialogBlock = Block.make(DialogNamespace, {
   key: DialogKey,
-  Init: Block.makeInputContract<readonly [config: InitConfig]>(),
+  InitArgs: Block.makeInputContract<readonly [config: InitConfig]>(),
   view: {
     kind: 'Element',
     Inputs: Block.makeInputContract<ViewInputs>(),
@@ -693,10 +693,10 @@ export const view = DialogComposition.makeView.withInputs(
 
 export const layer = DialogBlock.makeLayer(
   Effect.gen(function* () {
-    const animation = yield* AnimationBinding
+    const children = yield* DialogComposition.acquireChildren()
 
     return {
-      children: [animation],
+      children,
       init,
       update,
       inMessageUpdate,

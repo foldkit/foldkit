@@ -39,7 +39,7 @@ export const SessionBlock = Block.make(Namespace, {
   Model,
   Message,
   InMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   effects: {
     managedResources: [Session],
     services: [Store],

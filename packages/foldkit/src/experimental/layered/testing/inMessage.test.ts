@@ -270,7 +270,7 @@ test('the scoped inMessageUpdate adapter validates schema and uses separate inpu
       Model,
       Message,
       InMessage,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
       Context: Schema.Tuple([Schema.Number]),
       InMessageContext: Schema.Tuple([Schema.String]),
       view: { kind: 'Element' },
@@ -373,7 +373,7 @@ it.effect(
         Model,
         Message,
         InMessage,
-        Init: Schema.Tuple([]),
+        InitArgs: Schema.Tuple([]),
         InMessageContext:
           Block.makeInputContract<
             readonly [label?: string, ...parts: ReadonlyArray<string>]

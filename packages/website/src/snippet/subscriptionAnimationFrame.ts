@@ -17,7 +17,7 @@ type Model = typeof Model.Type
 export const SpinnerKey = Symbol('Spinner')
 const SpinnerBlock = Block.make('Spinner', {
   key: SpinnerKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

@@ -9,7 +9,7 @@ export const Definition = Block.makeDefinition('ViewPlanFixture', {
   key: ViewPlanKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: {
     kind: 'Element',
     Inputs: Block.makeInputContract<{ heading: string }>(),
@@ -48,7 +48,7 @@ export const ShellDefinition = Block.makeDefinition('EmbeddedViewPlanFixture', {
   key: ShellKey,
   Model: Schema.Struct({ child: Definition.contract.Model }),
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 export const ChildBinding = ShellDefinition.makeRequiredFieldBinding(
@@ -100,7 +100,7 @@ export const ForeignDefinition = Block.makeDefinition(
     key: ForeignKey,
     Model,
     Message,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 export const foreignView = ForeignDefinition.makeComposition().makeView(
@@ -114,7 +114,7 @@ export const HeadlessDefinition = Block.makeDefinition(
     key: HeadlessKey,
     Model,
     Message,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 export const HeadlessComposition = HeadlessDefinition.makeComposition()
@@ -133,7 +133,7 @@ export const HeadlessParentDefinition = Block.makeDefinition(
     key: HeadlessParentKey,
     Model: Schema.Struct({ child: HeadlessDefinition.contract.Model }),
     Message: Schema.Never,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 export const HeadlessBinding =
@@ -164,7 +164,7 @@ export const KeyedParentDefinition = Block.makeDefinition(
       children: Schema.Record(Schema.String, HeadlessDefinition.contract.Model),
     }),
     Message: Schema.Never,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 export const KeyedBinding = KeyedParentDefinition.makeRecordBinding(

@@ -34,7 +34,7 @@ type Message = typeof Message.Type
 export const CharacterPickerKey = Symbol('CharacterPicker')
 export const CharacterPickerBlock = Block.make('CharacterPicker', {
   key: CharacterPickerKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -52,19 +52,19 @@ const {
 // `itemToValue`). The arm returns an Update.Step over the parent Model, which
 // already has the next Listbox Model written back. The whole child Block
 // preserves the refined string payload without repeated Step types:
-const foldListboxOutMessage = makeOutMessageFold(CharacterListbox, {
-  Selected: ({ value }) =>
-    makeFieldsStep(() => ({
-      maybeCharacter: () => Option.some(value),
-    })),
-})
-
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const ListboxBinding = makeRequiredFieldBinding(CharacterListbox, {
   field: 'listbox',
   init: { contextToArgs: () => [{ id: 'character' }] },
-}).withOutMessagePolicy({ fold: foldListboxOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(CharacterListbox, {
+    Selected: ({ value }) =>
+      makeFieldsStep(() => ({
+        maybeCharacter: () => Option.some(value),
+      })),
+  }),
+})
 
 const CharacterPickerComposition = makeComposition({
   bindings: [ListboxBinding],
@@ -135,10 +135,10 @@ const view = CharacterPickerComposition.makeView((model, h) =>
 
 export const layer = CharacterPickerBlock.makeLayer(
   Effect.gen(function* () {
-    const characterListbox = yield* ListboxBinding
+    const children = yield* CharacterPickerComposition.acquireChildren()
 
     return {
-      children: [characterListbox],
+      children,
       init,
       update,
       view,

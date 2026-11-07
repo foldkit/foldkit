@@ -9,6 +9,7 @@ import {
   ContextChildBlock,
   OptionModelBlock,
   ParentBlock,
+  type ParentModel,
   VariantChildBlock,
   childLayer,
   makeCustomBinding,
@@ -41,6 +42,12 @@ makeOptionalFieldBinding(OptionModelBlock, { field: 'optionModelChild' })
 makeKeyedArrayBinding(ArrayModelBlock, {
   field: 'arrayModelChild',
   key: 'length',
+})
+// @ts-expect-error Direct keyed initialization still requires array storage in the parent Model.
+makeKeyedArrayBinding(ChildBlock, {
+  field: 'requiredChild',
+  key: 'id',
+  init: { instances: () => [] },
 })
 
 // @ts-expect-error Optional-keyed storage must be an Option wrapper.
@@ -78,6 +85,48 @@ makeKeyedArrayBinding(ChildBlock, {
   field: 'wrappedChildren',
   key: 'id',
   childField: 'note',
+})
+
+makeKeyedArrayBinding(ChildBlock, {
+  field: 'children',
+  key: 'id',
+  // @ts-expect-error Direct keyed field storage cannot add an accessor enumerator.
+  readAll: (model: ParentModel) => model.children,
+})
+makeKeyedArrayBinding(ChildBlock, {
+  field: 'children',
+  key: 'id',
+  // @ts-expect-error Direct keyed field storage cannot add an accessor writer.
+  writeAt: (model: ParentModel) => model,
+})
+// @ts-expect-error Wrapped keyed field storage cannot add an accessor enumerator.
+makeKeyedArrayBinding(ChildBlock, {
+  field: 'wrappedChildren',
+  key: 'id',
+  childField: 'child',
+  readAll: (model: ParentModel) => model.wrappedChildren,
+})
+// @ts-expect-error Wrapped keyed field storage cannot add an accessor writer.
+makeKeyedArrayBinding(ChildBlock, {
+  field: 'wrappedChildren',
+  key: 'id',
+  childField: 'child',
+  writeAt: (model: ParentModel) => model,
+})
+
+// @ts-expect-error Wrapped keyed startup initialization requires a parent-owned item adapter.
+makeKeyedArrayBinding(ChildBlock, {
+  field: 'wrappedChildren',
+  key: 'id',
+  childField: 'child',
+  init: {
+    instances: () => [
+      {
+        key: ChildId.make('wrapped'),
+        args: [ChildId.make('wrapped'), 'wrapped'],
+      },
+    ],
+  },
 })
 
 makeRecordBinding(ChildBlock, {
@@ -149,7 +198,7 @@ const ForeignVariantParentBlock = Block.make(
     key: ForeignVariantParentKey,
     Model: ForeignVariantParentModel,
     Message: Schema.Never,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 // @ts-expect-error Variant Bindings require the exact child Model Schema member.
@@ -170,7 +219,7 @@ const MissingEffectsParentBlock = Block.make(
     key: MissingEffectsParentKey,
     Model: MissingEffectsParentModel,
     Message: Schema.Never,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 const MissingEffectsChildBinding =

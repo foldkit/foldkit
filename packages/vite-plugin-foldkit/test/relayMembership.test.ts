@@ -4,6 +4,7 @@ import { expect, it, onTestFinished } from 'vitest'
 import type { RawData, WebSocket } from 'ws'
 
 import { foldkit } from '../src/index.ts'
+import { listenOnEphemeralPort } from './listenOnEphemeralPort.ts'
 import {
   POLL_TIMEOUT,
   UNKNOWN_RUNTIME_FAILURE_BUDGET,
@@ -32,7 +33,7 @@ const startServer = async () => {
     plugins: [foldkit()],
   })
   onTestFinished(() => server.close().catch(() => undefined))
-  await server.listen()
+  await listenOnEphemeralPort(() => server.listen())
   const record = await waitUntilPublished(directories.root)
 
   return { server, record }

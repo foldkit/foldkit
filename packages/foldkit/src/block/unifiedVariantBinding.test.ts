@@ -36,7 +36,7 @@ const ChildBlock = Block.make('UnifiedActiveVariant', {
   Model: Active,
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
-  Init: Schema.Tuple([Schema.Number]),
+  InitArgs: Schema.Tuple([Schema.Number]),
   operations: {
     setCount: ChildMessage.UpdatedCount,
     notify: {
@@ -70,7 +70,7 @@ const ParentBlock = Block.make('UnifiedVariantParent', {
   Model,
   Message,
   OutMessage,
-  Init: Schema.Tuple([Schema.Number]),
+  InitArgs: Schema.Tuple([Schema.Number]),
 })
 const ActiveBinding = ParentBlock.makeVariantBinding(
   ChildBlock,
@@ -142,7 +142,7 @@ describe('whole-variant storage through a unified Block', () => {
       Model,
       Message,
       OutMessage,
-      Init: Schema.Tuple([Schema.Number]),
+      InitArgs: Schema.Tuple([Schema.Number]),
     })
     const NarrowKey = Symbol('NarrowVariantParent')
     const NarrowBlock = Block.make('NarrowVariantParent', {
@@ -152,7 +152,7 @@ describe('whole-variant storage through a unified Block', () => {
         Inactive,
       ]),
       Message,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
     })
 
     if (false) {

@@ -94,7 +94,7 @@ export type InitConfig = typeof InitConfig.Type
 export const DatePickerKey = Symbol('DatePicker')
 export const DatePickerBlock = Block.make('DatePicker', {
   key: DatePickerKey,
-  Init: Schema.Tuple([InitConfig]),
+  InitArgs: Schema.Tuple([InitConfig]),
   ChildInitContext: InitConfig,
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
@@ -481,11 +481,10 @@ export const view = DatePickerComposition.makeView.withInputs(
 
 export const layer = DatePickerBlock.makeLayer(
   Effect.gen(function* () {
-    const popover = yield* PopoverBinding
-    const calendar = yield* CalendarBinding
+    const children = yield* DatePickerComposition.acquireChildren()
 
     return {
-      children: [popover, calendar],
+      children,
       init,
       update,
       inMessageUpdate,

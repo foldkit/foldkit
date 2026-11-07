@@ -16,7 +16,7 @@ type Model = typeof Model.Type
 export const StopwatchKey = Symbol('Stopwatch')
 const StopwatchBlock = Block.make('Stopwatch', {
   key: StopwatchKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

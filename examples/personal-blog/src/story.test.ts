@@ -12,15 +12,10 @@ import { Message } from './message'
 import { Model } from './model'
 import { ApplicationRoute } from './route'
 
-type CounterMessage = typeof CounterBlock.Message.Type
-
 const home = Model.make({
   route: ApplicationRoute.Home(),
   counter: CounterBlock.Model.make({ count: 0 }),
 })
-
-const counterMessage = (message: CounterMessage) =>
-  Story.messageIn(CounterBinding, message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -102,8 +97,14 @@ describe('update', () => {
         Story.story(
           { block: ApplicationBlock, layer },
           Story.given(home),
-          counterMessage(CounterBlock.Message.ClickedIncrement()),
-          counterMessage(CounterBlock.Message.ClickedIncrement()),
+          Story.messageIn(
+            CounterBinding,
+            CounterBlock.Message.ClickedIncrement(),
+          ),
+          Story.messageIn(
+            CounterBinding,
+            CounterBlock.Message.ClickedIncrement(),
+          ),
           Story.Command.expectNone(),
           Story.model(model => {
             expect(model.counter.count).toBe(2)
@@ -115,7 +116,10 @@ describe('update', () => {
       Story.story(
         { block: ApplicationBlock, layer },
         Story.given(home),
-        counterMessage(CounterBlock.Message.ClickedIncrement()),
+        Story.messageIn(
+          CounterBinding,
+          CounterBlock.Message.ClickedIncrement(),
+        ),
         Story.message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/posts') }),
         ),

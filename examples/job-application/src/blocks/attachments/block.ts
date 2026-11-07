@@ -21,7 +21,7 @@ export type Message = typeof Message.Type
 export const AttachmentsKey = Symbol('Attachments')
 export const AttachmentsBlock = Block.make('Attachments', {
   key: AttachmentsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,

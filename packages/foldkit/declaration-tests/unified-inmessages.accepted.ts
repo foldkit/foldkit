@@ -26,7 +26,7 @@ export const CounterBlock = Block.make('UnifiedInputTests', {
   Model,
   Message,
   InMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Context: Schema.Tuple([Schema.String]),
   InMessageContext: Schema.Tuple([Schema.Number]),
   effects: { services: [Store] },

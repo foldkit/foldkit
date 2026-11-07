@@ -224,6 +224,45 @@ const checkFixedProviderAcquisition = (
   )
 }
 
+const acquireCompositionChildren = (
+  bindings: ReadonlyArray<object>,
+): Effect.Effect<ReadonlyArray<object>, any, any> =>
+  Effect.suspend(() =>
+    Effect.map(
+      Effect.forEach(
+        bindings,
+        binding => {
+          const construct = Reflect.get(binding, 'construct')
+
+          if (!Predicate.isFunction(construct)) {
+            throw new Error(
+              '[foldkit] Composition.acquireChildren requires original registered Bindings.',
+            )
+          }
+
+          const acquisition = Reflect.apply(construct, binding, [])
+          if (!Effect.isEffect(acquisition)) {
+            throw new Error(
+              '[foldkit] Composition.acquireChildren requires original registered Binding constructors.',
+            )
+          }
+
+          return Effect.map(acquisition, child => {
+            if (!Predicate.isObject(child)) {
+              throw new Error(
+                '[foldkit] Composition.acquireChildren received an invalid child acquisition.',
+              )
+            }
+
+            return child
+          })
+        },
+        { concurrency: 1 },
+      ),
+      children => Object.freeze(children),
+    ),
+  )
+
 const snapshotArray = (
   value: unknown,
   name: string,
@@ -566,6 +605,12 @@ export const makeDefinitionRuntime = (
 ): any => {
   config = snapshotDefinitionConfiguration(config)
 
+  if (config.InitArgs === undefined) {
+    throw new Error(
+      '[foldkit] A Block contract requires an InitArgs contract for its positional initializer arguments.',
+    )
+  }
+
   if (!Predicate.isString(id) || id.length === 0) {
     throw new Error(
       '[foldkit] An independent Block contract requires a nonempty literal Id.',
@@ -884,7 +929,11 @@ export const makeDefinitionRuntime = (
     contract,
     makeComposition: (graph: unknown = {}) => {
       const composition = definition.makeComposition(graph)
-      authoringSources.add(authoringSourceOf(composition))
+      const source = authoringSourceOf(composition)
+      authoringSources.add(source)
+      Object.assign(composition, {
+        acquireChildren: () => acquireCompositionChildren(source.bindings),
+      })
 
       if (config.InMessage === undefined) {
         return composition

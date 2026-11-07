@@ -14,7 +14,7 @@ type RoomInMessage = typeof RoomInMessage.Type
 export const RoomKey = Symbol('Room')
 export const RoomBlock = Block.make('Room', {
   key: RoomKey,
-  Init: Schema.Tuple([Schema.String]),
+  InitArgs: Schema.Tuple([Schema.String]),
   InMessage: RoomInMessage,
   isMessageFree: true,
 
@@ -59,7 +59,7 @@ type Message = typeof Message.Type
 export const ApplicationKey = Symbol('Application')
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

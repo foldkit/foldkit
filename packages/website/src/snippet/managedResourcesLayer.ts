@@ -49,7 +49,7 @@ const ChessEngineLayer: Layer.Layer<ChessEngineService> = Layer.effect(
 export const ChessKey = Symbol('Chess')
 const ChessBlock = Block.make('Chess', {
   key: ChessKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

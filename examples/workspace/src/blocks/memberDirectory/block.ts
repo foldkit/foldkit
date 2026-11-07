@@ -8,7 +8,7 @@ import { ViewInputs } from './viewInputs'
 export const MemberDirectoryKey = Symbol('MemberDirectory')
 export const MemberDirectoryBlock = Block.make('MemberDirectory', {
   key: MemberDirectoryKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: ViewInputs },
   Model,
   Message,

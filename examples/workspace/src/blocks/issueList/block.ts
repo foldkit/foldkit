@@ -9,7 +9,7 @@ import { ViewInputs } from './viewInputs'
 export const IssueListKey = Symbol('IssueList')
 export const IssueListBlock = Block.make('IssueList', {
   key: IssueListKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: ViewInputs },
   Model,
   Message,

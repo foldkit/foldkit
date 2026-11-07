@@ -10,7 +10,7 @@ import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import { type Activity, ROW_COUNT } from '../virtualList'
 
-const actorNames = [
+const actorNames: Array.NonEmptyReadonlyArray<string> = [
   'Sarah Chen',
   'Marcus Davies',
   'Priya Patel',
@@ -25,7 +25,7 @@ const actorNames = [
   'Tomás Reyes',
 ]
 
-const actionVerbs = [
+const actionVerbs: Array.NonEmptyReadonlyArray<string> = [
   'merged',
   'opened',
   'commented on',
@@ -36,7 +36,7 @@ const actionVerbs = [
   'pushed to',
 ]
 
-const colorClasses = [
+const colorClasses: Array.NonEmptyReadonlyArray<string> = [
   'bg-rose-500',
   'bg-amber-500',
   'bg-emerald-500',
@@ -47,7 +47,7 @@ const colorClasses = [
   'bg-orange-500',
 ]
 
-const branchNames = [
+const branchNames: Array.NonEmptyReadonlyArray<string> = [
   'main',
   'feat/scroll-handlers',
   'fix/dialog-focus',
@@ -55,8 +55,10 @@ const branchNames = [
   'chore/deps',
 ]
 
-const cycle = (xs: ReadonlyArray<string>, index: number): string =>
-  pipe(xs, Array.get(index % xs.length), Option.getOrThrow)
+const cycle = <Value>(
+  values: Array.NonEmptyReadonlyArray<Value>,
+  index: number,
+): Value => pipe(values, Array.get(index % values.length), Option.getOrThrow)
 
 const formatTimeAgo = (hours: number): string => {
   if (hours < 1) {
@@ -135,7 +137,7 @@ type Summary = Readonly<{
   artifact: string
 }>
 
-const summaries: ReadonlyArray<Summary> = [
+const summaries: Array.NonEmptyReadonlyArray<Summary> = [
   {
     title: 'CI passing across all browsers',
     body: 'Resolved the flake in the snapshot suite and confirmed the migration step runs idempotently against staging.',
@@ -176,8 +178,7 @@ const summaries: ReadonlyArray<Summary> = [
 const SHORT_ROW_HEIGHT_PX = 56
 const TALL_ROW_HEIGHT_PX = 112
 
-const summaryFor = (index: number): Summary =>
-  pipe(summaries, Array.get(index % summaries.length), Option.getOrThrow)
+const summaryFor = (index: number): Summary => cycle(summaries, index)
 
 export const variableActivities: ReadonlyArray<Activity> = sampleActivities
 

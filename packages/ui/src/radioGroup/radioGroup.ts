@@ -134,7 +134,7 @@ export const EffectsLayer = Layer.mergeAll(FocusOption.layer)
 export const RadioGroupKey = Symbol('RadioGroup')
 const RadioGroupBlock = Block.make(RadioGroupNamespace, {
   key: RadioGroupKey,
-  Init: Schema.Tuple([InitConfig]),
+  InitArgs: Schema.Tuple([InitConfig]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,
@@ -548,7 +548,7 @@ type RefinedContract<Value extends string> = Block.Contract<
 
 type RefinedConfiguration<Value extends string> = Readonly<{
   key: typeof RadioGroupKey
-  Init: Schema.Tuple<readonly [typeof InitConfig]>
+  InitArgs: Schema.Tuple<readonly [typeof InitConfig]>
   view: Readonly<{
     kind: 'Element'
     Inputs: Block.InputContract<ViewInputs<Value>>

@@ -15,7 +15,7 @@ const ChildMessage = defineMessageUnion({
 })
 const ChildDefinition = Block.makeDefinition('ParentBoundDeliveryChild', {
   key: ChildKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: Schema.Struct({ count: Schema.Number }),
   Message: ChildMessage,
 })
@@ -34,7 +34,7 @@ const Child = ChildDefinition.makeBlock(
 const ParentKey = Symbol('ParentBoundDeliveryParent')
 const ParentDefinition = Block.makeDefinition('ParentBoundDeliveryParent', {
   key: ParentKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: Schema.Struct({
     left: ChildDefinition.contract.Model,
     right: ChildDefinition.contract.Model,
@@ -83,7 +83,7 @@ const Parent = ParentDefinition.makeBlock(
 const ForeignKey = Symbol('ParentBoundDeliveryForeign')
 const ForeignDefinition = Block.makeDefinition('ParentBoundDeliveryForeign', {
   key: ForeignKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: ParentDefinition.Model,
   Message: Schema.Never,
 })
@@ -96,7 +96,7 @@ const ForeignBinding = ForeignDefinition.makeRequiredFieldBinding(
 const TopKey = Symbol('ParentBoundDeliveryTop')
 const TopDefinition = Block.makeDefinition('ParentBoundDeliveryTop', {
   key: TopKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: Schema.Struct({ group: ParentDefinition.contract.Model }),
   Message: Schema.Never,
 })

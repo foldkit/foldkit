@@ -29,7 +29,7 @@ const RadioGroupSceneBlock = Block.make('RadioGroupScene', {
   key: RadioGroupSceneKey,
   Model,
   Message: Schema.Never,
-  Init: Schema.Tuple([Schema.Option(Schema.String)]),
+  InitArgs: Schema.Tuple([Schema.Option(Schema.String)]),
   ChildInitContext: Schema.String,
   view: { kind: 'Element', Inputs: Block.makeInputContract<Overrides>() },
 })
@@ -104,10 +104,10 @@ const radioGroupScene = {
   block: RadioGroupSceneBlock,
   layer: RadioGroupSceneBlock.makeLayer(
     Effect.gen(function* () {
-      const radioGroup = yield* RadioGroupBinding
+      const children = yield* RadioGroupSceneComposition.acquireChildren()
 
       return {
-        children: [radioGroup],
+        children,
         init,
         update,
         view: rootView,

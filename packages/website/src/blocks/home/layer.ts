@@ -4,12 +4,7 @@ import { Menu, Tabs } from '@foldkit/ui'
 
 import { HomeBlock } from './block'
 import { AsyncCounterDemo, NotePlayerDemo } from './blocks'
-import {
-  AsyncCounterDemoBinding,
-  DemoTabsBinding,
-  NotePlayerDemoBinding,
-  PlaygroundMenuBinding,
-} from './composition'
+import { HomeComposition } from './composition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
@@ -18,13 +13,10 @@ export { view } from './view'
 
 export const layer = HomeBlock.makeLayer(
   Effect.gen(function* () {
-    const asyncCounterDemo = yield* AsyncCounterDemoBinding
-    const demoTabs = yield* DemoTabsBinding
-    const notePlayerDemo = yield* NotePlayerDemoBinding
-    const playgroundMenu = yield* PlaygroundMenuBinding
+    const children = yield* HomeComposition.acquireChildren()
 
     return {
-      children: [asyncCounterDemo, demoTabs, notePlayerDemo, playgroundMenu],
+      children,
       init,
       update,
       view,

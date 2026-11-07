@@ -862,7 +862,7 @@ export const wrappedKeyedInitialPolicyOf = (
   const init = Reflect.get(config, 'init')
   if (!Predicate.isObject(init)) {
     throw new Error(
-      `[foldkit] Keyed Binding field "${field}" init must be an object with instances and toItem functions.`,
+      `[foldkit] Keyed Binding field "${field}" init must be an object with an instances function.`,
     )
   }
 
@@ -876,9 +876,22 @@ export const wrappedKeyedInitialPolicyOf = (
 
   const instances = Reflect.get(init, 'instances')
   const toItem = Reflect.get(init, 'toItem')
-  if (!Predicate.isFunction(instances) || !Predicate.isFunction(toItem)) {
+  if (!Predicate.isFunction(instances)) {
     throw new Error(
-      `[foldkit] Keyed Binding field "${field}" init must supply instances and toItem functions.`,
+      `[foldkit] Keyed Binding field "${field}" init must supply an instances function.`,
+    )
+  }
+  if (toItem !== undefined && !Predicate.isFunction(toItem)) {
+    throw new Error(
+      `[foldkit] Keyed Binding field "${field}" init.toItem must be a function.`,
+    )
+  }
+  if (
+    toItem === undefined &&
+    Predicate.isString(Reflect.get(config, 'childField'))
+  ) {
+    throw new Error(
+      `[foldkit] Wrapped keyed Binding field "${field}" init must supply a toItem function.`,
     )
   }
 
@@ -939,8 +952,10 @@ export const wrappedKeyedInitialPolicyOf = (
         },
       )
     },
-    toItem: (occurrence, childModel) =>
-      Reflect.apply(toItem, undefined, [occurrence, childModel]),
+    toItem: Predicate.isFunction(toItem)
+      ? (occurrence, childModel) =>
+          Reflect.apply(toItem, undefined, [occurrence, childModel])
+      : (_occurrence, childModel) => childModel,
     readItemKey: item => Reflect.apply(readItemKey, undefined, [item]),
   }
 }

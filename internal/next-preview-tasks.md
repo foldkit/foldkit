@@ -1,5 +1,44 @@
 # Next preview tasks
 
+## November 6 follow-up feedback
+
+Daybreak and publication remain held while this pass is in progress. The prior
+Binding adoption is frozen at `3d3eb8998eeced834d4a7fa1810f72179796a3c3` in
+[#1903](https://github.com/foldkit/foldkit/pull/1903); these changes belong to its
+follow-up rather than that already reviewed commit.
+
+- [x] Permit keyed-array initialization without an identity `toItem` only for
+      direct child Model storage. Preserve wrapped adapters, exact keys,
+      deferred arguments and init Commands.
+- [x] Add checked nested `Story.messageIn` Binding paths, including keyed
+      selection, routed-only intermediate children and emitted consumers.
+- [x] Simplify Job Application's Model fixtures to ordinary `it.effect`,
+      explicit Effect acquisition and immutable Models. Remove forwarding-only
+      Story wrappers across apps.
+- [x] Rename the positional initializer contract from `Init` to `InitArgs`
+      across public APIs, consumers and active guidance without changing the
+      internal init-plan kind or historical published content.
+- [x] Inline single-use OutMessage folds by default. Retain deliberate no-op
+      cases and justified shared or substantial extractions.
+- [x] Prove and adopt typed Composition bulk child acquisition while keeping
+      graph construction distinct from Model initialization.
+- [x] Address [#1904](https://github.com/foldkit/foldkit/issues/1904) with Effect's existing
+      Socket implementation. Readiness and cleanup pass success, failure, timeout
+      and interruption tests; no new Foldkit API is added.
+- [x] Audit unchecked lookups, non-null assertions and casts across examples,
+      Website and Typing Game. Trace actual initialization and invalidation,
+      narrow IssueDetail's context dependency, retain necessary input validation,
+      and preserve drafts and pending completions.
+- [x] Replace ordinary test access to simulation internals with declarative
+      public assertions. Preserve startup Command order as well as identity,
+      arguments, occurrence and exact count; do not weaken `expectExact`.
+- [x] Update the guidance, migration notes, skills, changesets and release
+      preparation. Preserve singular `subscription.ts`, minimal childless
+      Composition, explicit Block identities and ordinary OutMessage unions.
+- [ ] Pass focused runtime, source/emitted, consumer and unchanged compiler
+      gates; refresh performance evidence and preview-related feedback before
+      freezing another candidate for review.
+
 ## November 6 explicit Binding relationships
 
 The user approved adoption on `codex/explicit-binding-adoption-20261106`, based on
@@ -30,8 +69,8 @@ parent-owned constructors, `activeWhen` and the `foldkit/binding` helper path.
       retaining all samples, raw logs and analysis controls. The variable batch
       shows an optimized timing concern and added bundle cost; approval of the
       compiler ceilings does not accept either runtime cost.
-- [ ] Finish normal pre-push gates and exact-commit review before pushing the
-      adoption branch.
+- [x] Finish normal pre-push gates and exact-commit review, push the adoption
+      branch and enter the protected squash merge queue in #1903.
 - [ ] Freeze the complete adopted candidate and obtain the applicable security
       review and separate publication approval. This prototype is outside the
       already reviewed release-preparation snapshot.

@@ -24,7 +24,7 @@ type Message = typeof Message.Type
 export const SearchKey = Symbol('Search')
 const SearchBlock = Block.make('Search', {
   key: SearchKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

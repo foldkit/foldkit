@@ -4,6 +4,7 @@ import { expect, it, onTestFinished } from 'vitest'
 import { WebSocket } from 'ws'
 
 import { type FoldkitPluginOptions, foldkit } from '../src/index.ts'
+import { listenOnEphemeralPort } from './listenOnEphemeralPort.ts'
 import {
   RELAY_PATH,
   openWebSocket,
@@ -25,7 +26,7 @@ const startServer = async (options: FoldkitPluginOptions = {}) => {
     plugins: [foldkit(options)],
   })
   onTestFinished(() => server.close().catch(() => undefined))
-  await server.listen()
+  await listenOnEphemeralPort(() => server.listen())
 
   return server
 }

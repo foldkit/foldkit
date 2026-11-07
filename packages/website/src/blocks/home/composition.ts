@@ -23,16 +23,6 @@ export const DemoTabsBinding = makeRequiredFieldBinding(DemoTab.DemoTabsBlock, {
   }),
 })
 
-const foldPlaygroundMenuOutMessage = makeOutMessageFold(PlaygroundMenuBlock, {
-  Selected: ({ value }) =>
-    makeOutMessageStep(() =>
-      OutMessage.SelectedPlaygroundExample({
-        exampleSlug: value,
-      }),
-    ),
-  Closed: makeNoopStep,
-})
-
 export const PlaygroundMenuBinding = makeRequiredFieldBinding(
   PlaygroundMenuBlock,
   {
@@ -41,7 +31,17 @@ export const PlaygroundMenuBinding = makeRequiredFieldBinding(
       contextToArgs: () => [{ id: 'playground-menu', isAnimated: true }],
     },
   },
-).withOutMessagePolicy({ fold: foldPlaygroundMenuOutMessage })
+).withOutMessagePolicy({
+  fold: makeOutMessageFold(PlaygroundMenuBlock, {
+    Selected: ({ value }) =>
+      makeOutMessageStep(() =>
+        OutMessage.SelectedPlaygroundExample({
+          exampleSlug: value,
+        }),
+      ),
+    Closed: makeNoopStep,
+  }),
+})
 
 export const AsyncCounterDemoBinding = makeRequiredFieldBinding(
   AsyncCounterDemoBlock,

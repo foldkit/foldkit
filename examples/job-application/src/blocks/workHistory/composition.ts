@@ -8,14 +8,6 @@ import {
 } from './block'
 import { WorkHistoryEntryBlock } from './blocks/workHistoryEntry'
 
-const foldEntryOutMessage = (entryId: string) =>
-  makeOutMessageFold(WorkHistoryEntryBlock, {
-    Removed: () =>
-      makeFieldsStep(() => ({
-        entries: Array.filter(entry => entry.id !== entryId),
-      })),
-  })
-
 export const EntriesBinding = makeKeyedArrayBinding(WorkHistoryEntryBlock, {
   field: 'entries',
   key: 'id',
@@ -23,10 +15,15 @@ export const EntriesBinding = makeKeyedArrayBinding(WorkHistoryEntryBlock, {
     instances: ({ today, initialEntryId }) => [
       { key: initialEntryId, args: [initialEntryId, today] },
     ],
-    toItem: (_occurrence, entry) => entry,
   },
 }).withOutMessagePolicy({
-  fold: foldEntryOutMessage,
+  fold: entryId =>
+    makeOutMessageFold(WorkHistoryEntryBlock, {
+      Removed: () =>
+        makeFieldsStep(() => ({
+          entries: Array.filter(entry => entry.id !== entryId),
+        })),
+    }),
 })
 
 export const WorkHistoryComposition = makeComposition({

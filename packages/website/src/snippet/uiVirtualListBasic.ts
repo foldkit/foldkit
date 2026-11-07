@@ -32,7 +32,7 @@ type Message = typeof Message.Type
 export const ActivityListExampleKey = Symbol('ActivityListExample')
 export const ActivityListExampleBlock = Block.make('ActivityListExample', {
   key: ActivityListExampleKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -45,18 +45,18 @@ const {
   makeComposition,
 } = ActivityListExampleBlock
 
-const foldActivityListOutMessage = makeOutMessageFold(ActivityList, {
-  ObservedContainerScroll: makeNoopStep,
-  ApproachedLoadedStart: makeNoopStep,
-  EndedContainerScroll: makeNoopStep,
-})
-
 const ActivityListBinding = makeRequiredFieldBinding(ActivityList, {
   field: 'activityList',
   init: {
     contextToArgs: () => [{ id: 'activity-list', rowHeightPx: 56 }],
   },
-}).withOutMessagePolicy({ fold: foldActivityListOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(ActivityList, {
+    ObservedContainerScroll: makeNoopStep,
+    ApproachedLoadedStart: makeNoopStep,
+    EndedContainerScroll: makeNoopStep,
+  }),
+})
 
 const ActivityListExampleComposition = makeComposition({
   bindings: [ActivityListBinding],
@@ -127,10 +127,10 @@ const view = ActivityListExampleComposition.makeView(
 
 export const layer = ActivityListExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const activityList = yield* ActivityListBinding
+    const children = yield* ActivityListExampleComposition.acquireChildren()
 
     return {
-      children: [activityList],
+      children,
       init,
       update,
       view,

@@ -11,5 +11,5 @@ export const ParentBlock = Block.make('Parent', {
   key: ParentKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })

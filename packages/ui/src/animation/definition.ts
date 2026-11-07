@@ -13,7 +13,7 @@ export const AnimationBlock = Block.make('Animation', {
   Message,
   InMessage,
   OutMessage,
-  Init: Schema.Tuple([InitConfig]),
+  InitArgs: Schema.Tuple([InitConfig]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   operations: {
     requestFinish: {

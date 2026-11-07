@@ -72,7 +72,7 @@ export type CompletedPlayNote = typeof Message.CompletedPlayNote.Type
 export const NotePlayerDemoKey = Symbol('NotePlayerDemo')
 export const NotePlayerDemoBlock = Block.make('NotePlayerDemo', {
   key: NotePlayerDemoKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,

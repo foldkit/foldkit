@@ -78,6 +78,8 @@ export interface NativeRelationshipConstructors<
    * `key` names a required string or finite-number identity field. Add
    * `childField` for wrapped Models. The parent owns membership and order;
    * generated writes preserve other wrapper fields and never insert an entry.
+   * Keyed startup initialization stores direct child Models without an adapter;
+   * wrapped items require `init.toItem` for their parent-owned metadata.
    *
    * @example
    * ```ts

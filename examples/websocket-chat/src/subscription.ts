@@ -1,53 +1,21 @@
-import { Effect, Predicate, Queue, Schema, Stream } from 'effect'
-import { Socket } from 'effect/socket'
+import { Effect, Predicate, Schema, Stream } from 'effect'
 
 import { makeSubscriptions } from './block'
 import { ChatSocket } from './chatSocket'
 import { Message } from './message'
-import type {
-  DisconnectedChatSocket,
-  FailedChatSocket,
-  ReceivedMessage,
-} from './message'
+import type { WebSocketConnection } from './webSocketConnection'
 
-const streamChatSocketMessages = (socket: Socket.WebSocketLike) =>
-  Stream.callback<ReceivedMessage | DisconnectedChatSocket | FailedChatSocket>(
-    queue =>
-      Effect.acquireRelease(
-        Effect.sync(() => {
-          const handleMessage = (event: Socket.WebSocketEvent) => {
-            if (Predicate.isString(event.data)) {
-              Queue.offerUnsafe(
-                queue,
-                Message.ReceivedMessage({ text: event.data }),
-              )
-            }
-          }
-          const handleClose = () => {
-            Queue.offerUnsafe(queue, Message.DisconnectedChatSocket())
-            Queue.endUnsafe(queue)
-          }
-          const handleError = () => {
-            Queue.offerUnsafe(
-              queue,
-              Message.FailedChatSocket({ error: 'Connection error' }),
-            )
-            Queue.endUnsafe(queue)
-          }
-
-          socket.addEventListener('message', handleMessage)
-          socket.addEventListener('close', handleClose)
-          socket.addEventListener('error', handleError)
-
-          return { handleMessage, handleClose, handleError }
-        }),
-        ({ handleMessage, handleClose, handleError }) =>
-          Effect.sync(() => {
-            socket.removeEventListener('message', handleMessage)
-            socket.removeEventListener('close', handleClose)
-            socket.removeEventListener('error', handleError)
-          }),
-      ).pipe(Effect.flatMap(() => Effect.never)),
+const streamChatSocketMessages = (connection: WebSocketConnection) =>
+  Stream.fromPull(Effect.succeed(connection.reader.pull)).pipe(
+    Stream.filter(Predicate.isString),
+    Stream.map(text => Message.ReceivedMessage({ text })),
+    Stream.catch(error =>
+      Stream.succeed(
+        error.reason._tag === 'SocketCloseError'
+          ? Message.DisconnectedChatSocket()
+          : Message.FailedChatSocket({ error: 'Connection error' }),
+      ),
+    ),
   )
 
 export const subscriptions = makeSubscriptions(entry => ({

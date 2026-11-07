@@ -115,6 +115,7 @@ import {
   assertAllMountsResolved,
   assertAllUnmountsAcknowledged,
   assertExactCommands,
+  assertExactCommandsInOrder,
   assertExactMounts,
   assertHasCommands,
   assertHasMounts,
@@ -1708,6 +1709,18 @@ const expectExactCommandsStep =
     return simulation
   }
 
+/** Asserts that the pending Commands match the given matchers exactly in
+ *  dispatch order. Definitions select their originating identity; instances
+ *  also compare complete args and any scoped occurrence. */
+const expectExactCommandsInOrderStep =
+  (...matchers: ReadonlyArray<CommandMatcher>) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    assertExactCommandsInOrder(toInternal(simulation).commands, matchers)
+    return simulation
+  }
+
 /** Asserts that there are no pending Commands. */
 const expectNoCommandsStep =
   () =>
@@ -2553,6 +2566,8 @@ export const Command = {
   expectHas: expectHasCommandsStep,
   /** Asserts that the pending Commands match the given definitions exactly (order-independent). */
   expectExact: expectExactCommandsStep,
+  /** Asserts that the pending Commands match the given matchers exactly in dispatch order. */
+  expectExactInOrder: expectExactCommandsInOrderStep,
   /** Asserts that there are no pending Commands. */
   expectNone: expectNoCommandsStep,
   /** Keeps one exact pending invocation active across later interactions and

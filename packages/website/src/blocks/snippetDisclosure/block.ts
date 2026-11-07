@@ -8,7 +8,7 @@ import type { ViewInputs } from './viewInputs'
 export const SnippetDisclosureKey = Symbol('SnippetDisclosure')
 export const SnippetDisclosureBlock = Block.make('SnippetDisclosure', {
   key: SnippetDisclosureKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,

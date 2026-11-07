@@ -19,7 +19,7 @@ const Definition = Block.makeFamilyDefinition('FamilyInputReview', {
   Message: Schema.Never,
   InMessage,
   isMessageFree: true,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const Composition = Definition.makeComposition()
 const recipe = Definition.makeBlock(

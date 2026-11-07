@@ -43,15 +43,10 @@ export const SendMessage = makeCommand('SendMessage', {
   handler: function* () {
     return ({ text }) =>
       ChatSocket.get.pipe(
-        Effect.flatMap(socket =>
-          Effect.try({
-            try: () => {
-              socket.send(text)
-              return Message.SucceededSendMessage({ text })
-            },
-            catch: error =>
-              error instanceof Error ? error.message : 'Failed to send message',
-          }),
+        Effect.flatMap(connection =>
+          connection.writer
+            .write(text)
+            .pipe(Effect.as(Message.SucceededSendMessage({ text }))),
         ),
         Effect.catchTag('ResourceNotAvailable', () =>
           Effect.succeed(
@@ -59,7 +54,7 @@ export const SendMessage = makeCommand('SendMessage', {
           ),
         ),
         Effect.catch(error =>
-          Effect.succeed(Message.FailedSendMessage({ error })),
+          Effect.succeed(Message.FailedSendMessage({ error: error.message })),
         ),
       )
   },

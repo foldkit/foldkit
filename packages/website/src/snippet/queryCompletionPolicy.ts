@@ -13,7 +13,7 @@ type Model = typeof Model.Type
 export const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 
   Model,
   Message: Schema.Never,
@@ -53,10 +53,10 @@ const update = ApplicationComposition.makeUpdate({})
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const postDetails = yield* PostDetailsBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [postDetails],
+      children,
       init,
       update,
     }

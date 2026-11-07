@@ -55,9 +55,7 @@ export const ActiveMemberListboxBinding = makeRequiredFieldBinding(
 export const IssueDetailsBinding = makeRecordBinding(IssueDetailBlock, {
   field: 'issueDetails',
   delivery: {
-    toUpdateContext: (model, issueId) => [
-      Option.getOrThrow(maybeConfirmedIssue(model, issueId)),
-    ],
+    toUpdateContext: (model, issueId) => [maybeConfirmedIssue(model, issueId)],
   },
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(IssueDetailBlock, {

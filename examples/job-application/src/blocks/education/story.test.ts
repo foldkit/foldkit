@@ -10,12 +10,8 @@ import { GenerateEducationEntryId } from './command'
 import { EntriesBinding } from './composition'
 import { EducationBlock, layer } from './index'
 
-type EducationEntryMessage = typeof EducationEntryBlock.Message.Type
-
 const today = Calendar.make(2026, 4, 16)
 const givenInitial = Story.init(today, 'education-entry-1')
-const entryMessage = (entryId: string, message: EducationEntryMessage) =>
-  Story.messageIn(EntriesBinding, entryId, message)
 
 describe('education', () => {
   it.effect('ClickedAddEntry generates an id and appends an entry', () =>
@@ -38,7 +34,8 @@ describe('education', () => {
     Story.story(
       { block: EducationBlock, layer },
       givenInitial,
-      entryMessage(
+      Story.messageIn(
+        EntriesBinding,
         'education-entry-1',
         EducationEntryBlock.Message.ClickedRemoveSelf(),
       ),
@@ -52,7 +49,8 @@ describe('education', () => {
     Story.story(
       { block: EducationBlock, layer },
       givenInitial,
-      entryMessage(
+      Story.messageIn(
+        EntriesBinding,
         'education-entry-1',
         EducationEntryBlock.Message.UpdatedSchool({ value: 'MIT' }),
       ),

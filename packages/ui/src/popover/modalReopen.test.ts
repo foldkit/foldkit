@@ -12,7 +12,7 @@ type Model = typeof Model.Type
 const PopoverModalReopenTestKey = Symbol('PopoverModalReopenTest')
 const PopoverModalReopenTestBlock = Block.make('PopoverModalReopenTest', {
   key: PopoverModalReopenTestKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message: Schema.Never,
@@ -76,10 +76,11 @@ const ApplicationBlock = {
   block: PopoverModalReopenTestBlock,
   layer: PopoverModalReopenTestBlock.makeLayer(
     Effect.gen(function* () {
-      const popover = yield* PopoverBinding
+      const children =
+        yield* PopoverModalReopenTestComposition.acquireChildren()
 
       return {
-        children: [popover],
+        children,
         init: PopoverModalReopenTestComposition.makeInit(() =>
           PopoverBinding.init({
             args: [{ id: POPOVER_ID, isModal: true }],

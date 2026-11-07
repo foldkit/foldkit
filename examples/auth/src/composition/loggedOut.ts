@@ -4,17 +4,15 @@ import { RedirectToDashboard, SaveSession } from '../command'
 import { ApplicationRoute } from '../route'
 import { BaseLoggedInBinding, BaseLoggedOutBinding } from './bindings'
 
-const foldLoggedOutOutMessage = makeOutMessageFold(LoggedOutBlock, {
-  SucceededLogin: ({ session }) =>
-    makeStep(() =>
-      BaseLoggedInBinding.init({
-        args: [ApplicationRoute.Dashboard(), session],
-        toParentModel: loggedIn => loggedIn,
-        commands: [SaveSession({ session }), RedirectToDashboard()],
-      }),
-    ),
-})
-
 export const LoggedOutBinding = BaseLoggedOutBinding.withOutMessagePolicy({
-  fold: foldLoggedOutOutMessage,
+  fold: makeOutMessageFold(LoggedOutBlock, {
+    SucceededLogin: ({ session }) =>
+      makeStep(() =>
+        BaseLoggedInBinding.init({
+          args: [ApplicationRoute.Dashboard(), session],
+          toParentModel: loggedIn => loggedIn,
+          commands: [SaveSession({ session }), RedirectToDashboard()],
+        }),
+      ),
+  }),
 })

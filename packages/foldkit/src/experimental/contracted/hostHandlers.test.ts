@@ -36,7 +36,7 @@ const HostDefinition = Block.makeDefinition('ContractedHostHandlers', {
   key: HostKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   effects: { services: [HostValue] },
   view: { kind: 'Element' },
 })
@@ -236,7 +236,7 @@ describe('ordinary Block host-handler selection', () => {
       key: FailureKey,
       Model,
       Message,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
       effects: Block.makeEffectsContract<BuildFailure>(),
     })
     const ReadFailure = FailureDefinition.makeCommand('ReadFailure', {
@@ -315,7 +315,7 @@ describe('ordinary Block host-handler selection', () => {
       key: ServerKey,
       Model,
       Message,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
       view: { kind: 'Document' },
       effects: { services: [HostValue] },
     })
@@ -403,7 +403,7 @@ describe('ordinary Block host-handler selection', () => {
       Model: Schema.Number,
       Message: Schema.Never,
       isMessageFree: true,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
     })
     const ChildComposition = ChildDefinition.makeComposition()
     const ChildBlock = ChildDefinition.makeBlock(
@@ -421,7 +421,7 @@ describe('ordinary Block host-handler selection', () => {
         child: ChildDefinition.contract.Model,
       }),
       Message,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
       effects: { services: [HostValue] },
     })
     const ChildBinding = ParentDefinition.makeRequiredFieldBinding(

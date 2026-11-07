@@ -42,7 +42,7 @@ export const ChildBlock = Block.make('SerializationChild', {
   key: ChildKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 
 export const ParentModel = Schema.Struct({
@@ -58,7 +58,7 @@ export const ParentBlock = Block.make('SerializationParent', {
   OutMessage,
   ChildInitContext,
   Context: ConstructionContext,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 
 export const TransformPayload = ParentBlock.makeCommand('TransformPayload', {

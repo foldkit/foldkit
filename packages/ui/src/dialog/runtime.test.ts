@@ -20,7 +20,7 @@ type Model = typeof Model.Type
 const ApplicationKey = Symbol('DialogRuntimeApplication')
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message: Schema.Never,
@@ -111,10 +111,10 @@ const application = {
   block: ApplicationBlock,
   layer: ApplicationBlock.makeLayer(
     Effect.gen(function* () {
-      const dialog = yield* DialogBinding
+      const children = yield* ApplicationComposition.acquireChildren()
 
       return {
-        children: [dialog],
+        children,
         init,
         update,
         view,

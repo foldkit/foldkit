@@ -17,7 +17,7 @@ type ViewInputs = Readonly<{ value: number; isDisabled?: boolean }>
 
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,
@@ -69,10 +69,10 @@ const init = ApplicationComposition.makeInit(() => ({ model: {} }))
 
 const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const slider = yield* SliderBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [slider],
+      children,
       init,
       update,
       view,

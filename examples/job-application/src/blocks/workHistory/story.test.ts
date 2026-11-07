@@ -10,13 +10,8 @@ import { GenerateWorkHistoryEntryId } from './command'
 import { EntriesBinding } from './composition'
 import { WorkHistoryBlock, layer } from './index'
 
-type WorkHistoryEntryMessage = typeof WorkHistoryEntryBlock.Message.Type
-
 const today = Calendar.make(2026, 4, 16)
 const givenInitial = Story.init(today, 'work-history-entry-1')
-
-const entryMessage = (entryId: string, message: WorkHistoryEntryMessage) =>
-  Story.messageIn(EntriesBinding, entryId, message)
 
 describe('workHistory', () => {
   it.effect('ClickedAddEntry generates an id and appends an entry', () =>
@@ -41,7 +36,8 @@ describe('workHistory', () => {
     Story.story(
       { block: WorkHistoryBlock, layer },
       givenInitial,
-      entryMessage(
+      Story.messageIn(
+        EntriesBinding,
         'work-history-entry-1',
         WorkHistoryEntryBlock.Message.ClickedRemoveSelf(),
       ),
@@ -55,7 +51,8 @@ describe('workHistory', () => {
     Story.story(
       { block: WorkHistoryBlock, layer },
       givenInitial,
-      entryMessage(
+      Story.messageIn(
+        EntriesBinding,
         'work-history-entry-1',
         WorkHistoryEntryBlock.Message.UpdatedCompany({
           value: 'Foldkit Inc.',

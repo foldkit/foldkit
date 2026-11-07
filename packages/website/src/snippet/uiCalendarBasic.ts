@@ -34,7 +34,7 @@ type Message = typeof Message.Type
 export const CalendarExampleKey = Symbol('CalendarExample')
 export const CalendarExampleBlock = Block.make('CalendarExample', {
   key: CalendarExampleKey,
-  Init: Schema.Tuple([Flags]),
+  InitArgs: Schema.Tuple([Flags]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -55,21 +55,6 @@ const {
 // selecting a date. Each arm returns an Update.Step over the parent Model,
 // which already has the next Calendar Model written back. The parent
 // Definition checks every named variant and infers the parent Step:
-const foldCalendarOutMessage = makeOutMessageFold(UiCalendar.CalendarBlock, {
-  // The child has emitted `SelectedDate`. This is where the parent lifts
-  // the committed date into its own field. That field is then passed back
-  // to the calendar as `maybeSelectedDate`, so the parent stays the single
-  // source of truth for the selection.
-  SelectedDate: ({ date }) =>
-    makeFieldsStep(() => ({
-      maybeSelectedDate: () => Option.some(date),
-    })),
-  // The child has emitted `ChangedViewMonth`. In this arm the parent can
-  // update its own state or dispatch its own Commands, for example
-  // prefetch month data, fire analytics, or trigger a downstream Command.
-  ChangedViewMonth: makeNoopStep,
-})
-
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const CalendarDemoBinding = makeRequiredFieldBinding(UiCalendar.CalendarBlock, {
@@ -83,7 +68,22 @@ const CalendarDemoBinding = makeRequiredFieldBinding(UiCalendar.CalendarBlock, {
       },
     ],
   },
-}).withOutMessagePolicy({ fold: foldCalendarOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(UiCalendar.CalendarBlock, {
+    // The child has emitted `SelectedDate`. This is where the parent lifts
+    // the committed date into its own field. That field is then passed back
+    // to the calendar as `maybeSelectedDate`, so the parent stays the single
+    // source of truth for the selection.
+    SelectedDate: ({ date }) =>
+      makeFieldsStep(() => ({
+        maybeSelectedDate: () => Option.some(date),
+      })),
+    // The child has emitted `ChangedViewMonth`. In this arm the parent can
+    // update its own state or dispatch its own Commands, for example
+    // prefetch month data, fire analytics, or trigger a downstream Command.
+    ChangedViewMonth: makeNoopStep,
+  }),
+})
 
 const CalendarExampleComposition = makeComposition({
   bindings: [CalendarDemoBinding],
@@ -304,10 +304,10 @@ const view = CalendarExampleComposition.makeView((model, h) => {
 
 export const layer = CalendarExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const calendar = yield* CalendarDemoBinding
+    const children = yield* CalendarExampleComposition.acquireChildren()
 
     return {
-      children: [calendar],
+      children,
       init,
       update,
       view,

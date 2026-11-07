@@ -8,7 +8,7 @@ import { Model } from './model'
 export const HomeKey = Symbol('Home')
 export const HomeBlock = Block.make('Home', {
   key: HomeKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   effects: { services: [RoomsClient] },
   Model,

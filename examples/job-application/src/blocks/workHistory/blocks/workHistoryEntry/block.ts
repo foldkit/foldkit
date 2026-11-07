@@ -41,7 +41,7 @@ export type OutMessage = typeof OutMessage.Type
 export const WorkHistoryEntryKey = Symbol('WorkHistoryEntry')
 export const WorkHistoryEntryBlock = Block.make('WorkHistoryEntry', {
   key: WorkHistoryEntryKey,
-  Init: Schema.Tuple([Schema.String, CalendarDate]),
+  InitArgs: Schema.Tuple([Schema.String, CalendarDate]),
   view: { kind: 'Element' },
   Model,
   Message,

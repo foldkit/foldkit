@@ -4,17 +4,17 @@ import { RadioGroup } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
 import { PlaceOrder } from './command'
-import { EditionRadioGroupBinding } from './composition'
+import { ApplicationComposition } from './composition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const editionRadioGroup = yield* EditionRadioGroupBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [editionRadioGroup],
+      children,
       init,
       update,
       view,

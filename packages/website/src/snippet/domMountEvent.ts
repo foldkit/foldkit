@@ -13,7 +13,7 @@ type Model = typeof Model.Type
 export const PanelKey = Symbol('Panel')
 const PanelBlock = Block.make('Panel', {
   key: PanelKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,

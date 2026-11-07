@@ -12,7 +12,7 @@ const SIGNALING_URL = 'wss://example.com/call/signaling'
 export const CallKey = Symbol('Call')
 export const CallBlock = Block.make('Call', {
   key: CallKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })
@@ -52,10 +52,10 @@ export const managedResources = makeManagedResources(entry => ({
 
 export const layer = CallBlock.makeLayer(
   Effect.gen(function* () {
-    const videoCall = yield* VideoCallBinding
+    const children = yield* CallComposition.acquireChildren()
 
     return {
-      children: [videoCall],
+      children,
       init,
       update,
       managedResources,

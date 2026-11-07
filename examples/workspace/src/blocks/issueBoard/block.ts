@@ -10,7 +10,7 @@ import { ViewInputs } from './viewInputs'
 export const IssueBoardKey = Symbol('IssueBoard')
 export const IssueBoardBlock = Block.make('IssueBoard', {
   key: IssueBoardKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: ViewInputs },
   Model,
   Message,

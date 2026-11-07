@@ -7,7 +7,7 @@ import type { ViewInputs } from './viewInputs'
 export const ComingFromReactKey = Symbol('ComingFromReact')
 export const ComingFromReactBlock = Block.make('ComingFromReact', {
   key: ComingFromReactKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,

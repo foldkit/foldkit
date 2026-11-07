@@ -9,7 +9,7 @@ import { Model } from './model'
 export const LoggedInKey = Symbol('LoggedIn')
 export const LoggedInBlock = Block.make('LoggedIn', {
   key: LoggedInKey,
-  Init: Schema.Tuple([LoggedInRoute, Session]),
+  InitArgs: Schema.Tuple([LoggedInRoute, Session]),
   view: { kind: 'Element' },
   Model,
   Message,

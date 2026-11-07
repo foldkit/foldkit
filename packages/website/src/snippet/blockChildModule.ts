@@ -27,7 +27,7 @@ export type Message = typeof Message.Type
 export const SettingsKey = Symbol('Settings')
 const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

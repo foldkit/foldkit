@@ -29,7 +29,7 @@ type Message = typeof Message.Type
 export const PeoplePickerKey = Symbol('PeoplePicker')
 export const PeoplePickerBlock = Block.make('PeoplePicker', {
   key: PeoplePickerKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -48,22 +48,22 @@ const {
 // returns an Update.Step over the parent Model, which already has the next
 // Listbox Model written back. The parent Block infers the refined child
 // payload and checks every named variant:
-const foldListboxMultiOutMessage = makeOutMessageFold(PeopleListbox, {
-  Selected: ({ value }) =>
-    makeFieldsStep(() => ({
-      selectedPeople: selectedPeople =>
-        Array.contains(selectedPeople, value)
-          ? Array.filter(selectedPeople, person => person !== value)
-          : Array.append(selectedPeople, value),
-    })),
-})
-
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const ListboxMultiBinding = makeRequiredFieldBinding(PeopleListbox, {
   field: 'listboxMulti',
   init: { contextToArgs: () => [{ id: 'people' }] },
-}).withOutMessagePolicy({ fold: foldListboxMultiOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(PeopleListbox, {
+    Selected: ({ value }) =>
+      makeFieldsStep(() => ({
+        selectedPeople: selectedPeople =>
+          Array.contains(selectedPeople, value)
+            ? Array.filter(selectedPeople, person => person !== value)
+            : Array.append(selectedPeople, value),
+      })),
+  }),
+})
 
 const PeoplePickerComposition = makeComposition({
   bindings: [ListboxMultiBinding],
@@ -126,10 +126,10 @@ const view = PeoplePickerComposition.makeView((model, h) =>
 
 export const layer = PeoplePickerBlock.makeLayer(
   Effect.gen(function* () {
-    const peopleListbox = yield* ListboxMultiBinding
+    const children = yield* PeoplePickerComposition.acquireChildren()
 
     return {
-      children: [peopleListbox],
+      children,
       init,
       update,
       view,

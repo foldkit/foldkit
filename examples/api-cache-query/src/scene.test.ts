@@ -1,7 +1,8 @@
-import { Result } from 'effect'
+import { Effect, Result } from 'effect'
 import { Scene } from 'foldkit'
 import { describe } from 'vitest'
 
+import { it } from '@effect/vitest'
 import { Tabs } from '@foldkit/ui'
 
 import { ApplicationBlock, layer } from './index'
@@ -10,8 +11,8 @@ import {
   FETCHED_AT,
   FIRST_POST_REQUEST_KEY,
   firstPostDetail,
+  fixtureEffects,
   fixtureStats,
-  it,
 } from './model.fixture'
 import { postQuery, postsQuery, statsQuery } from './query'
 
@@ -41,10 +42,11 @@ describe('view', () => {
     ),
   )
 
-  it.effect(
-    'clicking a post fetches its detail and renders it',
-    ({ models: { loadedPostsModel } }) =>
-      Scene.scene(
+  it.effect('clicking a post fetches its detail and renders it', () =>
+    Effect.gen(function* () {
+      const loadedPostsModel = yield* fixtureEffects.loadedPostsModel
+
+      return yield* Scene.scene(
         { block: ApplicationBlock, layer },
         Scene.given(loadedPostsModel),
         Scene.click(Scene.role('button', { name: /First Post/ })),
@@ -70,26 +72,30 @@ describe('view', () => {
           ).toExist(),
         ),
         Scene.expect(Scene.role('button', { name: 'Back to posts' })).toExist(),
-      ),
+      )
+    }),
   )
 
-  it.effect(
-    'opening a cached post skips the fetch',
-    ({ models: { cachedFirstPostModel } }) =>
-      Scene.scene(
+  it.effect('opening a cached post skips the fetch', () =>
+    Effect.gen(function* () {
+      const cachedFirstPostModel = yield* fixtureEffects.cachedFirstPostModel
+
+      return yield* Scene.scene(
         { block: ApplicationBlock, layer },
         Scene.given(cachedFirstPostModel),
         Scene.expect(Scene.text('Cached')).toExist(),
         Scene.click(Scene.role('button', { name: /First Post/ })),
         Scene.Command.expectNone(),
         Scene.expect(Scene.text('By Grace Hopper')).toExist(),
-      ),
+      )
+    }),
   )
 
-  it.effect(
-    'a failed post fetch shows the error with a Retry button',
-    ({ models: { loadedPostsModel } }) =>
-      Scene.scene(
+  it.effect('a failed post fetch shows the error with a Retry button', () =>
+    Effect.gen(function* () {
+      const loadedPostsModel = yield* fixtureEffects.loadedPostsModel
+
+      return yield* Scene.scene(
         { block: ApplicationBlock, layer },
         Scene.given(loadedPostsModel),
         Scene.click(Scene.role('button', { name: /First Post/ })),
@@ -104,13 +110,15 @@ describe('view', () => {
         ),
         Scene.expect(Scene.text('The connection dropped.')).toExist(),
         Scene.expect(Scene.role('button', { name: 'Retry' })).toExist(),
-      ),
+      )
+    }),
   )
 
-  it.effect(
-    'switching to the Stats tab fetches and renders stats',
-    ({ models: { loadedPostsModel } }) =>
-      Scene.scene(
+  it.effect('switching to the Stats tab fetches and renders stats', () =>
+    Effect.gen(function* () {
+      const loadedPostsModel = yield* fixtureEffects.loadedPostsModel
+
+      return yield* Scene.scene(
         { block: ApplicationBlock, layer },
         Scene.given(loadedPostsModel),
         Scene.click(Scene.role('tab', { name: 'Stats' })),
@@ -130,6 +138,7 @@ describe('view', () => {
         Scene.expect(Scene.text('Active users')).toExist(),
         Scene.expect(Scene.text('97%')).toExist(),
         Scene.expect(Scene.text('Updated at', { exact: false })).toExist(),
-      ),
+      )
+    }),
   )
 })

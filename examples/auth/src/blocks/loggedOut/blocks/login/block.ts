@@ -29,7 +29,7 @@ export type OutMessage = typeof OutMessage.Type
 export const LoginKey = Symbol('Login')
 export const LoginBlock = Block.make('Login', {
   key: LoginKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 
   Model,

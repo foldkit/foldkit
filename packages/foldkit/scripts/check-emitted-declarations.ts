@@ -974,6 +974,18 @@ const checks: ReadonlyArray<
     consumers: ['binding-relationships.consume.ts'],
   },
   {
+    name: 'bulk-child-acquisition',
+    accepted: ['bulk-child-acquisition/accepted.ts'],
+    rejected: ['bulk-child-acquisition/rejected.ts'],
+    consumers: ['bulk-child-acquisition/consume.ts'],
+  },
+  {
+    name: 'story-message-in-path',
+    accepted: ['story-message-in-path/accepted.ts'],
+    rejected: ['story-message-in-path/rejected.ts'],
+    consumers: ['story-message-in-path/consume.ts'],
+  },
+  {
     name: 'command-args',
     accepted: ['command-args.accepted.ts', 'command-args.helper.ts'],
     rejected: ['command-args.rejected.ts'],
@@ -1239,6 +1251,8 @@ const main = async (): Promise<void> => {
     'map-binding-method',
     'variant-binding',
     'binding-relationships',
+    'bulk-child-acquisition',
+    'story-message-in-path',
     'codec-contract',
     'managed-resource-contract',
     'managed-resource-registry',

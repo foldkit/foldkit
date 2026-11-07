@@ -1,3 +1,4 @@
+import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 
 import {
@@ -23,17 +24,28 @@ Story.story(
   Story.given(Model.make({ count: 'invalid' })),
 )
 
-Story.story(
-  // @ts-expect-error A compared group retains its exact Message type.
-  update,
-  Story.given(initialModel),
-  Story.models(
-    Story.steps(Story.message(OutMessage.Reported())),
-    (before, after) => {
-      void before
-      void after
-    },
-  ),
+// @ts-expect-error A compared group retains its exact Message type.
+const wrongComparedGroup: Story.StoryStep<
+  typeof Model.Type,
+  typeof Message.Type,
+  typeof OutMessage.Type
+> = Story.models(
+  Story.steps(Story.message(OutMessage.Reported())),
+  (before, after) => {
+    void before
+    void after
+  },
+)
+
+Story.Command.expectExactInOrder(
+  Fetch({ requestId: 1 }),
+  // @ts-expect-error Ordered Command assertions accept only Definitions or instances.
+  Message.ClickedIncrement(),
+)
+Scene.Command.expectExactInOrder(
+  Fetch({ requestId: 1 }),
+  // @ts-expect-error Ordered Scene assertions retain the same Command matcher contract.
+  Message.ClickedIncrement(),
 )
 
 // @ts-expect-error A Story Message must belong to the tested update.
@@ -52,3 +64,4 @@ const wrongOutMessageStep: Story.StoryStep<
 
 void wrongMessageStep
 void wrongOutMessageStep
+void wrongComparedGroup

@@ -33,10 +33,10 @@ const update = ApplicationComposition.makeUpdate({
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const counters = yield* CountersBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [counters],
+      children,
       init,
       update,
     }

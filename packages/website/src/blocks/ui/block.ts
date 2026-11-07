@@ -9,7 +9,7 @@ import type { ViewInputs } from './viewInputs'
 export const UiKey = Symbol('Ui')
 export const UiBlock = Block.make('Ui', {
   key: UiKey,
-  Init: Schema.Tuple([CalendarDate]),
+  InitArgs: Schema.Tuple([CalendarDate]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,

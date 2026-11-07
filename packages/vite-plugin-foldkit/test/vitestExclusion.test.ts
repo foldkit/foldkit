@@ -8,6 +8,7 @@ import {
 import { describe, expect, it, onTestFinished } from 'vitest'
 
 import { type FoldkitPluginOptions, foldkit } from '../src/index.ts'
+import { listenOnEphemeralPort } from './listenOnEphemeralPort.ts'
 import {
   findFreePort,
   isListenAttemptedOn,
@@ -67,7 +68,7 @@ describe.each(vitestRuns)('under $name', ({ config, plugins }) => {
         onTestFinished(() => server.close().catch(() => undefined))
 
         if (isListening) {
-          await server.listen()
+          await listenOnEphemeralPort(() => server.listen())
         }
 
         return server

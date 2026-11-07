@@ -19,7 +19,7 @@ type Message = typeof Message.Type
 export const VolumeSliderKey = Symbol('VolumeSlider')
 export const VolumeSliderBlock = Block.make('VolumeSlider', {
   key: VolumeSliderKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -37,16 +37,6 @@ const {
 // each commit. The arm returns an Update.Step over the parent Model, which
 // already has the next Slider Model written back. The parent Block
 // checks the complete child union and infers the handler's Model:
-const foldSliderOutMessage = makeOutMessageFold(Slider.SliderBlock, {
-  // The child has emitted `ChangedValue`. Store the new value in the field
-  // you own. This arm is also where the parent can validate, persist, or
-  // trigger a downstream Command.
-  ChangedValue: ({ value }) =>
-    makeFieldsStep(() => ({
-      ratingValue: () => value,
-    })),
-})
-
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const RatingDemoBinding = makeRequiredFieldBinding(Slider.SliderBlock, {
@@ -54,7 +44,17 @@ const RatingDemoBinding = makeRequiredFieldBinding(Slider.SliderBlock, {
   init: {
     contextToArgs: () => [{ id: 'rating', min: 0, max: 10, step: 1 }],
   },
-}).withOutMessagePolicy({ fold: foldSliderOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(Slider.SliderBlock, {
+    // The child has emitted `ChangedValue`. Store the new value in the field
+    // you own. This arm is also where the parent can validate, persist, or
+    // trigger a downstream Command.
+    ChangedValue: ({ value }) =>
+      makeFieldsStep(() => ({
+        ratingValue: () => value,
+      })),
+  }),
+})
 
 const VolumeSliderComposition = makeComposition({
   bindings: [RatingDemoBinding],
@@ -135,10 +135,10 @@ const view = VolumeSliderComposition.makeView((model, h) => {
 
 export const layer = VolumeSliderBlock.makeLayer(
   Effect.gen(function* () {
-    const slider = yield* RatingDemoBinding
+    const children = yield* VolumeSliderComposition.acquireChildren()
 
     return {
-      children: [slider],
+      children,
       init,
       update,
       view,

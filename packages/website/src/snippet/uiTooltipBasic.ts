@@ -17,7 +17,7 @@ type Message = typeof Message.Type
 export const TooltipExampleKey = Symbol('TooltipExample')
 export const TooltipExampleBlock = Block.make('TooltipExample', {
   key: TooltipExampleKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -35,23 +35,23 @@ const {
 // the rest of your UI from the parent. Each arm returns an Update.Step over
 // the parent Model, which already has the next Tooltip Model written back.
 // The parent Block checks every named child variant:
-const foldTooltipOutMessage = makeOutMessageFold(Tooltip.TooltipBlock, {
-  // The child has emitted `Shown`. In this arm the parent can update its
-  // own state or dispatch its own Commands, for example log analytics,
-  // prefetch content, or trigger a downstream Command.
-  Shown: makeNoopStep,
-  // The child has emitted `Hidden`. In this arm the parent can update its
-  // own state or dispatch its own Commands, for example clear ephemeral
-  // state, fire analytics, or trigger a downstream Command.
-  Hidden: makeNoopStep,
-})
-
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const TooltipBinding = makeRequiredFieldBinding(Tooltip.TooltipBlock, {
   field: 'tooltip',
   init: { contextToArgs: () => [{ id: 'save-button' }] },
-}).withOutMessagePolicy({ fold: foldTooltipOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(Tooltip.TooltipBlock, {
+    // The child has emitted `Shown`. In this arm the parent can update its
+    // own state or dispatch its own Commands, for example log analytics,
+    // prefetch content, or trigger a downstream Command.
+    Shown: makeNoopStep,
+    // The child has emitted `Hidden`. In this arm the parent can update its
+    // own state or dispatch its own Commands, for example clear ephemeral
+    // state, fire analytics, or trigger a downstream Command.
+    Hidden: makeNoopStep,
+  }),
+})
 
 const TooltipExampleComposition = makeComposition({
   bindings: [TooltipBinding],
@@ -112,10 +112,10 @@ const view = TooltipExampleComposition.makeView((model, h) => {
 
 export const layer = TooltipExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const tooltip = yield* TooltipBinding
+    const children = yield* TooltipExampleComposition.acquireChildren()
 
     return {
-      children: [tooltip],
+      children,
       init,
       update,
       view,

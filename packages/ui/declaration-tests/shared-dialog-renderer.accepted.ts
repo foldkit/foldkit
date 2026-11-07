@@ -19,7 +19,7 @@ export const DeleteIssueBlock = Block.make('DeleteIssue', {
   key: DeleteIssueKey,
   Model: DeleteIssueModel,
   Message: DeleteIssueMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 export const DeleteDialogBinding = DeleteIssueBlock.makeRequiredFieldBinding(
@@ -104,7 +104,7 @@ export const InviteMemberBlock = Block.make('InviteMember', {
   key: InviteMemberKey,
   Model: InviteMemberModel,
   Message: InviteMemberMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 export const InviteDialogBinding = InviteMemberBlock.makeRequiredFieldBinding(

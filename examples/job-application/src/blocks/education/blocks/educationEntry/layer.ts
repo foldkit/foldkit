@@ -3,7 +3,7 @@ import { Effect, Layer } from 'effect'
 import { Listbox } from '@foldkit/ui'
 
 import { EducationEntryBlock } from './block'
-import { GraduationYearListboxBinding } from './composition'
+import { EducationEntryComposition } from './composition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { update } from './update'
@@ -11,10 +11,10 @@ import { view } from './view'
 
 export const layer = EducationEntryBlock.makeLayer(
   Effect.gen(function* () {
-    const graduationYearListbox = yield* GraduationYearListboxBinding
+    const children = yield* EducationEntryComposition.acquireChildren()
 
     return {
-      children: [graduationYearListbox],
+      children,
       init,
       update,
       inMessageUpdate,

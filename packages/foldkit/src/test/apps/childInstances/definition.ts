@@ -21,7 +21,7 @@ export const ApplicationDefinition = makeDefinition('OccurrenceApplication', {
   key: ApplicationKey,
   Model,
   Message,
-  Init: Schema.Tuple([Schema.Array(Schema.Number)]),
+  InitArgs: Schema.Tuple([Schema.Array(Schema.Number)]),
   effects: { services: [CounterSource] },
   view: { kind: 'Element' },
 })
