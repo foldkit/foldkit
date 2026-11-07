@@ -32,6 +32,12 @@ const fail = message => {
   throw new Error(message)
 }
 
+const isInterruptedRegistryRead = error =>
+  error instanceof Error &&
+  error.cause instanceof Error &&
+  'code' in error.cause &&
+  (error.cause.code === 'ECONNRESET' || error.cause.code === 'UND_ERR_SOCKET')
+
 const encodedPackageName = name => encodeURIComponent(name)
 
 export class NpmRegistry {
@@ -50,13 +56,22 @@ export class NpmRegistry {
   async request(path, description) {
     const signal = AbortSignal.timeout(this.requestTimeoutMilliseconds)
 
-    try {
-      return await this.fetchRegistry(`${this.baseUrl}/${path}`, {
+    const readMetadata = async () =>
+      this.fetchRegistry(`${this.baseUrl}/${path}`, {
         headers: {
           accept: 'application/json',
           'cache-control': 'no-cache',
         },
         signal,
+      })
+
+    try {
+      return await readMetadata().catch(error => {
+        if (signal.aborted || !isInterruptedRegistryRead(error)) {
+          throw error
+        }
+
+        return readMetadata()
       })
     } catch (error) {
       if (signal.aborted) {
@@ -65,8 +80,15 @@ export class NpmRegistry {
 
       const detail =
         error instanceof Error ? error.message : globalThis.String(error)
+      const causeDetail =
+        error instanceof Error && error.cause instanceof Error
+          ? `: ${error.cause.message}`
+          : ''
 
-      return fail(`registry request failed for ${description}: ${detail}`)
+      throw new Error(
+        `registry request failed for ${description}: ${detail}${causeDetail}`,
+        { cause: error },
+      )
     }
   }
 

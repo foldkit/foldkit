@@ -1,5 +1,16 @@
 # Next preview tasks
 
+## November 7 registry recovery
+
+Publication remains authorized. Both attempts for reviewed source `52ecdc1050024fb1f5bd526e696d32f9e4c01c6e` stopped on an npm metadata read before any upload. All nine target versions remain absent and stable tags are unchanged. The [recovery checkpoint](preview-final-20261107/registry-recovery.md) records the failure, narrowly bounded read retry, tests and remaining gates.
+
+- [x] Inspect both failed attempts and all nine registry versions before recovery.
+- [x] Add one retry for interrupted metadata GETs inside the existing timeout, preserving upload, integrity, HTTP and absence semantics.
+- [x] Pass 50 coherent-release tests, 252 script tests, script typechecking and negative controls.
+- [ ] Complete exact-commit independent review, normal push and protected integration.
+- [ ] Complete the already-authorized Daybreak follow-up for the recovery.
+- [ ] Publish the integrated candidate and verify the nine-package manifest, external consumer and immutable Website before updating Ready.
+
 ## November 7 record completion and publication
 
 This section supersedes the earlier holds below. The user authorized publication after this work and approved sending the final Foldkit candidate, relevant Git history and review-driven follow-ups to OpenAI Daybreak. Approval is scoped through publication and does not require a separate request for each commit. The final documentation consistency follow-up is isolated on `codex/preview-record-docs-20261107` from proposed integration `38a835dca745558096eb503d56b31627336a7fbc`.

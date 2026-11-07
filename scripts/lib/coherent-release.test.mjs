@@ -1105,23 +1105,295 @@ test('promotion retries a transient registry read without repeating the tag chan
   assert.equal(postPromotionReads, 3)
 })
 
-test('npm registry requests abort when a read never settles', async () => {
-  const testTimeoutMilliseconds = 50
-  let isAborted = false
+const interruptedRegistryRead = code =>
+  new TypeError('fetch failed', {
+    cause: Object.assign(new Error(`connection interrupted: ${code}`), {
+      code,
+    }),
+  })
+
+for (const method of ['packument', 'version']) {
+  for (const code of ['ECONNRESET', 'UND_ERR_SOCKET']) {
+    test(`npm registry recovers ${method} after ${code} with the same timeout`, async () => {
+      const metadata = { name: 'foldkit', version: '1.2.3' }
+      const requests = []
+      const registry = new NpmRegistry('https://registry.example', {
+        fetchRegistry: async (url, { signal }) => {
+          requests.push({ url, signal })
+
+          if (requests.length === 1) {
+            throw interruptedRegistryRead(code)
+          }
+
+          return Response.json(metadata)
+        },
+      })
+
+      const result =
+        method === 'packument'
+          ? await registry.packument('foldkit')
+          : await registry.version('foldkit', '1.2.3')
+
+      assert.deepEqual(result, metadata)
+      assert.equal(requests.length, 2)
+      assert.equal(new Set(requests.map(request => request.url)).size, 1)
+      assert.equal(new Set(requests.map(request => request.signal)).size, 1)
+    })
+  }
+}
+
+test('npm registry exhausts interrupted reads after two attempts and retains the last cause', async () => {
+  const firstError = interruptedRegistryRead('ECONNRESET')
+  const lastError = interruptedRegistryRead('UND_ERR_SOCKET')
+  let requests = 0
+  const registry = new NpmRegistry('https://registry.example', {
+    fetchRegistry: async () => {
+      requests += 1
+      throw requests === 1 ? firstError : lastError
+    },
+  })
+
+  await assert.rejects(registry.version('foldkit', '1.2.3'), error => {
+    assert.match(error.message, /registry request failed for foldkit@1.2.3/)
+    assert.equal(error.cause, lastError)
+
+    return true
+  })
+  assert.equal(requests, 2)
+})
+
+test('npm registry does not retry absent, rejected or invalid metadata responses', async () => {
+  for (const status of [404, 401, 403, 503]) {
+    const requests = []
+    const registry = new NpmRegistry('https://registry.example', {
+      fetchRegistry: async url => {
+        requests.push(url)
+
+        return Response.json({ error: 'unavailable' }, { status })
+      },
+    })
+
+    if (status === 404) {
+      assert.equal(await registry.version('foldkit', '1.2.3'), undefined)
+    } else {
+      await assert.rejects(
+        registry.version('foldkit', '1.2.3'),
+        new RegExp(`registry answered ${status} for foldkit@1.2.3`),
+      )
+    }
+
+    assert.equal(requests.length, 1)
+  }
+
+  const invalidRequests = []
+  const invalidRegistry = new NpmRegistry('https://registry.example', {
+    fetchRegistry: async url => {
+      invalidRequests.push(url)
+
+      return new Response('{invalid JSON')
+    },
+  })
+
+  await assert.rejects(invalidRegistry.packument('foldkit'), SyntaxError)
+  assert.equal(invalidRequests.length, 1)
+})
+
+test('npm registry does not retry unrelated fetch errors', async () => {
+  for (const error of [
+    new Error('invalid request'),
+    interruptedRegistryRead('ENOTFOUND'),
+  ]) {
+    const requests = []
+    const registry = new NpmRegistry('https://registry.example', {
+      fetchRegistry: async url => {
+        requests.push(url)
+        throw error
+      },
+    })
+
+    await assert.rejects(
+      registry.packument('foldkit'),
+      /registry request failed/,
+    )
+    assert.equal(requests.length, 1)
+  }
+})
+
+test('npm registry socket recovery stays inside the original request timeout', async () => {
+  const signals = []
   let testTimeout
   const registry = new NpmRegistry('https://registry.example', {
     requestTimeoutMilliseconds: 1,
-    fetchRegistry: (_url, { signal }) =>
-      new Promise((_resolve, reject) => {
+    fetchRegistry: async (_url, { signal }) => {
+      signals.push(signal)
+
+      if (signals.length === 1) {
+        throw interruptedRegistryRead('ECONNRESET')
+      }
+
+      return new Promise((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(signal.reason), {
+          once: true,
+        })
+      })
+    },
+  })
+  const testGuard = new Promise((_resolve, reject) => {
+    testTimeout = setTimeout(
+      () => reject(new Error('registry timeout did not abort')),
+      1_000,
+    )
+  })
+
+  try {
+    await assert.rejects(
+      Promise.race([registry.packument('foldkit'), testGuard]),
+      /registry request timed out for foldkit/,
+    )
+  } finally {
+    clearTimeout(testTimeout)
+  }
+
+  assert.equal(signals.length, 2)
+  assert.equal(new Set(signals).size, 1)
+})
+
+test('an exhausted pre-upload socket read never publishes', async () => {
+  const requests = []
+  const publications = []
+  const registry = new NpmRegistry('https://registry.example', {
+    fetchRegistry: async url => {
+      requests.push(url)
+      throw interruptedRegistryRead('ECONNRESET')
+    },
+  })
+
+  await assert.rejects(
+    uploadArtifacts({
+      artifacts: [artifactFor('foldkit', '1.2.3')],
+      registry,
+      publish: async artifact => {
+        publications.push(artifact)
+      },
+      attempts: 1,
+      delayMilliseconds: 0,
+    }),
+    /registry request failed for foldkit@1.2.3/,
+  )
+  assert.equal(requests.length, 2)
+  assert.deepEqual(publications, [])
+})
+
+for (const isMatching of [true, false]) {
+  test(`recovered existing bytes ${isMatching ? 'skip publication' : 'reject a mismatch'}`, async () => {
+    const artifact = artifactFor('foldkit', '1.2.3')
+    const requests = []
+    const publications = []
+    const registry = new NpmRegistry('https://registry.example', {
+      fetchRegistry: async url => {
+        requests.push(url)
+
+        if (requests.length === 1) {
+          throw interruptedRegistryRead('UND_ERR_SOCKET')
+        }
+
+        return Response.json({
+          name: artifact.name,
+          version: artifact.version,
+          dist: {
+            integrity: isMatching ? artifact.integrity : 'sha512-different',
+          },
+        })
+      },
+    })
+    const upload = () =>
+      uploadArtifacts({
+        artifacts: [artifact],
+        registry,
+        publish: async value => {
+          publications.push(value)
+        },
+        attempts: 1,
+        delayMilliseconds: 0,
+      })
+
+    if (isMatching) {
+      const result = await upload()
+      assert.deepEqual(result.skipped, ['foldkit'])
+      assert.deepEqual(result.published, [])
+    } else {
+      await assert.rejects(upload(), /does not match the packed artifact/)
+    }
+
+    assert.equal(requests.length, 2)
+    assert.deepEqual(publications, [])
+  })
+}
+
+for (const interruptedRead of [1, 2]) {
+  test(`socket recovery at upload read ${interruptedRead} publishes exactly once`, async () => {
+    const artifact = artifactFor('foldkit', '1.2.3')
+    const publications = []
+    let requests = 0
+    let isPublished = false
+    const registry = new NpmRegistry('https://registry.example', {
+      fetchRegistry: async () => {
+        requests += 1
+
+        if (requests === interruptedRead) {
+          throw interruptedRegistryRead('ECONNRESET')
+        }
+
+        if (isPublished) {
+          return Response.json({
+            name: artifact.name,
+            version: artifact.version,
+            dist: { integrity: artifact.integrity },
+          })
+        } else {
+          return Response.json({ error: 'not found' }, { status: 404 })
+        }
+      },
+    })
+
+    const result = await uploadArtifacts({
+      artifacts: [artifact],
+      registry,
+      publish: async value => {
+        publications.push(value)
+        isPublished = true
+      },
+      attempts: 1,
+      delayMilliseconds: 0,
+    })
+
+    assert.equal(requests, 3)
+    assert.deepEqual(publications, [artifact])
+    assert.deepEqual(result.published, ['foldkit'])
+  })
+}
+
+test('npm registry requests abort when a read never settles', async () => {
+  const testTimeoutMilliseconds = 50
+  let isAborted = false
+  const requests = []
+  let testTimeout
+  const registry = new NpmRegistry('https://registry.example', {
+    requestTimeoutMilliseconds: 1,
+    fetchRegistry: (url, { signal }) => {
+      requests.push(url)
+
+      return new Promise((_resolve, reject) => {
         signal.addEventListener(
           'abort',
           () => {
             isAborted = true
-            reject(signal.reason)
+            reject(interruptedRegistryRead('ECONNRESET'))
           },
           { once: true },
         )
-      }),
+      })
+    },
   })
 
   const testGuard = new Promise((_resolve, reject) => {
@@ -1141,6 +1413,7 @@ test('npm registry requests abort when a read never settles', async () => {
   }
 
   assert.equal(isAborted, true)
+  assert.equal(requests.length, 1)
 })
 
 test('npm tag changes share one OTP without exposing it in arguments', async () => {
