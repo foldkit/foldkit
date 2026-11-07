@@ -1,0 +1,234 @@
+
+ RUN  v5.0.3 /Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/packages/ui
+
+ ❯ src/radioGroup/schema.test.ts (3 tests | 2 failed) 15ms
+   ❯ RadioGroup selection Schemas (3)
+     × rejects values outside the declared selection contract 5ms
+     × retains the selected value encoding and index in both channels 2ms
+ ❯ src/tabs/schema.test.ts (3 tests | 2 failed) 14ms
+   ❯ Tabs selection Schemas (3)
+     × rejects values outside the declared selection contract 4ms
+     × retains the selected value encoding and index in both channels 2ms
+ ❯ src/menu/schema.test.ts (3 tests | 2 failed) 17ms
+   ❯ Menu selection Schemas (3)
+     × rejects values outside the declared selection contract 5ms
+     × retains the selected value encoding and index in both channels 2ms
+stdout | src/selectionSchema.test.ts > Schema-backed selection in parent graphs > rejects invalid values in every generated parent envelope
+[16:24:06.264] ERROR (#1): Error [AssertionError]: expected [Function] to throw an error
+    at Proxy.<anonymous> (file:///Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/vitest@5.0.3_@opentelemetry+api@1.9.0_@types+node@26.4.0_@vitest+coverage-v8@5.0.3_happ_f0a3007575c7cd53435f77200ca712b9/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2287:114)
+    at Proxy.<anonymous> (file:///Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/vitest@5.0.3_@opentelemetry+api@1.9.0_@types+node@26.4.0_@vitest+coverage-v8@5.0.3_happ_f0a3007575c7cd53435f77200ca712b9/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)
+    at Proxy.methodWrapper (file:///Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/chai@6.2.2/node_modules/chai/index.js:1700:25)
+    at /Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/packages/ui/src/selectionSchema.test.ts:140:11
+    at /Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/packages/foldkit/dist/experimental/layered/testing/withBlock.js:46:36 {
+  actual: undefined,
+  expected: undefined,
+  showDiff: false,
+  operator: 'strictEqual',
+  [cause]: undefined
+}
+
+stdout | src/selectionSchema.test.ts > Schema-backed selection in parent graphs > retains transformed encodings through the complete parent Codec
+[16:24:06.268] ERROR (#12): Error [AssertionError]: expected { …(4) } to deeply equal { …(4) }
+    at /Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/packages/ui/src/selectionSchema.test.ts:157:59
+    at /Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/packages/foldkit/dist/experimental/layered/testing/withBlock.js:46:36 {
+  actual: {
+    _tag: 'GotEncodedRadioGroupMessage',
+    placement: 'encodedRadioGroup',
+    generation: 0,
+    message: { _tag: 'SelectedOption', index: 2, value: '42' }
+  },
+  expected: {
+    _tag: 'GotEncodedRadioGroupMessage',
+    placement: 'encodedRadioGroup',
+    generation: 0,
+    message: { _tag: 'SelectedOption', index: 2, value: 42 }
+  },
+  showDiff: true,
+  operator: 'deepStrictEqual',
+  [cause]: undefined
+}
+
+ ❯ src/selectionSchema.test.ts (3 tests | 2 failed) 28ms
+   ❯ Schema-backed selection in parent graphs (3)
+     × rejects invalid values in every generated parent envelope 16ms
+     × retains transformed encodings through the complete parent Codec 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/selectionSchema.test.ts > Schema-backed selection in parent graphs > rejects invalid values in every generated parent envelope
+AssertionError: expected [Function] to throw an error
+ ❯ src/selectionSchema.test.ts:140:11
+    138|             message: envelope.invalidMessage,
+    139|           }),
+    140|         ).toThrow()
+       |           ^
+    141|       }
+    142|     }),
+ ❯ ~effect/Effect/evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:1026:12
+ ❯ FiberImpl.runLoop ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:694:41
+ ❯ FiberImpl.evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:635:23
+ ❯ ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:5749:9
+ ❯ ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:5827:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  src/selectionSchema.test.ts > Schema-backed selection in parent graphs > retains transformed encodings through the complete parent Codec
+AssertionError: expected { …(4) } to deeply equal { …(4) }
+
+- Expected
++ Received
+
+@@ -2,9 +2,9 @@
+    "_tag": "GotEncodedRadioGroupMessage",
+    "generation": 0,
+    "message": {
+      "_tag": "SelectedOption",
+      "index": 2,
+-     "value": 42,
++     "value": "42",
+    },
+    "placement": "encodedRadioGroup",
+  }
+
+ ❯ src/selectionSchema.test.ts:157:59
+    155|       }
+    156|
+    157|       expect(Schema.encodeSync(parent.Message)(selected)).toEqual(enco…
+       |                                                           ^
+    158|       expect(Schema.decodeUnknownSync(parent.Message)(encoded)).toEqua…
+    159|     }),
+ ❯ ~effect/Effect/evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:1026:12
+ ❯ FiberImpl.runLoop ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:694:41
+ ❯ FiberImpl.evaluate ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:635:23
+ ❯ ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:5749:9
+ ❯ ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:5827:19
+ ❯ Module.<anonymous> ../../node_modules/.pnpm/effect@4.1.0/node_modules/effect/src/internal/effect.ts:5846:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  src/menu/schema.test.ts > Menu selection Schemas > rejects values outside the declared selection contract
+AssertionError: expected 'Some' to be 'None' // Object.is equality
+
+Expected: "None"
+Received: "Some"
+
+ ❯ src/menu/schema.test.ts:44:7
+     42|         item: 'Other',
+     43|       })._tag,
+     44|     ).toBe('None')
+       |       ^
+     45|     expect(
+     46|       Schema.decodeUnknownOption(FruitMenu.OutMessage)({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  src/menu/schema.test.ts > Menu selection Schemas > retains the selected value encoding and index in both channels
+AssertionError: expected { Object (_tag, index, ...) } to deeply equal { Object (_tag, index, ...) }
+
+- Expected
++ Received
+
+  {
+    "_tag": "SelectedItem",
+    "index": 2,
+-   "item": 42,
++   "item": "42",
+  }
+
+ ❯ src/menu/schema.test.ts:64:62
+     62|     })
+     63|
+     64|     expect(Schema.encodeSync(EncodedMenu.Message)(selected)).toEqual({
+       |                                                              ^
+     65|       _tag: 'SelectedItem',
+     66|       index: 2,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  src/radioGroup/schema.test.ts > RadioGroup selection Schemas > rejects values outside the declared selection contract
+AssertionError: expected 'Some' to be 'None' // Object.is equality
+
+Expected: "None"
+Received: "Some"
+
+ ❯ src/radioGroup/schema.test.ts:44:7
+     42|         value: 'Other',
+     43|       })._tag,
+     44|     ).toBe('None')
+       |       ^
+     45|     expect(
+     46|       Schema.decodeUnknownOption(FruitRadioGroup.OutMessage)({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  src/radioGroup/schema.test.ts > RadioGroup selection Schemas > retains the selected value encoding and index in both channels
+AssertionError: expected { _tag: 'SelectedOption', …(2) } to deeply equal { _tag: 'SelectedOption', …(2) }
+
+- Expected
++ Received
+
+  {
+    "_tag": "SelectedOption",
+    "index": 2,
+-   "value": 42,
++   "value": "42",
+  }
+
+ ❯ src/radioGroup/schema.test.ts:64:68
+     62|     })
+     63|
+     64|     expect(Schema.encodeSync(EncodedRadioGroup.Message)(selected)).toE…
+       |                                                                    ^
+     65|       _tag: 'SelectedOption',
+     66|       index: 2,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  src/tabs/schema.test.ts > Tabs selection Schemas > rejects values outside the declared selection contract
+AssertionError: expected 'Some' to be 'None' // Object.is equality
+
+Expected: "None"
+Received: "Some"
+
+ ❯ src/tabs/schema.test.ts:44:7
+     42|         value: 'Other',
+     43|       })._tag,
+     44|     ).toBe('None')
+       |       ^
+     45|     expect(
+     46|       Schema.decodeUnknownOption(FruitTabs.OutMessage)({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  src/tabs/schema.test.ts > Tabs selection Schemas > retains the selected value encoding and index in both channels
+AssertionError: expected { _tag: 'SelectedTab', index: 2, …(1) } to deeply equal { _tag: 'SelectedTab', index: 2, …(1) }
+
+- Expected
++ Received
+
+  {
+    "_tag": "SelectedTab",
+    "index": 2,
+-   "value": 42,
++   "value": "42",
+  }
+
+ ❯ src/tabs/schema.test.ts:64:62
+     62|     })
+     63|
+     64|     expect(Schema.encodeSync(EncodedTabs.Message)(selected)).toEqual({
+       |                                                              ^
+     65|       _tag: 'SelectedTab',
+     66|       index: 2,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  4 failed (4)
+      Tests  8 failed | 4 passed (12)
+   Start at  16:24:04
+   Duration  1.49s (transform 59%, import 16%, environment 12%, setup 10%, tests 1%)
+
+  Transform  transforming modules took 3.20s · 59% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns

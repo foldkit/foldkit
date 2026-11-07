@@ -105,7 +105,6 @@ const simulation = (
   updateFn: (model, message) => ({
     model: [...model, message.value],
   }),
-  resolvers: [],
 })
 
 describe('__bindCommandMatcher', () => {
@@ -152,7 +151,7 @@ describe('__bindCommandMatcher', () => {
     ])
   })
 
-  it('keeps resolver cache entries distinct by Binding path', () => {
+  it('keeps local resolver entries distinct by Binding path', () => {
     const leftMatcher = __bindCommandMatcher(
       ChildBlock,
       LeftBinding,
@@ -163,18 +162,15 @@ describe('__bindCommandMatcher', () => {
       RightBinding,
       Work(args),
     )
-    const withLeftResolver = resolveAllInternal(simulation([]), [
-      [leftMatcher, Message.CompletedWork({ value: 'left' })],
-    ])
     const result = resolveAllInternal(
-      {
-        ...withLeftResolver,
-        commands: [
-          scope(LeftBinding, Work(args)),
-          scope(RightBinding, Work(args)),
-        ],
-      },
-      [[rightMatcher, Message.CompletedWork({ value: 'right' })]],
+      simulation([
+        scope(LeftBinding, Work(args)),
+        scope(RightBinding, Work(args)),
+      ]),
+      [
+        [leftMatcher, Message.CompletedWork({ value: 'left' })],
+        [rightMatcher, Message.CompletedWork({ value: 'right' })],
+      ],
     )
 
     expect(result.model).toEqual(['left', 'right'])

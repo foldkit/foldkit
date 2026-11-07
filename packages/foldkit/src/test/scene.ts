@@ -103,7 +103,6 @@ import type {
   ResolvableCommandDefinition,
   ResolvableCommandMatcher,
   Resolver,
-  ResolverEntry,
   SimulationUpdateReturn,
   StreamMountMatcher,
   StreamMountMessage,
@@ -550,7 +549,6 @@ type InternalSceneSimulation<
       model: Model,
       message: Message,
     ) => SimulationUpdateReturn<Model, OutMessage>
-    resolvers: ReadonlyArray<ResolverEntry>
     viewFn: (model: Model, h: TestHtmlBuilder<Message>) => Html | Document
     host: SceneHost | undefined
     boundaryRegistry: BoundaryRegistry | undefined
@@ -1652,10 +1650,8 @@ const resolveCommand: {
  *  matching dispatch in declaration order, so
  *  `[Def, m1], [Def, m2], [Def, m3]` reads as a sequence of three responses.
  *  For N identical responses, compose with
- *  `Array.makeBy(n, () => [Def, message])`. Resolvers carry across
- *  `resolveAll` calls: unused entries can match later dispatches, and a new
- *  entry replaces any leftover resolvers sharing its Definition or Instance
- *  shape (latest wins). */
+ *  `Array.makeBy(n, () => [Def, message])`. Resolvers apply only to this call:
+ *  unmatched entries are discarded, while unrelated Commands remain pending. */
 const resolveAllCommands =
   <Matchers extends ReadonlyArray<ResolvableCommandMatcher>>(
     ...resolvers: { [K in keyof Matchers]: Resolver<Matchers[K]> }
@@ -2555,8 +2551,8 @@ export const Command = {
   /** Resolves listed Commands with their result Messages, cascading through any
    *  Commands the result produces. Each entry resolves exactly one matching
    *  dispatch in declaration order; compose with `Array.makeBy` for N
-   *  identical responses. Resolvers carry across calls; a new entry replaces
-   *  any leftovers sharing its Definition or Instance shape (latest wins). */
+   *  identical responses. Resolvers apply only to this call; unmatched entries
+   *  are discarded and unrelated Commands remain pending. */
   resolveAll: resolveAllCommands,
   /** Resolves listed Commands and throws unless every resolver matches one
    *  dispatch and no actual Commands remain unresolved. Entries apply only to
@@ -4483,7 +4479,6 @@ export const scene: {
       config[SceneHostTypeId]?.synchronize(messageUpdate.model)
       return messageUpdate
     },
-    resolvers: [],
     html: undefined as unknown,
     viewFn: config.view,
     capturingDispatch,

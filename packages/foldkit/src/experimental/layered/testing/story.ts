@@ -23,7 +23,12 @@ import {
   subjectInMessageUpdate,
   subjectUpdate,
 } from './subject.js'
-import { type BlockSubject, type TestEffect, withBlock } from './withBlock.js'
+import {
+  type BlockSubject,
+  type TestBlock,
+  type TestEffect,
+  withBlock,
+} from './withBlock.js'
 
 export * from '../../../test/story.js'
 export { type InitStep, init } from './initialState.js'
@@ -38,7 +43,11 @@ type Step<Block extends BlockSubject> = CoreStory.StoryStep<
   TestModel<Block>,
   TestMessage<Block>,
   TestOutMessage<Block>,
-  TestInMessage<Block>
+  TestInMessage<Block>,
+  CoreStory.BlockSubscriptionStepFor<
+    TestBlock<Block>['subscriptions'],
+    TestMessage<Block>
+  >
 >
 
 /**

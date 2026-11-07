@@ -14,10 +14,9 @@ import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import * as BlockFamily from 'foldkit/internal/block'
-import { type MessageUnion, defineMessageUnion } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { makeFixedFamilyLayer } from '../internal/fixedFamily.js'
 import { idSelector } from '../internal/selectors.js'
 import { keyToIndex } from '../keyboard.js'
 import { RadioGroupNamespace } from './definition.js'
@@ -41,16 +40,34 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Union of all messages the radio group can produce. */
-export const Message = defineMessageUnion({
-  SelectedOption: {
-    index: Schema.Number,
-    value: Schema.String,
-  },
-  FocusedOption: { index: Schema.Number },
-  CompletedFocusOption: {},
-})
+/** Self-contained selected-value Codec; serialization executes synchronously. */
+export type ValueSchema<
+  Value extends string,
+  ValueEncoded = Value,
+> = Schema.Codec<Value, ValueEncoded, never, never> &
+  Readonly<{ '~type.make': Value }>
+
+/** Builds local Messages from the selected value's runtime contract. */
+export const makeMessage = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) =>
+  defineMessageUnion({
+    SelectedOption: {
+      index: Schema.Number,
+      value: Value,
+    },
+    FocusedOption: { index: Schema.Number },
+    CompletedFocusOption: {},
+  })
+
+/** Local Messages for unrestricted string values. */
+export const Message = makeMessage(Schema.String)
 export type Message = typeof Message.Type
+/** Local Messages retaining the exact selected-value Codec. */
+export type MessageSchema<
+  Value extends string,
+  ValueEncoded = Value,
+> = ReturnType<typeof makeMessage<Value, ValueEncoded>>
 
 export type SelectedOption = typeof Message.SelectedOption.Type
 export type FocusedOption = typeof Message.FocusedOption.Type
@@ -63,35 +80,22 @@ export type Selected<Value extends string = string> = Readonly<{
   readonly index: number
 }>
 
-/** Union of OutMessages the radio group can produce. The parent's
- *  parent bindings handle them through their OutMessage policy. */
-export const OutMessage = defineMessageUnion({
-  Selected: {
-    value: Schema.String,
-    index: Schema.Number,
-  },
-})
+/** Builds selection OutMessages from the selected value's runtime contract. */
+export const makeOutMessage = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) =>
+  defineMessageUnion({
+    Selected: { value: Value, index: Schema.Number },
+  })
 
-/** The OutMessage union interface on a completed RadioGroup, refined to its
- * Value type. */
-export type OutMessageSchema<Value extends string = string> =
-  typeof OutMessage extends MessageUnion<infer Cases>
-    ? MessageUnion<
-        Omit<Cases, 'Selected'> &
-          Readonly<{
-            Selected: Omit<Cases['Selected'], 'value'> &
-              Readonly<{
-                value: Schema.Codec<Value, Value> &
-                  Readonly<{ '~type.make': Value }>
-              }>
-          }>
-      >
-    : never
-
-/** Generic over `Value extends string` so consumers using
- *  `RadioGroup.makeBlock<MyUnion>()` receive `value: MyUnion` in the
- *  `Selected` OutMessage. Defaults to `string`. */
+/** Selection OutMessages for unrestricted string values. */
+export const OutMessage = makeOutMessage(Schema.String)
 export type OutMessage<Value extends string = string> = Selected<Value>
+/** Selection OutMessages retaining decoded and encoded value contracts. */
+export type OutMessageSchema<
+  Value extends string = string,
+  ValueEncoded = Value,
+> = ReturnType<typeof makeOutMessage<Value, ValueEncoded>>
 
 // INIT
 
@@ -132,42 +136,6 @@ export const EffectsLayer = Layer.mergeAll(FocusOption.layer)
 
 /** @internal Nominal identity of this component contract. */
 export const RadioGroupKey = Symbol('RadioGroup')
-const RadioGroupBlock = Block.make(RadioGroupNamespace, {
-  key: RadioGroupKey,
-  InitArgs: Schema.Tuple([InitConfig]),
-  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
-  Model,
-  Message,
-  OutMessage,
-})
-const RadioGroupComposition = RadioGroupBlock.makeComposition()
-
-/** Creates an initial RadioGroup Model and Commands from a config. Focus follows the
- *  selected option until the user navigates a read-only group, so
- *  `maybeFocusedIndex` starts `None`. */
-export const init = RadioGroupComposition.makeInit(config => ({
-  model: makeInitialModel(config),
-}))
-
-/** Processes a RadioGroup Message and returns the next Model, optional
- *  Commands, and an optional OutMessage. `Selected` fires when an option is
- *  committed via click or keyboard; the parent stores the new value and passes
- *  it back in as `selectedValue`. */
-export const update = RadioGroupComposition.makeUpdate({
-  SelectedOption: (model, { index, value }) => ({
-    model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
-    commands: [FocusOption({ id: model.id, index })],
-    outMessage: OutMessage.Selected({ value, index }),
-  }),
-  FocusedOption: (model, { index }) => ({
-    model: modifyFields(model, {
-      maybeFocusedIndex: () => Option.some(index),
-    }),
-    commands: [FocusOption({ id: model.id, index })],
-  }),
-  CompletedFocusOption: RadioGroupBlock.makeNoopStep(),
-})
-
 // VIEW
 
 /** Per-option render info passed to the consumer's `toView`. The consumer
@@ -213,7 +181,7 @@ export type RenderInfo<Value extends string = string> = Readonly<{
 
 /** Per-render view inputs passed to `view` via `h.block`'s `viewInputs`
  *  field. Generic over `Value extends string` so consumers using
- *  `RadioGroup.makeBlock<MyUnion>()` receive `option.value: MyUnion` in `toView`
+ *  `RadioGroup.makeBlock(Value)` receive `option.value: MyUnion` in `toView`
  *  and `(value: MyUnion, index) => boolean` in `isOptionDisabled`, without
  *  casting.
  *
@@ -237,351 +205,374 @@ export type ViewInputs<Value extends string = string> = Readonly<{
   name?: string
 }>
 
-const internalView = RadioGroupComposition.makeView.withInputs(
-  (model, viewInputs, h) => {
-    const { id, maybeFocusedIndex } = model
-    const {
-      options,
-      selectedValue,
-      ariaLabel,
-      toView,
-      orientation = 'Vertical',
-      isOptionDisabled: isOptionDisabledFn,
-      hasOptionDescription: hasOptionDescriptionFn,
-      isDisabled: isGroupDisabled = false,
-      isReadOnly = false,
-      name,
-    } = viewInputs
+const makeAuthoring = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) => {
+  const Message: MessageSchema<Value, ValueEncoded> = makeMessage(Value)
+  const OutMessage: OutMessageSchema<Value, ValueEncoded> =
+    makeOutMessage(Value)
+  type SelectedOption = typeof Message.SelectedOption.Type
 
-    const isDisabled = (index: number): boolean => {
-      if (isGroupDisabled) {
-        return true
-      }
-      if (!isOptionDisabledFn) {
-        return false
-      }
-      return pipe(
+  const Definition = BlockFamily.makeFamilyDeclaration(RadioGroupNamespace, {
+    key: RadioGroupKey,
+    InitArgs: Schema.Tuple([InitConfig]),
+    view: {
+      kind: 'Element',
+      Inputs: Block.makeInputContract<ViewInputs<Value>>(),
+    },
+    Model,
+    Message,
+    OutMessage,
+  })
+  const RadioGroupComposition = Definition.makeComposition()
+
+  /** Creates an initial RadioGroup Model and Commands from a config. Focus follows the
+   *  selected option until the user navigates a read-only group, so
+   *  `maybeFocusedIndex` starts `None`. */
+  const init = RadioGroupComposition.makeInit(config => ({
+    model: makeInitialModel(config),
+  }))
+
+  /** Processes a RadioGroup Message and returns the next Model, optional
+   *  Commands, and an optional OutMessage. `Selected` fires when an option is
+   *  committed via click or keyboard; the parent stores the new value and passes
+   *  it back in as `selectedValue`. */
+  const update = RadioGroupComposition.makeUpdate({
+    SelectedOption: (model, { index, value }) => ({
+      model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
+      commands: [FocusOption({ id: model.id, index })],
+      outMessage: OutMessage.Selected({ value, index }),
+    }),
+    FocusedOption: (model, { index }) => ({
+      model: modifyFields(model, {
+        maybeFocusedIndex: () => Option.some(index),
+      }),
+      commands: [FocusOption({ id: model.id, index })],
+    }),
+    CompletedFocusOption: Definition.makeNoopStep(),
+  })
+
+  const internalView = RadioGroupComposition.makeView.withInputs(
+    (model, viewInputs, h) => {
+      const { id, maybeFocusedIndex } = model
+      const {
         options,
-        Array.get(index),
-        Option.exists(option => isOptionDisabledFn(option, index)),
-      )
-    }
+        selectedValue,
+        ariaLabel,
+        toView,
+        orientation = 'Vertical',
+        isOptionDisabled: isOptionDisabledFn,
+        hasOptionDescription: hasOptionDescriptionFn,
+        isDisabled: isGroupDisabled = false,
+        isReadOnly = false,
+        name,
+      } = viewInputs
 
-    const selectedIndex = Option.flatMap(selectedValue, value =>
-      Array.findFirstIndex(options, option => option === value),
-    )
-
-    const firstEnabledIndex = pipe(
-      options.length,
-      Array.makeBy(index => index),
-      Array.findFirst(Predicate.not(isDisabled)),
-      Option.getOrElse(() => 0),
-    )
-
-    // NOTE: The selected index only becomes the roving tab stop when it is
-    // enabled. A disabled selected option would otherwise be the group's sole
-    // tab stop with no keydown handler, stranding keyboard navigation.
-    const selectionTabStopIndex = pipe(
-      selectedIndex,
-      Option.filter(Predicate.not(isDisabled)),
-      Option.getOrElse(() => firstEnabledIndex),
-    )
-
-    const isNavigableIndex = (index: number): boolean =>
-      index < options.length && !isDisabled(index)
-
-    const focusedIndex = pipe(
-      maybeFocusedIndex,
-      Option.filter(isNavigableIndex),
-      Option.getOrElse(() => selectionTabStopIndex),
-    )
-
-    const { nextKey, previousKey } = Match.value(orientation).pipe(
-      Match.when('Horizontal', () => ({
-        nextKey: 'ArrowRight',
-        previousKey: 'ArrowLeft',
-      })),
-      Match.when('Vertical', () => ({
-        nextKey: 'ArrowDown',
-        previousKey: 'ArrowUp',
-      })),
-      Match.exhaustive,
-    )
-
-    const resolveKeyIndex = keyToIndex(
-      nextKey,
-      previousKey,
-      options.length,
-      focusedIndex,
-      isDisabled,
-    )
-
-    const optionSelectedAt = (index: number): Option.Option<SelectedOption> =>
-      pipe(
-        options,
-        Array.get(index),
-        Option.map(value => Message.SelectedOption({ index, value })),
-      )
-
-    const handleSelectingKeyDown = (
-      currentIndex: number,
-      key: string,
-    ): Option.Option<SelectedOption> =>
-      Match.value(key).pipe(
-        Match.whenOr(
-          nextKey,
-          previousKey,
-          'Home',
-          'End',
-          'PageUp',
-          'PageDown',
-          () => optionSelectedAt(resolveKeyIndex(key)),
-        ),
-        Match.when(' ', () => optionSelectedAt(currentIndex)),
-        Match.orElse(() => Option.none()),
-      )
-
-    const handleReadOnlyKeyDown = (key: string): Option.Option<FocusedOption> =>
-      Match.value(key).pipe(
-        Match.whenOr(
-          nextKey,
-          previousKey,
-          'Home',
-          'End',
-          'PageUp',
-          'PageDown',
-          () =>
-            Option.some(Message.FocusedOption({ index: resolveKeyIndex(key) })),
-        ),
-        Match.orElse(() => Option.none()),
-      )
-
-    const handleKeyDown =
-      (currentIndex: number) =>
-      (key: string): Option.Option<SelectedOption | FocusedOption> => {
-        if (isReadOnly) {
-          return handleReadOnlyKeyDown(key)
-        } else {
-          return handleSelectingKeyDown(currentIndex, key)
+      const isDisabled = (index: number): boolean => {
+        if (isGroupDisabled) {
+          return true
         }
-      }
-
-    const optionInfos: ReadonlyArray<OptionInfo> = Array.map(
-      options,
-      (value, index) => {
-        const isSelected = Option.exists(
-          selectedIndex,
-          selectedOptionIndex => selectedOptionIndex === index,
+        if (!isOptionDisabledFn) {
+          return false
+        }
+        return pipe(
+          options,
+          Array.get(index),
+          Option.exists(option => isOptionDisabledFn(option, index)),
         )
-        const isActive = index === focusedIndex
-        const isOptionDisabledNow = isDisabled(index)
+      }
 
-        const checkedAttributes = isSelected
-          ? [h.DataAttribute('checked', '')]
-          : []
-        const activeAttributes = isActive ? [h.DataAttribute('active', '')] : []
-        const disabledAttributes = isOptionDisabledNow
-          ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-          : []
-        const readOnlyAttributes = isReadOnly
-          ? [h.DataAttribute('readonly', '')]
-          : []
-        const clickAttributes =
-          isOptionDisabledNow || isReadOnly
-            ? []
-            : [h.OnClick(Message.SelectedOption({ index, value }))]
-        const keyDownAttributes = isOptionDisabledNow
-          ? []
-          : [h.OnKeyDownPreventDefault(handleKeyDown(index))]
-        const describedByAttributes =
-          Predicate.isNotUndefined(hasOptionDescriptionFn) &&
-          hasOptionDescriptionFn(value, index)
-            ? [h.AriaDescribedBy(descriptionId(id, index))]
-            : []
+      const selectedIndex = Option.flatMap(selectedValue, value =>
+        Array.findFirstIndex(options, option => option === value),
+      )
 
-        const optionAttributes = [
-          h.Id(optionId(id, index)),
-          h.Type('button'),
-          h.Role('radio'),
-          h.AriaChecked(isSelected),
-          h.AriaLabelledBy(labelId(id, index)),
-          ...describedByAttributes,
-          h.Tabindex(isActive ? 0 : -1),
-          ...checkedAttributes,
-          ...activeAttributes,
-          ...disabledAttributes,
-          ...readOnlyAttributes,
-          ...clickAttributes,
-          ...keyDownAttributes,
-        ]
+      const firstEnabledIndex = pipe(
+        options.length,
+        Array.makeBy(index => index),
+        Array.findFirst(Predicate.not(isDisabled)),
+        Option.getOrElse(() => 0),
+      )
 
-        const labelAttributes = [h.Id(labelId(id, index))]
-        const descriptionAttributes = [h.Id(descriptionId(id, index))]
+      // NOTE: The selected index only becomes the roving tab stop when it is
+      // enabled. A disabled selected option would otherwise be the group's sole
+      // tab stop with no keydown handler, stranding keyboard navigation.
+      const selectionTabStopIndex = pipe(
+        selectedIndex,
+        Option.filter(Predicate.not(isDisabled)),
+        Option.getOrElse(() => firstEnabledIndex),
+      )
 
-        return {
-          value,
-          index,
-          isSelected,
-          isActive,
-          isDisabled: isOptionDisabledNow,
-          isReadOnly,
-          option: childAttributes(optionAttributes),
-          label: childAttributes(labelAttributes),
-          description: childAttributes(descriptionAttributes),
+      const isNavigableIndex = (index: number): boolean =>
+        index < options.length && !isDisabled(index)
+
+      const focusedIndex = pipe(
+        maybeFocusedIndex,
+        Option.filter(isNavigableIndex),
+        Option.getOrElse(() => selectionTabStopIndex),
+      )
+
+      const { nextKey, previousKey } = Match.value(orientation).pipe(
+        Match.when('Horizontal', () => ({
+          nextKey: 'ArrowRight',
+          previousKey: 'ArrowLeft',
+        })),
+        Match.when('Vertical', () => ({
+          nextKey: 'ArrowDown',
+          previousKey: 'ArrowUp',
+        })),
+        Match.exhaustive,
+      )
+
+      const resolveKeyIndex = keyToIndex(
+        nextKey,
+        previousKey,
+        options.length,
+        focusedIndex,
+        isDisabled,
+      )
+
+      const optionSelectedAt = (index: number): Option.Option<SelectedOption> =>
+        pipe(
+          options,
+          Array.get(index),
+          Option.map(value => Message.SelectedOption({ index, value })),
+        )
+
+      const handleSelectingKeyDown = (
+        currentIndex: number,
+        key: string,
+      ): Option.Option<SelectedOption> =>
+        Match.value(key).pipe(
+          Match.whenOr(
+            nextKey,
+            previousKey,
+            'Home',
+            'End',
+            'PageUp',
+            'PageDown',
+            () => optionSelectedAt(resolveKeyIndex(key)),
+          ),
+          Match.when(' ', () => optionSelectedAt(currentIndex)),
+          Match.orElse(() => Option.none()),
+        )
+
+      const handleReadOnlyKeyDown = (
+        key: string,
+      ): Option.Option<FocusedOption> =>
+        Match.value(key).pipe(
+          Match.whenOr(
+            nextKey,
+            previousKey,
+            'Home',
+            'End',
+            'PageUp',
+            'PageDown',
+            () =>
+              Option.some(
+                Message.FocusedOption({ index: resolveKeyIndex(key) }),
+              ),
+          ),
+          Match.orElse(() => Option.none()),
+        )
+
+      const handleKeyDown =
+        (currentIndex: number) =>
+        (key: string): Option.Option<SelectedOption | FocusedOption> => {
+          if (isReadOnly) {
+            return handleReadOnlyKeyDown(key)
+          } else {
+            return handleSelectingKeyDown(currentIndex, key)
+          }
         }
-      },
-    )
 
-    const groupReadOnlyAttributes = isReadOnly
-      ? [h.AriaReadonly(true), h.DataAttribute('readonly', '')]
-      : []
+      const optionInfos: ReadonlyArray<OptionInfo<Value>> = Array.map(
+        options,
+        (value, index) => {
+          const isSelected = Option.exists(
+            selectedIndex,
+            selectedOptionIndex => selectedOptionIndex === index,
+          )
+          const isActive = index === focusedIndex
+          const isOptionDisabledNow = isDisabled(index)
 
-    const groupAttributes = [
-      h.Role('radiogroup'),
-      h.AriaOrientation(String.toLowerCase(orientation)),
-      h.AriaLabel(ariaLabel),
-      ...groupReadOnlyAttributes,
-    ]
+          const checkedAttributes = isSelected
+            ? [h.DataAttribute('checked', '')]
+            : []
+          const activeAttributes = isActive
+            ? [h.DataAttribute('active', '')]
+            : []
+          const disabledAttributes = isOptionDisabledNow
+            ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+            : []
+          const readOnlyAttributes = isReadOnly
+            ? [h.DataAttribute('readonly', '')]
+            : []
+          const clickAttributes =
+            isOptionDisabledNow || isReadOnly
+              ? []
+              : [h.OnClick(Message.SelectedOption({ index, value }))]
+          const keyDownAttributes = isOptionDisabledNow
+            ? []
+            : [h.OnKeyDownPreventDefault(handleKeyDown(index))]
+          const describedByAttributes =
+            Predicate.isNotUndefined(hasOptionDescriptionFn) &&
+            hasOptionDescriptionFn(value, index)
+              ? [h.AriaDescribedBy(descriptionId(id, index))]
+              : []
 
-    const hiddenInputAttributes = pipe(
-      Option.fromNullishOr(name),
-      Option.flatMap(inputName =>
-        Option.map(selectedValue, value => [
-          h.Type('hidden'),
-          h.Name(inputName),
-          h.Value(value),
-        ]),
-      ),
-      Option.getOrElse(() => []),
-    )
+          const optionAttributes = [
+            h.Id(optionId(id, index)),
+            h.Type('button'),
+            h.Role('radio'),
+            h.AriaChecked(isSelected),
+            h.AriaLabelledBy(labelId(id, index)),
+            ...describedByAttributes,
+            h.Tabindex(isActive ? 0 : -1),
+            ...checkedAttributes,
+            ...activeAttributes,
+            ...disabledAttributes,
+            ...readOnlyAttributes,
+            ...clickAttributes,
+            ...keyDownAttributes,
+          ]
 
-    return toView({
-      group: childAttributes(groupAttributes),
-      options: optionInfos,
-      selectedValue,
-      hiddenInput: childAttributes(hiddenInputAttributes),
-    })
-  },
-)
+          const labelAttributes = [h.Id(labelId(id, index))]
+          const descriptionAttributes = [h.Id(descriptionId(id, index))]
 
-/** @internal Checked canonical implementation for scoped library tests. */
-const canonicalLayer = RadioGroupBlock.makeLayer({
-  init,
-  update,
-  view: internalView,
-  EffectsLayer,
-})
+          return {
+            value,
+            index,
+            isSelected,
+            isActive,
+            isDisabled: isOptionDisabledNow,
+            isReadOnly,
+            option: childAttributes(optionAttributes),
+            label: childAttributes(labelAttributes),
+            description: childAttributes(descriptionAttributes),
+          }
+        },
+      )
 
-/** Constructs the implementation shared by all type-only RadioGroup specializations. */
-type CanonicalIdentity = Block.SelectedPublicIdentity<typeof RadioGroupBlock>
-const RadioGroupRefinementRule = Symbol('RadioGroup.Refinement')
-/** @internal Closed type-only refinement identity. */
-export interface RadioGroupRefinementKey {
-  readonly [RadioGroupRefinementRule]: true
+      const groupReadOnlyAttributes = isReadOnly
+        ? [h.AriaReadonly(true), h.DataAttribute('readonly', '')]
+        : []
+
+      const groupAttributes = [
+        h.Role('radiogroup'),
+        h.AriaOrientation(String.toLowerCase(orientation)),
+        h.AriaLabel(ariaLabel),
+        ...groupReadOnlyAttributes,
+      ]
+
+      const hiddenInputAttributes = pipe(
+        Option.fromNullishOr(name),
+        Option.flatMap(inputName =>
+          Option.map(selectedValue, value => [
+            h.Type('hidden'),
+            h.Name(inputName),
+            h.Value(value),
+          ]),
+        ),
+        Option.getOrElse(() => []),
+      )
+
+      return toView({
+        group: childAttributes(groupAttributes),
+        options: optionInfos,
+        selectedValue,
+        hiddenInput: childAttributes(hiddenInputAttributes),
+      })
+    },
+  )
+
+  return { Definition, init, update, view: internalView }
 }
-type CanonicalImplementation = Extract<
-  Layer.Success<typeof canonicalLayer>,
-  Block.SelectedImplementationFacts<
-    CanonicalIdentity,
-    unknown,
-    unknown,
-    unknown
-  >
+
+type Authoring<Value extends string, ValueEncoded> = ReturnType<
+  typeof makeAuthoring<Value, ValueEncoded>
 >
-/** @internal Captured implementation capability for this fixed family. */
-export interface SharedRadioGroupProof extends Block.ClosedFamilyCapability<RadioGroupRefinementKey> {}
-/** @internal The shared provider's original canonical implementation facts. */
-export interface SharedRadioGroupFacts extends Block.FixedRefinementProvider<
-  RadioGroupRefinementKey,
-  CanonicalIdentity,
-  CanonicalImplementation
-> {}
-const SharedRadioGroupProof = Context.Service<
-  SharedRadioGroupProof,
-  Readonly<{ executable: object }>
->('foldkit/ui/private/RadioGroup.SharedImplementation')
-const SharedRadioGroupFacts = Context.Service<
-  SharedRadioGroupFacts,
-  Readonly<Record<never, never>>
->('foldkit/ui/private/RadioGroup.SharedFacts')
-/** Constructs the original shared implementation for type-only specializations. */
-export const layer = makeFixedFamilyLayer(
-  RadioGroupBlock,
-  canonicalLayer,
-  BlockFamily.readDeclaredExecutable(RadioGroupBlock),
-  SharedRadioGroupProof,
-  SharedRadioGroupFacts,
+
+const construct = <Value extends string, ValueEncoded>(
+  authoring: Authoring<Value, ValueEncoded>,
+) =>
+  authoring.Definition.makeLayer({
+    init: authoring.init,
+    update: authoring.update,
+    view: authoring.view,
+    EffectsLayer,
+  })
+
+interface RadioGroupImplementation extends Block.FamilyLifetime {
+  readonly construct: typeof construct
+}
+
+/** @internal Scoped provider for Schema-specific RadioGroup implementations. */
+export class RadioGroupFamily extends Context.Service<
+  RadioGroupFamily,
+  RadioGroupImplementation
+>()('foldkit/ui/RadioGroup') {}
+
+/** Constructs RadioGroup implementations with their selected-value Codecs. */
+export const layer = Layer.effect(
+  RadioGroupFamily,
+  Effect.gen(function* () {
+    const lifetime = yield* Block.familyLifetime
+
+    return { ...lifetime, construct }
+  }),
 )
 
-Reflect.deleteProperty(RadioGroupBlock, 'makeLayer')
-Reflect.deleteProperty(RadioGroupBlock, 'provideHandlers')
-Object.freeze(RadioGroupBlock)
+const declareBlock = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) => {
+  const authoring = makeAuthoring(Value)
 
-/** @internal Selected implementation used by component tests. */
-export const block = { block: RadioGroupBlock, layer }
+  return BlockFamily.resolveFamily(
+    authoring.Definition,
+    RadioGroupFamily,
+    implementation => implementation.construct(authoring),
+  )
+}
 
-type CanonicalContract = typeof RadioGroupBlock
-type CanonicalFacts = Block.FactsOf<CanonicalContract>
-type RefinedFacts<Value extends string> = Omit<
-  CanonicalFacts,
-  'view' | 'update'
-> &
-  Readonly<{
-    view: Block.ViewContract<ViewInputs<Value>, 'Element'>
-    update: Block.ResultContract<
-      OutMessage<Value>,
-      CanonicalFacts['update']['requirements']
-    >
-  }>
-type RefinedContract<Value extends string> = Block.Contract<
-  CanonicalContract['owner'],
-  CanonicalContract['Model'],
-  CanonicalContract['Message'],
-  OutMessageSchema<Value>,
-  RefinedFacts<Value>
+type Contract<Value extends string, ValueEncoded> = ReturnType<
+  typeof declareBlock<Value, ValueEncoded>
 >
+/** Passive RadioGroup contract retaining its exact selected-value Codec. */
+export interface Completed<
+  Value extends string = string,
+  ValueEncoded = Value,
+> extends Contract<Value, ValueEncoded> {}
 
-type RefinedConfiguration<Value extends string> = Readonly<{
-  key: typeof RadioGroupKey
-  InitArgs: Schema.Tuple<readonly [typeof InitConfig]>
-  view: Readonly<{
-    kind: 'Element'
-    Inputs: Block.InputContract<ViewInputs<Value>>
-  }>
-}>
-/** @internal Names the exact private reader of this fixed-family specialization. */
-export interface RadioGroupReader<
-  Value extends string,
-> extends Block.ReadableProvider<
-  RadioGroupRefinementKey,
-  Block.SelectedPublicIdentity<RefinedContract<Value>>
-> {}
+/** Declares a RadioGroup contract. Pass a string Value Schema, or omit it for
+ * unrestricted strings. Provide RadioGroup.layer when constructing the parent.
+ *
+ * @example
+ * ```ts
+ * const Plan = Schema.Literals(['Basic', 'Pro'])
+ * const PlanRadioGroupBlock = RadioGroup.makeBlock(Plan)
+ * ```
+ */
+export function makeBlock(): Completed<string>
+export function makeBlock<Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+): Completed<Value, ValueEncoded>
+export function makeBlock(
+  Value: ValueSchema<string, unknown> = Schema.String,
+): object {
+  return declareBlock(Value)
+}
 
-type RefinedBlock<Value extends string> = Omit<
-  Block.UnifiedBlock<
-    'RadioGroup',
-    CanonicalContract['Model'],
-    CanonicalContract['Message'],
-    OutMessageSchema<Value>,
-    undefined,
-    RefinedConfiguration<Value>,
-    CanonicalIdentity,
-    RadioGroupReader<Value>
-  >,
-  'makeLayer' | 'provideHandlers' | keyof RefinedContract<Value>
-> &
-  Omit<RefinedContract<Value>, 'get'>
-/** Passive RadioGroup contract retaining exact controlled inputs and result channels. */
-export interface Completed<Value extends string = string>
-  extends
-    RefinedBlock<Value>,
-    Block.FixedRefinement<
-      RadioGroupRefinementKey,
-      CanonicalIdentity,
-      Block.SelectedPublicIdentity<RefinedContract<Value>>
-    > {}
-
-/** Creates a typed RadioGroup contract; provide this module's layer during graph construction. */
-export const makeBlock = <Value extends string = string>(): Completed<Value> =>
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  RadioGroupBlock as unknown as Completed<Value>
+const defaultAuthoring = makeAuthoring(Schema.String)
+/** @internal Canonical initializer used by library tests. */
+export const init = defaultAuthoring.init
+/** @internal Canonical update used by library tests. */
+export const update = defaultAuthoring.update
+/** @internal Default string contract and provider used by interaction tests. */
+export const block = {
+  block: BlockFamily.resolveFamily(
+    defaultAuthoring.Definition,
+    RadioGroupFamily,
+    implementation => implementation.construct(defaultAuthoring),
+  ),
+  layer,
+}

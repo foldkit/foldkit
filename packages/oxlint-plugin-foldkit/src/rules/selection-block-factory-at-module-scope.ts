@@ -31,6 +31,7 @@ const singleSelectComponents: ReadonlyArray<string> = [
   'Combobox',
   'Listbox',
   'Menu',
+  'RadioGroup',
   'Tabs',
 ]
 
@@ -129,6 +130,7 @@ const selectionFactoryLabel = (
               '@foldkit/ui/combobox': 'Combobox',
               '@foldkit/ui/listbox': 'Listbox',
               '@foldkit/ui/menu': 'Menu',
+              '@foldkit/ui/radioGroup': 'RadioGroup',
               '@foldkit/ui/tabs': 'Tabs',
             }
             const component = componentBySource[path.source]

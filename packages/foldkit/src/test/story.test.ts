@@ -433,7 +433,7 @@ describe('resolveAll', () => {
     )
   })
 
-  test('extra entries leave leftovers without error', () => {
+  test('allows unmatched entries without error', () => {
     Story.story(
       update,
       Story.given({ count: 0, log: [] }),
@@ -449,7 +449,7 @@ describe('resolveAll', () => {
     )
   })
 
-  test('leftover entries are consumed by a later cascade', () => {
+  test('discards unmatched entries before a later resolveAll call', () => {
     Story.story(
       update,
       Story.given({ count: 0, log: [] }),
@@ -463,8 +463,13 @@ describe('resolveAll', () => {
       }),
       Story.message(CounterMessage.ClickedFetch()),
       Story.Command.resolveAll(),
+      Story.Command.expectExact(FetchCount),
+      Story.Command.resolve(
+        FetchCount,
+        CounterMessage.SucceededFetchCount({ count: 3 }),
+      ),
       Story.model(model => {
-        expect(model.log).toEqual([1, 2])
+        expect(model.log).toEqual([1, 3])
       }),
     )
   })
@@ -483,21 +488,21 @@ describe('resolveAll', () => {
     ).toThrow('I found Commands without resolvers')
   })
 
-  test('latest-wins eviction replaces all same-fingerprint leftovers', () => {
+  test('reuses an extracted local resolver step explicitly', () => {
+    const completeFetch = Story.Command.resolveAll([
+      FetchCount,
+      CounterMessage.SucceededFetchCount({ count: 7 }),
+    ])
+
     Story.story(
       update,
       Story.given({ count: 0, log: [] }),
-      Story.Command.resolveAll(
-        [FetchCount, CounterMessage.SucceededFetchCount({ count: 100 })],
-        [FetchCount, CounterMessage.SucceededFetchCount({ count: 200 })],
-      ),
       Story.message(CounterMessage.ClickedFetch()),
-      Story.Command.resolveAll([
-        FetchCount,
-        CounterMessage.SucceededFetchCount({ count: 7 }),
-      ]),
+      completeFetch,
+      Story.message(CounterMessage.ClickedFetch()),
+      completeFetch,
       Story.model(model => {
-        expect(model.log).toEqual([7])
+        expect(model.log).toEqual([7, 7])
       }),
     )
   })

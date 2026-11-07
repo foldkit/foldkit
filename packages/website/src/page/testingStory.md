@@ -20,7 +20,7 @@ Import the `Story` namespace from `foldkit`.
 
 - Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `init`, `steps`, `given`, `message`, `messageIn`, `messageWith`, `model`, `models`, `expectOutMessage`, and `expectNoOutMessage`.
 - The `Command` namespace handles pending Commands: `argsOf`, `resolve`, `resolveAll`, `resolveAllExact`, `expectHas`, `expectExact`, `expectExactInOrder`, and `expectNone`.
-- `Subscription.from(block.subscriptions)` creates emission steps inside an acquired test fixture. For private registries, test the checked implementation that owns them.
+- `Subscription.emit` delivers a registered source's Message through the selected Block graph. `Subscription.at` selects a child placement; update-only Stories use `Subscription.from(registry).emit`.
 
 Qualify every testing step through the namespace so call sites such as `Story.given`, `Story.message`, and `Story.model` identify the DSL directly.
 
@@ -76,10 +76,10 @@ Keep each Command result next to the Message that caused it. `Command.resolve`, 
 
 The test does not run an HTTP request. It declares that `FetchWeather` succeeded, feeds the resulting Message through update, and checks the Model that the view will render.
 
-:::Info{label="Resolvers are a queue"}
-Each `resolveAll` entry resolves one matching dispatch in declaration order. Three `[FetchCount, message]` entries resolve three `FetchCount` dispatches. For N identical responses, use `Array.makeBy(n, () => [Definition, message])`.
+:::Info{label="Resolvers are local"}
+Each `resolveAll` entry resolves one matching current dispatch in declaration order. Three `[FetchCount, message]` entries resolve three `FetchCount` dispatches. For N identical responses, use `Array.makeBy(n, () => [Definition, message])`.
 
-Unused resolvers can match later dispatches. A new resolver replaces any leftover resolver with the same Definition or instance shape.
+Resolvers apply only to that `resolveAll` call. Unused entries are discarded when the call ends, and unrelated pending Commands remain pending. When the same responses are needed after a later dispatch, extract the `resolveAll` step and place that same value again at each completion point.
 :::
 
 :::Info{label="Exact resolution"}
@@ -104,11 +104,19 @@ Give an extracted callback its precise Model annotation so a reusable `steps` gr
 
 ### Deliver a Subscription Message
 
-Inside `withBlock`, use `Subscription.from(block.subscriptions)` to deliver a fact from that acquired graph. For private Subscription tests, select the implementation that owns the registry. The emitter accepts a registered entry and that entry's decoded Message. It applies the same generated child delivery used by Scene and the Runtime without starting a Stream or constructing its dependencies.
+Use `Story.Subscription.emit(entry, message)` in a Block-aware Story. The runner supplies the selected graph's registrations. The step accepts a Message declared by that source, validates its decoded payload, and applies the registered delivery mapping. It does not construct handlers or start Streams.
 
 ::Snippet{name="testingStorySubscription" label="Deliver a registered Subscription Message"}
 
-Pass the raw child entry only when it identifies one registration. If a child Subscription appears at multiple placements, select the intended bound entry from the acquired executable's `subscriptions` record inside `withBlock`. The public contract does not reveal private lifecycle inventory. Keep those tests beside the implementation that owns the declarations.
+For a child source, use `Story.Subscription.at(Binding, source)` or `Story.Subscription.at(Binding, key, source)`. A nonempty Binding path selects a nested source. This also distinguishes one source reused at several placements.
+
+::Snippet{name="testingStoryChildSubscription" label="Select a nested Subscription source"}
+
+Use the registry declared by the implementation under test. The public Block contract need not expose it. The Binding path checks the parent-child relationships, source owner and key types; the runner also requires the exact registered source at runtime. A separate declaration by the same owner is not that source.
+
+The step supplies an output; it does not prove that the current Model activates the Subscription or simulate Runtime generation admission. Use an execution test for those lifecycle guarantees. Commands already pending in a Story stay pending.
+
+Low-level update-only Stories use `Story.Subscription.from(registry).emit(entry, message)` with an explicit registry. A graph-backed `Subscription.emit` step requires the Block-aware runner.
 
 ### Resolve Child Commands
 

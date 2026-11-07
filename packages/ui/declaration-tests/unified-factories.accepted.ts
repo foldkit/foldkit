@@ -75,9 +75,38 @@ export const pairedFruitListbox = Story.withBlock(
       'Apple',
     ),
 )
-export const FruitMenu = Menu.makeBlock<Fruit>()
-export const FruitRadioGroup = RadioGroup.makeBlock<Fruit>()
-export const FruitTabs = Tabs.makeBlock<Fruit>()
+export const FruitMenu = Menu.makeBlock(Fruit)
+export const FruitRadioGroup = RadioGroup.makeBlock(Fruit)
+export const FruitTabs = Tabs.makeBlock(Fruit)
+export const EncodedMenu = Menu.makeBlock(EncodedItem)
+export const EncodedRadioGroup = RadioGroup.makeBlock(EncodedItem)
+export const EncodedTabs = Tabs.makeBlock(EncodedItem)
+export const MenuParentKey = Symbol('MenuParent')
+export const MenuParentBlock = Block.make('MenuParent', {
+  key: MenuParentKey,
+  InitArgs: Schema.Tuple([]),
+  Model: Schema.Struct({ fruitMenu: FruitMenu.Model }),
+  Message: Schema.Never,
+})
+export const FruitMenuBinding = MenuParentBlock.makeRequiredFieldBinding(
+  FruitMenu,
+  {
+    field: 'fruitMenu',
+    init: { contextToArgs: () => [{ id: 'fruit-menu' }] },
+  },
+).withOutMessagePolicy({
+  fold: MenuParentBlock.makeOutMessageFold(FruitMenu, {
+    Selected: MenuParentBlock.makeNoopStep,
+    Closed: MenuParentBlock.makeNoopStep,
+  }),
+})
+const MenuParentComposition = MenuParentBlock.makeComposition({
+  bindings: [FruitMenuBinding],
+})
+export const menuParentLayer = MenuParentBlock.makeLayer({
+  init: MenuParentComposition.makeInit(() => ({ model: {} })),
+  update: MenuParentComposition.makeUpdate({}),
+}).pipe(Layer.provide(Menu.layer))
 export const FruitVirtualList = VirtualList.makeBlock<Fruit>()
 export const pairedTabs = Story.withBlock(
   { block: FruitTabs, layer: Tabs.layer },

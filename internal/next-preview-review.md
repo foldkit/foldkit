@@ -1,5 +1,35 @@
 # Next preview review
 
+## November 7 post-publication follow-ups
+
+The preview at `54f8bcd443b4fd18952403a3d02e212abf872d58` is published.
+The dated unchecked boxes below describe earlier checkpoints. This follow-up
+starts on `codex/preview-followups-20261107`; another publication needs approval.
+
+- [x] Make Menu, Tabs and RadioGroup use actual selection Codecs while
+      preserving parent-owned values, focus, Commands and lifecycle behavior.
+- [x] Reject invalid and Service-dependent values in source and relocated
+      declarations, including all four TypeScript 6/7 emitter-consumer pairs.
+- [x] Verify generated parent envelopes and observe Codec/lint mutations fail.
+- [x] Resolve Story Subscription emissions through the selected graph, with
+      static, keyed and nested Binding selection for private child sources.
+- [x] Preserve exact source identity, payloads and folds; verify erased foreign
+      sources fail. Fix extracted declaration nameability without annotations.
+- [x] Make Command resolvers local in Story and Scene, with explicit local-step
+      reuse and separate tolerant/exact semantics. Observe carryover controls fail.
+- [x] Verify the Pixel Art import-cycle repair through existing Story/Scene
+      cases, typechecking and a temporary Model-first Codec probe. Restoring
+      the cycle loses the narrow contract; the ordinary app tests alone do
+      not detect that loss.
+- [ ] Finish combined emitted-package, consumer, formatting, lint and build gates.
+- [ ] Independently review each exact commit and pass the normal push hook.
+- [ ] Retain controlled renderer timing and current editor-latency evidence;
+      do not substitute compiler counters for measured responsiveness.
+
+The Schema, resolver and Story Subscription reports own their focused evidence.
+The renderer experiment and editor-probe repair remain separate from the API
+changes until their verification is complete. No release is dispatched here.
+
 ## November 4 review follow-ups
 
 - [x] Preserve the user's helper imports, inlined browser-environment loader,

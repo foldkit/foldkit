@@ -12,14 +12,19 @@ import * as Story from 'foldkit/story'
 import * as Combobox from '@foldkit/ui/combobox'
 import * as Listbox from '@foldkit/ui/listbox'
 import * as Menu from '@foldkit/ui/menu'
+import * as RadioGroup from '@foldkit/ui/radioGroup'
+import * as Tabs from '@foldkit/ui/tabs'
 
 import {
   type Fruit,
   FruitListbox,
   FruitListboxBinding,
+  FruitMenu,
+  FruitMenuBinding,
   FruitMultiListbox,
   FruitOption,
   FruitOptionListbox,
+  FruitRadioGroup,
   FruitTabs,
   MemberListbox,
   Picker,
@@ -74,7 +79,55 @@ const MissingHost = Query.define({
   data: Schema.String,
   error: Schema.String,
 })
+// @ts-expect-error Menu selection decoding cannot require a Service.
+Menu.makeBlock(ServicefulItem)
+// @ts-expect-error Menu selection encoding cannot require a Service.
+Menu.makeBlock(ServicefulEncoding)
+// @ts-expect-error Tabs selection decoding cannot require a Service.
+Tabs.makeBlock(ServicefulItem)
+// @ts-expect-error Tabs selection encoding cannot require a Service.
+Tabs.makeBlock(ServicefulEncoding)
+// @ts-expect-error RadioGroup selection decoding cannot require a Service.
+RadioGroup.makeBlock(ServicefulItem)
+// @ts-expect-error RadioGroup selection encoding cannot require a Service.
+RadioGroup.makeBlock(ServicefulEncoding)
+// @ts-expect-error Action values must decode to strings.
+Menu.makeBlock(Schema.Number)
+// @ts-expect-error Tab values must decode to strings.
+Tabs.makeBlock(Schema.Number)
+// @ts-expect-error Radio values must decode to strings.
+RadioGroup.makeBlock(Schema.Number)
+
 if (false) {
+  // @ts-expect-error A narrow Menu requires its runtime Schema.
+  Menu.makeBlock<Fruit>()
+  // @ts-expect-error Narrow Tabs require their runtime Schema.
+  Tabs.makeBlock<Fruit>()
+  // @ts-expect-error A narrow RadioGroup requires its runtime Schema.
+  RadioGroup.makeBlock<Fruit>()
+  // @ts-expect-error Selection constructors retain the action's exact contract.
+  FruitMenu.Message.RequestedSelectItem({ index: 0, item: 'Orange' })
+  // @ts-expect-error Pointer selection uses the same action contract.
+  FruitMenu.Message.SelectedItem({ index: 0, item: 'Orange' })
+  // @ts-expect-error A selected RadioGroup value must belong to its Schema.
+  FruitRadioGroup.Message.SelectedOption({ index: 0, value: 'Orange' })
+  // @ts-expect-error A selected tab must belong to its Schema.
+  FruitTabs.Message.SelectedTab({ index: 0, value: 'Orange' })
+  // @ts-expect-error Menu OutMessages preserve their value contract.
+  FruitMenu.OutMessage.Selected({ index: 0, value: 'Orange' })
+  const OtherMenu = Menu.makeBlock(Schema.Literals(['Orange']))
+  const otherMenuSelection = OtherMenu.Message.SelectedItem({
+    index: 0,
+    item: 'Orange',
+  })
+  // @ts-expect-error Delivery cannot substitute another Menu's selection contract.
+  Story.messageIn(FruitMenuBinding, otherMenuSelection)
+  // @ts-expect-error Bound Menu operations retain their action-value contract.
+  FruitMenuBinding.requestSelectItem('Orange', 0)
+  // @ts-expect-error RadioGroup OutMessages preserve their value contract.
+  FruitRadioGroup.OutMessage.Selected({ index: 0, value: 'Orange' })
+  // @ts-expect-error Tabs OutMessages preserve their value contract.
+  FruitTabs.OutMessage.Selected({ index: 0, value: 'Orange' })
   // @ts-expect-error A narrow Listbox requires its runtime Schema.
   Listbox.makeBlock<Fruit>()
   // @ts-expect-error Multi Listbox requires the runtime Schema as well.
@@ -143,11 +196,7 @@ if (false) {
   Story.withBlock({ block: OtherPicker, layer: PickerLayer }, () => undefined)
   // @ts-expect-error Empty providers do not satisfy an original schema-specialized Block.
   Story.withBlock({ block: Picker, layer: Layer.empty }, () => undefined)
-  // @ts-expect-error Fixed erased families do not expose implementation producers.
-  FruitTabs.makeLayer
-  // @ts-expect-error Fixed erased families do not select arbitrary host providers.
-  FruitTabs.provideHandlers
-  // @ts-expect-error A closed Menu provider cannot attest a Tabs specialization.
+  // @ts-expect-error A Menu provider cannot construct a Tabs specialization.
   Story.withBlock({ block: FruitTabs, layer: Menu.layer }, () => undefined)
   // @ts-expect-error Shared providers require selected original host handlers.
   Story.withBlock({ block: MissingHost, layer: Query.layer }, () => 0)

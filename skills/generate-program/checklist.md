@@ -511,6 +511,7 @@ For Tier 3+ apps (routing, async Commands, forms), missing `scene.test.ts` is a 
 - [ ] Scoped queries with `within` or `inside` when a parent container contains multiple similar elements
 - [ ] A Scene that uses `Subscription.emit` passes the owning Composition and the registered `subscriptions` in its config, then calls `Subscription.emit(entry, message)` with the exact entry that declares the raw Message. Generated child delivery is derived from that registered source and occurrence. Select a bound entry for an ambiguous child source. Silent entries with `messages: []` are not emitted from.
 - [ ] Deliberate concurrent Scene interactions use `Command.keepPending` for one exact ordinary invocation. Assertions and resolvers retain that Command, and the Scene resolves it before completion.
+- [ ] `Command.resolveAll` resolvers are supplied beside the current pending Commands they resolve. Unused resolvers are not expected to carry into later steps; reuse an extracted local step explicitly. Use local, strict `resolveAllExact` only when every resolver must match and no actual Command may remain.
 
 ---
 

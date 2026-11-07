@@ -8,7 +8,7 @@ import { Tabs } from '@foldkit/ui'
 const Framework = Schema.Literals(['Foldkit', 'React', 'Elm'])
 type Framework = typeof Framework.Type
 
-const FrameworkTabs = Tabs.makeBlock<Framework>()
+const FrameworkTabs = Tabs.makeBlock(Framework)
 
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type

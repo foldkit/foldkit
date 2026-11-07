@@ -35,23 +35,6 @@ type BindingFrame = Readonly<{
 }>
 
 const bindingPaths = new WeakMap<object, ReadonlyArray<BindingFrame>>()
-const bindingIds = new WeakMap<object, number>()
-let nextBindingId = 0
-
-const bindingId = (binding: object): number => {
-  const existing = bindingIds.get(binding)
-  if (existing !== undefined) {
-    return existing
-  }
-
-  const id = nextBindingId
-  nextBindingId += 1
-  bindingIds.set(binding, id)
-  return id
-}
-
-const keyFingerprint = (key: InstanceKey | undefined): string =>
-  key === undefined ? 'none' : `${typeof key}:${JSON.stringify(key)}`
 
 /** @internal A Binding-scoped matcher can inspect pending Commands while a
  * framework fixture derives an exact full-args instance. */
@@ -150,15 +133,6 @@ export const matchesBindingPath = (
     )
   })
 }
-
-/** @internal Stable cache key for one Binding-scoped matcher path. */
-export const bindingMatcherFingerprint = (matcher: object): string =>
-  (bindingPaths.get(matcher) ?? [])
-    .map(
-      ({ binding, key }) =>
-        `${String(bindingId(binding))}:${keyFingerprint(key)}`,
-    )
-    .join('/')
 
 const isCommandDefinitionMatcher = (
   matcher: CommandMatcher,

@@ -1,66 +1,51 @@
-import { Context, Layer } from 'effect'
+import { Context, Effect, Layer, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import * as BlockFamily from 'foldkit/internal/block'
 
-import { makeFixedFamilyLayer } from '../internal/fixedFamily.js'
 import { FocusTab } from './command.js'
-import { TabsBlock } from './definition.js'
-import { init } from './init.js'
-import { update } from './update.js'
-import { view } from './view.js'
+import { makeAuthoring } from './composition.js'
 
-/** @internal Checked canonical Tabs implementation for internal tests. */
-const canonicalLayer = TabsBlock.makeLayer({
-  init,
-  update,
-  view,
-  EffectsLayer: FocusTab.layer,
-})
-
-/** @internal Exact canonical public selection. */
-export type CanonicalIdentity = Block.SelectedPublicIdentity<typeof TabsBlock>
-const TabsRefinementRule = Symbol('Tabs.Refinement')
-/** @internal Closed Value refinement identity. */
-export interface TabsRefinementKey {
-  readonly [TabsRefinementRule]: true
-}
-type CanonicalImplementation = Extract<
-  Layer.Success<typeof canonicalLayer>,
-  Block.SelectedImplementationFacts<
-    CanonicalIdentity,
-    unknown,
-    unknown,
-    unknown
-  >
+type Authoring<Value extends string, ValueEncoded> = ReturnType<
+  typeof makeAuthoring<Value, ValueEncoded>
 >
-/** @internal Captured implementation capability for this fixed family. */
-export interface SharedTabsProof extends Block.ClosedFamilyCapability<TabsRefinementKey> {}
-/** @internal The shared provider's original canonical implementation facts. */
-export interface SharedTabsFacts extends Block.FixedRefinementProvider<
-  TabsRefinementKey,
-  CanonicalIdentity,
-  CanonicalImplementation
-> {}
-const SharedTabsProof = Context.Service<
-  SharedTabsProof,
-  Readonly<{ executable: object }>
->('foldkit/ui/private/Tabs.SharedImplementation')
-const SharedTabsFacts = Context.Service<
-  SharedTabsFacts,
-  Readonly<Record<never, never>>
->('foldkit/ui/private/Tabs.SharedFacts')
-/** Constructs the shared implementation used by every type-only Tabs specialization. */
-export const layer = makeFixedFamilyLayer(
-  TabsBlock,
-  canonicalLayer,
-  BlockFamily.readDeclaredExecutable(TabsBlock),
-  SharedTabsProof,
-  SharedTabsFacts,
+
+const construct = <Value extends string, ValueEncoded>(
+  authoring: Authoring<Value, ValueEncoded>,
+) =>
+  authoring.Definition.makeLayer({
+    init: authoring.init,
+    update: authoring.update,
+    view: authoring.view,
+    EffectsLayer: FocusTab.layer,
+  })
+
+interface TabsImplementation extends Block.FamilyLifetime {
+  readonly construct: typeof construct
+}
+
+/** @internal Scoped provider for Schema-specific Tabs implementations. */
+export class TabsFamily extends Context.Service<
+  TabsFamily,
+  TabsImplementation
+>()('foldkit/ui/Tabs') {}
+
+/** Constructs Tabs implementations with their selected-value Codecs. */
+export const layer = Layer.effect(
+  TabsFamily,
+  Effect.gen(function* () {
+    const lifetime = yield* Block.familyLifetime
+
+    return { ...lifetime, construct }
+  }),
 )
 
-Reflect.deleteProperty(TabsBlock, 'makeLayer')
-Reflect.deleteProperty(TabsBlock, 'provideHandlers')
-Object.freeze(TabsBlock)
-
-/** @internal Selected implementation used by component tests. */
-export const block = { block: TabsBlock, layer }
+const defaultAuthoring = makeAuthoring(Schema.String)
+/** @internal Default string contract and provider used by interaction tests. */
+export const block = {
+  block: BlockFamily.resolveFamily(
+    defaultAuthoring.Definition,
+    TabsFamily,
+    implementation => implementation.construct(defaultAuthoring),
+  ),
+  layer,
+}

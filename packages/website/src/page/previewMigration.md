@@ -287,6 +287,16 @@ Replace stable `Listbox.create<Item, Value>()` and `Listbox.Multi.create<Item, V
 
 The Value Codec validates selection Messages, the `Selected` OutMessage, and selection inside a generated parent envelope while preserving its encoded type. It must be service-free and complete synchronously at an actual serialization boundary. The Item Schema supplies view typing only and adds no serialization or Service requirement. Pass `itemToValue` when an Item is not itself a Value, and provide `Listbox.layer` or `Listbox.Multi.layer` with the parent construction Layer.
 
+### Migrate Menu, Tabs, and RadioGroup Factories
+
+Menu, Tabs and RadioGroup use runtime Value Codecs, like Listbox and Combobox. Earlier previews accepted type parameters without the corresponding runtime contract.
+
+Replace generic-only calls with the value Codec itself:
+
+::Snippet{name="previewSelectionValueCodecs" label="Schema-backed Menu, Tabs, and RadioGroup factories"}
+
+Use `Menu.makeBlock()`, `Tabs.makeBlock()`, or `RadioGroup.makeBlock()` only for unrestricted strings. The Codec must decode to a string and complete synchronously without Services. It validates each local selection Message, `Selected` OutMessage, and generated parent envelope while preserving the encoded type in `Completed<Value, ValueEncoded>`. Menu's local `RequestedSelectItem` and `SelectedItem` Messages carry `{ item, index }`, but its public `Selected` OutMessage carries `{ value, index }` like Tabs and RadioGroup. The parent still owns the committed selection or action. These factories do not accept arbitrary non-string selections.
+
 ## 4. Build the Root Block and Host Program
 
 Stable `Runtime.makeApplication` combines the application state machine, lifecycle declarations, browser container, and startup configuration:
@@ -370,6 +380,24 @@ Block-aware Story returns its final Model after checking that every Command was 
 
 ::Snippet{name="testingModelComparison" label="Comparing Models without a mutable capture"}
 
+### Deliver Subscription Messages through the selected graph
+
+Block-aware Stories use `Story.Subscription.emit(entry, message)` for root registrations. Select child sources with `Story.Subscription.at(Binding, source)`, `at(Binding, key, source)`, or a nonempty Binding path. The runner resolves the source against the acquired graph and preserves its decoded Message contract, delivery mappings, and OutMessage folds without starting a Stream.
+
+::Snippet{name="testingStoryChildSubscription" label="Select a nested Subscription source"}
+
+Child implementation Layers can encapsulate their registries. A Binding selection checks the owning Block and occurrence path; exact source registration is checked at runtime. Keep `Story.Subscription.from(registry).emit` for low-level update-only Stories. `Scene.Subscription.at` retains its existing keyed-occurrence form.
+
+### Keep Command resolvers local
+
+`Story.Command.resolveAll` and `Scene.Command.resolveAll` now use only the resolvers supplied to that call. They resolve matching current pending Commands and cascades produced by their result Messages. Each resolver is consumed at most once; unused resolvers are discarded when the call ends, and unrelated Commands remain pending.
+
+Most tests already place responses beside the Commands they resolve. If a test intentionally repeats the same response after later dispatches, extract the local step and use it again explicitly:
+
+::Snippet{name="previewLocalCommandResolvers" label="Reusing a local Command resolver"}
+
+`resolveAllExact` is also local, but requires every supplied resolver to match and no actual Command to remain. `resolve` is unchanged. Matching retains original Definition identity, instance arguments, and Binding occurrence selection. Dispatch order does not imply effect or completion order.
+
 For a keyed child Subscription or ManagedResource in Scene, select the occurrence with `Scene.Subscription.at(Binding, key, entry)` or `Scene.ManagedResource.at(Binding, key, entry)`. The selected templates are passive. A raw child entry is ambiguous in a keyed parent, and declaring an emission or lifecycle result for an absent key throws.
 
 The testing migration examples show the before and after forms for Command resolution, Subscription emission, and UI Block contracts:
@@ -408,7 +436,7 @@ Finish the required column before broadening the migration.
 | Move effect implementations into Block-owned handler Layers.                | Rename unrelated domain helpers for consistency.                                      |
 | Export every consumed feature's passive named Block and construction Layer. | Extract a local `EffectsLayer` from `layer.ts` when it becomes substantial or reused. |
 | Keep Foldkit-managed Model and Message Codecs synchronous and service-free. | Retain full Effect Schema capabilities in explicitly effectful APIs.                  |
-| Give each narrowed Listbox specialization its runtime string Value Schema.  | Keep the no-argument factory for unrestricted strings.                                |
+| Give each narrowed selection factory its runtime string Value Codec.        | Keep no-argument factories for unrestricted strings.                                  |
 | Register parent-owned Bindings and remove authored child delivery wrappers. | Extract a substantial one-way Binding policy into `composition/`.                     |
 | Replace parent rewrites of a child Model with Message-backed operations.    | Add more focused Story or Scene coverage beyond the migration baseline.               |
 | Move child startup into Binding and Composition init policy.                | Reorganize domain modules that do not participate in Block assembly.                  |
@@ -458,7 +486,7 @@ The migration is complete when all of these statements are true:
 - Every effect and lifecycle implementation is present in the completed handler graph, and every remaining ordinary Service is supplied by `ApplicationLayer`.
 - Every Foldkit-managed Model and Message Codec is service-free and completes synchronously when serialization runs.
 - Ordinary InMessage case records use `defineInMessageUnion`; custom Schema forms retain their existing Block validation.
-- Every narrowed Listbox specialization supplies its runtime string Value Schema; unrestricted strings use the no-argument factory. The parent construction Layer provides the Listbox family Layer.
+- Every narrowed Listbox, Menu, Tabs, and RadioGroup specialization supplies its runtime string Value Codec; unrestricted strings use the no-argument factory. The parent construction Layer provides each selected family Layer.
 - The root is `ApplicationBlock`; browser hosting is a Program; SSR selects the same root Block and construction Layer.
 - Typecheck, lint, Story, Scene, integration, browser, server-rendering, and production build checks pass to the extent they belong to the application.
 - No broad cast or disabled lint rule hides a graph, Layer, Message, or OutMessage error.

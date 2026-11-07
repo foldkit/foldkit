@@ -9,7 +9,7 @@ import { it } from '@effect/vitest'
 import * as Animation from '../animation/block.js'
 import * as Menu from './menu.js'
 
-const RefinedMenu = Menu.makeBlock<'Edit' | 'Delete'>()
+const RefinedMenu = Menu.makeBlock(Schema.Literals(['Edit', 'Delete']))
 
 const Model = Schema.Struct({ menu: RefinedMenu.Model })
 type Model = typeof Model.Type

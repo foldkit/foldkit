@@ -17,18 +17,14 @@ import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import * as BlockFamily from 'foldkit/internal/block'
-import {
-  type MessageUnion,
-  defineInMessageUnion,
-  defineMessageUnion,
-} from 'foldkit/message'
+import { defineInMessageUnion, defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
 import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
+import { layer as AnimationLayer } from '../animation/block.js'
 import * as Animation from '../animation/index.js'
 import { groupContiguous } from '../group.js'
-import { makeFixedFamilyLayer } from '../internal/fixedFamily.js'
 import * as OptionExt from '../internal/optionExtensions.js'
 import { idSelector } from '../internal/selectors.js'
 import {
@@ -73,54 +69,75 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Union of all messages the menu component can produce. */
-export const Message = defineMessageUnion({
-  RequestedSelectItem: { index: Schema.Number, item: Schema.String },
-  Opened: { maybeActiveItemIndex: Schema.Option(Schema.Number) },
-  Closed: {},
-  BlurredItems: {},
-  ActivatedItem: { index: Schema.Number, activationTrigger: ActivationTrigger },
-  DeactivatedItem: {},
-  SelectedItem: { index: Schema.Number, item: Schema.String },
-  RequestedItemClick: { index: Schema.Number },
-  Searched: {
-    key: Schema.String,
-    maybeTargetIndex: Schema.Option(Schema.Number),
-  },
-  CompletedDelayClearMenuSearch: { version: Schema.Number },
-  MovedPointerOverItem: {
-    index: Schema.Number,
-    screenX: Schema.Number,
-    screenY: Schema.Number,
-  },
-  CompletedFocusMenuItems: {},
-  CompletedFocusMenuButton: {},
-  CompletedLockMenuScroll: {},
-  CompletedUnlockMenuScroll: {},
-  CompletedInertMenuOthers: {},
-  CompletedRestoreMenuInert: {},
-  CompletedScrollMenuItemIntoView: {},
-  CompletedClickMenuItem: {},
-  ClickedButton: {},
-  IgnoredMouseClick: {},
-  SuppressedSpaceScroll: {},
-  CompletedAnchorMenu: {},
-  CompletedPortalMenuBackdrop: {},
-  CompletedDetectMenuMovementOrAnimationEnd: { generation: Schema.Number },
-  PressedPointerOnButton: {
-    pointerType: Schema.String,
-    button: Schema.Number,
-    screenX: Schema.Number,
-    screenY: Schema.Number,
-    timeStamp: Schema.Number,
-  },
-  ReleasedPointerOnItems: {
-    screenX: Schema.Number,
-    screenY: Schema.Number,
-    timeStamp: Schema.Number,
-  },
-})
+/** Self-contained action-value Codec; serialization executes synchronously. */
+export type ValueSchema<
+  Value extends string,
+  ValueEncoded = Value,
+> = Schema.Codec<Value, ValueEncoded, never, never> &
+  Readonly<{ '~type.make': Value }>
+
+/** Builds local Messages from the selected action's runtime contract. */
+export const makeMessage = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) =>
+  defineMessageUnion({
+    RequestedSelectItem: { index: Schema.Number, item: Value },
+    Opened: { maybeActiveItemIndex: Schema.Option(Schema.Number) },
+    Closed: {},
+    BlurredItems: {},
+    ActivatedItem: {
+      index: Schema.Number,
+      activationTrigger: ActivationTrigger,
+    },
+    DeactivatedItem: {},
+    SelectedItem: { index: Schema.Number, item: Value },
+    RequestedItemClick: { index: Schema.Number },
+    Searched: {
+      key: Schema.String,
+      maybeTargetIndex: Schema.Option(Schema.Number),
+    },
+    CompletedDelayClearMenuSearch: { version: Schema.Number },
+    MovedPointerOverItem: {
+      index: Schema.Number,
+      screenX: Schema.Number,
+      screenY: Schema.Number,
+    },
+    CompletedFocusMenuItems: {},
+    CompletedFocusMenuButton: {},
+    CompletedLockMenuScroll: {},
+    CompletedUnlockMenuScroll: {},
+    CompletedInertMenuOthers: {},
+    CompletedRestoreMenuInert: {},
+    CompletedScrollMenuItemIntoView: {},
+    CompletedClickMenuItem: {},
+    ClickedButton: {},
+    IgnoredMouseClick: {},
+    SuppressedSpaceScroll: {},
+    CompletedAnchorMenu: {},
+    CompletedPortalMenuBackdrop: {},
+    CompletedDetectMenuMovementOrAnimationEnd: { generation: Schema.Number },
+    PressedPointerOnButton: {
+      pointerType: Schema.String,
+      button: Schema.Number,
+      screenX: Schema.Number,
+      screenY: Schema.Number,
+      timeStamp: Schema.Number,
+    },
+    ReleasedPointerOnItems: {
+      screenX: Schema.Number,
+      screenY: Schema.Number,
+      timeStamp: Schema.Number,
+    },
+  })
+
+/** Local Messages for unrestricted string actions. */
+export const Message = makeMessage(Schema.String)
 export type Message = typeof Message.Type
+/** Local Messages retaining the exact action-value Codec. */
+export type MessageSchema<
+  Value extends string,
+  ValueEncoded = Value,
+> = ReturnType<typeof makeMessage<Value, ValueEncoded>>
 
 /** Parent opening and closing requests, separate from local interactions. */
 export const InMessage = defineInMessageUnion({
@@ -134,28 +151,22 @@ export type RequestedSelectItem = typeof Message.RequestedSelectItem.Type
 
 // OUT MESSAGE
 
-/** Union of OutMessages the menu component can produce. The parent handles
- *  them through the Menu connection's OutMessage fold. */
-export const OutMessage = defineMessageUnion({
-  Selected: { value: Schema.String, index: Schema.Number },
-  Closed: {},
-})
+/** Builds selection and close OutMessages for one action-value contract. */
+export const makeOutMessage = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) =>
+  defineMessageUnion({
+    Selected: { value: Value, index: Schema.Number },
+    Closed: {},
+  })
 
-/** The OutMessage union interface on a completed Menu, refined to its Item
- * type. */
-export type OutMessageSchema<Item extends string = string> =
-  typeof OutMessage extends MessageUnion<infer Cases>
-    ? MessageUnion<
-        Omit<Cases, 'Selected'> &
-          Readonly<{
-            Selected: Omit<Cases['Selected'], 'value'> &
-              Readonly<{
-                value: Schema.Codec<Item, Item> &
-                  Readonly<{ '~type.make': Item }>
-              }>
-          }>
-      >
-    : never
+/** OutMessages for unrestricted string actions. */
+export const OutMessage = makeOutMessage(Schema.String)
+/** OutMessages retaining decoded and encoded action-value contracts. */
+export type OutMessageSchema<
+  Value extends string = string,
+  ValueEncoded = Value,
+> = ReturnType<typeof makeOutMessage<Value, ValueEncoded>>
 
 export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
@@ -164,7 +175,7 @@ export type Selected<Value extends string = string> = Readonly<{
 }>
 
 /** Generic over `Value extends string` so consumers using the typed
- *  `Menu.makeBlock<MyUnion>()` factory receive `value: MyUnion` in the
+ *  `Menu.makeBlock(Value)` factory receive `value: MyUnion` in the
  *  `Selected` OutMessage. `Closed` reports a non-selection transition from
  *  open to closed. Defaults to `string`. */
 export type OutMessage<Value extends string = string> =
@@ -367,346 +378,6 @@ export const DetectMenuMovementOrAnimationEnd = MenuNamespace.makeCommand(
   },
 )
 
-const detectMenuMovementOrAnimationEnd = (generation: number) =>
-  MenuBlock.makeCommandsStep(model => [
-    DetectMenuMovementOrAnimationEnd({ id: model.id, generation }),
-  ])
-
-const makeTransitions =
-  (animationBinding: typeof AnimationBinding) => (model: Model) => {
-    const modalOpenCommands = Array.filter(
-      [LockMenuScroll(), InertMenuOthers({ id: model.id })],
-      () => model.isModal,
-    )
-
-    const closeWithoutFocusCommands = Array.filter(
-      [UnlockMenuScroll(), RestoreMenuInert({ id: model.id })],
-      () => model.isModal,
-    )
-
-    const openCommands = [
-      ...modalOpenCommands,
-      FocusMenuItems({ id: model.id }),
-    ]
-
-    const closeWithFocusCommands = [
-      FocusMenuButton({ id: model.id }),
-      ...closeWithoutFocusCommands,
-    ]
-
-    const openMenu = (baseModel: Model) => {
-      if (model.isAnimated) {
-        return Update.combineSteps([
-          MenuBlock.makeStep(() => ({
-            model: baseModel,
-            commands: openCommands,
-          })),
-          animationBinding.requestShow(),
-          MenuBlock.makeFieldsStep(() => ({ isOpen: () => true })),
-        ])
-      }
-
-      return {
-        model: modifyFields(baseModel, { isOpen: () => true }),
-        commands: openCommands,
-      }
-    }
-
-    const closeMenu = (
-      baseModel: Model,
-      commands: typeof closeWithFocusCommands,
-      outMessage?: OutMessage,
-    ) => {
-      if (!baseModel.isOpen) {
-        return Update.withOutMessage({ model: baseModel }, outMessage)
-      }
-
-      const closed = closedModel(baseModel)
-      const closeOutMessage = outMessage ?? OutMessage.Closed()
-
-      if (model.isAnimated) {
-        return MenuBlock.makeStep(() =>
-          Function.compose(
-            Update.combineSteps([
-              MenuBlock.makeStep(() => ({ model: closed, commands })),
-              animationBinding.requestHide(),
-            ]),
-            Update.withOutMessage(closeOutMessage),
-          ),
-        )
-      }
-
-      return Update.withOutMessage({ model: closed, commands }, closeOutMessage)
-    }
-
-    const openWithActiveItem = (
-      maybeActiveItemIndex: Option.Option<number>,
-    ) => {
-      if (model.isOpen) {
-        return { model }
-      }
-
-      return openMenu(
-        modifyFields(model, {
-          maybeActiveItemIndex: () => maybeActiveItemIndex,
-          activationTrigger: () =>
-            Option.match(maybeActiveItemIndex, {
-              onNone: () => 'Pointer',
-              onSome: () => 'Keyboard',
-            }),
-          searchQuery: () => '',
-          searchVersion: () => 0,
-          maybeLastPointerPosition: () => Option.none(),
-        }),
-      )
-    }
-
-    const selectItem = (index: number, item: string) =>
-      closeMenu(
-        model,
-        closeWithFocusCommands,
-        OutMessage.Selected({ value: item, index }),
-      )
-
-    return {
-      requestOpen: () => openWithActiveItem(Option.none()),
-      requestClose: () => closeMenu(model, closeWithFocusCommands),
-      update: (message: Message) =>
-        Message.match(message, {
-          CompletedFocusMenuItems: () => ({ model }),
-          CompletedFocusMenuButton: () => ({ model }),
-          CompletedLockMenuScroll: () => ({ model }),
-          CompletedUnlockMenuScroll: () => ({ model }),
-          CompletedInertMenuOthers: () => ({ model }),
-          CompletedRestoreMenuInert: () => ({ model }),
-          CompletedScrollMenuItemIntoView: () => ({ model }),
-          CompletedClickMenuItem: () => ({ model }),
-          SuppressedSpaceScroll: () => ({ model }),
-          CompletedAnchorMenu: () => ({ model }),
-          CompletedPortalMenuBackdrop: () => ({ model }),
-
-          RequestedSelectItem: ({ index, item }) => selectItem(index, item),
-
-          Opened: ({ maybeActiveItemIndex }) =>
-            openWithActiveItem(maybeActiveItemIndex),
-
-          Closed: () => closeMenu(model, closeWithFocusCommands),
-
-          BlurredItems: () => {
-            if (
-              Option.exists(
-                model.maybeLastButtonPointerType,
-                Equal.equals('mouse'),
-              )
-            ) {
-              return { model }
-            }
-
-            return closeMenu(model, closeWithoutFocusCommands)
-          },
-
-          ActivatedItem: ({ index, activationTrigger }) => ({
-            model: modifyFields(model, {
-              maybeActiveItemIndex: () => Option.some(index),
-              activationTrigger: () => activationTrigger,
-            }),
-            commands: Array.filter(
-              [ScrollMenuItemIntoView({ id: model.id, index })],
-              () => activationTrigger === 'Keyboard',
-            ),
-          }),
-
-          MovedPointerOverItem: ({ index, screenX, screenY }) => {
-            const isSamePosition = Option.exists(
-              model.maybeLastPointerPosition,
-              position =>
-                position.screenX === screenX && position.screenY === screenY,
-            )
-
-            if (isSamePosition) {
-              return { model }
-            }
-
-            return {
-              model: modifyFields(model, {
-                maybeActiveItemIndex: () => Option.some(index),
-                activationTrigger: () => 'Pointer',
-                maybeLastPointerPosition: () =>
-                  Option.some({ screenX, screenY }),
-              }),
-            }
-          },
-
-          DeactivatedItem: () =>
-            model.activationTrigger === 'Pointer'
-              ? {
-                  model: modifyFields(model, {
-                    maybeActiveItemIndex: () => Option.none(),
-                  }),
-                }
-              : { model },
-
-          SelectedItem: ({ index, item }) => selectItem(index, item),
-
-          RequestedItemClick: ({ index }) => ({
-            model,
-            commands: [ClickMenuItem({ id: model.id, index })],
-          }),
-
-          Searched: ({ key, maybeTargetIndex }) => {
-            const nextSearchQuery = model.searchQuery + key
-            const nextSearchVersion = model.searchVersion + 1
-
-            return {
-              model: modifyFields(model, {
-                searchQuery: () => nextSearchQuery,
-                searchVersion: () => nextSearchVersion,
-                maybeActiveItemIndex: () =>
-                  Option.orElse(
-                    maybeTargetIndex,
-                    () => model.maybeActiveItemIndex,
-                  ),
-              }),
-              commands: [DelayClearMenuSearch({ version: nextSearchVersion })],
-            }
-          },
-
-          CompletedDelayClearMenuSearch: ({ version }) => {
-            if (version !== model.searchVersion) {
-              return { model }
-            }
-
-            return { model: modifyFields(model, { searchQuery: () => '' }) }
-          },
-
-          CompletedDetectMenuMovementOrAnimationEnd: ({ generation }) =>
-            animationBinding.requestFinish(generation),
-
-          PressedPointerOnButton: ({
-            pointerType,
-            button,
-            screenX,
-            screenY,
-            timeStamp,
-          }) => {
-            const withPointerType = modifyFields(model, {
-              maybeLastButtonPointerType: () => Option.some(pointerType),
-            })
-
-            if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
-              return { model: withPointerType }
-            }
-
-            if (model.isOpen) {
-              const closed = modifyFields(closedModel(withPointerType), {
-                maybeLastButtonPointerType: () => Option.some(pointerType),
-              })
-
-              if (model.isAnimated) {
-                return MenuBlock.makeStep(() =>
-                  Function.compose(
-                    Update.combineSteps([
-                      MenuBlock.makeStep(() => ({
-                        model: closed,
-                        commands: closeWithFocusCommands,
-                      })),
-                      animationBinding.requestHide(),
-                    ]),
-                    Update.withOutMessage(OutMessage.Closed()),
-                  ),
-                )
-              }
-
-              return {
-                model: closed,
-                commands: closeWithFocusCommands,
-                outMessage: OutMessage.Closed(),
-              }
-            }
-
-            return openMenu(
-              modifyFields(withPointerType, {
-                maybeActiveItemIndex: () => Option.none(),
-                activationTrigger: () => 'Pointer',
-                searchQuery: () => '',
-                searchVersion: () => 0,
-                maybeLastPointerPosition: () => Option.none(),
-                maybePointerOrigin: () =>
-                  Option.some({ screenX, screenY, timeStamp }),
-              }),
-            )
-          },
-
-          ReleasedPointerOnItems: ({ screenX, screenY, timeStamp }) => {
-            const hasNoOrigin = Option.isNone(model.maybePointerOrigin)
-
-            const hasNoActiveItem = Option.isNone(model.maybeActiveItemIndex)
-
-            const isMovementBelowThreshold = Option.exists(
-              model.maybePointerOrigin,
-              origin =>
-                Math.abs(screenX - origin.screenX) <
-                  POINTER_MOVEMENT_THRESHOLD_PIXELS &&
-                Math.abs(screenY - origin.screenY) <
-                  POINTER_MOVEMENT_THRESHOLD_PIXELS,
-            )
-
-            const isHoldTimeBelowThreshold = Option.exists(
-              model.maybePointerOrigin,
-              origin =>
-                timeStamp - origin.timeStamp <
-                POINTER_HOLD_THRESHOLD_MILLISECONDS,
-            )
-
-            if (
-              hasNoOrigin ||
-              isMovementBelowThreshold ||
-              isHoldTimeBelowThreshold ||
-              hasNoActiveItem
-            ) {
-              return { model }
-            }
-
-            return {
-              model,
-              commands: [
-                ClickMenuItem({
-                  id: model.id,
-                  index: model.maybeActiveItemIndex.value,
-                }),
-              ],
-            }
-          },
-
-          IgnoredMouseClick: () => ({
-            model: modifyFields(model, {
-              maybeLastButtonPointerType: () => Option.none(),
-            }),
-          }),
-          ClickedButton: () => {
-            if (
-              Option.exists(
-                model.maybeLastButtonPointerType,
-                Equal.equals('mouse'),
-              )
-            ) {
-              return {
-                model: modifyFields(model, {
-                  maybeLastButtonPointerType: () => Option.none(),
-                }),
-              }
-            }
-
-            if (model.isOpen) {
-              return closeMenu(model, closeWithFocusCommands)
-            }
-
-            return openWithActiveItem(Option.none())
-          },
-        }),
-    }
-  }
-
 /**
  * The anchor-positioning Mount this Menu renders on its panel. The panel is
  *  always anchored to the button via Floating UI and portaled to the document
@@ -770,106 +441,6 @@ export const mounts = [AnchorMenu, PortalMenuBackdrop]
 
 /** @internal Nominal identity of the Menu contract. */
 export const MenuKey = Symbol('Menu')
-const MenuBlock = Block.make(MenuNamespace, {
-  key: MenuKey,
-  Model,
-  Message,
-  InMessage,
-  OutMessage,
-  InitArgs: Schema.Tuple([InitConfig]),
-  ChildInitContext: InitConfig,
-  view: {
-    kind: 'Element',
-    Inputs: Block.makeInputContract<ViewInputs<string>>(),
-    mounts,
-  },
-  inMessageOutputs: {
-    RequestedOpen: { outMessage: OutMessage },
-    RequestedClose: { outMessage: OutMessage },
-  },
-  operations: {
-    requestSelectItem: {
-      message: (item: string, index: number) =>
-        Tuple.make(Message.RequestedSelectItem({ index, item })),
-      outMessage: OutMessage,
-    },
-  },
-})
-
-const foldAnimationOutMessage = MenuBlock.makeOutMessageFold(
-  Animation.AnimationBlock,
-  {
-    StartedLeaveAnimating: ({ generation }) =>
-      detectMenuMovementOrAnimationEnd(generation),
-    TransitionedOut: MenuBlock.makeNoopStep,
-  },
-)
-
-const AnimationBinding = MenuBlock.makeRequiredFieldBinding(
-  Animation.AnimationBlock,
-  {
-    field: 'animation',
-    init: { contextToArgs: config => [{ id: `${config.id}-items` }] },
-  },
-).withOutMessagePolicy({ fold: foldAnimationOutMessage })
-
-const MenuComposition = MenuBlock.makeComposition({
-  mounts,
-  bindings: [AnimationBinding],
-})
-/** Creates an initial menu Model and Commands from a config. Defaults to closed with no active item. */
-const init = MenuComposition.makeInit(config => ({
-  model: makeInitialModel(config),
-  childInitContext: config,
-}))
-type MenuViewBuilder = Block.ViewBuilderFor<typeof MenuComposition>
-const transitions = makeTransitions(AnimationBinding)
-const defaultUpdate = (model: Model, message: Message) =>
-  transitions(model).update(message)
-const applyMenuMessage = MenuBlock.makeStep(
-  (model, message: Parameters<typeof defaultUpdate>[1]) =>
-    defaultUpdate(model, message),
-)
-
-/** Processes a Menu Message and returns the next Model, optional Commands, and
- *  an optional OutMessage. */
-const update = MenuComposition.makeUpdate({
-  RequestedSelectItem: applyMenuMessage,
-  Opened: applyMenuMessage,
-  Closed: applyMenuMessage,
-  BlurredItems: applyMenuMessage,
-  ActivatedItem: applyMenuMessage,
-  DeactivatedItem: applyMenuMessage,
-  SelectedItem: applyMenuMessage,
-  RequestedItemClick: applyMenuMessage,
-  Searched: applyMenuMessage,
-  CompletedDelayClearMenuSearch: applyMenuMessage,
-  MovedPointerOverItem: applyMenuMessage,
-  CompletedFocusMenuItems: applyMenuMessage,
-  CompletedFocusMenuButton: applyMenuMessage,
-  CompletedLockMenuScroll: applyMenuMessage,
-  CompletedUnlockMenuScroll: applyMenuMessage,
-  CompletedInertMenuOthers: applyMenuMessage,
-  CompletedRestoreMenuInert: applyMenuMessage,
-  CompletedScrollMenuItemIntoView: applyMenuMessage,
-  CompletedClickMenuItem: applyMenuMessage,
-  ClickedButton: applyMenuMessage,
-  IgnoredMouseClick: applyMenuMessage,
-  SuppressedSpaceScroll: applyMenuMessage,
-  CompletedAnchorMenu: applyMenuMessage,
-  CompletedPortalMenuBackdrop: applyMenuMessage,
-  CompletedDetectMenuMovementOrAnimationEnd: applyMenuMessage,
-  PressedPointerOnButton: applyMenuMessage,
-  ReleasedPointerOnItems: applyMenuMessage,
-})
-
-const inMessageUpdate = MenuComposition.makeInMessageUpdate({
-  RequestedOpen: MenuBlock.makeStep(model => transitions(model).requestOpen()),
-  RequestedClose: MenuBlock.makeStep(model =>
-    transitions(model).requestClose(),
-  ),
-})
-
 const EffectsLayer = Layer.mergeAll(
   LockMenuScroll.layer,
   UnlockMenuScroll.layer,
@@ -941,62 +512,519 @@ export { groupContiguous, resolveTypeaheadMatch }
 
 const itemId = (id: string, index: number): string => `${id}-item-${index}`
 
-type MenuInputs = ViewInputs<string>
-
-const menuViewImpl = (
-  model: Model,
-  viewInputs: MenuInputs,
-  h: MenuViewBuilder,
+const makeAuthoring = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
 ) => {
-  const {
-    id,
-    isOpen,
-    animation: { transitionState },
-    searchQuery,
-  } = model
+  const Message: MessageSchema<Value, ValueEncoded> = makeMessage(Value)
+  type Message = typeof Message.Type
+  const OutMessage: OutMessageSchema<Value, ValueEncoded> =
+    makeOutMessage(Value)
+  type OutMessage = typeof OutMessage.Type
 
-  const {
-    items,
-    itemToConfig,
-    isItemDisabled,
-    itemToSearchText = (item: string) => item,
-    isButtonDisabled,
-    buttonContent,
-    buttonClassName,
-    buttonAttributes = [],
-    itemsClassName,
-    itemsAttributes = [],
-    itemsScrollClassName,
-    itemsScrollAttributes = [],
-    backdropClassName,
-    backdropAttributes = [],
-    className,
-    attributes = [],
-    itemGroupKey,
-    groupToHeading,
-    groupClassName,
-    groupAttributes = [],
-    separatorClassName,
-    separatorAttributes = [],
-    anchor = {},
-    ariaLabel,
-    ariaLabelledBy,
-  } = viewInputs
+  const detectMenuMovementOrAnimationEnd = (generation: number) =>
+    MenuBlock.makeCommandsStep(model => [
+      DetectMenuMovementOrAnimationEnd({ id: model.id, generation }),
+    ])
 
-  const maybeActiveItemIndex = pipe(
-    model.maybeActiveItemIndex,
-    Option.filter(index => index >= 0 && index < items.length),
+  const makeTransitions =
+    (animationBinding: typeof AnimationBinding) => (model: Model) => {
+      const modalOpenCommands = Array.filter(
+        [LockMenuScroll(), InertMenuOthers({ id: model.id })],
+        () => model.isModal,
+      )
+
+      const closeWithoutFocusCommands = Array.filter(
+        [UnlockMenuScroll(), RestoreMenuInert({ id: model.id })],
+        () => model.isModal,
+      )
+
+      const openCommands = [
+        ...modalOpenCommands,
+        FocusMenuItems({ id: model.id }),
+      ]
+
+      const closeWithFocusCommands = [
+        FocusMenuButton({ id: model.id }),
+        ...closeWithoutFocusCommands,
+      ]
+
+      const openMenu = (baseModel: Model) => {
+        if (model.isAnimated) {
+          return Update.combineSteps([
+            MenuBlock.makeStep(() => ({
+              model: baseModel,
+              commands: openCommands,
+            })),
+            animationBinding.requestShow(),
+            MenuBlock.makeFieldsStep(() => ({ isOpen: () => true })),
+          ])
+        }
+
+        return {
+          model: modifyFields(baseModel, { isOpen: () => true }),
+          commands: openCommands,
+        }
+      }
+
+      const closeMenu = (
+        baseModel: Model,
+        commands: typeof closeWithFocusCommands,
+        outMessage?: OutMessage,
+      ) => {
+        if (!baseModel.isOpen) {
+          return Update.withOutMessage({ model: baseModel }, outMessage)
+        }
+
+        const closed = closedModel(baseModel)
+        const closeOutMessage = outMessage ?? OutMessage.Closed()
+
+        if (model.isAnimated) {
+          return MenuBlock.makeStep(() =>
+            Function.compose(
+              Update.combineSteps([
+                MenuBlock.makeStep(() => ({ model: closed, commands })),
+                animationBinding.requestHide(),
+              ]),
+              Update.withOutMessage(closeOutMessage),
+            ),
+          )
+        }
+
+        return Update.withOutMessage(
+          { model: closed, commands },
+          closeOutMessage,
+        )
+      }
+
+      const openWithActiveItem = (
+        maybeActiveItemIndex: Option.Option<number>,
+      ) => {
+        if (model.isOpen) {
+          return { model }
+        }
+
+        return openMenu(
+          modifyFields(model, {
+            maybeActiveItemIndex: () => maybeActiveItemIndex,
+            activationTrigger: () =>
+              Option.match(maybeActiveItemIndex, {
+                onNone: () => 'Pointer',
+                onSome: () => 'Keyboard',
+              }),
+            searchQuery: () => '',
+            searchVersion: () => 0,
+            maybeLastPointerPosition: () => Option.none(),
+          }),
+        )
+      }
+
+      const selectItem = (index: number, item: Value) =>
+        closeMenu(
+          model,
+          closeWithFocusCommands,
+          OutMessage.Selected({ value: item, index }),
+        )
+
+      return {
+        requestOpen: () => openWithActiveItem(Option.none()),
+        requestClose: () => closeMenu(model, closeWithFocusCommands),
+        update: (message: Message) =>
+          Message.match(message, {
+            CompletedFocusMenuItems: () => ({ model }),
+            CompletedFocusMenuButton: () => ({ model }),
+            CompletedLockMenuScroll: () => ({ model }),
+            CompletedUnlockMenuScroll: () => ({ model }),
+            CompletedInertMenuOthers: () => ({ model }),
+            CompletedRestoreMenuInert: () => ({ model }),
+            CompletedScrollMenuItemIntoView: () => ({ model }),
+            CompletedClickMenuItem: () => ({ model }),
+            SuppressedSpaceScroll: () => ({ model }),
+            CompletedAnchorMenu: () => ({ model }),
+            CompletedPortalMenuBackdrop: () => ({ model }),
+
+            RequestedSelectItem: ({ index, item }) => selectItem(index, item),
+
+            Opened: ({ maybeActiveItemIndex }) =>
+              openWithActiveItem(maybeActiveItemIndex),
+
+            Closed: () => closeMenu(model, closeWithFocusCommands),
+
+            BlurredItems: () => {
+              if (
+                Option.exists(
+                  model.maybeLastButtonPointerType,
+                  Equal.equals('mouse'),
+                )
+              ) {
+                return { model }
+              }
+
+              return closeMenu(model, closeWithoutFocusCommands)
+            },
+
+            ActivatedItem: ({ index, activationTrigger }) => ({
+              model: modifyFields(model, {
+                maybeActiveItemIndex: () => Option.some(index),
+                activationTrigger: () => activationTrigger,
+              }),
+              commands: Array.filter(
+                [ScrollMenuItemIntoView({ id: model.id, index })],
+                () => activationTrigger === 'Keyboard',
+              ),
+            }),
+
+            MovedPointerOverItem: ({ index, screenX, screenY }) => {
+              const isSamePosition = Option.exists(
+                model.maybeLastPointerPosition,
+                position =>
+                  position.screenX === screenX && position.screenY === screenY,
+              )
+
+              if (isSamePosition) {
+                return { model }
+              }
+
+              return {
+                model: modifyFields(model, {
+                  maybeActiveItemIndex: () => Option.some(index),
+                  activationTrigger: () => 'Pointer',
+                  maybeLastPointerPosition: () =>
+                    Option.some({ screenX, screenY }),
+                }),
+              }
+            },
+
+            DeactivatedItem: () =>
+              model.activationTrigger === 'Pointer'
+                ? {
+                    model: modifyFields(model, {
+                      maybeActiveItemIndex: () => Option.none(),
+                    }),
+                  }
+                : { model },
+
+            SelectedItem: ({ index, item }) => selectItem(index, item),
+
+            RequestedItemClick: ({ index }) => ({
+              model,
+              commands: [ClickMenuItem({ id: model.id, index })],
+            }),
+
+            Searched: ({ key, maybeTargetIndex }) => {
+              const nextSearchQuery = model.searchQuery + key
+              const nextSearchVersion = model.searchVersion + 1
+
+              return {
+                model: modifyFields(model, {
+                  searchQuery: () => nextSearchQuery,
+                  searchVersion: () => nextSearchVersion,
+                  maybeActiveItemIndex: () =>
+                    Option.orElse(
+                      maybeTargetIndex,
+                      () => model.maybeActiveItemIndex,
+                    ),
+                }),
+                commands: [
+                  DelayClearMenuSearch({ version: nextSearchVersion }),
+                ],
+              }
+            },
+
+            CompletedDelayClearMenuSearch: ({ version }) => {
+              if (version !== model.searchVersion) {
+                return { model }
+              }
+
+              return { model: modifyFields(model, { searchQuery: () => '' }) }
+            },
+
+            CompletedDetectMenuMovementOrAnimationEnd: ({ generation }) =>
+              animationBinding.requestFinish(generation),
+
+            PressedPointerOnButton: ({
+              pointerType,
+              button,
+              screenX,
+              screenY,
+              timeStamp,
+            }) => {
+              const withPointerType = modifyFields(model, {
+                maybeLastButtonPointerType: () => Option.some(pointerType),
+              })
+
+              if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
+                return { model: withPointerType }
+              }
+
+              if (model.isOpen) {
+                const closed = modifyFields(closedModel(withPointerType), {
+                  maybeLastButtonPointerType: () => Option.some(pointerType),
+                })
+
+                if (model.isAnimated) {
+                  return MenuBlock.makeStep(() =>
+                    Function.compose(
+                      Update.combineSteps([
+                        MenuBlock.makeStep(() => ({
+                          model: closed,
+                          commands: closeWithFocusCommands,
+                        })),
+                        animationBinding.requestHide(),
+                      ]),
+                      Update.withOutMessage(OutMessage.Closed()),
+                    ),
+                  )
+                }
+
+                return {
+                  model: closed,
+                  commands: closeWithFocusCommands,
+                  outMessage: OutMessage.Closed(),
+                }
+              }
+
+              return openMenu(
+                modifyFields(withPointerType, {
+                  maybeActiveItemIndex: () => Option.none(),
+                  activationTrigger: () => 'Pointer',
+                  searchQuery: () => '',
+                  searchVersion: () => 0,
+                  maybeLastPointerPosition: () => Option.none(),
+                  maybePointerOrigin: () =>
+                    Option.some({ screenX, screenY, timeStamp }),
+                }),
+              )
+            },
+
+            ReleasedPointerOnItems: ({ screenX, screenY, timeStamp }) => {
+              const hasNoOrigin = Option.isNone(model.maybePointerOrigin)
+
+              const hasNoActiveItem = Option.isNone(model.maybeActiveItemIndex)
+
+              const isMovementBelowThreshold = Option.exists(
+                model.maybePointerOrigin,
+                origin =>
+                  Math.abs(screenX - origin.screenX) <
+                    POINTER_MOVEMENT_THRESHOLD_PIXELS &&
+                  Math.abs(screenY - origin.screenY) <
+                    POINTER_MOVEMENT_THRESHOLD_PIXELS,
+              )
+
+              const isHoldTimeBelowThreshold = Option.exists(
+                model.maybePointerOrigin,
+                origin =>
+                  timeStamp - origin.timeStamp <
+                  POINTER_HOLD_THRESHOLD_MILLISECONDS,
+              )
+
+              if (
+                hasNoOrigin ||
+                isMovementBelowThreshold ||
+                isHoldTimeBelowThreshold ||
+                hasNoActiveItem
+              ) {
+                return { model }
+              }
+
+              return {
+                model,
+                commands: [
+                  ClickMenuItem({
+                    id: model.id,
+                    index: model.maybeActiveItemIndex.value,
+                  }),
+                ],
+              }
+            },
+
+            IgnoredMouseClick: () => ({
+              model: modifyFields(model, {
+                maybeLastButtonPointerType: () => Option.none(),
+              }),
+            }),
+            ClickedButton: () => {
+              if (
+                Option.exists(
+                  model.maybeLastButtonPointerType,
+                  Equal.equals('mouse'),
+                )
+              ) {
+                return {
+                  model: modifyFields(model, {
+                    maybeLastButtonPointerType: () => Option.none(),
+                  }),
+                }
+              }
+
+              if (model.isOpen) {
+                return closeMenu(model, closeWithFocusCommands)
+              }
+
+              return openWithActiveItem(Option.none())
+            },
+          }),
+      }
+    }
+
+  const MenuBlock = BlockFamily.makeFamilyDeclaration(MenuNamespace, {
+    key: MenuKey,
+    Model,
+    Message,
+    InMessage,
+    OutMessage,
+    InitArgs: Schema.Tuple([InitConfig]),
+    ChildInitContext: InitConfig,
+    view: {
+      kind: 'Element',
+      Inputs: Block.makeInputContract<ViewInputs<Value>>(),
+      mounts,
+    },
+    inMessageOutputs: {
+      RequestedOpen: { outMessage: OutMessage },
+      RequestedClose: { outMessage: OutMessage },
+    },
+    operations: {
+      requestSelectItem: {
+        message: (item: Value, index: number) =>
+          Tuple.make(Message.RequestedSelectItem({ index, item })),
+        outMessage: OutMessage,
+      },
+    },
+  })
+
+  const foldAnimationOutMessage = MenuBlock.makeOutMessageFold(
+    Animation.AnimationBlock,
+    {
+      StartedLeaveAnimating: ({ generation }) =>
+        detectMenuMovementOrAnimationEnd(generation),
+      TransitionedOut: MenuBlock.makeNoopStep,
+    },
   )
 
-  const dispatchSelectedItem = (item: string, index: number) =>
-    Message.SelectedItem({ index, item })
+  const AnimationBinding = MenuBlock.makeRequiredFieldBinding(
+    Animation.AnimationBlock,
+    {
+      field: 'animation',
+      init: { contextToArgs: config => [{ id: `${config.id}-items` }] },
+    },
+  ).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
-  const isLeaving =
-    transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
-  const isVisible = isOpen || isLeaving
+  const MenuComposition = MenuBlock.makeComposition({
+    mounts,
+    bindings: [AnimationBinding],
+  })
+  /** Creates an initial menu Model and Commands from a config. Defaults to closed with no active item. */
+  const init = MenuComposition.makeInit(config => ({
+    model: makeInitialModel(config),
+    childInitContext: config,
+  }))
+  type MenuViewBuilder = Block.ViewBuilderFor<typeof MenuComposition>
+  const transitions = makeTransitions(AnimationBinding)
+  const defaultUpdate = (model: Model, message: Message) =>
+    transitions(model).update(message)
+  const applyMenuMessage = MenuBlock.makeStep(
+    (model, message: Parameters<typeof defaultUpdate>[1]) =>
+      defaultUpdate(model, message),
+  )
 
-  const animationAttributes: ReadonlyArray<ReturnType<typeof h.DataAttribute>> =
-    Match.value(transitionState).pipe(
+  /** Processes a Menu Message and returns the next Model, optional Commands, and
+   *  an optional OutMessage. */
+  const update = MenuComposition.makeUpdate({
+    RequestedSelectItem: applyMenuMessage,
+    Opened: applyMenuMessage,
+    Closed: applyMenuMessage,
+    BlurredItems: applyMenuMessage,
+    ActivatedItem: applyMenuMessage,
+    DeactivatedItem: applyMenuMessage,
+    SelectedItem: applyMenuMessage,
+    RequestedItemClick: applyMenuMessage,
+    Searched: applyMenuMessage,
+    CompletedDelayClearMenuSearch: applyMenuMessage,
+    MovedPointerOverItem: applyMenuMessage,
+    CompletedFocusMenuItems: applyMenuMessage,
+    CompletedFocusMenuButton: applyMenuMessage,
+    CompletedLockMenuScroll: applyMenuMessage,
+    CompletedUnlockMenuScroll: applyMenuMessage,
+    CompletedInertMenuOthers: applyMenuMessage,
+    CompletedRestoreMenuInert: applyMenuMessage,
+    CompletedScrollMenuItemIntoView: applyMenuMessage,
+    CompletedClickMenuItem: applyMenuMessage,
+    ClickedButton: applyMenuMessage,
+    IgnoredMouseClick: applyMenuMessage,
+    SuppressedSpaceScroll: applyMenuMessage,
+    CompletedAnchorMenu: applyMenuMessage,
+    CompletedPortalMenuBackdrop: applyMenuMessage,
+    CompletedDetectMenuMovementOrAnimationEnd: applyMenuMessage,
+    PressedPointerOnButton: applyMenuMessage,
+    ReleasedPointerOnItems: applyMenuMessage,
+  })
+
+  const inMessageUpdate = MenuComposition.makeInMessageUpdate({
+    RequestedOpen: MenuBlock.makeStep(model =>
+      transitions(model).requestOpen(),
+    ),
+    RequestedClose: MenuBlock.makeStep(model =>
+      transitions(model).requestClose(),
+    ),
+  })
+
+  type MenuInputs = ViewInputs<Value>
+
+  const menuViewImpl = (
+    model: Model,
+    viewInputs: MenuInputs,
+    h: MenuViewBuilder,
+  ) => {
+    const {
+      id,
+      isOpen,
+      animation: { transitionState },
+      searchQuery,
+    } = model
+
+    const {
+      items,
+      itemToConfig,
+      isItemDisabled,
+      itemToSearchText = (item: Value) => item,
+      isButtonDisabled,
+      buttonContent,
+      buttonClassName,
+      buttonAttributes = [],
+      itemsClassName,
+      itemsAttributes = [],
+      itemsScrollClassName,
+      itemsScrollAttributes = [],
+      backdropClassName,
+      backdropAttributes = [],
+      className,
+      attributes = [],
+      itemGroupKey,
+      groupToHeading,
+      groupClassName,
+      groupAttributes = [],
+      separatorClassName,
+      separatorAttributes = [],
+      anchor = {},
+      ariaLabel,
+      ariaLabelledBy,
+    } = viewInputs
+
+    const maybeActiveItemIndex = pipe(
+      model.maybeActiveItemIndex,
+      Option.filter(index => index >= 0 && index < items.length),
+    )
+
+    const dispatchSelectedItem = (item: Value, index: number) =>
+      Message.SelectedItem({ index, item })
+
+    const isLeaving =
+      transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
+    const isVisible = isOpen || isLeaving
+
+    const animationAttributes: ReadonlyArray<
+      ReturnType<typeof h.DataAttribute>
+    > = Match.value(transitionState).pipe(
       Match.when('EnterStart', () => [
         h.DataAttribute('closed', ''),
         h.DataAttribute('enter', ''),
@@ -1018,538 +1046,482 @@ const menuViewImpl = (
       Match.orElse(() => []),
     )
 
-  const isDisabled = (index: number): boolean =>
-    Predicate.isNotUndefined(isItemDisabled) &&
-    pipe(
-      items,
-      Array.get(index),
-      Option.exists(item => isItemDisabled(item, index)),
-    )
-
-  const maybeFirstEnabledIndex = Array.isReadonlyArrayEmpty(items)
-    ? Option.none<number>()
-    : Option.some(findFirstEnabledIndex(items.length, 0, isDisabled)(0, 1))
-
-  const maybeLastEnabledIndex = Array.isReadonlyArrayEmpty(items)
-    ? Option.none<number>()
-    : Option.some(
-        findFirstEnabledIndex(
-          items.length,
-          0,
-          isDisabled,
-        )(items.length - 1, -1),
+    const isDisabled = (index: number): boolean =>
+      Predicate.isNotUndefined(isItemDisabled) &&
+      pipe(
+        items,
+        Array.get(index),
+        Option.exists(item => isItemDisabled(item, index)),
       )
 
-  const handleButtonKeyDown = (key: string): Option.Option<Message> => {
-    if (isOpen) {
-      return handleItemsKeyDown(key)
-    }
+    const maybeFirstEnabledIndex = Array.isReadonlyArrayEmpty(items)
+      ? Option.none<number>()
+      : Option.some(findFirstEnabledIndex(items.length, 0, isDisabled)(0, 1))
 
-    return Match.value(key).pipe(
-      Match.whenOr('Enter', ' ', 'ArrowDown', () =>
-        Option.some(
-          Message.Opened({
-            maybeActiveItemIndex: maybeFirstEnabledIndex,
-          }),
-        ),
-      ),
-      Match.when('ArrowUp', () =>
-        Option.some(
-          Message.Opened({
-            maybeActiveItemIndex: maybeLastEnabledIndex,
-          }),
-        ),
-      ),
-      Match.orElse(() => Option.none()),
-    )
-  }
-
-  const handleButtonPointerDown = (
-    pointerType: string,
-    button: number,
-    screenX: number,
-    screenY: number,
-    timeStamp: number,
-  ): Option.Option<Message> =>
-    Option.some(
-      Message.PressedPointerOnButton({
-        pointerType,
-        button,
-        screenX,
-        screenY,
-        timeStamp,
-      }),
-    )
-
-  const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
-    OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
-
-  const resolveActiveIndex = (key: string): Option.Option<number> =>
-    Option.match(maybeActiveItemIndex, {
-      onNone: () =>
-        Match.value(key).pipe(
-          Match.whenOr(
-            'ArrowUp',
-            'End',
-            'PageDown',
-            () => maybeLastEnabledIndex,
-          ),
-          Match.orElse(() => maybeFirstEnabledIndex),
-        ),
-      onSome: activeIndex =>
-        Option.some(
-          keyToIndex(
-            'ArrowDown',
-            'ArrowUp',
+    const maybeLastEnabledIndex = Array.isReadonlyArrayEmpty(items)
+      ? Option.none<number>()
+      : Option.some(
+          findFirstEnabledIndex(
             items.length,
-            activeIndex,
+            0,
             isDisabled,
-          )(key),
-        ),
-    })
+          )(items.length - 1, -1),
+        )
 
-  const searchForKey = (key: string): Option.Option<Message> => {
-    const nextQuery = searchQuery + key
-    const maybeTargetIndex = resolveTypeaheadMatch(
-      items,
-      nextQuery,
-      maybeActiveItemIndex,
-      isDisabled,
-      itemToSearchText,
-      String.isNonEmpty(searchQuery),
-    )
-    return Option.some(Message.Searched({ key, maybeTargetIndex }))
-  }
+    const handleButtonKeyDown = (key: string): Option.Option<Message> => {
+      if (isOpen) {
+        return handleItemsKeyDown(key)
+      }
 
-  const handleItemsKeyDown = (key: string): Option.Option<Message> =>
-    Match.value(key).pipe(
-      Match.when('Escape', () => Option.some(Message.Closed())),
-      Match.when('Enter', () =>
-        Option.map(maybeActiveItemIndex, index =>
-          Message.RequestedItemClick({ index }),
-        ),
-      ),
-      Match.when(' ', () =>
-        String.isNonEmpty(searchQuery)
-          ? searchForKey(' ')
-          : Option.map(maybeActiveItemIndex, index =>
-              Message.RequestedItemClick({ index }),
-            ),
-      ),
-      Match.whenOr(
-        'ArrowDown',
-        'ArrowUp',
-        'Home',
-        'End',
-        'PageUp',
-        'PageDown',
-        () =>
-          Option.map(resolveActiveIndex(key), index =>
-            Message.ActivatedItem({
-              index,
-              activationTrigger: 'Keyboard',
+      return Match.value(key).pipe(
+        Match.whenOr('Enter', ' ', 'ArrowDown', () =>
+          Option.some(
+            Message.Opened({
+              maybeActiveItemIndex: maybeFirstEnabledIndex,
             }),
           ),
-      ),
-      Match.when(isPrintableKey, () => searchForKey(key)),
-      Match.orElse(() => Option.none()),
-    )
-
-  const handleItemsPointerUp = (
-    screenX: number,
-    screenY: number,
-    pointerType: string,
-    timeStamp: number,
-  ): Option.Option<Message> =>
-    OptionExt.when(
-      pointerType === 'mouse',
-      Message.ReleasedPointerOnItems({ screenX, screenY, timeStamp }),
-    )
-
-  const resolveButtonLabel = () => {
-    if (Predicate.isNotUndefined(ariaLabel)) {
-      return [h.AriaLabel(ariaLabel)]
-    } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
-      return [h.AriaLabelledBy(ariaLabelledBy)]
-    } else {
-      return []
-    }
-  }
-
-  const buttonLabelAttributes = resolveButtonLabel()
-
-  const resolvedButtonAttributes = [
-    h.Id(`${id}-button`),
-    h.Type('button'),
-    h.AriaHasPopup('menu'),
-    h.AriaExpanded(isVisible),
-    ...(isVisible ? [h.AriaControls(`${id}-items`)] : []),
-    ...buttonLabelAttributes,
-    ...(isButtonDisabled
-      ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-      : [
-          h.OnPointerDown(handleButtonPointerDown),
-          h.OnKeyDownPreventDefault(handleButtonKeyDown),
-          h.OnKeyUpPreventDefault(handleSpaceKeyUp),
-          h.OnClick(Message.ClickedButton()),
-        ]),
-    ...(isVisible
-      ? [
-          h.DataAttribute('open', ''),
-          h.Style({ position: 'relative', zIndex: '1' }),
-        ]
-      : []),
-    ...(buttonClassName ? [h.Class(buttonClassName)] : []),
-    ...buttonAttributes,
-  ]
-
-  const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
-    onNone: () => [],
-    onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
-  })
-
-  const anchorAttributes = [
-    h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-    h.OnMount(AnchorMenu({ buttonId: `${id}-button`, anchor })),
-  ]
-
-  const itemsContainerAttributes = [
-    h.Id(`${id}-items`),
-    h.Role('menu'),
-    h.AriaLabelledBy(`${id}-button`),
-    ...maybeActiveDescendant,
-    h.Tabindex(-1),
-    ...anchorAttributes,
-    ...animationAttributes,
-    ...(isLeaving
-      ? []
-      : [
-          h.OnKeyDownPreventDefault(handleItemsKeyDown),
-          h.OnKeyUpPreventDefault(handleSpaceKeyUp),
-          h.OnPointerUp(handleItemsPointerUp),
-          h.OnBlur(Message.BlurredItems()),
-        ]),
-    ...(itemsClassName ? [h.Class(itemsClassName)] : []),
-    ...itemsAttributes,
-  ]
-
-  const menuItems = Array.map(items, (item, index) => {
-    const isActiveItem = Option.exists(
-      maybeActiveItemIndex,
-      activeIndex => activeIndex === index,
-    )
-    const isDisabledItem = isDisabled(index)
-    const itemConfig = itemToConfig(item, {
-      isActive: isActiveItem,
-      isDisabled: isDisabledItem,
-    })
-
-    const isInteractive = !isDisabledItem && !isLeaving
-
-    return h.keyed('div')(
-      itemId(id, index),
-      [
-        h.Id(itemId(id, index)),
-        h.Role('menuitem'),
-        ...(isActiveItem ? [h.DataAttribute('active', '')] : []),
-        ...(isDisabledItem
-          ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-          : []),
-        ...(isInteractive
-          ? [
-              h.OnClick(dispatchSelectedItem(item, index)),
-              ...(isActiveItem
-                ? []
-                : [
-                    h.OnPointerMove((screenX, screenY, pointerType) =>
-                      OptionExt.when(
-                        pointerType !== 'touch',
-                        Message.MovedPointerOverItem({
-                          index,
-                          screenX,
-                          screenY,
-                        }),
-                      ),
-                    ),
-                  ]),
-              h.OnPointerLeave(pointerType =>
-                OptionExt.when(
-                  pointerType !== 'touch',
-                  Message.DeactivatedItem(),
-                ),
-              ),
-            ]
-          : []),
-        ...(itemConfig.className ? [h.Class(itemConfig.className)] : []),
-      ],
-      [itemConfig.content],
-    )
-  })
-
-  const renderGroupedItems = (): ReadonlyArray<Html> => {
-    if (!itemGroupKey) {
-      return menuItems
+        ),
+        Match.when('ArrowUp', () =>
+          Option.some(
+            Message.Opened({
+              maybeActiveItemIndex: maybeLastEnabledIndex,
+            }),
+          ),
+        ),
+        Match.orElse(() => Option.none()),
+      )
     }
 
-    const segments = groupContiguous(menuItems, (_, index) =>
-      Array.get(items, index).pipe(
-        Option.match({
-          onNone: () => '',
-          onSome: item => itemGroupKey(item, index),
+    const handleButtonPointerDown = (
+      pointerType: string,
+      button: number,
+      screenX: number,
+      screenY: number,
+      timeStamp: number,
+    ): Option.Option<Message> =>
+      Option.some(
+        Message.PressedPointerOnButton({
+          pointerType,
+          button,
+          screenX,
+          screenY,
+          timeStamp,
         }),
-      ),
-    )
-
-    return Array.flatMap(segments, (segment, segmentIndex) => {
-      const maybeHeading = Option.fromNullishOr(
-        groupToHeading && groupToHeading(segment.key),
       )
 
-      const headingId = `${id}-heading-${segment.key}`
+    const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
+      OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
 
-      const headingElement = Option.match(maybeHeading, {
-        onNone: () => [],
-        onSome: heading => [
-          h.keyed('div')(
-            headingId,
-            [
-              h.Id(headingId),
-              h.Role('presentation'),
-              ...(heading.className ? [h.Class(heading.className)] : []),
-            ],
-            [heading.content],
+    const resolveActiveIndex = (key: string): Option.Option<number> =>
+      Option.match(maybeActiveItemIndex, {
+        onNone: () =>
+          Match.value(key).pipe(
+            Match.whenOr(
+              'ArrowUp',
+              'End',
+              'PageDown',
+              () => maybeLastEnabledIndex,
+            ),
+            Match.orElse(() => maybeFirstEnabledIndex),
           ),
-        ],
+        onSome: activeIndex =>
+          Option.some(
+            keyToIndex(
+              'ArrowDown',
+              'ArrowUp',
+              items.length,
+              activeIndex,
+              isDisabled,
+            )(key),
+          ),
       })
 
-      const groupContent = [...headingElement, ...segment.items]
+    const searchForKey = (key: string): Option.Option<Message> => {
+      const nextQuery = searchQuery + key
+      const maybeTargetIndex = resolveTypeaheadMatch(
+        items,
+        nextQuery,
+        maybeActiveItemIndex,
+        isDisabled,
+        itemToSearchText,
+        String.isNonEmpty(searchQuery),
+      )
+      return Option.some(Message.Searched({ key, maybeTargetIndex }))
+    }
 
-      const groupElement = h.keyed('div')(
-        `${id}-group-${segment.key}`,
-        [
-          h.Role('group'),
-          ...(Option.isSome(maybeHeading) ? [h.AriaLabelledBy(headingId)] : []),
-          ...(groupClassName ? [h.Class(groupClassName)] : []),
-          ...groupAttributes,
-        ],
-        groupContent,
+    const handleItemsKeyDown = (key: string): Option.Option<Message> =>
+      Match.value(key).pipe(
+        Match.when('Escape', () => Option.some(Message.Closed())),
+        Match.when('Enter', () =>
+          Option.map(maybeActiveItemIndex, index =>
+            Message.RequestedItemClick({ index }),
+          ),
+        ),
+        Match.when(' ', () =>
+          String.isNonEmpty(searchQuery)
+            ? searchForKey(' ')
+            : Option.map(maybeActiveItemIndex, index =>
+                Message.RequestedItemClick({ index }),
+              ),
+        ),
+        Match.whenOr(
+          'ArrowDown',
+          'ArrowUp',
+          'Home',
+          'End',
+          'PageUp',
+          'PageDown',
+          () =>
+            Option.map(resolveActiveIndex(key), index =>
+              Message.ActivatedItem({
+                index,
+                activationTrigger: 'Keyboard',
+              }),
+            ),
+        ),
+        Match.when(isPrintableKey, () => searchForKey(key)),
+        Match.orElse(() => Option.none()),
       )
 
-      const separator =
-        segmentIndex > 0 &&
-        (separatorClassName ||
-          Array.isReadonlyArrayNonEmpty(separatorAttributes))
-          ? [
-              h.keyed('div')(`${id}-separator-${segmentIndex}`, [
-                h.Role('separator'),
-                ...(separatorClassName ? [h.Class(separatorClassName)] : []),
-                ...separatorAttributes,
-              ]),
-            ]
-          : []
+    const handleItemsPointerUp = (
+      screenX: number,
+      screenY: number,
+      pointerType: string,
+      timeStamp: number,
+    ): Option.Option<Message> =>
+      OptionExt.when(
+        pointerType === 'mouse',
+        Message.ReleasedPointerOnItems({ screenX, screenY, timeStamp }),
+      )
 
-      return [...separator, groupElement]
+    const resolveButtonLabel = () => {
+      if (Predicate.isNotUndefined(ariaLabel)) {
+        return [h.AriaLabel(ariaLabel)]
+      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+        return [h.AriaLabelledBy(ariaLabelledBy)]
+      } else {
+        return []
+      }
+    }
+
+    const buttonLabelAttributes = resolveButtonLabel()
+
+    const resolvedButtonAttributes = [
+      h.Id(`${id}-button`),
+      h.Type('button'),
+      h.AriaHasPopup('menu'),
+      h.AriaExpanded(isVisible),
+      ...(isVisible ? [h.AriaControls(`${id}-items`)] : []),
+      ...buttonLabelAttributes,
+      ...(isButtonDisabled
+        ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+        : [
+            h.OnPointerDown(handleButtonPointerDown),
+            h.OnKeyDownPreventDefault(handleButtonKeyDown),
+            h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+            h.OnClick(Message.ClickedButton()),
+          ]),
+      ...(isVisible
+        ? [
+            h.DataAttribute('open', ''),
+            h.Style({ position: 'relative', zIndex: '1' }),
+          ]
+        : []),
+      ...(buttonClassName ? [h.Class(buttonClassName)] : []),
+      ...buttonAttributes,
+    ]
+
+    const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
+      onNone: () => [],
+      onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
     })
+
+    const anchorAttributes = [
+      h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
+      h.OnMount(AnchorMenu({ buttonId: `${id}-button`, anchor })),
+    ]
+
+    const itemsContainerAttributes = [
+      h.Id(`${id}-items`),
+      h.Role('menu'),
+      h.AriaLabelledBy(`${id}-button`),
+      ...maybeActiveDescendant,
+      h.Tabindex(-1),
+      ...anchorAttributes,
+      ...animationAttributes,
+      ...(isLeaving
+        ? []
+        : [
+            h.OnKeyDownPreventDefault(handleItemsKeyDown),
+            h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+            h.OnPointerUp(handleItemsPointerUp),
+            h.OnBlur(Message.BlurredItems()),
+          ]),
+      ...(itemsClassName ? [h.Class(itemsClassName)] : []),
+      ...itemsAttributes,
+    ]
+
+    const menuItems = Array.map(items, (item, index) => {
+      const isActiveItem = Option.exists(
+        maybeActiveItemIndex,
+        activeIndex => activeIndex === index,
+      )
+      const isDisabledItem = isDisabled(index)
+      const itemConfig = itemToConfig(item, {
+        isActive: isActiveItem,
+        isDisabled: isDisabledItem,
+      })
+
+      const isInteractive = !isDisabledItem && !isLeaving
+
+      return h.keyed('div')(
+        itemId(id, index),
+        [
+          h.Id(itemId(id, index)),
+          h.Role('menuitem'),
+          ...(isActiveItem ? [h.DataAttribute('active', '')] : []),
+          ...(isDisabledItem
+            ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+            : []),
+          ...(isInteractive
+            ? [
+                h.OnClick(dispatchSelectedItem(item, index)),
+                ...(isActiveItem
+                  ? []
+                  : [
+                      h.OnPointerMove((screenX, screenY, pointerType) =>
+                        OptionExt.when(
+                          pointerType !== 'touch',
+                          Message.MovedPointerOverItem({
+                            index,
+                            screenX,
+                            screenY,
+                          }),
+                        ),
+                      ),
+                    ]),
+                h.OnPointerLeave(pointerType =>
+                  OptionExt.when(
+                    pointerType !== 'touch',
+                    Message.DeactivatedItem(),
+                  ),
+                ),
+              ]
+            : []),
+          ...(itemConfig.className ? [h.Class(itemConfig.className)] : []),
+        ],
+        [itemConfig.content],
+      )
+    })
+
+    const renderGroupedItems = (): ReadonlyArray<Html> => {
+      if (!itemGroupKey) {
+        return menuItems
+      }
+
+      const segments = groupContiguous(menuItems, (_, index) =>
+        Array.get(items, index).pipe(
+          Option.match({
+            onNone: () => '',
+            onSome: item => itemGroupKey(item, index),
+          }),
+        ),
+      )
+
+      return Array.flatMap(segments, (segment, segmentIndex) => {
+        const maybeHeading = Option.fromNullishOr(
+          groupToHeading && groupToHeading(segment.key),
+        )
+
+        const headingId = `${id}-heading-${segment.key}`
+
+        const headingElement = Option.match(maybeHeading, {
+          onNone: () => [],
+          onSome: heading => [
+            h.keyed('div')(
+              headingId,
+              [
+                h.Id(headingId),
+                h.Role('presentation'),
+                ...(heading.className ? [h.Class(heading.className)] : []),
+              ],
+              [heading.content],
+            ),
+          ],
+        })
+
+        const groupContent = [...headingElement, ...segment.items]
+
+        const groupElement = h.keyed('div')(
+          `${id}-group-${segment.key}`,
+          [
+            h.Role('group'),
+            ...(Option.isSome(maybeHeading)
+              ? [h.AriaLabelledBy(headingId)]
+              : []),
+            ...(groupClassName ? [h.Class(groupClassName)] : []),
+            ...groupAttributes,
+          ],
+          groupContent,
+        )
+
+        const separator =
+          segmentIndex > 0 &&
+          (separatorClassName ||
+            Array.isReadonlyArrayNonEmpty(separatorAttributes))
+            ? [
+                h.keyed('div')(`${id}-separator-${segmentIndex}`, [
+                  h.Role('separator'),
+                  ...(separatorClassName ? [h.Class(separatorClassName)] : []),
+                  ...separatorAttributes,
+                ]),
+              ]
+            : []
+
+        return [...separator, groupElement]
+      })
+    }
+
+    const backdrop = h.keyed('div')(`${id}-backdrop`, [
+      h.OnMount(PortalMenuBackdrop()),
+      ...(isLeaving ? [] : [h.OnClick(Message.Closed())]),
+      ...(backdropClassName ? [h.Class(backdropClassName)] : []),
+      ...backdropAttributes,
+    ])
+
+    const renderedItems = renderGroupedItems()
+
+    const scrollableItems =
+      itemsScrollClassName ||
+      Array.isReadonlyArrayNonEmpty(itemsScrollAttributes)
+        ? [
+            h.div(
+              [
+                ...(itemsScrollClassName
+                  ? [h.Class(itemsScrollClassName)]
+                  : []),
+                ...itemsScrollAttributes,
+              ],
+              renderedItems,
+            ),
+          ]
+        : renderedItems
+
+    const visibleContent = [
+      backdrop,
+      h.keyed('div')(
+        `${id}-items-container`,
+        itemsContainerAttributes,
+        scrollableItems,
+      ),
+    ]
+
+    const wrapperAttributes = [
+      ...(className ? [h.Class(className)] : []),
+      ...attributes,
+      ...(isVisible ? [h.DataAttribute('open', '')] : []),
+    ]
+
+    return h.div(wrapperAttributes, [
+      h.keyed('button')(`${id}-button`, resolvedButtonAttributes, [
+        buttonContent,
+      ]),
+      ...(isVisible ? visibleContent : []),
+    ])
   }
 
-  const backdrop = h.keyed('div')(`${id}-backdrop`, [
-    h.OnMount(PortalMenuBackdrop()),
-    ...(isLeaving ? [] : [h.OnClick(Message.Closed())]),
-    ...(backdropClassName ? [h.Class(backdropClassName)] : []),
-    ...backdropAttributes,
-  ])
+  const view = MenuComposition.makeView.withInputs(menuViewImpl)
 
-  const renderedItems = renderGroupedItems()
+  /** @internal Acquired implementation used by focused library tests. */
 
-  const scrollableItems =
-    itemsScrollClassName || Array.isReadonlyArrayNonEmpty(itemsScrollAttributes)
-      ? [
-          h.div(
-            [
-              ...(itemsScrollClassName ? [h.Class(itemsScrollClassName)] : []),
-              ...itemsScrollAttributes,
-            ],
-            renderedItems,
-          ),
-        ]
-      : renderedItems
-
-  const visibleContent = [
-    backdrop,
-    h.keyed('div')(
-      `${id}-items-container`,
-      itemsContainerAttributes,
-      scrollableItems,
-    ),
-  ]
-
-  const wrapperAttributes = [
-    ...(className ? [h.Class(className)] : []),
-    ...attributes,
-    ...(isVisible ? [h.DataAttribute('open', '')] : []),
-  ]
-
-  return h.div(wrapperAttributes, [
-    h.keyed('button')(`${id}-button`, resolvedButtonAttributes, [
-      buttonContent,
-    ]),
-    ...(isVisible ? visibleContent : []),
-  ])
+  return { MenuBlock, AnimationBinding, init, update, inMessageUpdate, view }
 }
 
-const view = MenuComposition.makeView.withInputs(menuViewImpl)
-
-/** @internal Acquired implementation used by focused library tests. */
-const canonicalLayer = MenuBlock.makeLayer({
-  init,
-  update,
-  inMessageUpdate,
-  view,
-  EffectsLayer,
-}).pipe(Layer.provide(Animation.layer))
-/** Constructs Menu and its private Animation dependency. */
-type CanonicalIdentity = Block.SelectedPublicIdentity<typeof MenuBlock>
-const MenuRefinementRule = Symbol('Menu.Refinement')
-/** @internal Closed type-only refinement identity. */
-export interface MenuRefinementKey {
-  readonly [MenuRefinementRule]: true
-}
-type CanonicalImplementation = Extract<
-  Layer.Success<typeof canonicalLayer>,
-  Block.SelectedImplementationFacts<
-    CanonicalIdentity,
-    unknown,
-    unknown,
-    unknown
-  >
+type Authoring<Value extends string, ValueEncoded> = ReturnType<
+  typeof makeAuthoring<Value, ValueEncoded>
 >
-/** @internal Captured implementation capability for this fixed family. */
-export interface SharedMenuProof extends Block.ClosedFamilyCapability<MenuRefinementKey> {}
-/** @internal The shared provider's original canonical implementation facts. */
-export interface SharedMenuFacts extends Block.FixedRefinementProvider<
-  MenuRefinementKey,
-  CanonicalIdentity,
-  CanonicalImplementation
-> {}
-const SharedMenuProof = Context.Service<
-  SharedMenuProof,
-  Readonly<{ executable: object }>
->('foldkit/ui/private/Menu.SharedImplementation')
-const SharedMenuFacts = Context.Service<
-  SharedMenuFacts,
-  Readonly<Record<never, never>>
->('foldkit/ui/private/Menu.SharedFacts')
-/** Constructs the original shared implementation for type-only specializations. */
-export const layer = makeFixedFamilyLayer(
-  MenuBlock,
-  canonicalLayer,
-  BlockFamily.readDeclaredExecutable(MenuBlock),
-  SharedMenuProof,
-  SharedMenuFacts,
+
+const construct = <Value extends string, ValueEncoded>(
+  authoring: Authoring<Value, ValueEncoded>,
+) =>
+  authoring.MenuBlock.makeLayer({
+    init: authoring.init,
+    update: authoring.update,
+    inMessageUpdate: authoring.inMessageUpdate,
+    view: authoring.view,
+    EffectsLayer,
+  }).pipe(Layer.provide(AnimationLayer))
+
+interface MenuImplementation extends Block.FamilyLifetime {
+  readonly construct: typeof construct
+}
+
+/** @internal Scoped provider for Schema-specific Menu implementations. */
+export class MenuFamily extends Context.Service<
+  MenuFamily,
+  MenuImplementation
+>()('foldkit/ui/Menu') {}
+
+/** Constructs Menu implementations and their private Animation child. */
+export const layer = Layer.effect(
+  MenuFamily,
+  Effect.gen(function* () {
+    const lifetime = yield* Block.familyLifetime
+
+    return { ...lifetime, construct }
+  }),
 )
 
-Reflect.deleteProperty(MenuBlock, 'makeLayer')
-Reflect.deleteProperty(MenuBlock, 'provideHandlers')
-Object.freeze(MenuBlock)
+const declareBlock = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) => {
+  const authoring = makeAuthoring(Value)
 
-/** @internal Selected implementation used by component tests. */
-export const block = { block: MenuBlock, layer }
+  return BlockFamily.resolveFamily(
+    authoring.MenuBlock,
+    MenuFamily,
+    implementation => implementation.construct(authoring),
+  )
+}
 
-/** @internal Shared Animation relationship for focused transition tests. */
-export { AnimationBinding }
-
-type CanonicalContract = typeof MenuBlock
-type CanonicalFacts = Block.FactsOf<CanonicalContract>
-type RefinedFacts<Item extends string> = Omit<
-  CanonicalFacts,
-  'view' | 'update' | 'operations'
-> &
-  Readonly<{
-    view: Block.ViewContract<ViewInputs<Item>, 'Element'>
-    update: Block.ResultContract<
-      OutMessage<Item>,
-      CanonicalFacts['update']['requirements']
-    >
-    operations: Readonly<{
-      requestOpen: Block.OperationContract<
-        readonly [],
-        OutMessage<Item>,
-        CanonicalFacts['operations']['requestOpen']['requirements']
-      >
-      requestClose: Block.OperationContract<
-        readonly [],
-        OutMessage<Item>,
-        CanonicalFacts['operations']['requestClose']['requirements']
-      >
-      requestSelectItem: Block.OperationContract<
-        readonly [item: Item, index: number],
-        OutMessage<Item>,
-        CanonicalFacts['operations']['requestSelectItem']['requirements']
-      >
-    }>
-  }>
-type RefinedContract<Item extends string> = Block.Contract<
-  CanonicalContract['owner'],
-  CanonicalContract['Model'],
-  CanonicalContract['Message'],
-  OutMessageSchema<Item>,
-  RefinedFacts<Item>
+type Contract<Value extends string, ValueEncoded> = ReturnType<
+  typeof declareBlock<Value, ValueEncoded>
 >
-type RefinedConfiguration<Item extends string> = Readonly<{
-  key: typeof MenuKey
-  InMessage: typeof InMessage
-  InitArgs: Schema.Tuple<readonly [typeof InitConfig]>
-  ChildInitContext: typeof InitConfig
-  view: Readonly<{
-    kind: 'Element'
-    Inputs: Block.InputContract<ViewInputs<Item>>
-    mounts: typeof mounts
-  }>
-  inMessageOutputs: Readonly<{
-    RequestedOpen: Readonly<{ outMessage: OutMessageSchema<Item> }>
-    RequestedClose: Readonly<{ outMessage: OutMessageSchema<Item> }>
-  }>
-  operations: Readonly<{
-    requestSelectItem: Readonly<{
-      message: (
-        item: Item,
-        index: number,
-      ) => readonly [typeof Message.RequestedSelectItem.Type]
-      outMessage: OutMessageSchema<Item>
-    }>
-  }>
-}>
-/** @internal Names the exact private reader of this fixed-family specialization. */
-export interface MenuReader<Item extends string> extends Block.ReadableProvider<
-  MenuRefinementKey,
-  Block.SelectedPublicIdentity<RefinedContract<Item>>
-> {}
+/** Passive Menu contract retaining its exact action-value Codec. */
+export interface Completed<
+  Value extends string = string,
+  ValueEncoded = Value,
+> extends Contract<Value, ValueEncoded> {}
 
-type RefinedBlock<Item extends string> = Omit<
-  Block.UnifiedBlock<
-    'Menu',
-    CanonicalContract['Model'],
-    CanonicalContract['Message'],
-    OutMessageSchema<Item>,
-    typeof InitConfig,
-    RefinedConfiguration<Item>,
-    CanonicalIdentity,
-    MenuReader<Item>
-  >,
-  'makeLayer' | 'provideHandlers' | keyof RefinedContract<Item>
-> &
-  Omit<RefinedContract<Item>, 'get'>
-/** Passive Menu contract retaining exact controlled inputs and result channels. */
-export interface Completed<Item extends string = string>
-  extends
-    RefinedBlock<Item>,
-    Block.FixedRefinement<
-      MenuRefinementKey,
-      CanonicalIdentity,
-      Block.SelectedPublicIdentity<RefinedContract<Item>>
-    > {}
+/** Declares a Menu contract. Pass a string Value Schema, or omit it for
+ * unrestricted action strings. Provide Menu.layer when constructing the parent.
+ *
+ * @example
+ * ```ts
+ * const Action = Schema.Literals(['Edit', 'Archive'])
+ * const ActionMenuBlock = Menu.makeBlock(Action)
+ * ```
+ */
+export function makeBlock(): Completed<string>
+export function makeBlock<Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+): Completed<Value, ValueEncoded>
+export function makeBlock(
+  Value: ValueSchema<string, unknown> = Schema.String,
+): object {
+  return declareBlock(Value)
+}
 
-/** Creates the typed contract; supply Menu.layer when constructing the parent. */
-export const makeBlock = <Item extends string = string>(): Completed<Item> =>
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  MenuBlock as unknown as Completed<Item>
+const defaultAuthoring = makeAuthoring(Schema.String)
+/** @internal Default string contract and provider used by interaction tests. */
+export const block = {
+  block: BlockFamily.resolveFamily(
+    defaultAuthoring.MenuBlock,
+    MenuFamily,
+    implementation => implementation.construct(defaultAuthoring),
+  ),
+  layer,
+}
+
+/** @internal Default Menu's child relationship used by lifecycle tests. */
+export const AnimationBinding = defaultAuthoring.AnimationBinding

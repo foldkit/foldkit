@@ -15,10 +15,8 @@ import {
   InvocationIdentityTypeId,
   InvocationNameTypeId,
   identityOf,
-  invocationIdentity,
-  invocationName,
 } from '../block/identity.js'
-import { isScopedEntry, isScopedInvocation } from '../block/scope.js'
+import { isScopedEntry } from '../block/scope.js'
 import type { Scoped } from '../block/scope.js'
 import { CommandDefinitionTypeId } from '../command/index.js'
 import type { InterruptDefinitionNoArgs } from '../command/interruptible/index.js'
@@ -39,7 +37,6 @@ import {
   __messageMappers as subscriptionMessageMappers,
 } from '../subscription/subscription.js'
 import {
-  bindingMatcherFingerprint,
   commandMatches,
   isBindingCommandMatcher,
   sameOperation,
@@ -283,9 +280,9 @@ export type MountResolver<ResultMessage = unknown> = readonly [
 /** A resolver entry pairs a Command matcher with the raw result Message that
  *  should be fed back through update when a pending Command matches. The
  *  matched Command's own message-mapping chain is applied to the result at
- *  resolve time. Stored as a list (not a name-keyed map) so Instance matchers
- *  with the same name but different args can coexist. Each entry is consumed on
- *  its first matching dispatch. */
+ *  resolve time. Represented as a list (not a name-keyed map) so Instance
+ *  matchers with the same name but different args can coexist. Each entry is
+ *  consumed on its first matching dispatch. */
 export type ResolverEntry = Readonly<{
   matcher: CommandMatcher
   resultMessage: unknown
@@ -306,7 +303,6 @@ export type BaseInternal<Model, Message, OutMessage = undefined> = Readonly<{
     model: Model,
     message: Message,
   ) => SimulationUpdateReturn<Model, OutMessage>
-  resolvers: ReadonlyArray<ResolverEntry>
 }>
 
 /** Drops every pending Command holding `interruptsKey` when a resolved
@@ -387,24 +383,6 @@ export const resolveByMatcher = <Model, Message, OutMessage>(
 
 const MAX_CASCADE_DEPTH = 100
 
-/** A fingerprint identifying a matcher's match space. Two matchers with the
- *  same fingerprint resolve the same set of Commands; the newer one wins. */
-const matcherIdentities = new WeakMap<DefinitionIdentity, number>()
-let nextMatcherIdentity = 0
-
-const matcherFingerprint = (matcher: CommandMatcher): string => {
-  const identity = identityOf(matcher) ?? invocationIdentity(matcher)
-  let source = matcher.name
-  if (identity !== undefined) {
-    const identityId = matcherIdentities.get(identity) ?? nextMatcherIdentity++
-    matcherIdentities.set(identity, identityId)
-    source = `${identityId}:${invocationName(matcher) ?? matcher.name}:${isScopedInvocation(matcher) ? matcher.name : ''}:${bindingMatcherFingerprint(matcher)}`
-  }
-  return isCommandDefinitionMatcher(matcher)
-    ? `def:${source}`
-    : `inst:${source}:${JSON.stringify(matcher.args ?? null)}`
-}
-
 const findNextMatch = (
   commands: ReadonlyArray<AnyCommand>,
   resolvers: ReadonlyArray<ResolverEntry>,
@@ -437,34 +415,22 @@ const assertBindingResolversUnambiguous = (
 /** Resolves all listed Commands, cascading through any Commands produced by
  *  the result. Each entry is consumed by exactly one matching dispatch in
  *  declaration order; for N identical responses, compose with
- *  `Array.makeBy(n, () => [Def, message])`. Across calls, new entries replace
- *  any leftover resolvers sharing their fingerprint (latest wins). */
+ *  `Array.makeBy(n, () => [Def, message])`. Resolvers apply only to this call;
+ *  unmatched entries are discarded and unrelated Commands remain pending. */
 export const resolveAllInternal = <Model, Message, OutMessage>(
   internal: BaseInternal<Model, Message, OutMessage>,
   resolvers: ReadonlyArray<Resolver>,
 ): BaseInternal<Model, Message, OutMessage> => {
-  const newEntries: ReadonlyArray<ResolverEntry> = Array.map(
+  let remainingResolvers: ReadonlyArray<ResolverEntry> = Array.map(
     resolvers,
     ([matcher, resultMessage]) => ({ matcher, resultMessage }),
   )
 
-  const newFingerprints = new Set(
-    Array.map(newEntries, ({ matcher }) => matcherFingerprint(matcher)),
-  )
-  const survivingExisting = Array.filter(
-    internal.resolvers,
-    ({ matcher }) => !newFingerprints.has(matcherFingerprint(matcher)),
-  )
-
-  /* eslint-disable @typescript-eslint/consistent-type-assertions */
-  let current = {
-    ...internal,
-    resolvers: [...survivingExisting, ...newEntries],
-  } as BaseInternal<Model, Message, unknown>
+  let current = internal
 
   for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
-    assertBindingResolversUnambiguous(current.commands, current.resolvers)
-    const matched = findNextMatch(current.commands, current.resolvers)
+    assertBindingResolversUnambiguous(current.commands, remainingResolvers)
+    const matched = findNextMatch(current.commands, remainingResolvers)
 
     if (Option.isNone(matched)) {
       break
@@ -476,14 +442,15 @@ export const resolveAllInternal = <Model, Message, OutMessage>(
       matched.value.entry.resultMessage,
     )
 
-    if (Predicate.isUndefined(next)) {
+    if (next === undefined) {
       break
     }
 
-    current = {
-      ...next,
-      resolvers: Array.remove(next.resolvers, matched.value.resolverIndex),
-    }
+    current = next
+    remainingResolvers = Array.remove(
+      remainingResolvers,
+      matched.value.resolverIndex,
+    )
 
     if (depth === MAX_CASCADE_DEPTH - 1) {
       throw new Error(
@@ -493,13 +460,12 @@ export const resolveAllInternal = <Model, Message, OutMessage>(
     }
   }
 
-  return current as BaseInternal<Model, Message, OutMessage>
-  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+  return current
 }
 
 /** Resolves only the listed Command resolvers, cascading through result
- *  Messages, and throws unless every resolver matches one dispatched Command.
- *  Unlike `resolveAllInternal`, unmatched entries never carry forward. */
+ *  Messages, and throws unless every resolver matches one dispatched Command
+ *  and no actual Command remains unresolved. */
 export const resolveAllExactInternal = <Model, Message, OutMessage>(
   internal: BaseInternal<Model, Message, OutMessage>,
   resolvers: ReadonlyArray<Resolver>,
@@ -525,7 +491,7 @@ export const resolveAllExactInternal = <Model, Message, OutMessage>(
       matched.value.entry.resultMessage,
     )
 
-    if (Predicate.isUndefined(next)) {
+    if (next === undefined) {
       break
     }
 
@@ -1089,14 +1055,18 @@ export const sourceSubscriptionDeclarationsOf = (
 }
 
 const selectSubscriptionDeclaration = (
+  stepName: string,
   declaration: SubscriptionMessageDeclaration,
   source: unknown,
 ): SubscriptionMessageDeclaration => {
+  const selectorName = stepName.startsWith('Story.')
+    ? 'Story.Subscription.at'
+    : 'Scene.Subscription.at'
   const selection = __keyedSelection(source)
   if (selection === undefined) {
     if (__keyedTemplate(declaration.entry) !== undefined) {
       throw new Error(
-        '[foldkit] A keyed child Subscription requires an occurrence selected with Scene.Subscription.at(Binding, key, entry).',
+        `[foldkit] A keyed child Subscription requires an occurrence selected with ${selectorName}(Binding, key, entry).`,
       )
     }
     return declaration
@@ -1105,7 +1075,7 @@ const selectSubscriptionDeclaration = (
   const selected = __selectFromTemplate(declaration.entry, selection.key)
   if (selected === undefined) {
     throw new Error(
-      '[foldkit] Scene.Subscription.at selected a Subscription that is not registered for this keyed Binding.',
+      `[foldkit] ${selectorName} selected a Subscription that is not registered for this keyed Binding.`,
     )
   }
 
@@ -1129,8 +1099,11 @@ export const resolveSubscriptionDeclaration = (
 
   return Array.matchLeft(sourceDeclarations, {
     onEmpty: () => {
+      const registryOwner = stepName.startsWith('Scene.')
+        ? 'Scene'
+        : 'selected Block graph'
       throw new Error(
-        `${stepName} selected a Subscription not registered in the Scene.`,
+        `${stepName} selected a Subscription not registered in the ${registryOwner}.`,
       )
     },
     onNonEmpty: (declaration, remainingDeclarations) => {
@@ -1148,7 +1121,7 @@ export const resolveSubscriptionDeclaration = (
         )
       }
 
-      return selectSubscriptionDeclaration(declaration, entry)
+      return selectSubscriptionDeclaration(stepName, declaration, entry)
     },
   })
 }
@@ -1192,7 +1165,7 @@ export const resolveSubscriptionMessage = (
       }
 
       return applySubscriptionMappers(
-        selectSubscriptionDeclaration(declaration, entry),
+        selectSubscriptionDeclaration(stepName, declaration, entry),
         message,
       )
     },

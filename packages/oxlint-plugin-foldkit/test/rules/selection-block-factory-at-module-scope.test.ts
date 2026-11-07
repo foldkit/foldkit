@@ -33,6 +33,37 @@ const runOnProgram = (body: ReadonlyArray<unknown>) =>
   )
 
 describe('selection-block-factory-at-module-scope', () => {
+  it('flags a RadioGroup Schema factory created inside a function', () => {
+    const result = runOnProgram([
+      Testing.varDecl(
+        'const',
+        'render',
+        Testing.arrowFn(
+          callWithCallee(Testing.memberExpr('RadioGroup', 'makeBlock'), [
+            Testing.id('Plan'),
+          ]),
+        ),
+      ),
+    ])
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain('RadioGroup.makeBlock')
+  })
+
+  it('allows a RadioGroup Schema factory declared at module scope', () => {
+    const result = runOnProgram([
+      Testing.varDecl(
+        'const',
+        'PlanRadioGroup',
+        callWithCallee(Testing.memberExpr('RadioGroup', 'makeBlock'), [
+          Testing.id('Plan'),
+        ]),
+      ),
+    ])
+
+    expect(result).toHaveLength(0)
+  })
+
   it('flags a factory created inline inside a function body', () => {
     const result = runOnProgram([
       Testing.exportNamedDecl(

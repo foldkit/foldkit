@@ -13,7 +13,7 @@ export const DialogBinding = makeRequiredFieldBinding(Dialog.DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-export const ApplicationMenu = Menu.makeBlock<string>()
+export const ApplicationMenu = Menu.makeBlock()
 
 export const MenuBinding = makeRequiredFieldBinding(ApplicationMenu, {
   field: 'menu',

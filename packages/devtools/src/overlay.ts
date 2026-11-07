@@ -89,7 +89,7 @@ const SCRUBBER_SLIDER_ID = 'dt-scrubber'
 const InspectorTab = Schema.Literals(['Model', 'Message', 'Commands', 'Mounts'])
 type InspectorTab = typeof InspectorTab.Type
 const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = InspectorTab.literals
-const InspectorTabsBlock = Tabs.makeBlock<InspectorTab>()
+const InspectorTabsBlock = Tabs.makeBlock(InspectorTab)
 
 /**
  * `Schema.Unknown` whose equivalence is reference equality. Effect 4's default

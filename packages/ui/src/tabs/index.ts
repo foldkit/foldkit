@@ -5,13 +5,7 @@ export type { InitConfig, ViewInputs, RenderInfo, TabInfo } from './types.js'
 
 export type { TabsKey } from './definition.js'
 
-/** @internal Nameable fixed-family evidence in emitted consumer declarations. */
-export type {
-  TabsRefinementKey,
-  SharedTabsProof,
-  SharedTabsFacts,
-} from './block.js'
-export type { OutMessageSchema } from './types.js'
+export type { ValueSchema, MessageSchema, OutMessageSchema } from './types.js'
 
-/** @internal Preserves exact fixed-family reader names in emitted declarations. */
-export type { TabsReader } from './contract.js'
+/** @internal Keeps the family provider identity nameable in emitted consumers. */
+export type { TabsFamily } from './block.js'

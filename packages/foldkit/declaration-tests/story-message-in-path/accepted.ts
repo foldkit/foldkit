@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Schema, Stream } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
@@ -13,6 +13,20 @@ export const LeafBlock = Block.make('StoryMessageInPathDeclarationLeaf', {
   Message: LeafMessage,
   InitArgs: Schema.Tuple([]),
 })
+export const leafSubscriptions = LeafBlock.makeSubscriptions(entry => ({
+  counts: entry('Counts', {
+    messages: [LeafMessage.UpdatedCount],
+    handler: function* () {
+      return () => Stream.never
+    },
+  }),
+  silent: entry('Silent', {
+    messages: [],
+    handler: function* () {
+      return () => Stream.never
+    },
+  }),
+}))
 
 const MiddleModel = Schema.Struct({
   leaves: Schema.Record(Schema.String, LeafBlock.Model),
@@ -65,6 +79,16 @@ export const DirectRootBlock = Block.make(
     InitArgs: Schema.Tuple([]),
   },
 )
+export const directLeafSubscriptions = DirectLeafBlock.makeSubscriptions(
+  entry => ({
+    counts: entry('Counts', {
+      messages: [LeafMessage.UpdatedCount],
+      handler: function* () {
+        return () => Stream.never
+      },
+    }),
+  }),
+)
 export const DirectLeafBinding = DirectRootBlock.makeRequiredFieldBinding(
   DirectLeafBlock,
   {
@@ -91,4 +115,26 @@ export const keyedDelivery = Story.messageIn(
   LeavesBinding,
   'first',
   LeafMessage.UpdatedCount({ count: 4 }),
+)
+export const nestedSubscriptionDelivery = Story.Subscription.emit(
+  Story.Subscription.at(
+    [MiddleBinding, { binding: LeavesBinding, key: 'first' }],
+    leafSubscriptions.counts,
+  ),
+  LeafMessage.UpdatedCount({ count: 5 }),
+)
+export const staticSubscriptionDelivery = Story.Subscription.emit(
+  Story.Subscription.at(DirectLeafBinding, directLeafSubscriptions.counts),
+  LeafMessage.UpdatedCount({ count: 6 }),
+)
+export const keyedSubscriptionDelivery = Story.Subscription.emit(
+  Story.Subscription.at(LeavesBinding, 'first', leafSubscriptions.counts),
+  LeafMessage.UpdatedCount({ count: 7 }),
+)
+export const rawSubscriptionDelivery = Story.Subscription.emit(
+  leafSubscriptions.counts,
+  LeafMessage.UpdatedCount({ count: 8 }),
+)
+export const nestedSubscriptionGroup = Story.steps(
+  Story.steps(nestedSubscriptionDelivery),
 )

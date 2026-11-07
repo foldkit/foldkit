@@ -1,7 +1,8 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { PaletteIndex, Tool } from './model'
+import { PaletteIndex } from './model'
+import { Tool } from './tool'
 
 export const Message = defineMessageUnion({
   PressedCell: { x: Schema.Number, y: Schema.Number },

@@ -1,78 +1,49 @@
-import type { Schema } from 'effect'
-import type * as Block from 'foldkit/block'
+import { Schema } from 'effect'
+import * as BlockFamily from 'foldkit/internal/block'
 
-import type { CanonicalIdentity, TabsRefinementKey } from './block.js'
-import { TabsBlock, TabsKey } from './definition.js'
-import type { InitConfig } from './types.js'
-import type { OutMessage, OutMessageSchema, ViewInputs } from './types.js'
+import { TabsFamily } from './block.js'
+import { makeAuthoring } from './composition.js'
+import type { ValueSchema } from './types.js'
 
-type CanonicalContract = typeof TabsBlock
-type CanonicalFacts = Block.FactsOf<CanonicalContract>
+const declareBlock = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) => {
+  const authoring = makeAuthoring(Value)
 
-type RefinedFacts<Value extends string> = Omit<
-  CanonicalFacts,
-  'view' | 'update'
-> &
-  Readonly<{
-    view: Block.ViewContract<ViewInputs<Value>, 'Element'>
-    update: Block.ResultContract<
-      OutMessage<Value>,
-      CanonicalFacts['update']['requirements']
-    >
-  }>
+  return BlockFamily.resolveFamily(
+    authoring.Definition,
+    TabsFamily,
+    implementation => implementation.construct(authoring),
+  )
+}
 
-type RefinedContract<Value extends string> = Block.Contract<
-  CanonicalContract['owner'],
-  CanonicalContract['Model'],
-  CanonicalContract['Message'],
-  OutMessageSchema<Value>,
-  RefinedFacts<Value>
+type Contract<Value extends string, ValueEncoded> = ReturnType<
+  typeof declareBlock<Value, ValueEncoded>
 >
+/** Passive Tabs contract retaining its exact selected-value Codec. */
+export interface Completed<
+  Value extends string = string,
+  ValueEncoded = Value,
+> extends Contract<Value, ValueEncoded> {}
 
-type RefinedConfiguration<Value extends string> = Readonly<{
-  key: typeof TabsKey
-  InitArgs: Schema.Tuple<readonly [typeof InitConfig]>
-  view: Readonly<{
-    kind: 'Element'
-    Inputs: Block.InputContract<ViewInputs<Value>>
-  }>
-}>
-/** @internal Names the exact private reader of this fixed-family specialization. */
-export interface TabsReader<
-  Value extends string,
-> extends Block.ReadableProvider<
-  TabsRefinementKey,
-  Block.SelectedPublicIdentity<RefinedContract<Value>>
-> {}
-
-type RefinedBlock<Value extends string> = Omit<
-  Block.UnifiedBlock<
-    'Tabs',
-    CanonicalContract['Model'],
-    CanonicalContract['Message'],
-    OutMessageSchema<Value>,
-    undefined,
-    RefinedConfiguration<Value>,
-    CanonicalIdentity,
-    TabsReader<Value>
-  >,
-  'makeLayer' | 'provideHandlers' | keyof RefinedContract<Value>
-> &
-  Omit<RefinedContract<Value>, 'get'>
-/** A passive Tabs contract refined to its controlled Value type. */
-export interface Completed<Value extends string = string>
-  extends
-    RefinedBlock<Value>,
-    Block.FixedRefinement<
-      TabsRefinementKey,
-      CanonicalIdentity,
-      Block.SelectedPublicIdentity<RefinedContract<Value>>
-    > {}
-
-/** Creates a typed Tabs contract; provide Tabs.layer when constructing its graph. */
-export const makeBlock = <Value extends string = string>(): Completed<Value> =>
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  TabsBlock as unknown as Completed<Value>
+/** Declares a Tabs contract. Pass a string Value Schema, or omit it for
+ * unrestricted strings. Provide Tabs.layer when constructing the parent.
+ *
+ * @example
+ * ```ts
+ * const Section = Schema.Literals(['Overview', 'Activity'])
+ * const SectionTabsBlock = Tabs.makeBlock(Section)
+ * ```
+ */
+export function makeBlock(): Completed<string>
+export function makeBlock<Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+): Completed<Value, ValueEncoded>
+export function makeBlock(
+  Value: ValueSchema<string, unknown> = Schema.String,
+): object {
+  return declareBlock(Value)
+}
 
 export {
   ActivationMode,

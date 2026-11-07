@@ -1,19 +1,22 @@
 import { Array, Match, Option, String, pipe } from 'effect'
-import { childAttributes } from 'foldkit/html'
+import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 
 import { keyToIndex } from '../keyboard.js'
-import { TabsComposition } from './composition.js'
 import { tabId, tabPanelId } from './ids.js'
-import {
-  type FocusedTab,
-  Message,
-  type SelectedTab,
-  type TabInfo,
-} from './types.js'
+import type { MessageSchema, Model, TabInfo, ViewInputs } from './types.js'
 
-/** @internal Canonical Tabs implementation. */
-export const view = TabsComposition.makeView.withInputs(
-  (model, viewInputs, h) => {
+/** @internal Creates view Messages with the selected value's exact Codec. */
+export const makeView =
+  <Value extends string, ValueEncoded>(
+    Message: MessageSchema<Value, ValueEncoded>,
+  ) =>
+  (
+    model: Model,
+    viewInputs: ViewInputs<Value>,
+    h: HtmlBuilder<MessageSchema<Value, ValueEncoded>['Type']>,
+  ) => {
+    type SelectedTab = typeof Message.SelectedTab.Type
+    type FocusedTab = typeof Message.FocusedTab.Type
     const { id, activationMode, maybeFocusedIndex } = model
     const {
       tabs,
@@ -114,49 +117,52 @@ export const view = TabsComposition.makeView.withInputs(
         Match.exhaustive,
       )
 
-    const tabInfos: ReadonlyArray<TabInfo> = Array.map(tabs, (value, index) => {
-      const isActive = index === activeIndex
-      const isFocused = index === focusedIndex
-      const isTabDisabledNow = isDisabled(index)
+    const tabInfos: ReadonlyArray<TabInfo<Value>> = Array.map(
+      tabs,
+      (value, index) => {
+        const isActive = index === activeIndex
+        const isFocused = index === focusedIndex
+        const isTabDisabledNow = isDisabled(index)
 
-      const tabAttributes = [
-        h.Id(tabId(id, index)),
-        h.Role('tab'),
-        h.Type('button'),
-        h.AriaSelected(isActive),
-        ...(isActive || panelMount === 'All'
-          ? [h.AriaControls(tabPanelId(id, index))]
-          : []),
-        h.Tabindex(isFocused ? 0 : -1),
-        ...(isActive ? [h.DataAttribute('selected', '')] : []),
-        ...(isTabDisabledNow
-          ? [
-              h.Disabled(true),
-              h.AriaDisabled(true),
-              h.DataAttribute('disabled', ''),
-            ]
-          : [h.OnClick(Message.SelectedTab({ index, value }))]),
-        h.OnKeyDownPreventDefault(handleKeyDown),
-      ]
+        const tabAttributes = [
+          h.Id(tabId(id, index)),
+          h.Role('tab'),
+          h.Type('button'),
+          h.AriaSelected(isActive),
+          ...(isActive || panelMount === 'All'
+            ? [h.AriaControls(tabPanelId(id, index))]
+            : []),
+          h.Tabindex(isFocused ? 0 : -1),
+          ...(isActive ? [h.DataAttribute('selected', '')] : []),
+          ...(isTabDisabledNow
+            ? [
+                h.Disabled(true),
+                h.AriaDisabled(true),
+                h.DataAttribute('disabled', ''),
+              ]
+            : [h.OnClick(Message.SelectedTab({ index, value }))]),
+          h.OnKeyDownPreventDefault(handleKeyDown),
+        ]
 
-      const panelAttributes = [
-        h.Id(tabPanelId(id, index)),
-        h.Role('tabpanel'),
-        h.AriaLabelledBy(tabId(id, index)),
-        h.Tabindex(isActive ? 0 : -1),
-        ...(isActive ? [h.DataAttribute('selected', '')] : []),
-      ]
+        const panelAttributes = [
+          h.Id(tabPanelId(id, index)),
+          h.Role('tabpanel'),
+          h.AriaLabelledBy(tabId(id, index)),
+          h.Tabindex(isActive ? 0 : -1),
+          ...(isActive ? [h.DataAttribute('selected', '')] : []),
+        ]
 
-      return {
-        value,
-        index,
-        isActive,
-        isFocused,
-        isDisabled: isTabDisabledNow,
-        tab: childAttributes(tabAttributes),
-        panel: childAttributes(panelAttributes),
-      }
-    })
+        return {
+          value,
+          index,
+          isActive,
+          isFocused,
+          isDisabled: isTabDisabledNow,
+          tab: childAttributes(tabAttributes),
+          panel: childAttributes(panelAttributes),
+        }
+      },
+    )
 
     const tablistAttributes = [
       h.Role('tablist'),
@@ -169,5 +175,4 @@ export const view = TabsComposition.makeView.withInputs(
       tabs: tabInfos,
       activeIndex,
     })
-  },
-)
+  }

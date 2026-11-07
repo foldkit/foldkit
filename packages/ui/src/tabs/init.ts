@@ -1,12 +1,12 @@
 import { Option } from 'effect'
 
-import { TabsComposition } from './composition.js'
+import type { InitConfig } from './types.js'
 
-/** @internal Canonical Tabs implementation. */
-export const init = TabsComposition.makeInit(({ id, activationMode }) => ({
+/** @internal Initializes focus and activation state; the parent owns selection. */
+export const init = ({ id, activationMode }: InitConfig) => ({
   model: {
     id,
-    maybeFocusedIndex: Option.none(),
+    maybeFocusedIndex: Option.none<number>(),
     activationMode: activationMode ?? 'Automatic',
   },
-}))
+})

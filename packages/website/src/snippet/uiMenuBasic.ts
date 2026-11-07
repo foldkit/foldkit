@@ -4,9 +4,10 @@ import { defineMessageUnion } from 'foldkit/message'
 
 import { Menu } from '@foldkit/ui'
 
-type Action = 'Edit' | 'Duplicate' | 'Archive' | 'Delete'
+const Action = Schema.Literals(['Edit', 'Duplicate', 'Archive', 'Delete'])
+type Action = typeof Action.Type
 
-const ActionMenu = Menu.makeBlock<Action>()
+const ActionMenu = Menu.makeBlock(Action)
 
 // Add a field to your Model for the Menu Block:
 const Model = Schema.Struct({

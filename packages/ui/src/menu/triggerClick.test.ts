@@ -7,7 +7,7 @@ import { describe, it } from '@effect/vitest'
 import { InitConfig } from './menu.js'
 import { layer as MenuLayer, makeBlock } from './public.js'
 
-const TestMenu = makeBlock<string>()
+const TestMenu = makeBlock()
 
 const Model = Schema.Struct({ menu: TestMenu.Model })
 type Model = typeof Model.Type

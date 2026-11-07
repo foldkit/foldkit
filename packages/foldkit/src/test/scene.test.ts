@@ -3181,6 +3181,30 @@ describe('scene with resolveAll', () => {
       Scene.expect(Scene.role('status')).toHaveText('Welcome, bob!'),
     )
   })
+
+  test('discards unmatched entries before a later resolveAll call', () => {
+    Scene.scene(
+      { update: counterUpdate, view: counterView },
+      Scene.given(counterInitialModel),
+      Scene.click(Scene.role('button', { name: 'Start three fetches' })),
+      Scene.Command.resolveAll(
+        [FetchCount, CounterMessage.SucceededFetchCount({ count: 1 })],
+        [FetchCount, CounterMessage.SucceededFetchCount({ count: 2 })],
+        [FetchCount, CounterMessage.SucceededFetchCount({ count: 3 })],
+        [FetchCount, CounterMessage.SucceededFetchCount({ count: 4 })],
+      ),
+      Scene.expect(Scene.role('status')).toHaveText('count: 3'),
+      Scene.click(Scene.role('button', { name: 'Start three fetches' })),
+      Scene.Command.resolveAll(),
+      Scene.Command.expectExact(FetchCount, FetchCount, FetchCount),
+      Scene.Command.resolveAll(
+        [FetchCount, CounterMessage.SucceededFetchCount({ count: 5 })],
+        [FetchCount, CounterMessage.SucceededFetchCount({ count: 6 })],
+        [FetchCount, CounterMessage.SucceededFetchCount({ count: 7 })],
+      ),
+      Scene.expect(Scene.role('status')).toHaveText('count: 7'),
+    )
+  })
 })
 
 describe('scene with resolveAllExact', () => {

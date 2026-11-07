@@ -12,7 +12,7 @@ This guide covers upgrades from the Block previews listed below to the candidate
 | `1fbeaffe6563`                                    | [Upgrade from 1fbeaffe6563](#upgrade-from-1fbeaffe6563).                                                                                                                            |
 | `c701daa80af1`, `396b19976386`, or `bfd880b1e6ca` | Follow the complete guide, including the application boundary, Step composition, and UI call-site changes. These three snapshots share the same application API for this migration. |
 
-Every path also applies the shared changes before the snapshot-specific sections: notification names, InMessage declarations, serialization, Listbox factories, keyed folds, Layer-based construction, and testing. A section may require no edit when the application does not use that API.
+Every path also applies the shared changes before the snapshot-specific sections: notification names, InMessage declarations, serialization, selection factories, keyed folds, Layer-based construction, and testing. A section may require no edit when the application does not use that API.
 
 The older-preview baseline was checked at Coverchart checkpoint `084f1c94f38137837e9609c63ef08176ad607c9a`, with `foldkit@0.168.0-canary.bfd880b1e6ca` and its installed Foldkit packages aligned to that snapshot.
 
@@ -95,6 +95,16 @@ Listbox Single and Multi no longer accept a generic-only narrow value contract. 
 
 The Value Codec validates selection Messages, the `Selected` OutMessage, and selection inside a generated parent envelope while preserving its encoded type. It must be service-free and complete synchronously when Foldkit serializes it. The Item Schema supplies view typing only and adds no serialization or Service requirement. Pass `itemToValue` when an Item is not itself a Value, and provide `Listbox.layer` or `Listbox.Multi.layer` to the parent construction Layer.
 
+## Supply Menu, Tabs, and RadioGroup Value Codecs
+
+Menu, Tabs and RadioGroup use runtime Value Codecs in this preview. Earlier published previews used generic-only forms. The Listbox migration is covered separately above.
+
+Replace `Menu.makeBlock<Action>()`, `Tabs.makeBlock<Section>()`, and `RadioGroup.makeBlock<Plan>()` with the corresponding synchronous, service-free string Codec:
+
+::Snippet{name="previewSelectionValueCodecs" label="Schema-backed Menu, Tabs, and RadioGroup factories"}
+
+The no-argument factory remains for unrestricted strings. The Codec validates local selection Messages, `Selected` OutMessages, and generated parent envelopes while preserving its encoded type in `Completed<Value, ValueEncoded>`. Menu's local `RequestedSelectItem` and `SelectedItem` Messages report `{ item, index }`; its public `Selected` OutMessage reports `{ value, index }`, like Tabs and RadioGroup. The parent owns the committed selection or action. These factories do not accept arbitrary non-string selection values.
+
 ## Simplify keyed OutMessage folds
 
 Keyed OutMessage folds can omit forwarding wrappers. Pass
@@ -169,6 +179,24 @@ Nested `Story.messageIn` takes a nonempty Binding path, with `{ binding, key }` 
 
 Replace ordinary callbacks inspecting `simulation.commands` with `Command.expectExact` or `Command.expectExactInOrder`. The latter checks dispatch order in addition to exact identity, args, occurrence and count. Preserve an existing ordering assertion when migrating; `expectExact` remains order-independent.
 
+### Deliver Subscription Messages through the selected graph
+
+Block-aware Stories use `Story.Subscription.emit(entry, message)` for root registrations. Select child sources with `Story.Subscription.at(Binding, source)`, `at(Binding, key, source)`, or a nonempty Binding path. The runner resolves the source against the acquired graph and preserves its decoded Message contract, delivery mappings, and OutMessage folds without starting a Stream.
+
+::Snippet{name="testingStoryChildSubscription" label="Select a nested Subscription source"}
+
+Child implementation Layers can encapsulate their registries. A Binding selection checks the owning Block and occurrence path; exact source registration is checked at runtime. Keep `Story.Subscription.from(registry).emit` for low-level update-only Stories. `Scene.Subscription.at` retains its existing keyed-occurrence form.
+
+### Keep Command resolvers local
+
+`Story.Command.resolveAll` and `Scene.Command.resolveAll` use only the resolvers supplied to that call. They resolve matching current pending Commands and cascades from their result Messages. Each resolver is consumed at most once; unused resolvers are discarded when the call ends, while unrelated Commands remain pending.
+
+If an earlier test relied on an unused resolver reaching a later dispatch, extract the local step and use it explicitly at each intended completion point:
+
+::Snippet{name="previewLocalCommandResolvers" label="Reusing a local Command resolver"}
+
+`resolveAllExact` is also local, but additionally requires every supplied resolver to match and no actual Command to remain. `resolve` is unchanged. Definition identity, instance arguments, and Binding occurrence matching are unchanged; dispatch order does not imply effect or completion order.
+
 ## Upgrade from 90746b32d2ca
 
 The source snapshot is `90746b32d2ca8bc0476de7a051ace396ca590ae0`. It includes the earlier Block construction API and the Machine, Query, and UI factory changes. Adopt the Block declaration and ordinary construction Layer described above, and upgrade Effect and its platform packages to the supported 4.1 minor together. Follow [Effect compatibility](#effect-compatibility), including the UUID service migration and dependency-graph checks.
@@ -219,7 +247,7 @@ SSR development reloads recreate Block declarations with their implementation La
 
 ### UI Block factories
 
-Rename `create` to `makeBlock` on Combobox, Menu, RadioGroup, Tabs, and VirtualList, including the Combobox Multi variant. Rename `Toast.make` to `Toast.makeBlock` too. Those factory renames retain their existing type parameters or Schema arguments. Listbox and Listbox Multi also rename `create` to `makeBlock`, but they require the [runtime Value Schema forms above](#supply-listbox-value-schemas). The old factory names have no compatibility aliases.
+Rename `create` to `makeBlock` on Combobox, Menu, RadioGroup, Tabs, and VirtualList, including the Combobox Multi variant. Rename `Toast.make` to `Toast.makeBlock` too. Combobox retains its Item Schema. Menu, Tabs, and RadioGroup use the [Value Codec forms above](#supply-menu-tabs-and-radiogroup-value-codecs), while Listbox and Listbox Multi use the [runtime Value Schema forms above](#supply-listbox-value-schemas). The old factory names have no compatibility aliases.
 
 Each factory returns a passive public Block contract. Declare it once at module scope, bind that value in the parent, and provide the component's implementation Layer to the parent's construction Layer. Calling the factory does not initialize an occurrence or start effects. After graph acquisition, parent init calls the child's initializer and retains its Model and Commands. See [Selection Blocks](/ui/selection-blocks#make-block-factory), [Toast](/ui/toast), and [VirtualList](/ui/virtual-list) for current usage.
 

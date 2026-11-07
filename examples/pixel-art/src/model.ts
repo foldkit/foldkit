@@ -8,6 +8,7 @@ import {
   ThemeListboxBlock,
   ToolRadioGroupBlock,
 } from './components'
+import { Tool } from './tool'
 
 export const PaletteIndex = Schema.Literals([
   0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
@@ -18,9 +19,6 @@ export const HexColor = Schema.String.check(
   Schema.isPattern(/^#[0-9a-f]{6}$/),
 ).pipe(Schema.brand('HexColor'))
 export type HexColor = typeof HexColor.Type
-
-export const Tool = Schema.Literals(['Brush', 'Fill', 'Eraser'])
-export type Tool = typeof Tool.Type
 
 export const MirrorMode = Schema.Literals([
   'None',

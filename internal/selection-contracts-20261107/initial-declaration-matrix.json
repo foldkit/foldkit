@@ -1,0 +1,53 @@
+{
+  "checks": [
+    {
+      "check": "ui-emission-6",
+      "exitCode": 0
+    },
+    {
+      "check": "consumer-emission-6",
+      "exitCode": 0
+    },
+    {
+      "check": "relocated-6-to-6",
+      "exitCode": 0
+    },
+    {
+      "check": "relocated-6-to-6-inputs",
+      "exitCode": 0
+    },
+    {
+      "check": "relocated-6-to-7",
+      "exitCode": 0
+    },
+    {
+      "check": "relocated-6-to-7-inputs",
+      "exitCode": 0
+    },
+    {
+      "check": "ui-emission-7",
+      "exitCode": 0
+    },
+    {
+      "check": "consumer-emission-7",
+      "exitCode": 0
+    },
+    {
+      "check": "relocated-7-to-6",
+      "exitCode": 0
+    },
+    {
+      "check": "relocated-7-to-6-inputs",
+      "exitCode": 0
+    },
+    {
+      "check": "relocated-7-to-7",
+      "exitCode": 0
+    },
+    {
+      "check": "relocated-7-to-7-inputs",
+      "exitCode": 0
+    }
+  ],
+  "originalFrameworkSourceReads": 0
+}

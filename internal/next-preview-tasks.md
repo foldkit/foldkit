@@ -1,5 +1,45 @@
 # Next preview tasks
 
+## November 7 post-publication follow-ups
+
+The preview at `54f8bcd443b4fd18952403a3d02e212abf872d58` is published. Its
+package manifest, immutable Website and migration entry points are verified in
+#1655. Earlier dated publication holds and unchecked release-gate boxes below
+describe those historical checkpoints, not unfinished gates for this release.
+New implementation work starts from that snapshot on
+`codex/preview-followups-20261107`. Publishing another preview requires approval.
+
+- [x] Prototype Schema-backed Menu, Tabs and RadioGroup selection contracts for
+      #1809. Preserve string defaults, exact decoded/encoded values, parent-owned
+      selection, passive construction, original effects and child lifecycles.
+- [x] Verify source, external emission and relocated consumers; reject invalid
+      values and Service-dependent Codecs. The eight unchanged compiler workloads
+      pass. Runtime controls reject broad-string selection Codecs, including
+      generated parent envelopes.
+- [ ] Finish consumer, documentation, scaffold, skill and lint adoption; run the
+      complete affected checks and review the exact committed change before push.
+- [x] Implement graph-aware Story Subscription emission (#1910), retaining an
+      explicit registry path for update-only Stories and checked Binding paths
+      for encapsulated child sources. Source identity is verified at delivery.
+- [x] Make Story/Scene Command resolvers local to each call (#1911), preserving
+      tolerant and exact resolution separately. Reuse extracted local steps
+      explicitly when the test needs the same response after another dispatch.
+- [ ] Investigate the rendering and bundle costs and reduce demonstrated
+      overhead before the main merge. Preserve unchanged benchmark workloads.
+      Assess existing performance PRs #1575, #1576, #1581 and #1585 before
+      introducing overlapping work. #1859 changes benchmark coverage rather
+      than the renderer implementation.
+- [ ] Continue measured TypeScript editor-performance investigation (#1709).
+- [ ] Refresh preview feedback and support the code/documentation review before
+      the next release; prepare stable documentation before merging to main.
+
+Bookmarked naming/design work: `Query.define` to `Query.makeBlock`, clearer
+`pendingArgs` naming, and alternatives to explicit Symbol declarations that
+preserve nominal identities. Query-owned freshness Clock work (#1906), cancel-all
+(#1907) and cross-key debounce (#1908) remain proposals to evaluate. They are not
+implemented features or promised next-release scope. The user's explicit
+post-main deferral for #1662 and #1663 is unchanged.
+
 ## November 7 observed broken-pipe recovery
 
 The improved diagnostic identified `EPIPE` in the next pre-upload lookup failure. The [follow-up checkpoint](preview-final-20261107/registry-recovery.md#observed-broken-pipe-follow-up) records why it joins the two existing socket codes, with the original single retry and timeout unchanged. All nine versions from the failed run remain absent; publication remains authorized.

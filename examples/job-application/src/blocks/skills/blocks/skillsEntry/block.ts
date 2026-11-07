@@ -7,8 +7,9 @@ import { RadioGroup } from '@foldkit/ui'
 
 import { ProficiencyLevel } from '../../../../domain'
 
-export const ProficiencyRadioGroup =
-  RadioGroup.makeBlock<ProficiencyLevel.ProficiencyLevel>()
+export const ProficiencyRadioGroup = RadioGroup.makeBlock(
+  ProficiencyLevel.ProficiencyLevel,
+)
 
 export const Model = Schema.Struct({
   id: Schema.String,
