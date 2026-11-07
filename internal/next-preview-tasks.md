@@ -2,12 +2,13 @@
 
 ## November 7 record completion and publication
 
-This section supersedes the earlier holds below. The user authorized publication after this work and approved sending the final Foldkit candidate, relevant Git history and review-driven follow-ups to OpenAI Daybreak. Approval is scoped through publication and does not require a separate request for each commit. The current work is isolated on `codex/block-record-completion-20261107` from integrated `7395b63d88`, whose tree matches the prior reviewed `420615cbdb`.
+This section supersedes the earlier holds below. The user authorized publication after this work and approved sending the final Foldkit candidate, relevant Git history and review-driven follow-ups to OpenAI Daybreak. Approval is scoped through publication and does not require a separate request for each commit. The final documentation consistency follow-up is isolated on `codex/preview-record-docs-20261107` from proposed integration `38a835dca745558096eb503d56b31627336a7fbc`.
 
 - [x] Prove record completion from the init plan's authenticated Composition inventory, with passive scoped acquisition and exact dependencies, errors, identities and host-handler requirements.
 - [x] Preserve custom Effect construction and reject record/Effect hybrids before hidden constructor work can run.
 - [x] Check childless, split-file Workspace, generic UI, inline/local/extracted builders, source and relocated emitted consumers, invalid graphs, deferred init, init Commands and cleanup.
 - [x] Migrate ordinary applications, UI/Query families, scaffolds, active snippets and guidance. Retain custom construction, unchanged compiler fixtures and historical published content.
+- [x] Reconcile active migration, lifecycle, Query, UI, organization, scaffold and agent guidance with record completion as the ordinary default. Preserve explicit child acquisition only for genuine custom Effect construction.
 - [x] Repair declared host-handler bounds and validate every provider alternative without losing exact selected requirements.
 - [x] Pass all eight unchanged compiler ceilings. The separate canonical manual/record comparison preserves its uncalibrated native-ceiling overruns; no budgets are revised.
 - [ ] Finish full adoption checks, exact-commit independent review, normal push gate and protected integration.

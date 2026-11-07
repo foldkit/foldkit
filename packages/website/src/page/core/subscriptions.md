@@ -95,7 +95,7 @@ Use `when` for conditions on the owning Model and Binding `subscriptions.when` f
 
 ### Completing the Block
 
-Return the registry from the owning Block's `makeLayer` constructor alongside its local handler recipes. Acquired child connections carry their Subscription registrations and handlers into the parent graph. The entry selects `{ block: ApplicationBlock, layer }` in `Program.make`, supplies the container and host options, calls `program.provide(ApplicationLayer)` when ordinary Services remain, and then starts the Program:
+Include the registry and local handler recipes in the implementation record passed to the owning Block's `makeLayer`. Acquired child connections carry their Subscription registrations and handlers into the parent graph. The entry selects `{ block: ApplicationBlock, layer }` in `Program.make`, supplies the container and host options, calls `program.provide(ApplicationLayer)` when ordinary Services remain, and then starts the Program:
 
 ::Snippet{name="counterEntryWithSubscriptions" label="Subscription application entry"}
 

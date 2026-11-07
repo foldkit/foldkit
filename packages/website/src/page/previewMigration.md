@@ -46,22 +46,22 @@ Write down the intended child graph as parent → placement → child contract. 
 
 ## The New Assembly Model
 
-The candidate keeps typed Block and Composition builders and completes the implementation through an Effect constructor.
+The candidate keeps typed Block and Composition builders and completes ordinary implementations with a record. A custom Effect constructor remains available when graph construction has genuine dependencies, scoped resources, or needs acquired handles.
 
 | Value                | Responsibility                                                                                                                             |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Block declaration    | Declare the public Model, Message, InitArgs, optional OutMessage, Context, view, operation, and effect contracts and expose typed helpers. |
 | Composition          | Register parent-owned Bindings and Mounts, then author init, update, and views with exact graph context.                                   |
-| Implementation Layer | Acquire children by yielding Bindings and return `children`, init, update, view, and local handler and lifecycle declarations.             |
+| Implementation Layer | Complete init, update, view, and local handler and lifecycle declarations; acquire init's registered child inventory automatically.        |
 | Program              | Select page or element hosting, Flags, routing, Ports, and DevTools.                                                                       |
 
-Declare each feature once as `FooBlock = Block.make(...)`, with a module-level unique `key` and an `InitArgs` tuple. Export that same Block and its implementation `layer`. Parents bind the Block; the constructor supplies child implementation Layers through ordinary `Layer.provide`.
+Declare each feature once as `FooBlock = Block.make(...)`, with a module-level unique `key` and an `InitArgs` tuple. Export that same Block and its implementation `layer`. Parents bind the Block and provide child implementation Layers through ordinary `Layer.provide`.
 
 ::Snippet{name="blockFeatureExports" label="Public contract and implementation Layer"}
 
-`FeatureBlock.makeLayer` checks the constructor without running it. The host acquires the graph under its Scope. Construction does not initialize a Model, evaluate deferred child arguments, construct handler Layers, or start lifecycle work. Acquired init, update, and operations remain pure and synchronous.
+`FeatureBlock.makeLayer` checks the implementation without running it. Its ordinary record form acquires the Binding inventory selected by init's Composition when the host builds the Layer under its Scope. Construction does not initialize a Model, evaluate deferred child arguments, construct handler Layers, or start lifecycle work. Acquired init, update, and operations remain pure and synchronous.
 
-Complete builder expressions retain inference inline, in constructor-local values, and in extracted modules. Remove private `prepare` functions and application assembly annotations after moving to the declared contract. Keep the existing child storage, policies, operations, and lifecycle ownership. See [Block](/core/block) for the full authoring flow.
+Complete builder expressions retain inference inline, in implementation-local values, and in extracted modules. Remove private `prepare` functions and application assembly annotations after moving to the declared contract. Keep the existing child storage, policies, operations, and lifecycle ownership. See [Block](/core/block) for the full authoring flow.
 
 ## 1. Move Effect Implementations into Layers
 
@@ -91,7 +91,7 @@ Apply the same ownership to every effect primitive:
 
 Collect all Subscriptions owned by one Block in one `makeSubscriptions` registry and compose its `subscriptions.layer`. Extract substantial Stream implementations into helpers instead of creating another registry for the same owner. Child Blocks retain their own registries; `Subscription.aggregate` remains appropriate at graph, adapter, and test boundaries that join independent records.
 
-Every attached handler exposes a `.layer`. Merge only the definitions owned by that feature into its local `EffectsLayer`, then return that bundle from `FeatureBlock.makeLayer`. The acquired child connections contribute their own handler graphs automatically.
+Every attached handler exposes a `.layer`. Merge only the definitions owned by that feature into its local `EffectsLayer`, then include that bundle in the record passed to `FeatureBlock.makeLayer`. The acquired child connections contribute their own handler graphs automatically.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 
@@ -299,7 +299,7 @@ Declare the root as `ApplicationBlock` with the readable ID `Application`, then 
 2. Rename a root route union named `AppRoute` to `ApplicationRoute`, including its imports and type queries.
 3. Build `ApplicationComposition` through `makeComposition({ bindings, mounts })` as needed.
 4. Author root init, update, and view through that Composition.
-5. Complete `layer` through `ApplicationBlock.makeLayer`. Yield each registered child Binding, return those connections under `children`, and provide their implementation Layers.
+5. Complete `layer` through `ApplicationBlock.makeLayer({ init, update, view, ... })`. Its Layer acquires init's registered child inventory automatically; provide the child implementation Layers separately.
 6. Move container, Flags, routing, Ports, DevTools, and other browser host fields into `Program.make`.
 7. Supply ordinary application Services with `program.provide(ApplicationLayer)` before starting the Runtime.
 

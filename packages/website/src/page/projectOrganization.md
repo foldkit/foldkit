@@ -8,20 +8,20 @@ Organize a Foldkit application around ownership. A feature owns its state machin
 The [Workspace example](/example-apps/workspace) applies these conventions to shared issue data, retained editors, keyed Boards, notifications, and a command palette. It includes nested UI Blocks and scoped Story and Scene tests.
 :::
 
-| Boundary          | Typical home                       | Responsibility                                                                                                                   |
-| ----------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Block declaration | `block.ts`                         | Declare the public contracts and author local effects and Steps.                                                                 |
-| Composition       | `composition.ts` or `composition/` | Declare Bindings, OutMessage policy, Mount registration, and graph-aware builders.                                               |
-| Implementation    | `layer.ts` or compact `block.ts`   | Acquire child implementations through the constructor and return init, update, view, lifecycle declarations, and local handlers. |
-| Host              | `entry.ts`                         | Select the Program, supply Services, and start Runtime.                                                                          |
+| Boundary          | Typical home                       | Responsibility                                                                                                |
+| ----------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Block declaration | `block.ts`                         | Declare the public contracts and author local effects and Steps.                                              |
+| Composition       | `composition.ts` or `composition/` | Declare Bindings, OutMessage policy, Mount registration, and graph-aware builders.                            |
+| Implementation    | `layer.ts` or compact `block.ts`   | Complete init, update, view, lifecycle declarations, and local handlers; provide child implementation Layers. |
+| Host              | `entry.ts`                         | Select the Program, supply Services, and start Runtime.                                                       |
 
-A storage-specific Binding constructor declares a relationship against the child's public contract. `makeComposition` registers it. `FeatureBlock.makeLayer` checks the effectful constructor without running it. The host later acquires that implementation Layer; init and update remain synchronous pure functions.
+A storage-specific Binding constructor declares a relationship against the child's public contract. `makeComposition` registers it. `FeatureBlock.makeLayer` checks the ordinary implementation record without running it, and its Layer acquires init's registered child inventory when the host builds it. Init and update remain synchronous pure functions.
 
 ## Starting Simple
 
 A compact root keeps its Block declaration, Composition, init, update, view, and construction `layer` in `block.ts`. A separate `entry.ts` chooses the container and startup inputs, creates the Program, and starts the Runtime.
 
-Once one structural responsibility moves out, use the complete split layout. `block.ts` declares `ApplicationBlock`, `composition.ts` registers the graph, and `init.ts`, `update.ts`, and `view.ts` author behavior through its builders. `layer.ts` imports those pieces and completes the constructor. Keep the declaration in `block.ts` when splitting.
+Once one structural responsibility moves out, use the complete split layout. `block.ts` declares `ApplicationBlock`, `composition.ts` registers the graph, and `init.ts`, `update.ts`, and `view.ts` author behavior through its builders. `layer.ts` imports those pieces and completes the implementation record. Keep the declaration in `block.ts` when splitting.
 
 A small child can keep its whole implementation in `block.ts`. A split child uses the same named structural files as the root. Its barrel exports the public contract and implementation `layer`. Put child Block folders under their owner’s `blocks/` directory, with names matching their passive contracts in camelCase. For example, `IssueBoardBlock` lives in `src/blocks/issueBoard/`. A nested child belongs in its own parent’s `blocks/`, such as `issueDetail/blocks/commentComposer/`. Each `blocks/index.ts` explicitly exposes those children.
 
@@ -77,7 +77,7 @@ For a split feature, `composition.ts` owns its child Bindings, complete child an
 
 ::Snippet{name="organizationChildComposition" label="Child Binding and registration"}
 
-An update can import `CounterBinding` to invoke its operations. Generated child envelopes route through the Binding automatically. The view imports `DashboardComposition`. Registering `CounterBinding` under `bindings` gives those builders its static contract. Acquiring that Binding in the constructor supplies the child's executable graph, including handlers and lifecycle declarations.
+An update can import `CounterBinding` to invoke its operations. Generated child envelopes route through the Binding automatically. The view imports `DashboardComposition`. Registering `CounterBinding` under `bindings` gives those builders its static contract. Ordinary record completion acquires the registered Binding when its Layer is built, supplying the child's executable graph, including handlers and lifecycle declarations.
 
 `layer.ts` imports the portable builders and child implementation Layers. It passes init, update, view and local effects to `DashboardBlock.makeLayer` as a record, then provides the child's construction Layer. The barrel exports `DashboardBlock` and its implementation `layer`. Parent Schemas use `DashboardBlock.Model`. Internal implementation modules import their own contracts directly rather than through the completed feature barrel.
 
@@ -149,7 +149,7 @@ Foldkit handlers and ordinary application Services solve different problems. A C
 
 Keep canonical handlers attached to their Command, Subscription, Mount, and ManagedResource definitions. Compose attached recipes such as `LoadProducts.layer` in the feature's local `EffectsLayer`. Name a standalone `LoadProductsLayer` only when that individual provider is intentionally public or independently reused, and an external alternative `LoadProductsTestLayer`.
 
-In a split feature, compose a separate local handler bundle in `effectsLayer.ts`. A compact feature can keep the bundle beside its declaration and implementation. Return it as `EffectsLayer` from `FeatureBlock.makeLayer`. Export the Block implementation separately as `layer`; these Layers have different jobs.
+In a split feature, compose a separate local handler bundle in `effectsLayer.ts`. A compact feature can keep the bundle beside its declaration and implementation. Include it as `EffectsLayer` in the implementation record passed to `FeatureBlock.makeLayer`. Export the Block implementation separately as `layer`; these Layers have different jobs.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 
@@ -159,9 +159,9 @@ Effect represents each required Service in an Effect's requirements type and use
 
 ### Local Handlers and the Complete Graph
 
-At a split root, `command.ts` owns the root Command definitions, and `effectsLayer.ts` composes their recipes with the other local handlers. `layer.ts` supplies that bundle to the checked implementation constructor. These files do not relist child handlers.
+At a split root, `command.ts` owns the root Command definitions, and `effectsLayer.ts` composes their recipes with the other local handlers. `layer.ts` includes that bundle in the checked implementation record. These files do not relist child handlers.
 
-The constructor acquires child implementations from the supplied Layers. Those implementations contribute their selected handler recipes recursively. The Runtime constructs that complete handler graph after construction. Do not manually import or relist every child Command at root, and do not merge a registered child's handler bundle a second time.
+Ordinary completion acquires init's registered child implementations from the supplied Layers. Those implementations contribute their selected handler recipes recursively. The Runtime constructs that complete handler graph after construction. Do not manually import or relist every child Command at root, and do not merge a registered child's handler bundle a second time.
 
 There is no flattened, human-readable list of every Command Layer in an Application today. To inspect the handlers, follow `ApplicationComposition`'s registered children to each implementation's `layer.ts` and local `EffectsLayer`. Keep that graph as the source of truth rather than maintaining a second global list.
 

@@ -38,7 +38,7 @@ Data the host pushes while the app runs arrives on an inbound Port, which the ap
 
 ::Snippet{name="embeddingInboundSubscription" label="Inbound Subscription"}
 
-The Subscription module exports its registry. Return `EffectsLayer: subscriptions.layer` from the widget's Block constructor, or compose the registry Layer with other local handler recipes in `EffectsLayer`.
+The Subscription module exports its registry. Include `EffectsLayer: subscriptions.layer` in the widget's implementation record, or compose the registry Layer with other local handler recipes in `EffectsLayer`.
 
 Values sent while no Stream for the Port is running are dropped, with one exception: values sent before the first Stream attaches are buffered and delivered to it in order, so sends issued right after `embed` are not lost during startup.
 
@@ -48,7 +48,7 @@ Values the app announces to the host leave through an outbound Port, written fro
 
 ::Snippet{name="embeddingOutboundCommand" label="Outbound Command"}
 
-The feature Block’s `makeStep` retains the helper’s Command requirements. Return `EffectsLayer: ReportCount.layer` from `FeatureBlock.makeLayer`. The Element host acquires that implementation and its child graph under the host lifetime.
+The feature Block’s `makeStep` retains the helper’s Command requirements. Include `EffectsLayer: ReportCount.layer` in the implementation record passed to `FeatureBlock.makeLayer`. The Element host acquires that implementation and its child graph under the host lifetime.
 
 When the program runs without an embed handle (started with `Runtime.run`), emitting is a no-op, so the same app works embedded and standalone.
 
