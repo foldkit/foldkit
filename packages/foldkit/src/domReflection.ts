@@ -1,3 +1,5 @@
+import { Predicate } from 'effect'
+
 import { CSS_STYLE_PROPERTIES } from './cssStyleProperties.js'
 
 // The one description of how a typed attribute builder's DOM property relates
@@ -495,6 +497,87 @@ const hasUnsafeStyleSyntax = (value: string): boolean => {
   return quote !== undefined || parentheses !== 0 || isComment
 }
 
+const assertStylePropertyNameIsRepresentable = (name: string): void => {
+  if (STYLE_LIFECYCLE_KEYS.has(name)) {
+    throw new Error(
+      `[foldkit] h.Style property ${JSON.stringify(name)} is a Snabbdom ` +
+        'lifecycle control rather than a CSS property. Foldkit h.Style ' +
+        'accepts only declarations applied while the element exists.',
+    )
+  }
+  if (
+    name === 'cssText' ||
+    (name.startsWith('--')
+      ? !CUSTOM_STYLE_PROPERTY_NAME.test(name)
+      : !STYLE_PROPERTY_NAME.test(name))
+  ) {
+    throw new Error(
+      `[foldkit] h.Style property ${JSON.stringify(name)} cannot be ` +
+        'represented as one inline CSS declaration. Use a CSS property ' +
+        'name without declaration delimiters.',
+    )
+  }
+  const canonicalName = canonicalStylePropertyName(name)
+  if (
+    !name.startsWith('--') &&
+    !CSS_STYLE_PROPERTIES.has(canonicalName) &&
+    !CSS_DECLARATION_PROPERTIES.has(name)
+  ) {
+    throw new Error(
+      `[foldkit] h.Style property ${JSON.stringify(name)} is not a ` +
+        'CSSStyleDeclaration property supported by Foldkit. Use a known ' +
+        'camel-case or declaration name, or a custom property beginning --.',
+    )
+  }
+}
+
+const assertStyleValueIsRepresentable = (
+  name: string,
+  value: unknown,
+): void => {
+  if (!Predicate.isString(value)) {
+    throw new Error(
+      `[foldkit] h.Style value for ${JSON.stringify(name)} must be a ` +
+        'string. Browser CSSOM assignment coerces other values while server ' +
+        'serialization cannot preserve the same authored declaration.',
+    )
+  }
+  if (hasUnsafeStyleSyntax(value)) {
+    throw new Error(
+      `[foldkit] h.Style value for ${JSON.stringify(name)} contains a ` +
+        'unsafe CSS declaration syntax. Assigning one DOM style ' +
+        'property rejects that value, while serializing it into a style ' +
+        'attribute could activate additional or !important declarations. ' +
+        'Keep the value to one declaration.',
+    )
+  }
+}
+
+const REPRESENTABLE_STYLE_ENTRY_LIMIT = 4096
+
+// NOTE: views rebuild the same inline styles on every render, and every
+// check except the duplicate declaration check depends only on one entry's
+// name and value. Entries that passed are kept here with their declaration
+// name, keyed by name and value joined with a NUL, which no valid property
+// name contains. Values such as positions change constantly, so the cache
+// starts over once it holds REPRESENTABLE_STYLE_ENTRY_LIMIT entries.
+const representableStyleDeclarationNames = new Map<string, string>()
+
+const styleEntryKey = (name: string, value: unknown): string | undefined =>
+  Predicate.isString(value) ? `${name}\u0000${value}` : undefined
+
+const rememberRepresentableStyleEntry = (
+  entryKey: string,
+  declarationName: string,
+): void => {
+  if (
+    representableStyleDeclarationNames.size >= REPRESENTABLE_STYLE_ENTRY_LIMIT
+  ) {
+    representableStyleDeclarationNames.clear()
+  }
+  representableStyleDeclarationNames.set(entryKey, declarationName)
+}
+
 /** Refuses style entries whose property assignment and serialized declaration
  * can describe different CSS.
  *
@@ -505,38 +588,18 @@ export const assertStyleIsRepresentable = (
 ): void => {
   const declarationOwners = new Map<string, string>()
   for (const name of Object.keys(style)) {
-    if (STYLE_LIFECYCLE_KEYS.has(name)) {
-      throw new Error(
-        `[foldkit] h.Style property ${JSON.stringify(name)} is a Snabbdom ` +
-          'lifecycle control rather than a CSS property. Foldkit h.Style ' +
-          'accepts only declarations applied while the element exists.',
-      )
+    const value = style[name]
+    const entryKey = styleEntryKey(name, value)
+    const knownDeclarationName =
+      entryKey === undefined
+        ? undefined
+        : representableStyleDeclarationNames.get(entryKey)
+
+    if (knownDeclarationName === undefined) {
+      assertStylePropertyNameIsRepresentable(name)
     }
-    if (
-      name === 'cssText' ||
-      (name.startsWith('--')
-        ? !CUSTOM_STYLE_PROPERTY_NAME.test(name)
-        : !STYLE_PROPERTY_NAME.test(name))
-    ) {
-      throw new Error(
-        `[foldkit] h.Style property ${JSON.stringify(name)} cannot be ` +
-          'represented as one inline CSS declaration. Use a CSS property ' +
-          'name without declaration delimiters.',
-      )
-    }
-    const canonicalName = canonicalStylePropertyName(name)
-    if (
-      !name.startsWith('--') &&
-      !CSS_STYLE_PROPERTIES.has(canonicalName) &&
-      !CSS_DECLARATION_PROPERTIES.has(name)
-    ) {
-      throw new Error(
-        `[foldkit] h.Style property ${JSON.stringify(name)} is not a ` +
-          'CSSStyleDeclaration property supported by Foldkit. Use a known ' +
-          'camel-case or declaration name, or a custom property beginning --.',
-      )
-    }
-    const declarationName = cssDeclarationName(name)
+
+    const declarationName = knownDeclarationName ?? cssDeclarationName(name)
     const existingOwner = declarationOwners.get(declarationName)
     if (existingOwner !== undefined) {
       throw new Error(
@@ -547,22 +610,13 @@ export const assertStyleIsRepresentable = (
       )
     }
     declarationOwners.set(declarationName, name)
-    const value = style[name]
-    if (typeof value !== 'string') {
-      throw new Error(
-        `[foldkit] h.Style value for ${JSON.stringify(name)} must be a ` +
-          'string. Browser CSSOM assignment coerces other values while server ' +
-          'serialization cannot preserve the same authored declaration.',
-      )
-    }
-    if (hasUnsafeStyleSyntax(value)) {
-      throw new Error(
-        `[foldkit] h.Style value for ${JSON.stringify(name)} contains a ` +
-          'unsafe CSS declaration syntax. Assigning one DOM style ' +
-          'property rejects that value, while serializing it into a style ' +
-          'attribute could activate additional or !important declarations. ' +
-          'Keep the value to one declaration.',
-      )
+
+    if (knownDeclarationName === undefined) {
+      assertStyleValueIsRepresentable(name, value)
+
+      if (entryKey !== undefined) {
+        rememberRepresentableStyleEntry(entryKey, declarationName)
+      }
     }
   }
 }
