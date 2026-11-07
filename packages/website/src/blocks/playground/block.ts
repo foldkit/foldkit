@@ -61,7 +61,7 @@ export type InMessage = typeof InMessage.Type
 export const PlaygroundKey = Symbol('Playground')
 export const PlaygroundBlock = Block.make('Playground', {
   key: PlaygroundKey,
-  Init: Schema.Tuple([
+  InitArgs: Schema.Tuple([
     Schema.String,
     Schema.optional(Schema.Option(Schema.Boolean)),
   ]),

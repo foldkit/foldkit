@@ -4,12 +4,7 @@ import { Dialog, Listbox } from '@foldkit/ui'
 
 import { CreateIssueBlock } from './block'
 import { CreateIssue } from './command'
-import {
-  DialogBinding,
-  PriorityListboxBinding,
-  ProjectListboxBinding,
-  StatusListboxBinding,
-} from './composition'
+import { CreateIssueComposition } from './composition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { update } from './update'
@@ -17,13 +12,10 @@ import { view } from './view'
 
 export const layer = CreateIssueBlock.makeLayer(
   Effect.gen(function* () {
-    const dialog = yield* DialogBinding
-    const projectListbox = yield* ProjectListboxBinding
-    const statusListbox = yield* StatusListboxBinding
-    const priorityListbox = yield* PriorityListboxBinding
+    const children = yield* CreateIssueComposition.acquireChildren()
 
     return {
-      children: [dialog, projectListbox, statusListbox, priorityListbox],
+      children,
       init,
       update,
       inMessageUpdate,

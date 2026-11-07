@@ -13,7 +13,7 @@ type Message = typeof Message.Type
 export const EditorKey = Symbol('Editor')
 export const EditorBlock = Block.make('Editor', {
   key: EditorKey,
-  Init: Schema.Tuple([Schema.String]),
+  InitArgs: Schema.Tuple([Schema.String]),
   Model,
   Message,
 })

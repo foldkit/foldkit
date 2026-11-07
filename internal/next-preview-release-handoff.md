@@ -1,5 +1,33 @@
 # Next preview release handoff
 
+## November 6 follow-up feedback
+
+The [follow-up report](preview-followup-feedback-20261106.md) and
+[task board](next-preview-tasks.md#november-6-follow-up-feedback) supersede the
+earlier readiness checkpoints below. The explicit Binding adoption merged through #1903 as
+`4a196d9f05`, with the same tree as reviewed `3d3eb8998e`; the new initializer, acquisition and testing follow-ups are separate work.
+The source/emitted/relocated consumer gate and all eight existing compiler
+workloads pass without budget changes. Focused application and UI verification,
+installed packed SSR consumers in three browsers and the scaffold smoke test
+pass. The implementation passes independent review at `29b3f80e40`.
+The final normal pre-push gate, exact-commit review and protected integration
+remain requirements for the selected release candidate.
+
+The [fresh rendering comparison](preview-followup-20261106/rendering/README.md)
+retains all 64 samples across two batches. Optimized medians are 216.7/284.6 ms
+and 180.7/254.6 ms; all 16 optimized pairs are slower. Host load, reported free
+memory and sample ranges limit both percentages (+31.33% and +40.90%); neither
+is a stable regression estimate. Added
+gzip costs are 47,884/48,511 bytes. The earlier rendering comparisons below
+retain their dated scope.
+
+Daybreak is held for this additional feedback. Do not act on the older pending
+authorization card for `3d3eb8998eeced834d4a7fa1810f72179796a3c3`. A later approval
+must cover the final integrated source. Publication is separately held, and
+`90746b32d2ca` remains the verified published snapshot. Rendering and bundle
+review still require the final candidate's evidence; earlier measurements below
+are historical comparisons rather than acceptance of the new candidate.
+
 ## November 6 preparation
 
 The [current release review](preview-release-review-20261106.md) supersedes the

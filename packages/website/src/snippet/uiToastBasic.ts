@@ -36,7 +36,7 @@ type Message = typeof Message.Type
 export const NotificationsKey = Symbol('Notifications')
 export const NotificationsBlock = Block.make('Notifications', {
   key: NotificationsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -53,20 +53,20 @@ const {
 // DismissedToast event into domain state. The arm returns an Update.Step over
 // the parent Model, which already has the next Toast Model written back. The
 // parent Block infers the factory-refined payload from the whole Block:
-const foldToastOutMessage = makeOutMessageFold(Toast, {
-  DismissedToast: ({ payload }) =>
-    makeFieldsStep(() => ({
-      maybeLastDismissedBody: () => Option.some(payload.bodyText),
-    })),
-})
-
 // The Binding retains the child contract; construction supplies its implementation.
 const ToastBinding = makeRequiredFieldBinding(Toast, {
   field: 'toast',
   init: {
     contextToArgs: () => [{ id: 'app-toast', swipeToDismiss: {} }],
   },
-}).withOutMessagePolicy({ fold: foldToastOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(Toast, {
+    DismissedToast: ({ payload }) =>
+      makeFieldsStep(() => ({
+        maybeLastDismissedBody: () => Option.some(payload.bodyText),
+      })),
+  }),
+})
 
 const NotificationsComposition = makeComposition({
   bindings: [ToastBinding],
@@ -149,10 +149,10 @@ const view = NotificationsComposition.makeView((model, h) =>
 
 export const layer = NotificationsBlock.makeLayer(
   Effect.gen(function* () {
-    const toast = yield* ToastBinding
+    const children = yield* NotificationsComposition.acquireChildren()
 
     return {
-      children: [toast],
+      children,
       init,
       update,
       view,

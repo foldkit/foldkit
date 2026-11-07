@@ -30,7 +30,7 @@ export const HostDefinition = Block.makeDefinition('HostHandlerConsumer', {
   key: HostKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Document' },
   operations: { requestRead: Message.ClickedReadValue },
   effects: Block.makeEffectsContract<HandlerBuildError, HostValue>(),

@@ -23,6 +23,7 @@ import { describe, expect, it, onTestFinished, vi } from 'vitest'
 
 import { foldkit } from '../src/index.ts'
 import { boundPort } from './boundPort.ts'
+import { listenOnEphemeralPort } from './listenOnEphemeralPort.ts'
 
 const FIXTURE_ROOT = resolve(
   import.meta.dirname,
@@ -91,7 +92,7 @@ const startServer = async (
     server: { host: '127.0.0.1', port: 0, watch: null, ...serverOptions },
   })
   onTestFinished(() => server.close().catch(() => undefined))
-  await server.listen()
+  await listenOnEphemeralPort(() => server.listen())
 
   const origin = `http://127.0.0.1:${Option.getOrThrowWith(
     boundPort(server.httpServer?.address()),

@@ -20,7 +20,7 @@ const Definition = makeDefinition('ContractImplementationSubscriptions', {
   key: ContractImplementationSubscriptionsKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const Composition = Definition.makeComposition()
 const init = Composition.makeInit(() => ({ model: { value: '' } }))

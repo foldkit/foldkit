@@ -23,7 +23,7 @@ type AccountSettingsMessage = typeof AccountSettingsMessage.Type
 export const AccountSettingsKey = Symbol('AccountSettings')
 export const AccountSettingsBlock = Block.make('AccountSettings', {
   key: AccountSettingsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Context: Schema.Tuple([CurrentUser]),
   view: { kind: 'Element' },
   Model: AccountSettingsModel,
@@ -75,7 +75,7 @@ type ProfileMessage = typeof ProfileMessage.Type
 export const ProfileKey = Symbol('Profile')
 const ProfileBlock = Block.make('Profile', {
   key: ProfileKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: ProfileModel,
   Message: ProfileMessage,
 })

@@ -9,16 +9,16 @@ import {
 import { DetailsBlock } from './details'
 import { SearchBlock } from './search'
 
-const foldSearchOutMessage = makeOutMessageFold(SearchBlock, {
-  SelectedResult: ({ resultId }, { modelBeforeUpdate }) =>
-    Option.isSome(modelBeforeUpdate.maybeDetails)
-      ? MaybeDetailsBinding.informOfResultChanged({ resultId })
-      : MaybeDetailsBinding.requestOpen({ resultId }),
-})
-
 export const SearchBinding = makeRequiredFieldBinding(SearchBlock, {
   field: 'search',
-}).withOutMessagePolicy({ fold: foldSearchOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(SearchBlock, {
+    SelectedResult: ({ resultId }, { modelBeforeUpdate }) =>
+      Option.isSome(modelBeforeUpdate.maybeDetails)
+        ? MaybeDetailsBinding.informOfResultChanged({ resultId })
+        : MaybeDetailsBinding.requestOpen({ resultId }),
+  }),
+})
 
 export const MaybeDetailsBinding = makeOptionalFieldBinding(DetailsBlock, {
   field: 'maybeDetails',

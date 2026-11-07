@@ -16,7 +16,7 @@ const HostBlock = Block.make('RetainedMountGeneration', {
   key: HostKey,
   Model: HostModel,
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const ApplicationBinding = HostBlock.makeRequiredFieldBinding(

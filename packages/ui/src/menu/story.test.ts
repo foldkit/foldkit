@@ -2309,7 +2309,7 @@ describe('Menu', () => {
       InMessage: defineInMessageUnion({
         InformedOfItems: { items: Schema.Array(Schema.String) },
       }),
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
       view: { kind: 'Element' },
     })
     const MenuBinding = DynamicMenuBlock.makeRequiredFieldBinding(
@@ -2329,10 +2329,10 @@ describe('Menu', () => {
     })
     const DynamicMenuLayer = DynamicMenuBlock.makeLayer(
       Effect.gen(function* () {
-        const menu = yield* MenuBinding
+        const children = yield* DynamicMenuComposition.acquireChildren()
 
         return {
-          children: [menu],
+          children,
           init: DynamicMenuComposition.makeInit(() => ({
             model: { items: ['Edit', 'Duplicate', 'Delete'] },
           })),

@@ -43,7 +43,7 @@ const rejectInvalid = (model: Model) => {
     key: OtherKey,
     Model,
     Message,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   })
   const OtherCountersBinding = OtherDefinition.makeKeyedArrayBinding(
     CounterBlock,

@@ -22,7 +22,7 @@ type Message = typeof Message.Type
 export const CounterKey = Symbol('Counter')
 const CounterBlock = Block.make('Counter', {
   key: CounterKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Document' },
   Model,
   Message,

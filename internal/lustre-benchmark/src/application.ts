@@ -14,7 +14,7 @@ export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Document' },
 })
 export const ApplicationComposition = ApplicationBlock.makeComposition()

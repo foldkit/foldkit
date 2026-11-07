@@ -24,7 +24,7 @@ const Message = defineMessageUnion({
   FailedAcquire: {},
 })
 const InMessage = defineInMessageUnion({ RequestedRefresh: {} })
-const config = { Model, Message, InMessage, Init: Schema.Tuple([]) }
+const config = { Model, Message, InMessage, InitArgs: Schema.Tuple([]) }
 
 class Store extends Context.Service<Store, Readonly<{ label: string }>>()(
   'ManagedResourceContractTest/Store',

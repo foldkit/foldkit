@@ -289,7 +289,7 @@ type ValidateAppendBinding<BindingValue extends AnyBinding> =
         : IsKeyedBinding<BindingValue> extends true
           ? [InitialEvidenceOfBinding<BindingValue>] extends [never]
             ? readonly [
-                error: 'initAndAppend requires keyed array init.instances and init.toItem',
+                error: 'initAndAppend requires keyed array initialization',
               ]
             : InitialEvidenceOfBinding<BindingValue> extends Readonly<{
                   field: infer Field extends string
@@ -310,8 +310,9 @@ type ValidateAppendBinding<BindingValue extends AnyBinding> =
 /**
  * Creates a passive initialization recipe that appends one absent keyed child
  * to the supplied parent Model. The Binding must already declare keyed array
- * startup initialization with `init.instances` and `init.toItem`; the same
- * `toItem` function owns wrapper construction for startup and dynamic creation.
+ * startup initialization with `init.instances`. Direct child Model arrays use
+ * identity storage by default. Wrapped arrays also require `init.toItem`; the
+ * same function owns wrapper construction for startup and dynamic creation.
  * Do not add an otherwise unnecessary startup policy just to use this helper.
  *
  * Call this from a parent Step or update handler with its current Model and
@@ -374,7 +375,7 @@ export function initAndAppend(
 
   if (initial?.kind !== 'WrappedKeyed') {
     throw new Error(
-      '[foldkit] initAndAppend requires keyed array init.instances and init.toItem.',
+      '[foldkit] initAndAppend requires keyed array initialization.',
     )
   }
 

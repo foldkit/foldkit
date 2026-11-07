@@ -5,27 +5,27 @@ import {
   makeComposition,
 } from './block'
 
-const foldSearchOutMessage = makeOutMessageFold(Search.SearchBlock, {
-  RestoredQuery: ({ query }) =>
-    makeFieldsStep(() => ({
-      maybeRestoredQuery: () => Option.some(query),
-    })),
-})
-
-const foldEditorOutMessage = makeOutMessageFold(Editor.EditorBlock, {
-  RestoredDraft: ({ documentId }) =>
-    makeFieldsStep(() => ({
-      maybeRestoredDocumentId: () => Option.some(documentId),
-    })),
-})
-
 const SearchBinding = makeRequiredFieldBinding(Search.SearchBlock, {
   field: 'search',
-}).withOutMessagePolicy({ fold: foldSearchOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(Search.SearchBlock, {
+    RestoredQuery: ({ query }) =>
+      makeFieldsStep(() => ({
+        maybeRestoredQuery: () => Option.some(query),
+      })),
+  }),
+})
 
 const EditorBinding = makeRequiredFieldBinding(Editor.EditorBlock, {
   field: 'editor',
-}).withOutMessagePolicy({ fold: foldEditorOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(Editor.EditorBlock, {
+    RestoredDraft: ({ documentId }) =>
+      makeFieldsStep(() => ({
+        maybeRestoredDocumentId: () => Option.some(documentId),
+      })),
+  }),
+})
 
 const ApplicationComposition = makeComposition({
   bindings: [SearchBinding, EditorBinding],

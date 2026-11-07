@@ -13,7 +13,7 @@ export const SettingsBlock = Block.make('Settings', {
   Message,
   InMessage,
   OutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   inMessageOutputs: {
     RequestedThemeChange: { outMessage: OutMessage.ChangedTheme },
   },

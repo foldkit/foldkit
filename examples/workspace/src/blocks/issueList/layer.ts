@@ -3,23 +3,17 @@ import { Effect, Layer } from 'effect'
 import { Listbox } from '@foldkit/ui'
 
 import { IssueListBlock } from './block'
-import {
-  GroupListboxBinding,
-  SortListboxBinding,
-  StatusListboxBinding,
-} from './composition'
+import { IssueListComposition } from './composition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
 export const layer = IssueListBlock.makeLayer(
   Effect.gen(function* () {
-    const statusListbox = yield* StatusListboxBinding
-    const sortListbox = yield* SortListboxBinding
-    const groupListbox = yield* GroupListboxBinding
+    const children = yield* IssueListComposition.acquireChildren()
 
     return {
-      children: [statusListbox, sortListbox, groupListbox],
+      children,
       init,
       update,
       view,

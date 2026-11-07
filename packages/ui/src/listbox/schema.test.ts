@@ -91,7 +91,7 @@ const ParentModel = Schema.Struct({
 const ParentKey = Symbol('ListboxSchemaParent')
 const ListboxSchemaParentBlock = Block.make('ListboxSchemaParent', {
   key: ParentKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: ParentModel,
   Message: Schema.Never,
 })
@@ -140,11 +140,10 @@ const parentInit = ListboxSchemaParentComposition.makeInit(() => ({
 const parentUpdate = ListboxSchemaParentComposition.makeUpdate({})
 const parentLayer = ListboxSchemaParentBlock.makeLayer(
   Effect.gen(function* () {
-    const fruit = yield* FruitBinding
-    const color = yield* ColorBinding
+    const children = yield* ListboxSchemaParentComposition.acquireChildren()
 
     return {
-      children: [fruit, color],
+      children,
       init: parentInit,
       update: parentUpdate,
     }

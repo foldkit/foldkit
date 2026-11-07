@@ -25,7 +25,7 @@ export type Message = typeof Message.Type
 const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Document' },
   Model,
   Message,

@@ -35,7 +35,7 @@ const Definition = Block.makeDefinition('InputOnlyRuntime', {
   Message: Schema.Never,
   InMessage,
   isMessageFree: true,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const Composition = Definition.makeComposition()
 const init = Composition.makeInit(() => ({ model: Model.make({ value: 0 }) }))
@@ -61,7 +61,7 @@ const declareErased = (config: object) =>
       key: Symbol('InvalidInputRuntime'),
       Model,
       Message: Schema.Never,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
       ...config,
     },
   ])
@@ -196,7 +196,7 @@ describe('separate InMessage execution', () => {
           key: ParentKey,
           Model: Schema.Struct({ child: Model }),
           Message: ParentMessage,
-          Init: Schema.Tuple([]),
+          InitArgs: Schema.Tuple([]),
         })
         const ChildBinding = ParentDefinition.makeRequiredFieldBinding(
           Definition.contract,
@@ -261,7 +261,7 @@ describe('separate InMessage execution', () => {
             InMessage: ReportInput,
             OutMessage: Reported,
             isMessageFree: true,
-            Init: Schema.Tuple([]),
+            InitArgs: Schema.Tuple([]),
             inMessageOutputs: {
               RequestedReport: { outMessage: Reported.Reported },
             },
@@ -291,7 +291,7 @@ describe('separate InMessage execution', () => {
           Message: Schema.Never,
           InMessage: ReportInput,
           isMessageFree: true,
-          Init: Schema.Tuple([]),
+          InitArgs: Schema.Tuple([]),
         })
         const ReporterBinding = ParentDefinition.makeRequiredFieldBinding(
           ReporterDefinition.contract,

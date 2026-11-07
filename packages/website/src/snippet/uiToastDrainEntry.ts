@@ -18,7 +18,7 @@ type Message = typeof Message.Type
 export const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })
@@ -30,15 +30,16 @@ const {
   makeComposition,
 } = ApplicationBlock
 
-const foldToastOutMessage = makeOutMessageFold(ToastBlock, {
-  DismissedToast: makeNoopStep,
-})
 const ToastBinding = makeRequiredFieldBinding(ToastBlock, {
   field: 'toast',
   init: {
     contextToArgs: () => [{ id: 'notifications' }],
   },
-}).withOutMessagePolicy({ fold: foldToastOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(ToastBlock, {
+    DismissedToast: makeNoopStep,
+  }),
+})
 const ApplicationComposition = makeComposition({
   bindings: [ToastBinding],
 })
@@ -50,10 +51,10 @@ const update = ApplicationComposition.makeUpdate({
 
 const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const toast = yield* ToastBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [toast],
+      children,
       init,
       update,
     }

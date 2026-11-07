@@ -9,7 +9,7 @@ import { Model } from './model'
 export const UiKey = Symbol('Ui')
 export const UiBlock = Block.make('Ui', {
   key: UiKey,
-  Init: Schema.Tuple([CalendarDate]),
+  InitArgs: Schema.Tuple([CalendarDate]),
   Model,
   Message,
   InMessage,

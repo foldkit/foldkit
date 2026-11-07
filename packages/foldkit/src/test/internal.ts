@@ -671,6 +671,25 @@ export const assertExactCommands = (
   }
 }
 
+/** Throws if the pending Commands don't match the given matchers exactly in
+ *  dispatch order. Uses the same source identity, args and scoped occurrence
+ *  matching as the other Command assertions. */
+export const assertExactCommandsInOrder = (
+  commands: ReadonlyArray<AnyCommand>,
+  matchers: ReadonlyArray<CommandMatcher>,
+): void => {
+  const hasMismatch = pipe(
+    Array.zip(commands, matchers),
+    Array.some(([command, matcher]) => !commandMatches(matcher, command)),
+  )
+
+  if (commands.length !== matchers.length || hasMismatch) {
+    throw new Error(
+      `Expected exactly these Commands in order:\n\n${formatMatcherList(matchers)}\n\nBut found:\n\n${formatCommandList(commands)}`,
+    )
+  }
+}
+
 /** Throws if there are any pending Commands. */
 export const assertZeroCommands = (
   commands: ReadonlyArray<AnyCommand>,

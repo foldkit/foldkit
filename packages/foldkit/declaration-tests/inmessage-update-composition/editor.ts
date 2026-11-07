@@ -16,7 +16,7 @@ export const EditorBlock = Block.make('InputEditor', {
   Message,
   InMessage,
   OutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   inMessageOutputs: { InformedOfTextChange: { outMessage: OutMessage.Edited } },
 })
 const EditorComposition = EditorBlock.makeComposition()

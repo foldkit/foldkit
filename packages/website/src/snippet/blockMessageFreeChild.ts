@@ -8,7 +8,7 @@ type PreviewModel = typeof PreviewModel.Type
 export const PreviewKey = Symbol('Preview')
 export const PreviewBlock = Block.make('Preview', {
   key: PreviewKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   isMessageFree: true,
 
   Model: PreviewModel,
@@ -39,7 +39,7 @@ type PageMessage = typeof PageMessage.Type
 export const PageKey = Symbol('Page')
 const PageBlock = Block.make('Page', {
   key: PageKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: PageModel,
   Message: PageMessage,
 })

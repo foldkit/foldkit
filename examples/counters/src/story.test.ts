@@ -13,8 +13,6 @@ import {
 } from './block'
 import { CounterBlock } from './blocks/counter'
 
-type CounterMessage = typeof CounterBlock.Message.Type
-
 const initialModel: ModelSchema = {
   counters: [
     CounterBlock.Instance.make({ key: 'counter-0', model: { count: 0 } }),
@@ -22,9 +20,6 @@ const initialModel: ModelSchema = {
   ],
   nextCounterId: 2,
 }
-
-const counterMessage = (id: string, message: CounterMessage) =>
-  Story.messageIn(CountersBinding, id, message)
 
 describe('init', () => {
   it.effect('creates distinct parent-owned instances with Counter state', () =>
@@ -88,7 +83,11 @@ describe('update', () => {
         Story.message(Message.ClickedAddCounter()),
         Story.message(Message.ClickedRemoveCounter({ id: 'counter-2' })),
         Story.message(Message.ClickedAddCounter()),
-        counterMessage('counter-2', CounterBlock.Message.ClickedIncrement()),
+        Story.messageIn(
+          CountersBinding,
+          'counter-2',
+          CounterBlock.Message.ClickedIncrement(),
+        ),
         Story.model(model => {
           expect(model.counters).toEqual([
             { key: 'counter-1', model: { count: 0 } },
@@ -105,7 +104,11 @@ describe('update', () => {
       Story.story(
         { block: ApplicationBlock, layer },
         Story.given(initialModel),
-        counterMessage('counter-1', CounterBlock.Message.ClickedIncrement()),
+        Story.messageIn(
+          CountersBinding,
+          'counter-1',
+          CounterBlock.Message.ClickedIncrement(),
+        ),
         Story.model(model => {
           expect(
             Option.getOrThrow(Array.get(model.counters, 0)).model.count,
@@ -135,7 +138,11 @@ describe('update', () => {
           ],
           nextCounterId: 2,
         }),
-        counterMessage('counter-0', CounterBlock.Message.ClickedDecrement()),
+        Story.messageIn(
+          CountersBinding,
+          'counter-0',
+          CounterBlock.Message.ClickedDecrement(),
+        ),
         Story.model(model => {
           expect(
             Option.getOrThrow(Array.get(model.counters, 0)).model.count,
@@ -153,7 +160,11 @@ describe('update', () => {
       Story.story(
         { block: ApplicationBlock, layer },
         Story.given(initialModel),
-        counterMessage('counter-99', CounterBlock.Message.ClickedIncrement()),
+        Story.messageIn(
+          CountersBinding,
+          'counter-99',
+          CounterBlock.Message.ClickedIncrement(),
+        ),
         Story.model(model => {
           expect(
             Option.getOrThrow(Array.get(model.counters, 0)).model.count,
@@ -169,9 +180,21 @@ describe('update', () => {
     Story.story(
       { block: ApplicationBlock, layer },
       Story.given(initialModel),
-      counterMessage('counter-0', CounterBlock.Message.ClickedIncrement()),
-      counterMessage('counter-0', CounterBlock.Message.ClickedIncrement()),
-      counterMessage('counter-1', CounterBlock.Message.ClickedDecrement()),
+      Story.messageIn(
+        CountersBinding,
+        'counter-0',
+        CounterBlock.Message.ClickedIncrement(),
+      ),
+      Story.messageIn(
+        CountersBinding,
+        'counter-0',
+        CounterBlock.Message.ClickedIncrement(),
+      ),
+      Story.messageIn(
+        CountersBinding,
+        'counter-1',
+        CounterBlock.Message.ClickedDecrement(),
+      ),
       Story.model(model => {
         expect(
           Option.getOrThrow(Array.get(model.counters, 0)).model.count,

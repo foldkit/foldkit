@@ -6,12 +6,12 @@ A Block keeps a feature's Model, Messages, transitions, view, and lifecycle work
 
 The public Block contract describes what a parent can use. An implementation Layer constructs the child graph behind that contract. A Binding declares the relationship once, so update, init, and view can be authored independently of construction.
 
-| Value                | Responsibility                                                                                                                                  |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Block declaration    | Establish Model, local Message, optional InMessage, Init, OutMessage and Context contracts; expose typed helpers and the public child boundary. |
-| Composition          | Register Bindings and Mounts; author graph-aware init, update, InMessage updates, and views.                                                    |
-| Implementation Layer | Acquire child implementations and connect them to the authored init, update, view, and lifecycle declarations.                                  |
-| Program              | Select the browser host, Flags, routing, Ports, and DevTools.                                                                                   |
+| Value                | Responsibility                                                                                                                                      |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Block declaration    | Establish Model, local Message, optional InMessage, InitArgs, OutMessage and Context contracts; expose typed helpers and the public child boundary. |
+| Composition          | Register Bindings and Mounts; author graph-aware init, update, InMessage updates, and views.                                                        |
+| Implementation Layer | Acquire child implementations and connect them to the authored init, update, view, and lifecycle declarations.                                      |
+| Program              | Select the browser host, Flags, routing, Ports, and DevTools.                                                                                       |
 
 For a complete application, the [Workspace example](/example-apps/workspace) shows retained editors, keyed Boards, Commands, Subscriptions, optimistic updates, and Story and Scene tests.
 
@@ -29,11 +29,11 @@ If a section only renders parent state, use a view function. A card that receive
 
 ### Establish the feature boundary
 
-Call `Block.make` once at module scope. Put its unique key immediately above the declaration without a blank line, using the same Symbol description as the readable Block name. Supply that `key`, the Model and local Message Schemas, and an `Init` tuple. Declare an OutMessage Schema when the child reports facts to its parent.
+Call `Block.make` once at module scope. Put its unique key immediately above the declaration without a blank line, using the same Symbol description as the readable Block name. Supply that `key`, the Model and local Message Schemas, and an `InitArgs` tuple. Declare an OutMessage Schema when the child reports facts to its parent.
 
 A compact key can remain private when it does not cross an emitted boundary. Split implementation modules commonly need to export the original key declaration because their inferred contracts carry that identity. When downstream declarations need to name it, the feature’s public barrel can use a type-only re-export of the original declaration. Verify real source and relocated declarations before removing an export.
 
-`Init` describes initializer arguments. `Context` describes read-only per-dispatch arguments. `ChildInitContext` describes the value that the parent's init passes to deferred child argument producers. These are separate inputs; none starts construction or lifecycle work.
+`InitArgs` describes initializer arguments. `Context` describes read-only per-dispatch arguments. `ChildInitContext` describes the value that the parent's init passes to deferred child argument producers. These are separate inputs; none starts construction or lifecycle work.
 
 Declare a rendered Block's `view.kind` and optional `view.Inputs`. Use Schema tuples and records for ordinary data. Use `Block.makeInputContract<...>()` for deliberately nonserialized inputs such as render callbacks. Declare ordinary handler Services under `effects.services` and any public operation channels on the Block.
 
@@ -56,6 +56,10 @@ Complete the implementation with `FeatureBlock.makeLayer(Effect.gen(function* ()
 ::Snippet{name="blockFeatureExports" label="Public contract and implementation Layer"}
 
 Provide each child's implementation Layer through ordinary Layer composition. The static Composition uses `bindings`; the constructor returns the acquired `children`. Each relationship is declared once. Yielding it acquires that relationship's executable implementation.
+
+If construction only collects those connections, acquire the registered inventory with `Composition.acquireChildren()`. It preserves the exact child tuple, Layer requirements, construction errors, registration order and scoped cleanup. Keep individual Binding yields when the constructor uses a child handle. Acquisition does not evaluate initialization arguments or create child Models.
+
+::Snippet{name="blockAcquireChildren" label="Acquire the registered child graph"}
 
 A complete builder expression can stay inline, move to a local value in the constructor, or move to another module. Its owning Block or Composition preserves contextual inference. Extracted transitions keep referring to stable Binding declarations, so they need no bag of constructor-local child instances.
 
@@ -228,6 +232,8 @@ public contract:
 
 ::Snippet{name="blockOutMessagePolicy" label="Handling a child OutMessage"}
 
+Keep a single-use exhaustive fold inline with its Binding. Extract a reused fold or a mapping that substantially obscures the relationship. For a complicated branch, first consider extracting its transition while keeping the tag mapping here. Explicit no-op cases record deliberate parent behavior; the child still performs its own update. Reciprocal policies may need an extracted fold to keep inference independent of the Binding declarations.
+
 Keyed Bindings accept the same authored fold directly when the handlers do not
 need the occurrence key. When they need it, return the fold from a callback:
 `fold: key => makeOutMessageFold(ChildBlock, handlers)`. The Binding supplies the
@@ -278,7 +284,7 @@ The parent configures integration policy in its child Binding. That policy execu
 
 ## Complete the Application
 
-Create the root's `ApplicationBlock` with its unique `key`, Model, Message, `Init` tuple, and view contract. Author init, update, and the primary view through `ApplicationComposition`, then export `layer = ApplicationBlock.makeLayer(...)`. In `entry.ts`, pass `{ block: ApplicationBlock, layer }` and browser inputs to `Program.make` or `Program.makeElement`.
+Create the root's `ApplicationBlock` with its unique `key`, Model, Message, `InitArgs` tuple, and view contract. Author init, update, and the primary view through `ApplicationComposition`, then export `layer = ApplicationBlock.makeLayer(...)`. In `entry.ts`, pass `{ block: ApplicationBlock, layer }` and browser inputs to `Program.make` or `Program.makeElement`.
 
 Root `services.ts` supplies the shared store required by the child handler:
 
@@ -602,7 +608,7 @@ Generations belong to one Program runtime. They are not portable occurrence IDs 
 
 ### Block.make
 
-`Block.make(id, { key, Model, Message, Init, ... })` declares the public contract and provides typed effect, Step, lifecycle, and child Binding authoring methods. `id` is a nonempty segment without `/` or `::`. Name the result `<Id>Block`, such as `SettingsBlock` for the ID `Settings`. Keep the factory and its unique Symbol key at module scope. That same value exposes the public contract and typed authoring helpers; its Composition authors graph-aware init, update, and views.
+`Block.make(id, { key, Model, Message, InitArgs, ... })` declares the public contract and provides typed effect, Step, lifecycle, and child Binding authoring methods. `id` is a nonempty segment without `/` or `::`. Name the result `<Id>Block`, such as `SettingsBlock` for the ID `Settings`. Keep the factory and its unique Symbol key at module scope. That same value exposes the public contract and typed authoring helpers; its Composition authors graph-aware init, update, and views.
 
 When related contracts share owned effect definitions, `Block.makeNamespace(id)` supplies their identity and primitive helpers. Name that value `<Id>Namespace` and pass it to `Block.make(FeatureNamespace, contracts)`. Both calls are passive configuration. Generic libraries with a shared implementation provider use the advanced mechanism described under [Generic Blocks](#generic-blocks).
 

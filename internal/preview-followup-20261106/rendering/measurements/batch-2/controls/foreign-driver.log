@@ -1,0 +1,23 @@
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Unexpected physical benchmark driver
++ actual - expected
+
++ '/private/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-rendering-analysis-controls-IKMvtb/foreign-driver.mjs'
+- '/private/tmp/foldkit-preview-followup-rendering-20261106/driver/run.mjs'
+
+    at file:///private/tmp/foldkit-preview-followup-rendering-20261106-repeat/analysis/analyse-timing.mjs:103:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: '/private/var/folders/54/f0j6__0970q7p_x68mh85tvc0000gn/T/foldkit-rendering-analysis-controls-IKMvtb/foreign-driver.mjs',
+  expected: '/private/tmp/foldkit-preview-followup-rendering-20261106/driver/run.mjs',
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.22.3

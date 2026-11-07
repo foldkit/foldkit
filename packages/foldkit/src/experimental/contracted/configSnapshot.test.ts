@@ -24,7 +24,7 @@ describe('Definition declaration snapshots', () => {
         return Model
       },
       Message,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
     }
 
     expect(() =>
@@ -39,7 +39,7 @@ describe('Definition declaration snapshots', () => {
       key: Symbol('AccessorDefinition'),
       Model,
       Message,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
       get InMessage() {
         reads += 1
         return InMessage
@@ -73,7 +73,7 @@ describe('Definition declaration snapshots', () => {
           Model,
           Message,
           InMessage,
-          Init: Schema.Tuple([]),
+          InitArgs: Schema.Tuple([]),
           inMessageOutputs,
         },
       ]),
@@ -101,7 +101,7 @@ describe('Definition declaration snapshots', () => {
           Model,
           Message,
           InMessage,
-          Init: Schema.Tuple([]),
+          InitArgs: Schema.Tuple([]),
           inMessageOutputs,
         },
       ]),
@@ -117,7 +117,7 @@ describe('Definition declaration snapshots', () => {
           key: Symbol('RetiredCodecDefinition'),
           Model,
           Message,
-          Init: Schema.Tuple([]),
+          InitArgs: Schema.Tuple([]),
           codec: { decoding: [], encoding: [] },
         },
       ]),

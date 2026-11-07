@@ -337,10 +337,10 @@ export class ToastFamily extends Context.Service<
 const constructToast: ToastConstructor = (runtime, view) =>
   runtime.ToastDefinition.makeLayer(
     Effect.gen(function* () {
-      const animation = yield* runtime.EntryAnimationBinding
+      const children = yield* runtime.ToastComposition.acquireChildren()
 
       return {
-        children: [animation],
+        children,
         init: runtime.init,
         update: runtime.update,
         inMessageUpdate: runtime.inMessageUpdate,

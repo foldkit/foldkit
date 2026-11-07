@@ -14,7 +14,7 @@ const RouterBlock = Block.make('Router', {
   key: RouterKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const { makeStep, makeFieldsStep } = RouterBlock
 

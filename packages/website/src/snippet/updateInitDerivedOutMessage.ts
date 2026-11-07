@@ -33,7 +33,7 @@ export const DateRangeBlock = Block.make('DateRange', {
   Model,
   Message,
   OutMessage,
-  Init: Schema.Tuple([Calendar.CalendarDate]),
+  InitArgs: Schema.Tuple([Calendar.CalendarDate]),
   ChildInitContext: Calendar.CalendarDate,
 })
 const {
@@ -46,26 +46,6 @@ const {
   makeComposition,
 } = DateRangeBlock
 
-const foldEndDateOutMessage = makeOutMessageFold(DatePicker.DatePickerBlock, {
-  SelectedDate: ({ date }) =>
-    makeStep(model => {
-      const nextModel = modifyFields(model, {
-        maybeEndDate: () => Option.some(date),
-      })
-
-      return Option.match(model.maybeStartDate, {
-        onNone: () => ({ model: nextModel }),
-        onSome: startDate => ({
-          model: nextModel,
-          outMessage: OutMessage.CompletedRange({ startDate, endDate: date }),
-        }),
-      })
-    }),
-  ClearedDate: () =>
-    makeFieldsStep(() => ({ maybeEndDate: () => Option.none() })),
-  ChangedViewMonth: makeNoopStep,
-})
-
 const EndDatePickerBinding = makeRequiredFieldBinding(
   DatePicker.DatePickerBlock,
   {
@@ -75,7 +55,25 @@ const EndDatePickerBinding = makeRequiredFieldBinding(
     },
   },
 ).withOutMessagePolicy({
-  fold: foldEndDateOutMessage,
+  fold: makeOutMessageFold(DatePicker.DatePickerBlock, {
+    SelectedDate: ({ date }) =>
+      makeStep(model => {
+        const nextModel = modifyFields(model, {
+          maybeEndDate: () => Option.some(date),
+        })
+
+        return Option.match(model.maybeStartDate, {
+          onNone: () => ({ model: nextModel }),
+          onSome: startDate => ({
+            model: nextModel,
+            outMessage: OutMessage.CompletedRange({ startDate, endDate: date }),
+          }),
+        })
+      }),
+    ClearedDate: () =>
+      makeFieldsStep(() => ({ maybeEndDate: () => Option.none() })),
+    ChangedViewMonth: makeNoopStep,
+  }),
   forward: makeOutMessageForward(DatePicker.DatePickerBlock, {
     SelectedDate: ({ date }) => OutMessage.SelectedEndDate({ date }),
     ClearedDate: () => undefined,
@@ -100,10 +98,10 @@ const update = DateRangeComposition.makeUpdate({
 
 export const layer = DateRangeBlock.makeLayer(
   Effect.gen(function* () {
-    const endDatePicker = yield* EndDatePickerBinding
+    const children = yield* DateRangeComposition.acquireChildren()
 
     return {
-      children: [endDatePicker],
+      children,
       init,
       update,
     }

@@ -9,7 +9,7 @@ import { WorkspaceRepository } from './repository'
 export const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([Url]),
+  InitArgs: Schema.Tuple([Url]),
   view: { kind: 'Document' },
   effects: { services: [WorkspaceRepository] },
   Model,

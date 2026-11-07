@@ -13,9 +13,9 @@ import { ViewInputs } from './viewInputs'
 export const IssueDetailKey = Symbol('IssueDetail')
 export const IssueDetailBlock = Block.make('IssueDetail', {
   key: IssueDetailKey,
-  Init: Schema.Tuple([Issue.Issue]),
-  Context: Schema.Tuple([Issue.Issue]),
-  InMessageContext: Schema.Tuple([Issue.Issue]),
+  InitArgs: Schema.Tuple([Issue.Issue]),
+  Context: Schema.Tuple([Schema.Option(Issue.Issue)]),
+  InMessageContext: Schema.Tuple([Schema.Option(Issue.Issue)]),
   view: { kind: 'Element', Inputs: ViewInputs },
   effects: { services: [WorkspaceRepository] },
   Model,

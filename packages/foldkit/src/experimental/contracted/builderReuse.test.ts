@@ -16,7 +16,7 @@ describe('constructed view builder reuse', () => {
       key: PageKey,
       Model,
       Message,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
       view: { kind: 'Element' },
     })
     const PageComposition = PageDefinition.makeComposition()
@@ -68,7 +68,7 @@ describe('constructed view builder reuse', () => {
       key: PageKey,
       Model,
       Message,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
       view: { kind: 'Element' },
     })
     const PageComposition = PageDefinition.makeComposition()
@@ -131,7 +131,7 @@ describe('constructed view builder reuse', () => {
       key: ChildKey,
       Model,
       Message,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
       view: { kind: 'Element' },
     })
     const ChildComposition = ChildDefinition.makeComposition()
@@ -160,7 +160,7 @@ describe('constructed view builder reuse', () => {
       key: PageKey,
       Model: Schema.Struct({ child: ChildDefinition.contract.Model }),
       Message: Schema.Never,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
       view: { kind: 'Element' },
     })
     const ChildBinding = PageDefinition.makeRequiredFieldBinding(

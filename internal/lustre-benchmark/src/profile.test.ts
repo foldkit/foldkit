@@ -122,7 +122,7 @@ const runProfile = async (
     key: ApplicationKey,
     Model,
     Message,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     view: { kind: 'Document' },
   })
   const ApplicationComposition = ApplicationBlock.makeComposition()

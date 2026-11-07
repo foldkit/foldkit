@@ -11,7 +11,7 @@ type Model = typeof Model.Type
 const PopoverTriggerClickTestKey = Symbol('PopoverTriggerClickTest')
 const PopoverTriggerClickTestBlock = Block.make('PopoverTriggerClickTest', {
   key: PopoverTriggerClickTestKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message: Schema.Never,
@@ -77,10 +77,11 @@ const makeProgram = (container: HTMLElement, isModal: boolean) => {
     block: PopoverTriggerClickTestBlock,
     layer: PopoverTriggerClickTestBlock.makeLayer(
       Effect.gen(function* () {
-        const popover = yield* PopoverBinding
+        const children =
+          yield* PopoverTriggerClickTestComposition.acquireChildren()
 
         return {
-          children: [popover],
+          children,
           init: PopoverTriggerClickTestComposition.makeInit(() =>
             PopoverBinding.init({
               args: [{ id: 'sort', isModal }],

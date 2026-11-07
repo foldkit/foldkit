@@ -1103,6 +1103,53 @@ export type ValidateStaticBindingConfigWithoutPolicy<
             : ValidateInitialKeys<Config>
           : ValidateBindChildConfigKeys<Config>
 
+type ConfiguredBindingKeys<Config> = {
+  [Key in keyof Config]-?: [Exclude<Config[Key], undefined>] extends [never]
+    ? never
+    : Key
+}[keyof Config]
+
+/** @internal Validates direct keyed initialization as the identity item projection. */
+export type ValidateDirectKeyedInitialBindingConfig<
+  BlockValue extends BindableBlock,
+  ParentModelSchema extends AnySchema,
+  Field extends keyof ParentModelSchema['Type'] & string,
+  KeyField extends string,
+  InitialArguments extends ReadonlyArray<unknown>,
+  ChildInitContext,
+  Config extends DirectKeyedInitialBindingConfig<
+    BlockValue,
+    ParentModelSchema,
+    Field,
+    KeyField,
+    InitialArguments,
+    ChildInitContext
+  >,
+> = ValidateStaticBindingConfigWithoutPolicy<
+  BlockValue,
+  ParentModelSchema,
+  Extract<ConfiguredBindingKeys<Config>, BindChildConfigKey>,
+  Field,
+  KeyField,
+  never,
+  Omit<Config, 'init'> &
+    Readonly<{
+      init: Omit<Config['init'], 'toItem'> &
+        Readonly<{
+          toItem: (
+            occurrence: InitialWrappedOccurrence<
+              BlockValue,
+              ParentModelSchema['Type'],
+              Field,
+              KeyField
+            >,
+            childModel: BlockValue['Model']['Type'],
+          ) => BlockValue['Model']['Type']
+        }>
+    }>,
+  'KeyedArray'
+>
+
 type ContextualKeyedOutMessageConfig<
   BlockValue extends BindableBlock,
   ParentModel,
@@ -1511,6 +1558,8 @@ type InitialContext<
           InitialArguments
         >
       >
+      contextToArgs?: never
+      toParentFields?: never
       /**
        * Keeps the exact initialized child and planned key, adding parent-owned
        * wrapper fields when needed. Return a plain wrapper record: a Schema
@@ -1529,9 +1578,57 @@ type InitialContext<
         ParentModelSchema['Type'],
         Extract<Field, keyof ParentModelSchema['Type'] & string>
       >
-      contextToArgs?: never
-      toParentFields?: never
     }>
+
+/** @internal Contextually types direct keyed initialization without an identity adapter. */
+export type DirectKeyedInitialBindingConfig<
+  BlockValue extends BindableBlock,
+  ParentModelSchema extends AnySchema,
+  Field extends keyof ParentModelSchema['Type'] & string,
+  KeyField extends string,
+  InitialArguments extends ReadonlyArray<unknown>,
+  ChildInitContext,
+> = Readonly<{
+  field: Field
+  key: KeyField
+  childField?: never
+  placement?: string
+  activeWhen?: never
+  outMessage?: never
+  read?: never
+  readAll?: never
+  write?: never
+  writeAt?: never
+  keySchema?: never
+  init: Readonly<{
+    instances: (
+      ...context: [ChildInitContext] extends [never]
+        ? ReadonlyArray<any>
+        : [childInitContext: ChildInitContext]
+    ) => ReadonlyArray<
+      InitialWrappedOccurrence<
+        BlockValue,
+        ParentModelSchema['Type'],
+        NoInfer<Field>,
+        NoInfer<KeyField>,
+        InitialArguments
+      >
+    >
+    toItem?: never
+  }>
+  subscriptions?: KeyedSubscriptionsContext<
+    BlockValue,
+    ParentModelSchema['Type'],
+    KeyAt<BlockValue['Model']['Type'], NoInfer<KeyField>>
+  >
+}> &
+  ([BlockValue['Message']['Type']] extends [never]
+    ? Readonly<{ delivery?: never }>
+    : GeneratedDeliveryRequirement<
+        BlockValue,
+        ParentModelSchema['Type'],
+        KeyAt<BlockValue['Model']['Type'], NoInfer<KeyField>>
+      >)
 
 type StorageConfigKey =
   | 'field'
@@ -2387,13 +2484,15 @@ export interface BindFieldChild<
         InitialArguments,
         ChildInitContext
       > &
-      Readonly<{
-        readAll?: never
-        key?: KeyField
-        field?: Field
-        childField?: ChildField
-        writeAt?: never
-      }> &
+      (Relationship extends 'Implicit'
+        ? Readonly<{
+            readAll?: never
+            key?: KeyField
+            field?: Field
+            childField?: ChildField
+            writeAt?: never
+          }>
+        : unknown) &
       ([BlockValue['Message']['Type']] extends [never]
         ? Readonly<{ delivery?: never; keySchema?: never }>
         : GeneratedDeliveryRequirement<
@@ -2429,6 +2528,43 @@ export interface BindFieldChild<
     ParentMessageSchema,
     ParentOutMessageSchema,
     Source,
+    ChildInitContext
+  >
+  <
+    const BlockValue extends BindableBlock,
+    const Field extends keyof ParentModelSchema['Type'] & string,
+    const KeyField extends string,
+    const Config extends DirectKeyedInitialBindingConfig<
+      BlockValue,
+      ParentModelSchema,
+      Field,
+      KeyField,
+      Parameters<BlockValue['init']>,
+      ChildInitContext
+    >,
+  >(
+    block: BlockValue,
+    config: Relationship extends 'KeyedArray'
+      ? Config & Readonly<{ field: Field; key: KeyField }>
+      : never,
+    ...validation: readonly [
+      ...ValidateDirectKeyedInitialBindingConfig<
+        BlockValue,
+        ParentModelSchema,
+        NoInfer<Field>,
+        NoInfer<KeyField>,
+        Parameters<BlockValue['init']>,
+        ChildInitContext,
+        NoInfer<Config>
+      >,
+      ...ValidateConcreteCompositionArguments<BlockValue>,
+    ]
+  ): BindChildConstructorResult<
+    BlockValue,
+    ParentModelSchema,
+    ParentMessageSchema,
+    ParentOutMessageSchema,
+    Config,
     ChildInitContext
   >
 }

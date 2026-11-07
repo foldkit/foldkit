@@ -37,7 +37,7 @@ const makeNotifyingKeyedQueryAuthoring = <
     Message,
     InMessage,
     OutMessage,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     operations: makeKeyedQueryArgumentOperations(Message),
   })
   const Fetch = Definition.makeCommand('Fetch', {
@@ -91,7 +91,7 @@ const makeSilentKeyedQueryAuthoring = <
     Model,
     Message,
     InMessage,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     operations: makeKeyedQueryArgumentOperations(Message),
   })
   const Fetch = Definition.makeCommand('Fetch', {

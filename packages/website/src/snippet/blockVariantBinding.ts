@@ -12,7 +12,7 @@ type Model = typeof Model.Type
 export const ProfileKey = Symbol('Profile')
 const ProfileBlock = Block.make('Profile', {
   key: ProfileKey,
-  Init: Schema.Tuple([Schema.String]),
+  InitArgs: Schema.Tuple([Schema.String]),
   Model,
   Message: Schema.Never,
 })

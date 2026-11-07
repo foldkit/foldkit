@@ -17,7 +17,7 @@ type Message = typeof Message.Type
 export const HoverIntentExampleKey = Symbol('HoverIntentExample')
 export const HoverIntentExampleBlock = Block.make('HoverIntentExample', {
   key: HoverIntentExampleKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -30,14 +30,6 @@ const {
   makeComposition,
 } = HoverIntentExampleBlock
 
-const foldHoverIntentOutMessage = makeOutMessageFold(
-  HoverIntent.HoverIntentBlock,
-  {
-    Opened: makeNoopStep,
-    Closed: makeNoopStep,
-  },
-)
-
 const HoverIntentBinding = makeRequiredFieldBinding(
   HoverIntent.HoverIntentBlock,
   {
@@ -46,7 +38,12 @@ const HoverIntentBinding = makeRequiredFieldBinding(
       contextToArgs: () => [{ openDelay: 200, closeDelay: 300 }],
     },
   },
-).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
+).withOutMessagePolicy({
+  fold: makeOutMessageFold(HoverIntent.HoverIntentBlock, {
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+  }),
+})
 
 const HoverIntentExampleComposition = makeComposition({
   bindings: [HoverIntentBinding],
@@ -110,10 +107,10 @@ const view = HoverIntentExampleComposition.makeView((model, h) => {
 
 export const layer = HoverIntentExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const hoverIntent = yield* HoverIntentBinding
+    const children = yield* HoverIntentExampleComposition.acquireChildren()
 
     return {
-      children: [hoverIntent],
+      children,
       init,
       update,
       view,

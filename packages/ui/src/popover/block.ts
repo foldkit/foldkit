@@ -166,7 +166,7 @@ export const mounts = [AnchorPopover, PortalPopoverBackdrop]
 
 export const PopoverBlock = Block.make(PopoverNamespace, {
   key: PopoverKey,
-  Init: Block.makeInputContract<readonly [config: InitConfig]>(),
+  InitArgs: Block.makeInputContract<readonly [config: InitConfig]>(),
   view: {
     kind: 'Element',
     Inputs: Block.makeInputContract<ViewInputs>(),
@@ -786,10 +786,10 @@ export const view = PopoverComposition.makeView.withInputs(
 
 export const layer = PopoverBlock.makeLayer(
   Effect.gen(function* () {
-    const animation = yield* AnimationBinding
+    const children = yield* PopoverComposition.acquireChildren()
 
     return {
-      children: [animation],
+      children,
       init,
       update,
       inMessageUpdate,

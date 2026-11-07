@@ -22,7 +22,7 @@ type Message = typeof Message.Type
 export const ProjectDialogsKey = Symbol('ProjectDialogs')
 export const ProjectDialogsBlock = Block.make('ProjectDialogs', {
   key: ProjectDialogsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -155,11 +155,10 @@ const view = ProjectDialogsComposition.makeView((model, h) => {
 
 export const layer = ProjectDialogsBlock.makeLayer(
   Effect.gen(function* () {
-    const settingsDialog = yield* SettingsDialogBinding
-    const confirmDialog = yield* ConfirmDialogBinding
+    const children = yield* ProjectDialogsComposition.acquireChildren()
 
     return {
-      children: [settingsDialog, confirmDialog],
+      children,
       init,
       update,
       view,

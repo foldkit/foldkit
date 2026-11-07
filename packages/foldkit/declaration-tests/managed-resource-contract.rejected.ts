@@ -14,7 +14,7 @@ import {
   layer,
 } from './managed-resource-contract.accepted.js'
 
-const config = { Model, Message, InMessage, Init: Schema.Tuple([]) }
+const config = { Model, Message, InMessage, InitArgs: Schema.Tuple([]) }
 const LegacyEffectsKey = Symbol('LegacyEffects')
 const LegacyOperationKey = Symbol('LegacyOperation')
 const LegacyInputKey = Symbol('LegacyInput')

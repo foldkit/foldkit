@@ -33,7 +33,7 @@ const RequestBlock = Block.make('Request', {
   Model,
   Message: Schema.Never,
   isMessageFree: true,
-  Init: Schema.Tuple([Flags, Url]),
+  InitArgs: Schema.Tuple([Flags, Url]),
   view: { kind: 'Document' },
 })
 const RequestComposition = RequestBlock.makeComposition()

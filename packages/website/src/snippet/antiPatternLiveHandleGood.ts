@@ -9,7 +9,7 @@ import { Model } from './model'
 export const ChatKey = Symbol('Chat')
 const ChatBlock = Block.make('Chat', {
   key: ChatKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

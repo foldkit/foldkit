@@ -4,11 +4,13 @@ import type {
   BindChildConfigKey,
   BindChildContextualProperties,
   BindingViewContract,
+  DirectKeyedInitialBindingConfig,
   GeneralKeyedConfigKey,
   GeneralKeyedContextualProperties,
   GeneratedDeliveryRequirement,
   ItemOfReadAll,
   KeyForConfig,
+  ValidateDirectKeyedInitialBindingConfig,
   ValidateGeneralKeyedSourceWithoutPolicy,
   ValidateStaticBindingConfigWithoutPolicy,
 } from '../../block/bindChild.js'
@@ -578,13 +580,15 @@ export interface MakeFieldBinding<
         InitialArguments,
         ChildContext<ChildInitContextSchema>
       > &
-      Readonly<{
-        readAll?: never
-        key?: KeyField
-        field?: Field
-        childField?: ChildField
-        writeAt?: never
-      }> &
+      (Relationship extends 'Implicit'
+        ? Readonly<{
+            readAll?: never
+            key?: KeyField
+            field?: Field
+            childField?: ChildField
+            writeAt?: never
+          }>
+        : unknown) &
       ([CoreContract<Child>['Message']['Type']] extends [never]
         ? Readonly<{ delivery?: never; keySchema?: never }>
         : GeneratedDeliveryRequirement<
@@ -626,6 +630,56 @@ export interface MakeFieldBinding<
     MessageSchema,
     OutMessageSchema,
     Source,
+    ChildInitContextSchema,
+    Kind,
+    ParentOwner
+  >
+  <
+    const Child extends AnyDescriptor &
+      (Kind extends 'Layer'
+        ? Readonly<{ layer: Layer.Any }>
+        : Kind extends 'Provided'
+          ? ProvidedChildContract
+          : unknown),
+    const Field extends keyof ModelSchema['Type'] & string,
+    const KeyField extends string,
+    const Config extends DirectKeyedInitialBindingConfig<
+      CoreContract<Child>,
+      ModelSchema,
+      Field,
+      KeyField,
+      Parameters<CoreContract<Child>['init']>,
+      ChildContext<ChildInitContextSchema>
+    >,
+  >(
+    child: Child,
+    config: Relationship extends 'KeyedArray'
+      ? Config & Readonly<{ field: Field; key: KeyField }>
+      : never,
+    ...validation: readonly [
+      ...ReadableAdmissionValidation<NoInfer<Child>>,
+      ...ValidateDirectKeyedInitialBindingConfig<
+        CoreContract<Child>,
+        ModelSchema,
+        NoInfer<Field>,
+        NoInfer<KeyField>,
+        Parameters<CoreContract<Child>['init']>,
+        ChildContext<ChildInitContextSchema>,
+        NoInfer<Config>
+      >,
+      ...(Extract<
+        'construct' | 'connect',
+        keyof CoreContract<Child>['operations']
+      > extends never
+        ? readonly []
+        : readonly [reservedBindingOperation: never]),
+    ]
+  ): DescriptorBinding<
+    Child,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    Config,
     ChildInitContextSchema,
     Kind,
     ParentOwner

@@ -60,7 +60,7 @@ const VariantChildBlock = Block.make('VariantWriterChild', {
   key: VariantChildKey,
   Model: VariantChildModel,
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const VariantParentKey = Symbol('VariantWriterParent')
 const VariantParentDefinition = Block.make('VariantWriterParent', {
@@ -70,6 +70,6 @@ const VariantParentDefinition = Block.make('VariantWriterParent', {
     Schema.Struct({ _tag: Schema.Literals(['Other']) }),
   ]),
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 VariantParentDefinition.makeVariantBinding(VariantChildBlock)

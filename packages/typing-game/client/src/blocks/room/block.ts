@@ -11,7 +11,7 @@ import { Model } from './model'
 export const RoomKey = Symbol('Room')
 export const RoomBlock = Block.make('Room', {
   key: RoomKey,
-  Init: Schema.Tuple([Schema.Option(Schema.String)]),
+  InitArgs: Schema.Tuple([Schema.Option(Schema.String)]),
   Context: Schema.Tuple([Context]),
   InMessageContext: Schema.Tuple([Context]),
   view: { kind: 'Element', Inputs: Schema.Struct({ roomId: Schema.String }) },

@@ -15,7 +15,7 @@ type Model = typeof Model.Type
 export const ShortcutsKey = Symbol('Shortcuts')
 const ShortcutsBlock = Block.make('Shortcuts', {
   key: ShortcutsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

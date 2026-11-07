@@ -26,7 +26,7 @@ declare const reorder: (
 export const SortableListKey = Symbol('SortableList')
 export const SortableListBlock = Block.make('SortableList', {
   key: SortableListKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -45,9 +45,15 @@ const {
 // Update.Step over the parent Model, which already has the next DragAndDrop
 // Model written back. The parent Block checks the complete child union
 // and infers each parent Step:
-const foldDragAndDropOutMessage = makeOutMessageFold(
+// The Binding retains the child contract; construction supplies its implementation.
+const DragAndDropBinding = makeRequiredFieldBinding(
   DragAndDrop.DragAndDropBlock,
   {
+    field: 'dragAndDrop',
+    init: { contextToArgs: () => [{ id: 'sortable-list' }] },
+  },
+).withOutMessagePolicy({
+  fold: makeOutMessageFold(DragAndDrop.DragAndDropBlock, {
     Reordered: ({ itemId, fromIndex, toIndex }) =>
       makeFieldsStep(() => ({
         // reorder is your own function that moves the item
@@ -59,17 +65,8 @@ const foldDragAndDropOutMessage = makeOutMessageFold(
     StartedKeyboardDrag: makeNoopStep,
     ChangedKeyboardTarget: makeNoopStep,
     Cancelled: makeNoopStep,
-  },
-)
-
-// The Binding retains the child contract; construction supplies its implementation.
-const DragAndDropBinding = makeRequiredFieldBinding(
-  DragAndDrop.DragAndDropBlock,
-  {
-    field: 'dragAndDrop',
-    init: { contextToArgs: () => [{ id: 'sortable-list' }] },
-  },
-).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
+  }),
+})
 
 const SortableListComposition = makeComposition({
   bindings: [DragAndDropBinding],
@@ -127,10 +124,10 @@ const view = SortableListComposition.makeView((model, h) =>
 
 export const layer = SortableListBlock.makeLayer(
   Effect.gen(function* () {
-    const dragAndDrop = yield* DragAndDropBinding
+    const children = yield* SortableListComposition.acquireChildren()
 
     return {
-      children: [dragAndDrop],
+      children,
       init,
       update,
       view,

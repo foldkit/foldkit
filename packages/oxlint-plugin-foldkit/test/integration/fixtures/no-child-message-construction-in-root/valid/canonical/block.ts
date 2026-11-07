@@ -9,6 +9,6 @@ export const OwnerBlock = Block.make('Owner', {
   key: OwnerKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 export const { makeCommand } = OwnerBlock

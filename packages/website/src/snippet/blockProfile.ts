@@ -48,10 +48,10 @@ export const view = ApplicationComposition.makeView((model, h) => ({
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const settings = yield* SettingsBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [settings],
+      children,
       init,
       update,
       view,

@@ -116,7 +116,7 @@ const DeclarationQueryParentDefinition = Block.makeDefinition(
     key: DeclarationQueryParentKey,
     Model: ParentModel,
     Message: ParentMessage,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 export const DeclarationQueryParentContract =
@@ -148,7 +148,7 @@ export const defineGenericInputRequest = <Name extends string, Value, Encoded>(
     Model,
     Message: LocalMessage,
     InMessage,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   })
   const Fetch = Definition.makeCommand('Fetch', {
     messages: [LocalMessage.CompletedFetch],

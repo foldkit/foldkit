@@ -16,7 +16,7 @@ const MenuTriggerClickTestBlock = Block.make('MenuTriggerClickTest', {
   key: MenuTriggerClickTestKey,
   Model,
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   ChildInitContext: InitConfig,
   view: { kind: 'Element' },
 })
@@ -66,10 +66,10 @@ const ApplicationBlock = {
   block: MenuTriggerClickTestBlock,
   layer: MenuTriggerClickTestBlock.makeLayer(
     Effect.gen(function* () {
-      const menu = yield* MenuBinding
+      const children = yield* MenuTriggerClickTestComposition.acquireChildren()
 
       return {
-        children: [menu],
+        children,
         init,
         update,
         view,

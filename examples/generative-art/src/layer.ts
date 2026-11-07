@@ -3,10 +3,7 @@ import { Effect, Layer } from 'effect'
 import { Slider } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
-import {
-  FlowStrengthSliderBinding,
-  NoiseScaleSliderBinding,
-} from './composition'
+import { ApplicationComposition } from './composition'
 import { EffectsLayer } from './effectsLayer'
 import { init } from './init'
 import { subscriptions } from './subscription'
@@ -15,11 +12,10 @@ import { view } from './view'
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const flowStrengthSlider = yield* FlowStrengthSliderBinding
-    const noiseScaleSlider = yield* NoiseScaleSliderBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [flowStrengthSlider, noiseScaleSlider],
+      children,
       init,
       update,
       view,

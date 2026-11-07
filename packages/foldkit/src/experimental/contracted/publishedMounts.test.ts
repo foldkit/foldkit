@@ -40,7 +40,7 @@ type ViewInputs = Readonly<{
 const Key = Symbol('PublishedViewMount')
 const Definition = Namespace.makeDefinition({
   key: Key,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: Schema.Struct({}),
   Message,
   view: {
@@ -69,7 +69,7 @@ const Implementation = Definition.makeBlock(
 const ParentKey = Symbol('PublishedViewMountParent')
 const ParentDefinition = Block.makeDefinition('PublishedViewMountParent', {
   key: ParentKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: Schema.Struct({ child: Definition.contract.Model }),
   Message: Schema.Never,
   view: { kind: 'Element' },

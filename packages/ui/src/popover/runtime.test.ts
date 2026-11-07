@@ -23,7 +23,7 @@ type Message = typeof Message.Type
 const PopoverSiblingRuntimeTestKey = Symbol('PopoverSiblingRuntimeTest')
 const PopoverSiblingRuntimeTestBlock = Block.make('PopoverSiblingRuntimeTest', {
   key: PopoverSiblingRuntimeTestKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -92,10 +92,11 @@ const ApplicationBlock = {
   block: PopoverSiblingRuntimeTestBlock,
   layer: PopoverSiblingRuntimeTestBlock.makeLayer(
     Effect.gen(function* () {
-      const popover = yield* PopoverBinding
+      const children =
+        yield* PopoverSiblingRuntimeTestComposition.acquireChildren()
 
       return {
-        children: [popover],
+        children,
         init: PopoverSiblingRuntimeTestComposition.makeInit(() =>
           PopoverBinding.init({
             args: [{ id: popoverId }],

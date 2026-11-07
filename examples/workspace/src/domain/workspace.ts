@@ -99,6 +99,6 @@ export const confirmIssueMove = (
                   version: () => moveResult.version,
                 }),
                 moveResult.insertionIndex,
-              ),
+              ).issues,
       }),
   })

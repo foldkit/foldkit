@@ -1,5 +1,4 @@
-import { Socket } from 'effect/socket'
-
 import { makeResource } from './block'
+import type { WebSocketConnection } from './webSocketConnection'
 
-export const ChatSocket = makeResource<Socket.WebSocketLike>()('ChatSocket')
+export const ChatSocket = makeResource<WebSocketConnection>()('ChatSocket')

@@ -392,7 +392,7 @@ class ShadowRootService extends Context.Service<
 const ApplicationKey = Symbol('Application')
 const ApplicationDefinition = Block.makeDefinition('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([Flags]),
+  InitArgs: Schema.Tuple([Flags]),
   view: { kind: 'Element' },
   effects: {
     services: [StoreService, ShadowRootService, KeyValueStore.KeyValueStore],

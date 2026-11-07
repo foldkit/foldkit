@@ -76,7 +76,7 @@ export const ApplicationBlock = Block.make('Application', {
   Model,
   Message,
   effects: { services: [RequestSource, Observation] },
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const { makeFieldsStep, makeCommandsStep, makeNoopStep } = ApplicationBlock

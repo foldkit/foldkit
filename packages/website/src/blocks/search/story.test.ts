@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
@@ -18,6 +19,7 @@ import { SearchBlock, layer } from './index'
 import { Message } from './message'
 
 const searchSubject = { block: SearchBlock, layer }
+const initialSearchModel = Story.story(searchSubject, Story.init())
 
 const searchResults = [
   {
@@ -35,11 +37,6 @@ const searchResults = [
     kind: '',
   },
 ]
-
-const makeFixture = (block: Story.TestBlock<typeof searchSubject>) => ({
-  update: block.update,
-  init_: block.init(),
-})
 
 describe('search', () => {
   it.effect(
@@ -106,12 +103,12 @@ describe('search', () => {
     ),
   )
   it.effect('clearing the query resets to Idle', () =>
-    Story.withBlock(searchSubject, executable => {
-      const { update, init_ } = makeFixture(executable)
+    Effect.gen(function* () {
+      const initialModel = yield* initialSearchModel
 
-      Story.story(
-        update,
-        Story.given(modifyFields(init_.model, { query: () => 'routing' })),
+      yield* Story.story(
+        searchSubject,
+        Story.given(modifyFields(initialModel, { query: () => 'routing' })),
         Story.message(Message.UpdatedSearchQuery({ query: '' })),
         Story.model(model => {
           expect(model.query).toBe('')
@@ -123,12 +120,12 @@ describe('search', () => {
     }),
   )
   it.effect('same query is ignored', () =>
-    Story.withBlock(searchSubject, executable => {
-      const { update, init_ } = makeFixture(executable)
+    Effect.gen(function* () {
+      const initialModel = yield* initialSearchModel
 
-      Story.story(
-        update,
-        Story.given(modifyFields(init_.model, { query: () => 'routing' })),
+      yield* Story.story(
+        searchSubject,
+        Story.given(modifyFields(initialModel, { query: () => 'routing' })),
         Story.message(Message.UpdatedSearchQuery({ query: 'routing' })),
         Story.model(model => {
           expect(model.searchState._tag).toBe('Idle')
@@ -138,13 +135,13 @@ describe('search', () => {
     }),
   )
   it.effect('new query preserves previous results in Loading state', () =>
-    Story.withBlock(searchSubject, executable => {
-      const { update, init_ } = makeFixture(executable)
+    Effect.gen(function* () {
+      const initialModel = yield* initialSearchModel
 
-      Story.story(
-        update,
+      yield* Story.story(
+        searchSubject,
         Story.given(
-          modifyFields(init_.model, {
+          modifyFields(initialModel, {
             query: () => 'routing',
             searchState: () => SearchState.Ok({ results: searchResults }),
           }),
@@ -169,12 +166,12 @@ describe('search', () => {
     }),
   )
   it.effect('stale results are ignored', () =>
-    Story.withBlock(searchSubject, executable => {
-      const { update, init_ } = makeFixture(executable)
+    Effect.gen(function* () {
+      const initialModel = yield* initialSearchModel
 
-      Story.story(
-        update,
-        Story.given(modifyFields(init_.model, { query: () => 'testing' })),
+      yield* Story.story(
+        searchSubject,
+        Story.given(modifyFields(initialModel, { query: () => 'testing' })),
         Story.message(
           Message.CompletedFetchSearchResults({
             results: searchResults,
@@ -207,15 +204,15 @@ describe('search', () => {
     ),
   )
   it.effect('arrow keys cycle through results', () =>
-    Story.withBlock(searchSubject, executable => {
-      const { update, init_ } = makeFixture(executable)
+    Effect.gen(function* () {
+      const initialModel = yield* initialSearchModel
 
-      const modelWithResults = modifyFields(init_.model, {
+      const modelWithResults = modifyFields(initialModel, {
         searchState: () => SearchState.Ok({ results: searchResults }),
         activeResultIndex: () => 0,
       })
-      Story.story(
-        update,
+      yield* Story.story(
+        searchSubject,
         Story.given(modelWithResults),
         Story.message(Message.PressedArrowKey({ direction: 'Down' })),
         Story.model(model => {
@@ -246,13 +243,13 @@ describe('search', () => {
     }),
   )
   it.effect('clearing the query explicitly resets state', () =>
-    Story.withBlock(searchSubject, executable => {
-      const { update, init_ } = makeFixture(executable)
+    Effect.gen(function* () {
+      const initialModel = yield* initialSearchModel
 
-      Story.story(
-        update,
+      yield* Story.story(
+        searchSubject,
         Story.given(
-          modifyFields(init_.model, {
+          modifyFields(initialModel, {
             query: () => 'routing',
             searchState: () => SearchState.Ok({ results: searchResults }),
             activeResultIndex: () => 1,

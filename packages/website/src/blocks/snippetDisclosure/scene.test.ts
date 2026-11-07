@@ -1,5 +1,6 @@
 import { Array, pipe } from 'effect'
 import { Scene, Story } from 'foldkit'
+import { inertHtml as ih } from 'foldkit/html'
 import { describe } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -24,26 +25,6 @@ const makeFixture = (
   const init = block.init
   const update = block.update
   const view = block.view
-  const testView =
-    (rawCode: string) =>
-    (
-      model: Model,
-      h: Parameters<
-        Story.TestBlock<typeof snippetDisclosureSubject>['view']
-      >[2],
-    ) =>
-      view(
-        model,
-        {
-          id: snippetId,
-          title: 'Counter state',
-          content: h.pre([], [rawCode]),
-          rawCode,
-          copyAriaLabel: 'Copy counter state',
-          renderCopyButton: () => h.empty,
-        },
-        h,
-      )
   const groupedView = (
     model: Model,
     h: Parameters<Story.TestBlock<typeof snippetDisclosureSubject>['view']>[2],
@@ -80,56 +61,60 @@ const makeFixture = (
       ],
     )
   }
-  return { block, init, update, view, testView, groupedView }
+  return { init, update, groupedView }
 }
+
+const snippetViewInputs = (rawCode: string) => ({
+  id: snippetId,
+  title: 'Counter state',
+  content: ih.pre([], [rawCode]),
+  rawCode,
+  copyAriaLabel: 'Copy counter state',
+  renderCopyButton: () => ih.empty,
+})
 
 describe('snippet disclosure', () => {
   it.effect('shows and hides the full code', () =>
-    Story.withBlock(snippetDisclosureSubject, executable => {
-      const { init, update, testView } = makeFixture(executable)
-
-      Scene.scene(
-        {
-          update,
-          view: testView(longCode),
-        },
-        Scene.given(init().model),
-        Scene.Mount.resolve(
-          MeasureSnippetHeight,
-          Message.CompletedMeasureSnippetHeight({
-            snippetId,
-            snippetSize: SnippetSize.Overflows(),
-          }),
-        ),
-        Scene.expect(Scene.role('figure', { name: 'Counter state' })).toExist(),
-        Scene.expect(Scene.text('Counter state')).toExist(),
-        Scene.expect(Scene.role('button', { name: 'Show code' })).toExist(),
-        Scene.click(Scene.role('button', { name: 'Show code' })),
-        Scene.expect(Scene.role('button', { name: 'Hide code' })).toExist(),
-        Scene.click(Scene.role('button', { name: 'Hide code' })),
-        Scene.expect(Scene.role('button', { name: 'Show code' })).toExist(),
-      )
-    }),
+    Scene.scene(
+      {
+        ...snippetDisclosureSubject,
+        viewInputs: snippetViewInputs(longCode),
+      },
+      Scene.init(),
+      Scene.Mount.resolve(
+        MeasureSnippetHeight,
+        Message.CompletedMeasureSnippetHeight({
+          snippetId,
+          snippetSize: SnippetSize.Overflows(),
+        }),
+      ),
+      Scene.expect(Scene.role('figure', { name: 'Counter state' })).toExist(),
+      Scene.expect(Scene.text('Counter state')).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Show code' })).toExist(),
+      Scene.click(Scene.role('button', { name: 'Show code' })),
+      Scene.expect(Scene.role('button', { name: 'Hide code' })).toExist(),
+      Scene.click(Scene.role('button', { name: 'Hide code' })),
+      Scene.expect(Scene.role('button', { name: 'Show code' })).toExist(),
+    ),
   )
 
   it.effect('does not offer to expand code that fits', () =>
-    Story.withBlock(snippetDisclosureSubject, executable => {
-      const { init, update, testView } = makeFixture(executable)
-
-      Scene.scene(
-        { update, view: testView(shortCode) },
-        Scene.given(init().model),
-        Scene.Mount.resolve(
-          MeasureSnippetHeight,
-          Message.CompletedMeasureSnippetHeight({
-            snippetId,
-            snippetSize: SnippetSize.Fits(),
-          }),
-        ),
-        Scene.expect(Scene.role('button', { name: 'Show code' })).not.toExist(),
-        Scene.expect(Scene.role('button', { name: 'Hide code' })).not.toExist(),
-      )
-    }),
+    Scene.scene(
+      {
+        ...snippetDisclosureSubject,
+        viewInputs: snippetViewInputs(shortCode),
+      },
+      Scene.init(),
+      Scene.Mount.resolve(
+        MeasureSnippetHeight,
+        Message.CompletedMeasureSnippetHeight({
+          snippetId,
+          snippetSize: SnippetSize.Fits(),
+        }),
+      ),
+      Scene.expect(Scene.role('button', { name: 'Show code' })).not.toExist(),
+      Scene.expect(Scene.role('button', { name: 'Hide code' })).not.toExist(),
+    ),
   )
 
   it.effect('shares open state across snippets in one disclosure group', () =>

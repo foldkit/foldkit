@@ -26,7 +26,7 @@ export type InMessage = typeof InMessage.Type
 export const WorkHistoryKey = Symbol('WorkHistory')
 export const WorkHistoryBlock = Block.make('WorkHistory', {
   key: WorkHistoryKey,
-  Init: Schema.Tuple([Calendar.CalendarDate, Schema.String]),
+  InitArgs: Schema.Tuple([Calendar.CalendarDate, Schema.String]),
   view: { kind: 'Element' },
   effects: { services: [SecureRandom.SecureRandom] },
   Model,

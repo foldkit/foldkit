@@ -28,7 +28,7 @@ const familyOverlap = Object.freeze({
   Model,
   Message: InMessage,
   InMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 // @ts-expect-error Family input and local Message tags must be distinct.
 Block.makeFamilyDefinition('InMessagesFamilyOverlap', familyOverlap)
@@ -39,7 +39,7 @@ const familyUntagged = Object.freeze({
   Model,
   Message,
   InMessage: Schema.Struct({ value: Schema.Number }),
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 // @ts-expect-error Families require a finite union-owned InMessage Schema.
 Block.makeFamilyDefinition('InMessagesFamilyUntagged', familyUntagged)
@@ -50,7 +50,7 @@ const familyUnknownOutput = Object.freeze({
   Model,
   Message,
   InMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   inMessageOutputs: { RequestedUnknown: {} },
 })
 // @ts-expect-error Family output metadata can only name declared input variants.
@@ -62,7 +62,7 @@ const familyPrefix = Object.freeze({
   Model,
   Message,
   InMessage: defineMessageUnion({ ClickedSet: {} }),
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 // @ts-expect-error Family inputs must produce request or inform operation names.
 Block.makeFamilyDefinition('InMessagesFamilyPrefix', familyPrefix)
@@ -84,7 +84,7 @@ const extraMetadata = Object.freeze({
   Message,
   InMessage,
   OutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   inMessageOutputs: {
     RequestedReport: {
       outMessage: OutMessage.Reported,
@@ -181,7 +181,7 @@ const OtherDefinition = Block.makeDefinition('InMessagesOtherGraph', {
   Message,
   InMessage,
   OutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   inMessageOutputs: { RequestedReport: { outMessage: OutMessage.Reported } },
 })
 const OtherComposition = OtherDefinition.makeComposition()
@@ -210,7 +210,7 @@ const SilentDefinition = Block.makeDefinition('InMessagesSilentBound', {
   Message,
   InMessage,
   OutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const SilentComposition = SilentDefinition.makeComposition()
 const undeclaredEmission = SilentComposition.makeInMessageUpdate({

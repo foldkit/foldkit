@@ -6,6 +6,7 @@ import { WebSocket } from 'ws'
 
 import { foldkit } from '../src/index.ts'
 import { boundPort } from './boundPort.ts'
+import { listenOnEphemeralPort } from './listenOnEphemeralPort.ts'
 import {
   RELAY_PATH,
   useRelayRegistry,
@@ -80,7 +81,7 @@ it(
       plugins: [catchAllUpgrades(seenPaths), foldkit()],
     })
     onTestFinished(() => server.close().catch(() => undefined))
-    await server.listen()
+    await listenOnEphemeralPort(() => server.listen())
 
     const client = await openRelayClient()
 
@@ -113,7 +114,7 @@ it(
       plugins: [foldkit()],
     })
     onTestFinished(() => server.close().catch(() => undefined))
-    await server.listen()
+    await listenOnEphemeralPort(() => server.listen())
 
     const client = await openRelayClient()
 

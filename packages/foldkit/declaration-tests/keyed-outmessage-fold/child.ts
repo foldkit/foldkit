@@ -27,7 +27,7 @@ export const ChildBlock = Block.make('KeyedFoldChild', {
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
   InMessage: ChildInMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   inMessageOutputs: {
     RequestedChoose: { outMessage: ChildOutMessage.Selected },
   },

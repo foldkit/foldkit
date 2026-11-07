@@ -23,7 +23,7 @@ export type OutMessage = typeof OutMessage.Type
 export const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   effects: { services: [SettingsStore] },
   Model,
   Message,
@@ -74,10 +74,10 @@ const init = ApplicationComposition.makeInit(() => ({
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const settings = yield* SettingsBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [settings],
+      children,
       init,
       update,
     }

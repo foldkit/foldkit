@@ -36,7 +36,7 @@ export class SettingsStore extends Context.Service<
 export const SettingsKey = Symbol('Settings')
 export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   effects: { services: [SettingsStore] },
   inMessageOutputs: {

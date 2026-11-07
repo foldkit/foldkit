@@ -18,7 +18,7 @@ const MissingDialogComposition = Block.make('MissingDialog', {
   key: MissingDialogKey,
   Model: DeleteIssueModel,
   Message: DeleteIssueMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 }).makeComposition()
 
@@ -84,7 +84,7 @@ const MissingMountComposition = Block.make('MissingMount', {
   key: MissingMountKey,
   Model: Schema.Struct({}),
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   isMessageFree: true,
   view: { kind: 'Element' },
 }).makeComposition()

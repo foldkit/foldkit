@@ -23,7 +23,7 @@ export const FrequentlyAskedQuestionsBlock = Block.make(
   'FrequentlyAskedQuestions',
   {
     key: FrequentlyAskedQuestionsKey,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     view: { kind: 'Element' },
     Model,
     Message,

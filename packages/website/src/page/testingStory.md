@@ -19,7 +19,7 @@ Start with `init(...args)` when initialization is part of the scenario. It runs 
 Import the `Story` namespace from `foldkit`.
 
 - Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `init`, `steps`, `given`, `message`, `messageIn`, `messageWith`, `model`, `models`, `expectOutMessage`, and `expectNoOutMessage`.
-- The `Command` namespace handles pending Commands: `argsOf`, `resolve`, `resolveAll`, `resolveAllExact`, `expectHas`, `expectExact`, and `expectNone`.
+- The `Command` namespace handles pending Commands: `argsOf`, `resolve`, `resolveAll`, `resolveAllExact`, `expectHas`, `expectExact`, `expectExactInOrder`, and `expectNone`.
 - `Subscription.from(block.subscriptions)` creates emission steps inside an acquired test fixture. For private registries, test the checked implementation that owns them.
 
 Qualify every testing step through the namespace so call sites such as `Story.given`, `Story.message`, and `Story.model` identify the DSL directly.
@@ -34,11 +34,13 @@ Use `FetchWeather` when the test only cares that this Command was dispatched. Us
 
 For before-and-after examples covering generated child delivery and completed UI Blocks, see [Migrate an existing test suite](/testing#migrate-an-existing-test-suite).
 
+`Command.expectExact` compares an exact set without requiring dispatch order. Use `Command.expectExactInOrder` when order is part of the behavior, such as parent startup Commands followed by child init Commands. It keeps the same identity, argument, occurrence and exact-count checks. Neither assertion implies that effects run or complete in that order. Keep ordinary expectations in these helpers rather than inspecting simulation internals.
+
 ### Inspect Captured Command Arguments
 
-Use `Command.argsOf(Definition)(pending)` when a test helper needs the args captured on pending Command metadata. It matches the Definition's source identity, including through qualified Binding paths, and returns `Option` of the Definition's exact args type. An argless match returns `Some(undefined)`; `None` means the pending Command came from another source.
+Use a Command instance in an ordinary assertion when its arguments matter. `Command.argsOf(Definition)(pending)` is available for custom testing adapters that already own a pending invocation. It matches the Definition's source identity, including through qualified Binding paths, and returns `Option` of the Definition's exact args type. An argless match returns `Some(undefined)`; `None` means the pending Command came from another source.
 
-Projection does not choose an occurrence. Map it across `simulation.commands`, then state the cardinality your helper requires. It also leaves the pending value's parent Message mapping, Effect channels, qualified name, and keys unchanged. Construct an instance from the projected args when the next step should resolve that exact dispatch.
+Projection does not select an occurrence or change the invocation's parent Message mapping, Effect channels, qualified name or keys. It does not require a custom Story callback for an ordinary argument expectation.
 
 ::Snippet{name="testingCommandArgs" label="Inspect captured Command arguments"}
 
@@ -111,6 +113,10 @@ Pass the raw child entry only when it identifies one registration. If a child Su
 ### Resolve Child Commands
 
 When resolving a Command from a [child Block](/core/block), pass the child's result Message. Story applies the parent Message mapping automatically.
+
+Deliver a direct child fact with `Story.messageIn(Binding, message)`. For a descendant, supply a nonempty Binding path; each keyed segment is `{ binding, key }`. The runner checks the relationships and supplies the envelopes. Keep this step directly in the test unless a named concrete interaction makes the scenario clearer.
+
+::Snippet{name="testingNestedChildMessage" label="Deliver a nested child Message"}
 
 ### UI Component Test Helpers
 

@@ -25,7 +25,7 @@ type Message = typeof Message.Type
 export const PlanPickerKey = Symbol('PlanPicker')
 export const PlanPickerBlock = Block.make('PlanPicker', {
   key: PlanPickerKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -43,19 +43,19 @@ const {
 // The arm returns an Update.Step over the parent Model, which already has the
 // next Listbox Model written back. Passing the completed child Block preserves
 // the factory's refined `Plan` payload without a repeated type argument:
-const foldListboxOutMessage = makeOutMessageFold(PlanListbox, {
-  Selected: ({ value }) =>
-    makeFieldsStep(() => ({
-      maybePlan: () => Option.some(value),
-    })),
-})
-
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const ListboxBinding = makeRequiredFieldBinding(PlanListbox, {
   field: 'listbox',
   init: { contextToArgs: () => [{ id: 'plan' }] },
-}).withOutMessagePolicy({ fold: foldListboxOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(PlanListbox, {
+    Selected: ({ value }) =>
+      makeFieldsStep(() => ({
+        maybePlan: () => Option.some(value),
+      })),
+  }),
+})
 
 const PlanPickerComposition = makeComposition({
   bindings: [ListboxBinding],
@@ -121,10 +121,10 @@ const view = PlanPickerComposition.makeView((model, h) =>
 
 export const layer = PlanPickerBlock.makeLayer(
   Effect.gen(function* () {
-    const planListbox = yield* ListboxBinding
+    const children = yield* PlanPickerComposition.acquireChildren()
 
     return {
-      children: [planListbox],
+      children,
       init,
       update,
       view,

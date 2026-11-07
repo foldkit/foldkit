@@ -34,7 +34,7 @@ export const ParentBlock = Block.make('KeyedFoldParent', {
   Model,
   Message: ParentMessage,
   OutMessage: ParentOutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   effects: { services: [SelectionLog] },
 })
 export const { makeFieldsStep, makeOutMessageFold, makeOutMessageStep } =

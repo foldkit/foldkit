@@ -21,7 +21,7 @@ type Message = typeof Message.Type
 export const ActionMenuExampleKey = Symbol('ActionMenuExample')
 export const ActionMenuExampleBlock = Block.make('ActionMenuExample', {
   key: ActionMenuExampleKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -46,20 +46,20 @@ const actions: ReadonlyArray<Action> = [
 // without selection. Each arm returns an Update.Step over the parent Model,
 // which already has the next Menu Model written back. The parent Block
 // infers the factory-refined child contract from the completed Block:
-const foldMenuOutMessage = makeOutMessageFold(ActionMenu, {
-  // The child has emitted `Selected`. In this arm the parent can update
-  // its own state or dispatch its own Commands, for example transition a
-  // page, mutate domain state, or trigger a downstream Command.
-  Selected: makeNoopStep,
-  Closed: makeNoopStep,
-})
-
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const MenuBinding = makeRequiredFieldBinding(ActionMenu, {
   field: 'menu',
   init: { contextToArgs: () => [{ id: 'actions' }] },
-}).withOutMessagePolicy({ fold: foldMenuOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(ActionMenu, {
+    // The child has emitted `Selected`. In this arm the parent can update
+    // its own state or dispatch its own Commands, for example transition a
+    // page, mutate domain state, or trigger a downstream Command.
+    Selected: makeNoopStep,
+    Closed: makeNoopStep,
+  }),
+})
 
 const ActionMenuExampleComposition = makeComposition({
   bindings: [MenuBinding],
@@ -105,10 +105,10 @@ const view = ActionMenuExampleComposition.makeView((model, h) =>
 
 export const layer = ActionMenuExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const menu = yield* MenuBinding
+    const children = yield* ActionMenuExampleComposition.acquireChildren()
 
     return {
-      children: [menu],
+      children,
       init,
       update,
       view,

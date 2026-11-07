@@ -123,7 +123,7 @@ const makeSliderDefinition = () =>
     Model,
     Message,
     OutMessage,
-    Init: Schema.Tuple([InitConfig]),
+    InitArgs: Schema.Tuple([InitConfig]),
     view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
     InMessage,
   })

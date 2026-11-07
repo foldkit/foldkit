@@ -52,7 +52,7 @@ export const InputDefinition = Block.makeDefinition('InMessageUnionInput', {
   Model,
   Message,
   InMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 export const InputContract = InputDefinition.contract
 export type ExactGeneratedOperationNames = Assert<
@@ -74,7 +74,7 @@ export const AlternativeDefinition = Block.makeDefinition(
     Model,
     Message,
     InMessage: AlternativeInMessage,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 export const AlternativeContract = AlternativeDefinition.contract
@@ -96,7 +96,7 @@ export const ParentDefinition = Block.makeDefinition('InMessageUnionParent', {
   key: ParentKey,
   Model: ParentModel,
   Message: ParentMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 export const InputBinding = ParentDefinition.makeRequiredFieldBinding(
   InputContract,

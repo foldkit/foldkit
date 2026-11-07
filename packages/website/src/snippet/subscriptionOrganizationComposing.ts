@@ -8,7 +8,7 @@ import * as ThemeMenu from './themeMenu'
 export const SettingsKey = Symbol('Settings')
 export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })
@@ -20,14 +20,14 @@ const {
   makeComposition,
 } = SettingsBlock
 
-const foldThemeMenuOutMessage = makeOutMessageFold(ThemeMenu.ThemeMenuBlock, {
-  Selected: makeNoopStep,
-  Closed: makeNoopStep,
-})
-
 const ThemeMenuBinding = makeRequiredFieldBinding(ThemeMenu.ThemeMenuBlock, {
   field: 'themeMenu',
-}).withOutMessagePolicy({ fold: foldThemeMenuOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(ThemeMenu.ThemeMenuBlock, {
+    Selected: makeNoopStep,
+    Closed: makeNoopStep,
+  }),
+})
 
 export const SettingsComposition = makeComposition({
   bindings: [ThemeMenuBinding],

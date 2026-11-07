@@ -98,7 +98,7 @@ export const OriginBlock = Block.make('AttributeAliasOrigin', {
   key: OriginKey,
   Model: Schema.Struct({}),
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', mounts: [Observe] },
 })
 export type ParentViewInputs = Readonly<{
@@ -110,7 +110,7 @@ export const ParentBlock = Block.make('AttributeAliasParent', {
   key: ParentKey,
   Model: Schema.Struct({ origin: OriginBlock.Model }),
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: {
     kind: 'Element',
     Inputs: Block.makeInputContract<ParentViewInputs>(),

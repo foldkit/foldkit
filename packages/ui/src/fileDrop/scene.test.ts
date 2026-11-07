@@ -11,7 +11,7 @@ type SceneViewInputs = Omit<Partial<ViewInputs>, 'toView'>
 const FileDropSceneKey = Symbol('FileDropScene')
 const FileDropSceneBlock = Block.make('FileDropScene', {
   key: FileDropSceneKey,
-  Init: Block.makeInputContract<readonly []>(),
+  InitArgs: Block.makeInputContract<readonly []>(),
   Model: Schema.Struct({ fileDrop: FileDropBlock.Model }),
   Message: Schema.Never,
   view: { kind: 'Element', Inputs: Block.makeInputContract<SceneViewInputs>() },
@@ -54,10 +54,10 @@ const fileDropScene = {
   block: FileDropSceneBlock,
   layer: FileDropSceneBlock.makeLayer(
     Effect.gen(function* () {
-      const fileDrop = yield* FileDropBinding
+      const children = yield* FileDropSceneComposition.acquireChildren()
 
       return {
-        children: [fileDrop],
+        children,
         init,
         update,
         view,

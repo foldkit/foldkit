@@ -29,7 +29,7 @@ type ParentMessage = typeof ParentMessage.Type
 const DragAndDropTestParentKey = Symbol('DragAndDropTestParent')
 const DragAndDropTestParentBlock = Block.make('DragAndDropTestParent', {
   key: DragAndDropTestParentKey,
-  Init: Block.makeInputContract<readonly []>(),
+  InitArgs: Block.makeInputContract<readonly []>(),
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -120,11 +120,10 @@ const ParentBlock = {
   block: DragAndDropTestParentBlock,
   layer: DragAndDropTestParentBlock.makeLayer(
     Effect.gen(function* () {
-      const left = yield* LeftBinding
-      const right = yield* RightBinding
+      const children = yield* DragAndDropTestParentComposition.acquireChildren()
 
       return {
-        children: [left, right],
+        children,
         init: parentInit,
         update,
       }
@@ -135,7 +134,7 @@ const NestedParentBlock = DragAndDropTestParentBlock
 const OtherDragAndDropKey = Symbol('OtherDragAndDrop')
 const OtherDragAndDropBlock = Block.make('OtherDragAndDrop', {
   key: OtherDragAndDropKey,
-  Init: Block.makeInputContract<readonly []>(),
+  InitArgs: Block.makeInputContract<readonly []>(),
   Model: DragAndDropBlock.Model,
   Message: DragAndDropBlock.Message,
 })
@@ -338,7 +337,7 @@ const NestedDragAndDropTestParentBlock = Block.make(
   'NestedDragAndDropTestParent',
   {
     key: NestedDragAndDropTestParentKey,
-    Init: Block.makeInputContract<readonly []>(),
+    InitArgs: Block.makeInputContract<readonly []>(),
     Model: NestedModel,
     Message: NestedMessage,
   },
@@ -400,10 +399,11 @@ const NestedBlock = {
   block: NestedDragAndDropTestParentBlock,
   layer: NestedDragAndDropTestParentBlock.makeLayer(
     Effect.gen(function* () {
-      const child = yield* NestedBinding
+      const children =
+        yield* NestedDragAndDropTestParentComposition.acquireChildren()
 
       return {
-        children: [child],
+        children,
         init: NestedBlockInit,
         update: nestedUpdate,
       }
@@ -452,7 +452,7 @@ const KeyedDragAndDropTestParentBlock = Block.make(
   'KeyedDragAndDropTestParent',
   {
     key: KeyedDragAndDropTestParentKey,
-    Init: Block.makeInputContract<readonly []>(),
+    InitArgs: Block.makeInputContract<readonly []>(),
     Model: KeyedParentModel,
     Message: KeyedParentMessage,
   },
@@ -521,10 +521,11 @@ const KeyedBlock = {
   block: KeyedDragAndDropTestParentBlock,
   layer: KeyedDragAndDropTestParentBlock.makeLayer(
     Effect.gen(function* () {
-      const child = yield* KeyedBinding
+      const children =
+        yield* KeyedDragAndDropTestParentComposition.acquireChildren()
 
       return {
-        children: [child],
+        children,
         init: KeyedBlockInit,
         update: keyedUpdate,
       }

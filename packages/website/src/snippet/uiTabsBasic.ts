@@ -25,7 +25,7 @@ type Message = typeof Message.Type
 export const TabsExampleKey = Symbol('TabsExample')
 export const TabsExampleBlock = Block.make('TabsExample', {
   key: TabsExampleKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -52,23 +52,23 @@ const descriptions: Record<Framework, string> = {
 // returns an Update.Step over the parent Model, which already has the next
 // Tabs Model written back. Passing the whole child lets the parent Block
 // infer the refined `Framework` OutMessage and parent Step:
-const foldTabsOutMessage = makeOutMessageFold(FrameworkTabs, {
-  // The child has emitted `Selected`. Store the selected value as the new
-  // active tab. In this arm the parent can also update its own state or
-  // dispatch Commands, for example route to a new URL, persist the
-  // selection, or trigger a panel content fetch.
-  Selected: ({ value }) =>
-    makeFieldsStep(() => ({
-      activeFramework: () => value,
-    })),
-})
-
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const TabsBinding = makeRequiredFieldBinding(FrameworkTabs, {
   field: 'tabs',
   init: { contextToArgs: () => [{ id: 'framework-tabs' }] },
-}).withOutMessagePolicy({ fold: foldTabsOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(FrameworkTabs, {
+    // The child has emitted `Selected`. Store the selected value as the new
+    // active tab. In this arm the parent can also update its own state or
+    // dispatch Commands, for example route to a new URL, persist the
+    // selection, or trigger a panel content fetch.
+    Selected: ({ value }) =>
+      makeFieldsStep(() => ({
+        activeFramework: () => value,
+      })),
+  }),
+})
 
 const TabsExampleComposition = makeComposition({
   bindings: [TabsBinding],
@@ -137,10 +137,10 @@ const view = TabsExampleComposition.makeView((model, h) => {
 
 export const layer = TabsExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const tabs = yield* TabsBinding
+    const children = yield* TabsExampleComposition.acquireChildren()
 
     return {
-      children: [tabs],
+      children,
       init,
       update,
       view,

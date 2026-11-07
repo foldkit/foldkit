@@ -38,7 +38,7 @@ const ForeignBlock = Block.make('ForeignKeyedFoldChild', {
   Message: Schema.Never,
   isMessageFree: true,
   OutMessage: Message.defineMessageUnion({ Escaped: {} }),
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const foreignFold = ParentBlock.makeOutMessageFold(ForeignBlock, {
   Escaped: ParentBlock.makeNoopStep,
@@ -60,7 +60,7 @@ const SameOutMessageForeignBlock = Block.make('SameOutMessageForeignChild', {
   Model: ChildModel,
   Message: ForeignMessage,
   OutMessage: ChildOutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const CompleteForeign = SameOutMessageForeignBlock.makeCommand(
   'CompleteForeign',
@@ -96,7 +96,7 @@ const ExtraPayloadBlock = Block.make('ExtraPayloadFoldChild', {
     Selected: { value: Choice, label: Schema.optionalKey(Schema.String) },
     Closed: {},
   }),
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const extraPayload = entries.withOutMessagePolicy({
   fold: () =>
@@ -124,7 +124,7 @@ const WrongParentBlock = Block.make('WrongKeyedFoldParent', {
   Model: Schema.Struct({ title: Schema.String }),
   Message: Schema.Never,
   isMessageFree: true,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const wrongModel = entries.withOutMessagePolicy({
   fold: () =>
@@ -193,7 +193,7 @@ const SingleBlock = Block.make('SingleFoldParent', {
   key: SingleKey,
   Model: Schema.Struct({ child: ChildModel }),
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const unkeyed = SingleBlock.makeRequiredFieldBinding(ChildBlock, {
   field: 'child',

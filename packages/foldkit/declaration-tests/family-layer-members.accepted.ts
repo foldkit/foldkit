@@ -10,7 +10,7 @@ export const Definition = makeFamilyDeclaration('FamilyMembers', {
   Model,
   Message: Schema.Never,
   isMessageFree: true,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const Composition = Definition.makeComposition()
 const init = Composition.makeInit(() => ({ model: 0 }))

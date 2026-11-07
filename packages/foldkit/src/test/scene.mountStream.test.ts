@@ -408,7 +408,7 @@ it.effect(
       key: SurfaceKey,
       Model,
       Message,
-      Init: Schema.Tuple([]),
+      InitArgs: Schema.Tuple([]),
       view: { kind: 'Element' },
     })
     const Composition = Definition.makeComposition({ mounts: [ObserveSurface] })

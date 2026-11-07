@@ -116,12 +116,16 @@ See [keyed folds](/core/block#surfacing-facts) for a complete example.
 
 This candidate establishes each public Block contract before its implementation. Keep your Model, Message, child relationships, and transition behavior while changing completion:
 
-1. Declare each concrete feature once as `FooBlock = Block.make(...)`. Retain its stable unique `key`, Model, Message, Init tuple, Context, view, operation, and effect contracts.
+1. Declare each concrete feature once as `FooBlock = Block.make(...)`. Retain its stable unique `key`, Model, Message, InitArgs tuple, Context, view, operation, and effect contracts.
 2. Use that same `FooBlock` for local helpers and parent authorship. Remove a separate Definition and its `.contract` projection. Parent Schemas and Bindings use `FooBlock` directly.
 3. Complete the implementation with `layer = FooBlock.makeLayer(Effect.gen(function* () { ... }))`. Yield each registered Binding and return the acquired connections as `children`, alongside the portable builders and local lifecycle and handler declarations. A leaf returns `children: []`.
 4. Provide child implementations through ordinary Layer composition: `.pipe(Layer.provide(Child.layer))`.
 5. Pass `{ block: ApplicationBlock, layer }` to Program and Server. Use the same pair for normal Story and Scene tests, followed by `init(...args)` or `given(model)`. Use `withBlock` only for fixtures needing direct pure functions.
 6. Check emitted declarations and a relocated consumer when publishing a package. Ordinary application exports need no `FromAssembly*` annotations.
+
+If an unpublished snapshot declared the initializer Schema under `Init`, rename that contract key to `InitArgs`. The initializer function and `makeInit` keep their names. No `Init` compatibility alias remains.
+
+When the constructor only collects registered child handles, use `const children = yield* FooComposition.acquireChildren()` followed by the return record with `children` shorthand. Keep individual Binding yields when the constructor uses the handles. Acquisition retains exact requirements, errors, order and scoped cleanup without evaluating child initialization arguments.
 
 ::Snippet{name="blockFeatureExports" label="Contract-first Block completion"}
 
@@ -141,6 +145,8 @@ Creation-bearing field results are opaque connected recipes until checked execut
 
 This addition covers standard string-keyed top-level arrays. Keep existing initialization paths for Option fields, maps, wrappers with extra metadata, or identity stored directly in the child Model. No storage migration is required.
 
+For an existing direct child Model array with `init.instances`, remove an identity `toItem: (_occurrence, entry) => entry`. Direct storage now supplies that projection. Wrapped arrays and parent metadata still require their explicit adapter, and keys and init Commands retain the same checks.
+
 ### Rename a conflicting family member
 
 `Instance` is now a reserved Block member. If an advanced generic library factory supplies a convenience named `Instance` through `BlockFamily.resolveFamily`'s `members` record, rename that convenience and update its callers. The resolver belongs to Foldkit’s internal library-authoring entry; ordinary application Blocks need no family machinery. It cannot replace the ready Instance Schema. Both TypeScript and runtime validation reject the conflicting member, including JavaScript callers with erased types. See [Generic Blocks](/core/block#generic-blocks).
@@ -158,6 +164,10 @@ Block-aware Story returns its final Model after checking that every Command was 
 ::Snippet{name="testingModelComparison" label="Comparing Models without a mutable capture"}
 
 A keyed child Binding contributes passive Subscription and ManagedResource inspection templates. Select one occurrence with `Scene.Subscription.at(Binding, key, entry)` or `Scene.ManagedResource.at(Binding, key, entry)`. The raw child entry is ambiguous in a keyed parent. An absent key is inactive, and declaring an emission or lifecycle outcome for that key throws.
+
+Nested `Story.messageIn` takes a nonempty Binding path, with `{ binding, key }` for keyed segments. Replace manually nested routing envelopes and forwarding-only helpers with that path. Use ordinary `it.effect` and explicitly yielded immutable fixture Effects when a custom test fixture only injected Models.
+
+Replace ordinary callbacks inspecting `simulation.commands` with `Command.expectExact` or `Command.expectExactInOrder`. The latter checks dispatch order in addition to exact identity, args, occurrence and count. Preserve an existing ordering assertion when migrating; `expectExact` remains order-independent.
 
 ## Upgrade from 90746b32d2ca
 
@@ -299,7 +309,7 @@ This section applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
 
 ### Complete an ordinary root Block
 
-Declare the root's unique key, Init, Model, Message, and view contract in `ApplicationBlock`. Complete it with `ApplicationBlock.makeLayer`, yielding registered child Bindings and returning their connections under `children`. Export the returned ordinary `layer` and provide child implementations with `Layer.provide`. Program and Server receive `{ block: ApplicationBlock, layer }`.
+Declare the root's unique key, InitArgs, Model, Message, and view contract in `ApplicationBlock`. Complete it with `ApplicationBlock.makeLayer`, yielding registered child Bindings and returning their connections under `children`. Export the returned ordinary `layer` and provide child implementations with `Layer.provide`. Program and Server receive `{ block: ApplicationBlock, layer }`.
 
 ::Snippet{name="blockFeatureExports" label="Independent contract and checked implementation"}
 

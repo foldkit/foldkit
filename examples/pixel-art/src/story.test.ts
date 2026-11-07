@@ -19,8 +19,6 @@ import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import { type Model, type PaletteIndex } from './model'
 
-type DialogMessage = typeof Dialog.DialogBlock.Message.Type
-
 const emptyModel: Model = {
   grid: createEmptyGrid(4),
   undoStack: [],
@@ -90,9 +88,6 @@ const emptyModel: Model = {
     maybeFocusedIndex: Option.none(),
   }),
 }
-
-const errorDialogMessage = (message: DialogMessage) =>
-  Story.messageIn(ErrorDialogBinding, message)
 
 describe('brush tool', () => {
   it.effect('painting a cell sets its color and pushes undo history', () =>
@@ -545,7 +540,10 @@ describe('export failure', () => {
         Dialog.test.ShowDialog,
         Dialog.DialogBlock.Message.SucceededShowDialog(),
       ),
-      errorDialogMessage(Dialog.DialogBlock.Message.ClickedCloseButton()),
+      Story.messageIn(
+        ErrorDialogBinding,
+        Dialog.DialogBlock.Message.ClickedCloseButton(),
+      ),
       Story.Command.resolve(
         Dialog.test.CloseDialog,
         Dialog.DialogBlock.Message.CompletedCloseDialog(),

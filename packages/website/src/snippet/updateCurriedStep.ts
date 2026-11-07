@@ -17,7 +17,7 @@ type InMessage = typeof InMessage.Type
 export const RouteAwareKey = Symbol('RouteAware')
 export const RouteAwareBlock = Block.make('RouteAware', {
   key: RouteAwareKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 
   Model,
   Message,

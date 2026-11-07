@@ -90,9 +90,9 @@ describe('personalInfo', () => {
 
   it.effect('a stale email async result is discarded', () =>
     Effect.gen(function* () {
-      const initialModel = yield* Story.withBlock(
+      const initialModel = yield* Story.story(
         { block: PersonalInfoBlock, layer },
-        personalInfo => personalInfo.init(today).model,
+        Story.init(today),
       )
 
       yield* Story.story(

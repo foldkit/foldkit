@@ -2,8 +2,7 @@ import { Effect, Layer } from 'effect'
 
 import { ApplicationBlock } from './block'
 import { LoggedIn, LoggedOut } from './blocks'
-import { LoggedInBinding } from './composition/loggedIn'
-import { LoggedOutBinding } from './composition/loggedOut'
+import { ApplicationComposition } from './composition'
 import { EffectsLayer } from './effectsLayer'
 import { init } from './init'
 import { update } from './update'
@@ -11,11 +10,10 @@ import { view } from './view'
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const loggedOut = yield* LoggedOutBinding
-    const loggedIn = yield* LoggedInBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [loggedOut, loggedIn],
+      children,
       init,
       update,
       view,

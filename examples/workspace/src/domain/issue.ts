@@ -148,9 +148,10 @@ export const place = (
     forProject(remainingIssues, nextIssue.projectId),
     nextIssue.status,
   )
+  const requestedInsertionIndex = Math.max(0, Math.floor(insertionIndex))
   const maybeFollowingIssue = Array.get(
     issuesInTargetStatus,
-    Math.max(0, Math.floor(insertionIndex)),
+    requestedInsertionIndex,
   )
   const maybeWorkspaceInsertionIndex = Option.flatMap(
     maybeFollowingIssue,
@@ -161,14 +162,19 @@ export const place = (
       ),
   )
 
-  return Option.match(maybeWorkspaceInsertionIndex, {
-    onNone: () => Array.append(remainingIssues, nextIssue),
-    onSome: index => [
-      ...Array.take(remainingIssues, index),
-      nextIssue,
-      ...Array.drop(remainingIssues, index),
-    ],
-  })
+  return {
+    issues: Option.match(maybeWorkspaceInsertionIndex, {
+      onNone: () => Array.append(remainingIssues, nextIssue),
+      onSome: index => [
+        ...Array.take(remainingIssues, index),
+        nextIssue,
+        ...Array.drop(remainingIssues, index),
+      ],
+    }),
+    insertionIndex: Option.isSome(maybeFollowingIssue)
+      ? requestedInsertionIndex
+      : issuesInTargetStatus.length,
+  }
 }
 
 export const move = (
@@ -184,7 +190,7 @@ export const move = (
         issues,
         modifyFields(issue, { status: () => status }),
         insertionIndex,
-      ),
+      ).issues,
   })
 
 const commentOrder = Order.combine(

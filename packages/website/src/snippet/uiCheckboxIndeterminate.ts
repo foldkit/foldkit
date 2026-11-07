@@ -27,7 +27,7 @@ export const NotificationPreferencesBlock = Block.make(
   'NotificationPreferences',
   {
     key: NotificationPreferencesKey,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     view: { kind: 'Element' },
     Model,
     Message,

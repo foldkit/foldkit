@@ -11,7 +11,7 @@ import { LocalStorage, SessionStorage } from './storage'
 export const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([Flags, Url.Url]),
+  InitArgs: Schema.Tuple([Flags, Url.Url]),
   view: { kind: 'Document' },
   effects: { services: [LocalStorage, SessionStorage, PagefindService] },
   Model,

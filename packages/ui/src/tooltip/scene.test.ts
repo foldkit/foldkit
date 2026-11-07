@@ -11,7 +11,7 @@ import { Message } from './message.js'
 const TooltipSceneKey = Symbol('TooltipScene')
 const TooltipSceneBlock = Block.make('TooltipScene', {
   key: TooltipSceneKey,
-  Init: Block.makeInputContract<readonly []>(),
+  InitArgs: Block.makeInputContract<readonly []>(),
   Model: Schema.Struct({ tooltip: TooltipBlock.Model }),
   Message: Schema.Never,
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
@@ -80,10 +80,10 @@ const tooltipScene = {
   block: TooltipSceneBlock,
   layer: TooltipSceneBlock.makeLayer(
     Effect.gen(function* () {
-      const child = yield* TooltipBinding
+      const children = yield* TooltipSceneComposition.acquireChildren()
 
       return {
-        children: [child],
+        children,
         init,
         update,
         view: rootView,

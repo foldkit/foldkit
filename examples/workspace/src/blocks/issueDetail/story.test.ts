@@ -1,4 +1,4 @@
-import { Array, Option } from 'effect'
+import { Array, Effect, Option } from 'effect'
 import { Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect } from 'vitest'
@@ -38,8 +38,8 @@ describe('Issue Detail', () => {
       return Story.story(
         {
           ...issueDetailSubject,
-          updateContext: [issue],
-          inMessageContext: [issue],
+          updateContext: [Option.some(issue)],
+          inMessageContext: [Option.some(issue)],
         },
         Story.init(issue),
         Story.models(
@@ -69,8 +69,8 @@ describe('Issue Detail', () => {
     return Story.story(
       {
         ...issueDetailSubject,
-        updateContext: [issue],
-        inMessageContext: [issue],
+        updateContext: [Option.some(issue)],
+        inMessageContext: [Option.some(issue)],
       },
       Story.init(issue),
       Story.message(Message.UpdatedTitle({ value: editedTitle })),
@@ -94,8 +94,8 @@ describe('Issue Detail', () => {
       return Story.story(
         {
           ...issueDetailSubject,
-          updateContext: [issue],
-          inMessageContext: [issue],
+          updateContext: [Option.some(issue)],
+          inMessageContext: [Option.some(issue)],
         },
         Story.init(issue),
         Story.message(Message.UpdatedTitle({ value: editedTitle })),
@@ -138,8 +138,8 @@ describe('Issue Detail', () => {
       return Story.story(
         {
           ...issueDetailSubject,
-          updateContext: [issue],
-          inMessageContext: [issue],
+          updateContext: [Option.some(issue)],
+          inMessageContext: [Option.some(issue)],
         },
         Story.init(issue),
         Story.message(Message.UpdatedTitle({ value: editedTitle })),
@@ -191,8 +191,8 @@ describe('Issue Detail', () => {
       Story.story(
         {
           ...issueDetailSubject,
-          updateContext: [issue],
-          inMessageContext: [issue],
+          updateContext: [Option.some(issue)],
+          inMessageContext: [Option.some(issue)],
         },
         Story.init(issue),
         Story.message(Message.UpdatedTitle({ value: editedTitle })),
@@ -231,8 +231,8 @@ describe('Issue Detail', () => {
     Story.story(
       {
         ...issueDetailSubject,
-        updateContext: [issue],
-        inMessageContext: [issue],
+        updateContext: [Option.some(issue)],
+        inMessageContext: [Option.some(issue)],
       },
       Story.init(issue),
       Story.message(Message.UpdatedTitle({ value: editedTitle })),
@@ -270,14 +270,138 @@ describe('Issue Detail', () => {
     return Story.story(
       {
         ...issueDetailSubject,
-        updateContext: [issue],
-        inMessageContext: [issue],
+        updateContext: [Option.some(issue)],
+        inMessageContext: [Option.some(issue)],
       },
       Story.init(issue),
       Story.message(Message.UpdatedTitle({ value: editedTitle })),
       Story.message(Message.ClickedClose()),
       Story.expectOutMessage(OutMessage.RequestedClose()),
       Story.Command.expectNone(),
+    )
+  })
+
+  describe('when the confirmed Issue is unavailable', () => {
+    const savingEditor = Story.story(
+      {
+        ...issueDetailSubject,
+        updateContext: [Option.some(issue)],
+        inMessageContext: [Option.some(issue)],
+      },
+      Story.init(issue),
+    ).pipe(
+      Effect.map(model =>
+        modifyFields(model, {
+          draft: () => editedDraft,
+          saveState: () => SaveState.Saving({ expectedVersion: issue.version }),
+        }),
+      ),
+    )
+
+    it.effect('keeps text editable and allows the editor to close', () =>
+      Story.story(
+        {
+          ...issueDetailSubject,
+          updateContext: [Option.none()],
+          inMessageContext: [Option.none()],
+        },
+        Story.init(issue),
+        Story.message(Message.UpdatedTitle({ value: editedTitle })),
+        Story.model(model => expect(model.draft).toEqual(editedDraft)),
+        Story.message(Message.ClickedClose()),
+        Story.expectOutMessage(OutMessage.RequestedClose()),
+        Story.Command.expectNone(),
+      ),
+    )
+
+    it.effect(
+      'reports an unavailable Issue instead of saving or discarding the draft',
+      () =>
+        Story.story(
+          {
+            ...issueDetailSubject,
+            updateContext: [Option.none()],
+            inMessageContext: [Option.none()],
+          },
+          Story.init(issue),
+          Story.message(Message.UpdatedTitle({ value: editedTitle })),
+          Story.inMessage(InMessage.RequestedSave()),
+          Story.model(model => {
+            expect(model.draft).toEqual(editedDraft)
+            expect(model.saveState).toEqual(
+              SaveState.Failed({
+                error: 'This issue is unavailable. Your draft has been kept.',
+              }),
+            )
+          }),
+          Story.message(Message.ClickedDiscardChanges()),
+          Story.model(model => expect(model.draft).toEqual(editedDraft)),
+          Story.Command.expectNone(),
+        ),
+    )
+
+    it.effect(
+      'settles a pending failure without needing the Issue snapshot',
+      () =>
+        Effect.gen(function* () {
+          const model = yield* savingEditor
+
+          return yield* Story.story(
+            {
+              ...issueDetailSubject,
+              updateContext: [Option.none()],
+              inMessageContext: [Option.none()],
+            },
+            Story.given(model),
+            Story.message(
+              Message.FailedSaveIssue({
+                issueId: issue.id,
+                expectedVersion: issue.version,
+                error: RepositoryError.Unavailable({
+                  operation: 'SaveIssue',
+                  message: 'The save failed. Try again.',
+                }),
+              }),
+            ),
+            Story.model(model => {
+              expect(model.draft).toEqual(editedDraft)
+              expect(model.saveState).toEqual(
+                SaveState.Failed({ error: 'The save failed. Try again.' }),
+              )
+            }),
+            Story.Command.expectNone(),
+          )
+        }),
+    )
+
+    it.effect('settles a pending success from the returned revision', () =>
+      Effect.gen(function* () {
+        const model = yield* savingEditor
+
+        return yield* Story.story(
+          {
+            ...issueDetailSubject,
+            updateContext: [Option.none()],
+            inMessageContext: [Option.none()],
+          },
+          Story.given(model),
+          Story.message(
+            Message.SucceededSaveIssue({
+              saveResult: Issue.toSaveResult(savedIssue),
+              expectedVersion: issue.version,
+            }),
+          ),
+          Story.model(model => {
+            expect(model.draft).toEqual(Issue.toDraft(savedIssue))
+            expect(model.baselineRevision).toEqual(Issue.toRevision(savedIssue))
+            expect(model.saveState).toEqual(SaveState.Idle())
+          }),
+          Story.expectOutMessage(
+            OutMessage.Saved({ saveResult: Issue.toSaveResult(savedIssue) }),
+          ),
+          Story.Command.expectNone(),
+        )
+      }),
     )
   })
 })

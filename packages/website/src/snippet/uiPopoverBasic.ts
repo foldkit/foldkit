@@ -17,7 +17,7 @@ type Message = typeof Message.Type
 export const PopoverExampleKey = Symbol('PopoverExample')
 export const PopoverExampleBlock = Block.make('PopoverExample', {
   key: PopoverExampleKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -35,23 +35,23 @@ const {
 // other UI, or clear ephemeral state on close. Each arm returns an
 // parent Step over the Model that already has the next Popover Model written
 // back. The parent Block checks every named variant:
-const foldPopoverOutMessage = makeOutMessageFold(Popover.PopoverBlock, {
-  // The child has emitted `Opened`. In this arm the parent can update its
-  // own state or dispatch its own Commands, for example lazy-load panel
-  // content, log analytics, or trigger a downstream Command.
-  Opened: makeNoopStep,
-  // The child has emitted `Closed`. In this arm the parent can update its
-  // own state or dispatch its own Commands, for example persist a draft,
-  // clear ephemeral state, or trigger a downstream Command.
-  Closed: makeNoopStep,
-})
-
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const PopoverBinding = makeRequiredFieldBinding(Popover.PopoverBlock, {
   field: 'popover',
   init: { contextToArgs: () => [{ id: 'info' }] },
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(Popover.PopoverBlock, {
+    // The child has emitted `Opened`. In this arm the parent can update its
+    // own state or dispatch its own Commands, for example lazy-load panel
+    // content, log analytics, or trigger a downstream Command.
+    Opened: makeNoopStep,
+    // The child has emitted `Closed`. In this arm the parent can update its
+    // own state or dispatch its own Commands, for example persist a draft,
+    // clear ephemeral state, or trigger a downstream Command.
+    Closed: makeNoopStep,
+  }),
+})
 
 const PopoverExampleComposition = makeComposition({
   bindings: [PopoverBinding],
@@ -127,10 +127,10 @@ const view = PopoverExampleComposition.makeView((model, h) => {
 
 export const layer = PopoverExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const popover = yield* PopoverBinding
+    const children = yield* PopoverExampleComposition.acquireChildren()
 
     return {
-      children: [popover],
+      children,
       init,
       update,
       view,

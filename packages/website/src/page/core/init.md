@@ -92,12 +92,12 @@ This path covers required top-level arrays with standard string-keyed Instance s
 
 The optional `foldkit/binding` module reuses declared storage when dynamic initialization only places a child:
 
-| Storage                                                      | Helper          | Existing child         |
-| ------------------------------------------------------------ | --------------- | ---------------------- |
-| Required or optional direct field                            | `initAndSet`    | Replaced               |
-| Option wrapper containing only the key and child fields      | `initAndSet`    | Replaced               |
-| Keyed array with existing `init.instances` and `init.toItem` | `initAndAppend` | Duplicate key rejected |
-| Record or HashMap containing child Models directly           | `initAndInsert` | Duplicate key rejected |
+| Storage                                                 | Helper          | Existing child         |
+| ------------------------------------------------------- | --------------- | ---------------------- |
+| Required or optional direct field                       | `initAndSet`    | Replaced               |
+| Option wrapper containing only the key and child fields | `initAndSet`    | Replaced               |
+| Keyed array with an existing `init.instances` policy    | `initAndAppend` | Duplicate key rejected |
+| Record or HashMap containing child Models directly      | `initAndInsert` | Duplicate key rejected |
 
 Pass the Binding, the current complete parent Model, and the child `args`; keyed storage also takes `key`. Each helper returns the same passive recipe as `Binding.init`, preserving child init Commands and registration requirements. Ordinary folds and operations never create absent children.
 
@@ -143,7 +143,7 @@ Return the initialization recipe intact. Composition retains and lifts every chi
 
 ### Keyed Initial Instances
 
-A keyed-array Binding can declare `init.instances` and `init.toItem`. The first callback selects the ordered keys and exact child init argument tuples. The second builds each stored item from its occurrence and initialized child Model. For a direct child array, it returns that exact child Model with the planned key. For a wrapped array, it returns the parent-owned wrapper containing that exact child Model and key. The parent keeps occurrence IDs and any wrapper metadata outside the child Model.
+A keyed-array Binding declares `init.instances` to select ordered keys and exact child init argument tuples. When the array stores the exact child Models directly, omit `init.toItem`; initialization stores each returned Model and validates its planned key. A wrapped array still requires `init.toItem` to build the parent-owned wrapper containing that exact child Model and key. Keep parent metadata in the explicit adapter.
 
 Return each wrapper as a plain record so its child field keeps the exact initialized object. A wrapper Schema constructor may reconstruct that child and fail the identity check. Composition constructs the full parent Model through its Schema after collecting these records.
 
@@ -155,7 +155,7 @@ The assembler validates the entire occurrence plan before calling child init. Du
 
 This startup adapter applies to exact `field` / `key` keyed arrays, with or without `childField`. General keyed accessors keep explicit initialization so their custom storage and write policy remain visible.
 
-When an array already declares that startup policy, `initAndAppend` from `foldkit/binding` reuses its `init.toItem` for dynamic creation. Pass the Binding, current parent Model, and `{ key, args }`. It returns a passive recipe that initializes and appends one child when the registered Composition interprets it, retaining the child's Commands and preserving the other items and their order. An existing key is rejected. Keep a presence check in an application transition named `init...IfMissing` when an existing occurrence should be retained.
+When an array already declares that startup policy, `initAndAppend` from `foldkit/binding` reuses its direct-storage default or explicit `init.toItem` for dynamic creation. Pass the Binding, current parent Model, and `{ key, args }`. It returns a passive recipe that initializes and appends one child when the registered Composition interprets it, retaining the child's Commands and preserving the other items and their order. An existing key is rejected. Keep a presence check in an application transition named `init...IfMissing` when an existing occurrence should be retained.
 
 Assume `ProjectSettingsBinding` stores `{ projectId, model }` wrappers in `projectSettingsInstances` and already declares `init.toItem`. This Step keeps an existing project editor and initializes an absent one:
 

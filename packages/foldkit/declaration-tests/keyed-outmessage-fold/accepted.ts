@@ -96,7 +96,7 @@ const EquivalentChildBlock = Block.make('EquivalentKeyedFoldChild', {
   Model: ChildModel,
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const equivalentFold = ParentBlock.makeOutMessageFold(EquivalentChildBlock, {
   Selected: ParentBlock.makeNoopStep,

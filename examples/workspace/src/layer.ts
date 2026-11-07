@@ -13,17 +13,7 @@ import {
   NotificationCenter,
   ProjectSettings,
 } from './blocks'
-import {
-  ActiveMemberListboxBinding,
-  CommandPaletteBinding,
-  CreateIssueBinding,
-  IssueBoardsBinding,
-  IssueDetailsBinding,
-  IssueListBinding,
-  MemberDirectoryBinding,
-  NotificationCenterBinding,
-  ProjectSettingsBinding,
-} from './composition'
+import { ApplicationComposition } from './composition'
 import { EffectsLayer } from './effectsLayer'
 import { init } from './init'
 import { subscriptions } from './subscription'
@@ -32,28 +22,10 @@ import { view } from './view'
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const activeMember = yield* ActiveMemberListboxBinding
-    const projectSettings = yield* ProjectSettingsBinding
-    const issueList = yield* IssueListBinding
-    const createIssue = yield* CreateIssueBinding
-    const issueBoards = yield* IssueBoardsBinding
-    const commandPalette = yield* CommandPaletteBinding
-    const memberDirectory = yield* MemberDirectoryBinding
-    const notificationCenter = yield* NotificationCenterBinding
-    const issueDetails = yield* IssueDetailsBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [
-        activeMember,
-        projectSettings,
-        issueList,
-        createIssue,
-        issueBoards,
-        commandPalette,
-        memberDirectory,
-        notificationCenter,
-        issueDetails,
-      ],
+      children,
       init,
       update,
       view,

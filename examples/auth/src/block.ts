@@ -10,7 +10,7 @@ import { Model } from './model'
 export const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([Flags, Url]),
+  InitArgs: Schema.Tuple([Flags, Url]),
   view: { kind: 'Document' },
   effects: { services: [KeyValueStore.KeyValueStore] },
   Model,

@@ -34,7 +34,7 @@ type Message = typeof Message.Type
 export const DatePickerExampleKey = Symbol('DatePickerExample')
 export const DatePickerExampleBlock = Block.make('DatePickerExample', {
   key: DatePickerExampleKey,
-  Init: Schema.Tuple([Flags]),
+  InitArgs: Schema.Tuple([Flags]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -57,29 +57,6 @@ const {
 // without selecting a date. Each arm returns an Update.Step over the parent
 // Model, which already has the next DatePicker Model written back. Pass the
 // completed child Block so the parent Block infers both contracts:
-const foldDatePickerOutMessage = makeOutMessageFold(
-  DatePicker.DatePickerBlock,
-  {
-    // The child has emitted `SelectedDate`. This is where the parent lifts
-    // the committed date into its own field, which is then passed back to
-    // the picker as `maybeSelectedDate`, so the parent stays the single
-    // source of truth for the selection.
-    SelectedDate: ({ date }) =>
-      makeFieldsStep(() => ({
-        maybeSelectedDate: () => Option.some(date),
-      })),
-    // The user cleared the selection. Reset the parent's field.
-    ClearedDate: () =>
-      makeFieldsStep(() => ({
-        maybeSelectedDate: () => Option.none(),
-      })),
-    // The child has emitted `ChangedViewMonth`. In this arm the parent can
-    // update its own state or dispatch its own Commands, for example
-    // prefetch month data, fire analytics, or trigger a downstream Command.
-    ChangedViewMonth: makeNoopStep,
-  },
-)
-
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const DatePickerDemoBinding = makeRequiredFieldBinding(
@@ -97,7 +74,27 @@ const DatePickerDemoBinding = makeRequiredFieldBinding(
       ],
     },
   },
-).withOutMessagePolicy({ fold: foldDatePickerOutMessage })
+).withOutMessagePolicy({
+  fold: makeOutMessageFold(DatePicker.DatePickerBlock, {
+    // The child has emitted `SelectedDate`. This is where the parent lifts
+    // the committed date into its own field, which is then passed back to
+    // the picker as `maybeSelectedDate`, so the parent stays the single
+    // source of truth for the selection.
+    SelectedDate: ({ date }) =>
+      makeFieldsStep(() => ({
+        maybeSelectedDate: () => Option.some(date),
+      })),
+    // The user cleared the selection. Reset the parent's field.
+    ClearedDate: () =>
+      makeFieldsStep(() => ({
+        maybeSelectedDate: () => Option.none(),
+      })),
+    // The child has emitted `ChangedViewMonth`. In this arm the parent can
+    // update its own state or dispatch its own Commands, for example
+    // prefetch month data, fire analytics, or trigger a downstream Command.
+    ChangedViewMonth: makeNoopStep,
+  }),
+})
 
 const DatePickerExampleComposition = makeComposition({
   bindings: [DatePickerDemoBinding],
@@ -349,10 +346,10 @@ const view = DatePickerExampleComposition.makeView((model, h) => {
 
 export const layer = DatePickerExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const datePicker = yield* DatePickerDemoBinding
+    const children = yield* DatePickerExampleComposition.acquireChildren()
 
     return {
-      children: [datePicker],
+      children,
       init,
       update,
       view,

@@ -8,7 +8,7 @@ import { Model } from './model'
 export const TodoKey = Symbol('Todo')
 const TodoBlock = Block.make('Todo', {
   key: TodoKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })

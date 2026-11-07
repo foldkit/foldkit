@@ -330,7 +330,7 @@ export const MessageFreeFieldsBlock = Block.make('MessageFreeFields', {
   key: MessageFreeFieldsKey,
   Model: MessageFreeModel,
   Message: MessageFreeMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 export const { makeFieldsStep: makeMessageFreeFieldsStep } =
   MessageFreeFieldsBlock

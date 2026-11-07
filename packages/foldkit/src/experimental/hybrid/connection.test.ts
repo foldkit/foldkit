@@ -35,6 +35,23 @@ const ChildBlock: Block.FromAssemblyWithOutMessage<
   typeof prepare
 > = Block.assemble(prepare)
 
+it('authors direct keyed initialization without an identity adapter', () => {
+  const ParentDefinition = Hybrid.makeDefinition(
+    'DirectKeyedConnectionParent',
+    {
+      Model: Schema.Struct({ children: Schema.Array(ChildBlock.Model) }),
+      Message: Schema.Never,
+    },
+  )
+  const Binding = ParentDefinition.makeKeyedArrayBinding(ChildBlock, {
+    field: 'children',
+    key: 'count',
+    init: { instances: () => [{ key: 0, args: [] }] },
+  })
+
+  expect(Object.hasOwn(Binding, 'connect')).toBe(true)
+})
+
 it('retains the selected and reselected policy on an experimental connection alias', async () => {
   const ParentDefinition = Hybrid.makeDefinition('ConnectionExtensionParent', {
     Model: Schema.Struct({ child: ChildBlock.Model, observed: Schema.Number }),

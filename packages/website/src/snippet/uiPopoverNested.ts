@@ -19,7 +19,7 @@ type Message = typeof Message.Type
 export const AccountMenuKey = Symbol('AccountMenu')
 export const AccountMenuBlock = Block.make('AccountMenu', {
   key: AccountMenuKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -159,11 +159,10 @@ const view = AccountMenuComposition.makeView((model, h) => {
 
 export const layer = AccountMenuBlock.makeLayer(
   Effect.gen(function* () {
-    const accountPopover = yield* AccountPopoverBinding
-    const accountDetailsPopover = yield* AccountDetailsPopoverBinding
+    const children = yield* AccountMenuComposition.acquireChildren()
 
     return {
-      children: [accountPopover, accountDetailsPopover],
+      children,
       init,
       update,
       view,

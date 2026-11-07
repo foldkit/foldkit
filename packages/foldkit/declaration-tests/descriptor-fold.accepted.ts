@@ -59,7 +59,7 @@ export const FoldParityChildDefinition = Block.makeDefinition(
   'FoldParityChild',
   {
     key: ChildKey,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     Model: ChildModel,
     Message: ChildMessage,
     OutMessage: ChildOutMessage,
@@ -74,7 +74,7 @@ export const FoldParityParentDefinition = Block.makeDefinition(
   'FoldParityParent',
   {
     key: ParentKey,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     Model,
     Message: ParentMessage,
     OutMessage: ParentOutMessage,
@@ -171,7 +171,7 @@ export const FoldParityLiteralDefinition = Block.makeDefinition(
   'FoldParityLiteral',
   {
     key: LiteralKey,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     Model: LiteralModel,
     Message: LiteralMessage,
   },

@@ -4,12 +4,7 @@ import { Query } from 'foldkit/experimental'
 import { Tabs } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
-import {
-  PostDetailsBinding,
-  PostsBinding,
-  StatsBinding,
-  TabsBinding,
-} from './composition'
+import { ApplicationComposition } from './composition'
 import { EffectsLayer } from './effectsLayer'
 import { init } from './init'
 import { subscriptions } from './subscription'
@@ -18,13 +13,10 @@ import { view } from './view'
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const tabs = yield* TabsBinding
-    const posts = yield* PostsBinding
-    const stats = yield* StatsBinding
-    const postDetails = yield* PostDetailsBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [tabs, posts, stats, postDetails],
+      children,
       init,
       update,
       view,

@@ -8,7 +8,7 @@ import type { ViewInputs } from './viewInputs'
 export const BlockPageKey = Symbol('BlockPage')
 export const BlockPageBlock = Block.make('BlockPage', {
   key: BlockPageKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,

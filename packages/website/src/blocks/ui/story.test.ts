@@ -1,6 +1,5 @@
-import { Array, Option } from 'effect'
+import { Array, Effect, Option } from 'effect'
 import { Story } from 'foldkit'
-import { toParentMessageFor } from 'foldkit/test'
 import { expect } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -229,30 +228,28 @@ it.effect(
 it.effect(
   'ignores programmatic initial scroll completion when deciding to load history',
   () =>
-    Story.withBlock(uiSubject, executable => {
-      const toParentMessage = toParentMessageFor(executable)
+    Effect.gen(function* () {
+      const initialModel = yield* Story.story(uiSubject, Story.init(today))
 
-      Story.story(
-        executable.update,
-        Story.given(executable.init(today).model),
-        Story.messageWith(model =>
-          toParentMessage(
-            VirtualListChatDemoBinding,
-            ChatVirtualListBlock.Message.CompletedApplyScroll({
-              version: model.virtualListChatDemo.pendingScrollVersion,
-              outcome: {
-                _tag: 'Applied',
-                scrollTop: 20,
-                scrollHeight: 2000,
-                containerHeight: 400,
-                anchor: VirtualList.ObservedAnchor.Row({
-                  key: '0',
-                  index: 0,
-                  viewportOffset: 6,
-                }),
-              },
-            }),
-          ),
+      return yield* Story.story(
+        uiSubject,
+        Story.given(initialModel),
+        Story.messageIn(
+          VirtualListChatDemoBinding,
+          ChatVirtualListBlock.Message.CompletedApplyScroll({
+            version: initialModel.virtualListChatDemo.pendingScrollVersion,
+            outcome: {
+              _tag: 'Applied',
+              scrollTop: 20,
+              scrollHeight: 2000,
+              containerHeight: 400,
+              anchor: VirtualList.ObservedAnchor.Row({
+                key: '0',
+                index: 0,
+                viewportOffset: 6,
+              }),
+            },
+          }),
         ),
         Story.model(model => {
           expect(model.virtualListChatDemo.scrollTop).toBe(20)

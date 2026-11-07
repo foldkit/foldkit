@@ -1,0 +1,8 @@
+
+ RUN  v5.0.3 /private/tmp/foldkit-unified-recovery-20261103/packages/foldkit
+
+
+ Test Files  3 passed (3)
+      Tests  90 passed (90)
+   Start at  21:51:43
+   Duration  1.39s (transform 39%, environment 34%, setup 18%, import 6%, tests 2%)

@@ -10,7 +10,7 @@ import { ViewInputs } from './viewInputs'
 export const CommandPaletteKey = Symbol('CommandPalette')
 export const CommandPaletteBlock = Block.make('CommandPalette', {
   key: CommandPaletteKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: ViewInputs },
   Model,
   Message,

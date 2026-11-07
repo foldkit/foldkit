@@ -7,12 +7,12 @@ export const ChildBlock = Block.make('UnifiedWriterChild', {
   key: ChildKey,
   Model: Schema.Struct({ label: Schema.String }),
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 export const ParentBlock = Block.make('UnifiedWriterParent', {
   key: ParentKey,
   Model: Schema.Struct({ child: ChildBlock.Model, announcement: Schema.String }),
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 export const { makeCustomBinding } = ParentBlock

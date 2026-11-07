@@ -18,7 +18,7 @@ type Message = typeof Message.Type
 export const HoverMenuKey = Symbol('HoverMenu')
 export const HoverMenuBlock = Block.make('HoverMenu', {
   key: HoverMenuKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -31,20 +31,17 @@ const {
   makeComposition,
 } = HoverMenuBlock
 
-const foldHoverMenuOutMessage = makeOutMessageFold(
-  HoverIntent.HoverIntentBlock,
-  {
-    Opened: makeNoopStep,
-    Closed: makeNoopStep,
-  },
-)
-
 const HoverMenuBinding = makeRequiredFieldBinding(
   HoverIntent.HoverIntentBlock,
   {
     field: 'hoverMenu',
   },
-).withOutMessagePolicy({ fold: foldHoverMenuOutMessage })
+).withOutMessagePolicy({
+  fold: makeOutMessageFold(HoverIntent.HoverIntentBlock, {
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+  }),
+})
 
 const HoverMenuComposition = makeComposition({
   bindings: [HoverMenuBinding],
@@ -132,10 +129,10 @@ const view = HoverMenuComposition.makeView((model, h) => {
 
 export const layer = HoverMenuBlock.makeLayer(
   Effect.gen(function* () {
-    const hoverMenu = yield* HoverMenuBinding
+    const children = yield* HoverMenuComposition.acquireChildren()
 
     return {
-      children: [hoverMenu],
+      children,
       init,
       update,
       view,

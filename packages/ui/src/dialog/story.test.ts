@@ -71,7 +71,7 @@ type ParentMessage = typeof ParentMessage.Type
 const DialogParentTestKey = Symbol('DialogParentTest')
 const DialogParentTestBlock = Block.make('DialogParentTest', {
   key: DialogParentTestKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -124,10 +124,10 @@ const ParentBlock = {
   block: DialogParentTestBlock,
   layer: DialogParentTestBlock.makeLayer(
     Effect.gen(function* () {
-      const dialog = yield* DialogBinding
+      const children = yield* DialogParentTestComposition.acquireChildren()
 
       return {
-        children: [dialog],
+        children,
         init: parentInit,
         update: DialogParentTestComposition.makeUpdate({
           CompletedLoadParentData: DialogParentTestBlock.makeNoopStep(),

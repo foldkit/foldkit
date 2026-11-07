@@ -11,7 +11,7 @@ import { DragAndDropBlock, type RenderInfo, layer } from './block.js'
 const DragAndDropSceneKey = Symbol('DragAndDropScene')
 const DragAndDropSceneBlock = Block.make('DragAndDropScene', {
   key: DragAndDropSceneKey,
-  Init: Block.makeInputContract<readonly []>(),
+  InitArgs: Block.makeInputContract<readonly []>(),
   Model: Schema.Struct({ dragAndDrop: DragAndDropBlock.Model }),
   Message: Schema.Never,
   view: { kind: 'Element' },
@@ -82,10 +82,10 @@ const dragAndDropScene = {
   block: DragAndDropSceneBlock,
   layer: DragAndDropSceneBlock.makeLayer(
     Effect.gen(function* () {
-      const child = yield* DragAndDropBinding
+      const children = yield* DragAndDropSceneComposition.acquireChildren()
 
       return {
-        children: [child],
+        children,
         init,
         update,
         view: view,

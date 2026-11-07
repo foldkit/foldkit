@@ -20,7 +20,7 @@ const OutMessage = defineMessageUnion({ Edited: {} })
 export const EditorKey = Symbol('Editor')
 export const EditorBlock = Block.make('Editor', {
   key: EditorKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
   InMessage,

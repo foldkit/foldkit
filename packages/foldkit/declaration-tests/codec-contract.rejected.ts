@@ -21,7 +21,7 @@ Block.make('BadUnifiedModel', {
   // @ts-expect-error A Block Model Codec must not require decoding or encoding Services.
   Model: ServiceModel,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 
 const BadUnifiedMessageKey = Symbol('BadUnifiedMessage')
@@ -30,7 +30,7 @@ Block.make('BadUnifiedMessage', {
   Model,
   // @ts-expect-error A local Block Message Codec must not require decoding or encoding Services.
   Message: ServiceMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 
 Block.makeDefinition('BadNativeModel', {
@@ -51,7 +51,7 @@ Block.make('RetiredCodec', {
   key: RetiredCodecKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   codec: { decoding: [], encoding: [] },
 })
 
@@ -61,7 +61,7 @@ const ServiceChild = Block.make('ServiceChild', {
   Model,
   // @ts-expect-error A child local Message Codec must not require Services.
   Message: ServiceMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 
 const ServiceChildParentKey = Symbol('ServiceChildParent')
@@ -69,7 +69,7 @@ const ServiceChildParent = Block.make('ServiceChildParent', {
   key: ServiceChildParentKey,
   Model: ParentModel,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 // @ts-expect-error A Service-dependent child cannot enter a generated dispatch graph.
 const ServiceChildBinding = ServiceChildParent.makeRequiredFieldBinding(
@@ -85,7 +85,7 @@ const ServiceKeyParent = Block.make('ServiceKeyParent', {
   key: ServiceKeyParentKey,
   Model: ParentModel,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const ServiceKeyBinding = ServiceKeyParent.makeCustomKeyedBinding(ChildBlock, {
   placement: 'serviceKeyChildren',

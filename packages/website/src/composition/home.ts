@@ -10,15 +10,6 @@ import { HomeBlock } from '../blocks'
 import { LoadPlayground } from '../command'
 import { ApplicationRoute } from '../route'
 
-const foldHomeOutMessage = makeOutMessageFold(HomeBlock, {
-  SelectedPlaygroundExample: ({ exampleSlug }) =>
-    makeCommandsStep(() => [LoadPlayground({ exampleSlug })]),
-  UpdatedNewsletterEmail: ({ value }) =>
-    makeFieldsStep(() => ({
-      newsletterEmail: () => value,
-    })),
-})
-
 export const MaybeHomeBinding = makeOptionalFieldBinding(HomeBlock, {
   field: 'maybeHome',
   init: {
@@ -28,5 +19,12 @@ export const MaybeHomeBinding = makeOptionalFieldBinding(HomeBlock, {
       ),
   },
 }).withOutMessagePolicy({
-  fold: foldHomeOutMessage,
+  fold: makeOutMessageFold(HomeBlock, {
+    SelectedPlaygroundExample: ({ exampleSlug }) =>
+      makeCommandsStep(() => [LoadPlayground({ exampleSlug })]),
+    UpdatedNewsletterEmail: ({ value }) =>
+      makeFieldsStep(() => ({
+        newsletterEmail: () => value,
+      })),
+  }),
 })

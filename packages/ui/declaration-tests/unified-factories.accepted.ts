@@ -272,7 +272,7 @@ export const UnifiedFactoryParentBlock = Block.make('UnifiedFactoryParent', {
   key: ParentKey,
   Model: Schema.Struct({ picker: Picker.Model }),
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 export const PickerBinding = UnifiedFactoryParentBlock.makeRequiredFieldBinding(
   Picker,
@@ -302,7 +302,7 @@ export const ListboxParentBlock = Block.make('ListboxParent', {
     maybeFruit: Schema.Option(Fruit),
   }),
   Message: Schema.Never,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 export const FruitListboxBinding = ListboxParentBlock.makeRequiredFieldBinding(

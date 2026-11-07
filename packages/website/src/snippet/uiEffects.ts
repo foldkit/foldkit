@@ -67,11 +67,10 @@ import { view } from './view'
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const dialog = yield* DialogBinding
-    const menu = yield* MenuBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [dialog, menu],
+      children,
       init,
       update,
       view,

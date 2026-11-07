@@ -1,6 +1,5 @@
-import { Array, HashSet, Option, pipe } from 'effect'
+import { HashSet, Option, pipe } from 'effect'
 import { Calendar, Story } from 'foldkit'
-import { toParentMessageFor } from 'foldkit/test'
 import * as Url from 'foldkit/url'
 import { describe, expect } from 'vitest'
 
@@ -53,11 +52,6 @@ import { ApplyTheme } from './theme'
 import { ThemeMenuBlock } from './view/themeMenu'
 
 const application = { block: ApplicationBlock, layer }
-
-type ApplicationSimulation = Story.StorySimulation<
-  Model,
-  Story.TestBlock<typeof application>['Message']['Type']
->
 
 type HomeBlockModel = typeof HomeBlock.Model.Type
 const parseUrl = (value: string): Url.Url =>
@@ -190,14 +184,6 @@ const resolveInitialData = () =>
 const completeStartup = (url: Url.Url) =>
   Story.steps(resolveBrowserStartup(url), resolveInitialData())
 
-const makeFixture = (block: Story.TestBlock<typeof application>) => {
-  const update = block.update
-  const toParentMessage = toParentMessageFor(block)
-  const toHomeMessage = toParentMessageFor(block, MaybeHomeBinding)
-
-  return { update, toParentMessage, toHomeMessage }
-}
-
 describe('application', () => {
   it.effect(
     'cold startup collects root Commands before initialized child Commands',
@@ -215,18 +201,7 @@ describe('application', () => {
       return Story.story(
         application,
         Story.init({ ...flags, deployment }, counterExampleUrl),
-        Story.Command.expectExact(...startupCommands),
-        (simulation: ApplicationSimulation) => {
-          for (const [pending, definition] of Array.zip(
-            simulation.commands,
-            startupCommands,
-          )) {
-            expect(
-              Option.isSome(Story.Command.argsOf(definition)(pending)),
-            ).toBe(true)
-          }
-          return simulation
-        },
+        Story.Command.expectExactInOrder(...startupCommands),
         resolveBrowserStartup(counterExampleUrl, deployment),
         resolveInitialData(),
       )
@@ -234,35 +209,16 @@ describe('application', () => {
   )
 
   it.effect('startup includes the initial anchor in its root Commands', () => {
-    const startupCommands = [
-      LoadBrowserEnvironment,
-      ScrollSidebarActiveLinkIntoView,
-      ScrollToAnchor,
-      LoadApiData,
-      LoadExampleSources,
-    ]
-
     return Story.story(
       application,
       Story.init(flags, counterExampleUrlWithHash),
-      Story.Command.expectExact(
+      Story.Command.expectExactInOrder(
         LoadBrowserEnvironment,
         ScrollSidebarActiveLinkIntoView,
         ScrollToAnchor({ hash: 'application' }),
         LoadApiData,
         LoadExampleSources,
       ),
-      (simulation: ApplicationSimulation) => {
-        for (const [pending, definition] of Array.zip(
-          simulation.commands,
-          startupCommands,
-        )) {
-          expect(Option.isSome(Story.Command.argsOf(definition)(pending))).toBe(
-            true,
-          )
-        }
-        return simulation
-      },
       resolveBrowserStartup(counterExampleUrlWithHash),
       resolveInitialData(),
     )
@@ -485,23 +441,11 @@ describe('application', () => {
       ),
       Story.message(Message.ChangedUrl({ url: homeUrlWithHash })),
       Story.model(model => expect(model.search.dialog.isOpen).toBe(false)),
-      Story.Command.expectExact(
+      Story.Command.expectExactInOrder(
         Dialog.test.CloseDialog({ id: 'search-dialog' }),
         ScrollToAnchor,
         ScrollSidebarActiveLinkIntoView,
       ),
-      (simulation: ApplicationSimulation) => {
-        for (const [pending, definition] of Array.zip(simulation.commands, [
-          Dialog.test.CloseDialog,
-          ScrollToAnchor,
-          ScrollSidebarActiveLinkIntoView,
-        ])) {
-          expect(Option.isSome(Story.Command.argsOf(definition)(pending))).toBe(
-            true,
-          )
-        }
-        return simulation
-      },
       Story.Command.resolve(
         Dialog.test.CloseDialog({ id: 'search-dialog' }),
         Dialog.DialogBlock.Message.CompletedCloseDialog(),
@@ -641,88 +585,58 @@ describe('application', () => {
     )
   })
   it.effect('returning to Home initializes fresh default state', () =>
-    Story.withBlock(application, executable => {
-      const { update, toParentMessage, toHomeMessage } = makeFixture(executable)
-      const initAt = (url: Url.Url) => executable.init(flags, url).model
-
-      Story.story(
-        update,
-        Story.given(initAt(homeUrl)),
-        Story.message(
-          toParentMessage(
-            MaybeHomeBinding,
-            toHomeMessage(
-              NotePlayerDemoBinding,
-              NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
-            ),
-          ),
-        ),
-        Story.model((model: Model) => {
-          expect(
-            Option.getOrThrow(model.maybeHome).notePlayerDemo.noteInput.value,
-          ).toBe('ABC')
-        }),
-        Story.message(Message.ChangedUrl({ url: newsletterUrl })),
-        ...resolvePathChangeCommands(),
-        Story.message(Message.ChangedUrl({ url: homeUrl })),
-        Story.model(model => {
-          expectHomePresent(model)
-          expectDefaultHome(Option.getOrThrow(model.maybeHome))
-        }),
-        ...resolvePathChangeCommands(),
-      )
-    }),
+    Story.story(
+      application,
+      Story.init(flags, homeUrl),
+      completeStartup(homeUrl),
+      Story.messageIn(
+        [MaybeHomeBinding, NotePlayerDemoBinding],
+        NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
+      ),
+      Story.model((model: Model) => {
+        expect(
+          Option.getOrThrow(model.maybeHome).notePlayerDemo.noteInput.value,
+        ).toBe('ABC')
+      }),
+      Story.message(Message.ChangedUrl({ url: newsletterUrl })),
+      ...resolvePathChangeCommands(),
+      Story.message(Message.ChangedUrl({ url: homeUrl })),
+      Story.model(model => {
+        expectHomePresent(model)
+        expectDefaultHome(Option.getOrThrow(model.maybeHome))
+      }),
+      ...resolvePathChangeCommands(),
+    ),
   )
   it.effect('late Home Messages are ignored while Home is absent', () =>
-    Story.withBlock(application, executable => {
-      const { update, toParentMessage, toHomeMessage } = makeFixture(executable)
-      const initAt = (url: Url.Url) => executable.init(flags, url).model
-
-      Story.story(
-        update,
-        Story.given(initAt(newsletterUrl)),
-        Story.message(
-          toParentMessage(
-            MaybeHomeBinding,
-            toHomeMessage(
-              NotePlayerDemoBinding,
-              NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
-            ),
-          ),
-        ),
-        Story.model(model => {
-          expectHomeAbsent(model)
-        }),
-        Story.Command.expectNone(),
-      )
-    }),
+    Story.story(
+      application,
+      Story.init(flags, newsletterUrl),
+      completeStartup(newsletterUrl),
+      Story.messageIn(
+        [MaybeHomeBinding, NotePlayerDemoBinding],
+        NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
+      ),
+      Story.model(model => {
+        expectHomeAbsent(model)
+      }),
+      Story.Command.expectNone(),
+    ),
   )
   it.effect('Home playground selections load a fresh document', () =>
-    Story.withBlock(application, executable => {
-      const { update, toParentMessage, toHomeMessage } = makeFixture(executable)
-      const initAt = (url: Url.Url) => executable.init(flags, url).model
-
-      Story.story(
-        update,
-        Story.given(initAt(homeUrl)),
-        Story.message(
-          toParentMessage(
-            MaybeHomeBinding,
-            toHomeMessage(
-              PlaygroundMenuBinding,
-              ThemeMenuBlock.Message.SelectedItem({
-                index: 0,
-                item: 'counter',
-              }),
-            ),
-          ),
-        ),
-        Story.Command.resolve(
-          LoadPlayground,
-          Message.CompletedLoadPlayground(),
-        ),
-      )
-    }),
+    Story.story(
+      application,
+      Story.init(flags, homeUrl),
+      completeStartup(homeUrl),
+      Story.messageIn(
+        [MaybeHomeBinding, PlaygroundMenuBinding],
+        ThemeMenuBlock.Message.SelectedItem({
+          index: 0,
+          item: 'counter',
+        }),
+      ),
+      Story.Command.resolve(LoadPlayground, Message.CompletedLoadPlayground()),
+    ),
   )
   it.effect('the parent opens Search through its child update capability', () =>
     Story.story(

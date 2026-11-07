@@ -4,7 +4,7 @@ import { Dialog } from '@foldkit/ui'
 
 import { CommandPaletteBlock } from './block'
 import { ScrollActiveResult } from './command'
-import { DialogBinding } from './composition'
+import { CommandPaletteComposition } from './composition'
 import { inMessageUpdate } from './inMessageUpdate'
 import { init } from './init'
 import { subscriptions } from './subscription'
@@ -13,10 +13,10 @@ import { view } from './view'
 
 export const layer = CommandPaletteBlock.makeLayer(
   Effect.gen(function* () {
-    const dialog = yield* DialogBinding
+    const children = yield* CommandPaletteComposition.acquireChildren()
 
     return {
-      children: [dialog],
+      children,
       init,
       update,
       inMessageUpdate,

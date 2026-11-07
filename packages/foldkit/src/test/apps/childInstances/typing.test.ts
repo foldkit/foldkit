@@ -40,7 +40,7 @@ const checkRejectedInputs = (model: Model) => {
     key: OtherKey,
     Model,
     Message,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   })
   const OtherCountersBinding = OtherDefinition.makeKeyedArrayBinding(
     CounterBlock,
@@ -73,7 +73,7 @@ const checkRejectedInputs = (model: Model) => {
     Model: CounterBlock.Model,
     Message: Schema.Never,
     isMessageFree: true,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   })
 
   // @ts-expect-error Identical child Models do not authorize another child contract's Instance field.

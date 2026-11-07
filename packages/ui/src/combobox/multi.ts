@@ -69,7 +69,7 @@ const makeAuthoring = <Item extends string, ItemEncoded>(
     ComboboxNamespace,
     {
       key: ComboboxKey,
-      Init: Schema.Tuple([InitConfigSchema]),
+      InitArgs: Schema.Tuple([InitConfigSchema]),
       ChildInitContext: InitConfigSchema,
       view: {
         kind: 'Element',
@@ -137,6 +137,7 @@ const makeAuthoring = <Item extends string, ItemEncoded>(
 
   return {
     Definition: ComboboxDefinition,
+    Composition: ComboboxComposition,
     AnimationBinding: itemUpdate.AnimationBinding,
     init,
     update,
@@ -153,10 +154,10 @@ const construct = <Item extends string, ItemEncoded>(
 ) =>
   authoring.Definition.makeLayer(
     Effect.gen(function* () {
-      const animation = yield* authoring.AnimationBinding
+      const children = yield* authoring.Composition.acquireChildren()
 
       return {
-        children: [animation],
+        children,
         init: authoring.init,
         update: authoring.update,
         inMessageUpdate: authoring.inMessageUpdate,

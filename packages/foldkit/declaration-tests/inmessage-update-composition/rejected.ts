@@ -19,7 +19,7 @@ const InputOnlyBlock = Block.make('InputOnly', {
   key: InputOnlyKey,
   Model,
   Message: InMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const SendInput = InputOnlyBlock.makeCommand('SendInput', {
   messages: [InMessage.RequestedSet],
@@ -129,7 +129,7 @@ const ForeignInputBlock = Block.make('ForeignInput', {
   Model,
   Message,
   InMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const foreignBundle =
   ForeignInputBlock.makeComposition().makeInMessageUpdate.each(model => ({

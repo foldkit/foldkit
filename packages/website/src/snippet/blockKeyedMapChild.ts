@@ -14,7 +14,7 @@ type InMessage = typeof InMessage.Type
 export const EntryKey = Symbol('Entry')
 export const EntryBlock = Block.make('Entry', {
   key: EntryKey,
-  Init: Schema.Tuple([Schema.String]),
+  InitArgs: Schema.Tuple([Schema.String]),
   InMessage,
   isMessageFree: true,
 

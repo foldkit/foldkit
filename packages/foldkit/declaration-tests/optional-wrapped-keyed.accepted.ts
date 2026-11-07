@@ -238,7 +238,7 @@ export const CanonicalChildBlock = Block.make(
     key: CanonicalChildKey,
     Model: CanonicalChildModel,
     Message: CanonicalChildMessage,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     view: { kind: 'Element' },
   },
 )
@@ -282,7 +282,7 @@ export const CanonicalParentBlock = Block.make(
     key: CanonicalParentKey,
     Model: CanonicalParentModel,
     Message: Schema.Never,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     view: { kind: 'Element' },
   },
 )

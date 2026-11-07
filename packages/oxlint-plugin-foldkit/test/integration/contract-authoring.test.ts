@@ -52,7 +52,7 @@ import { Block } from 'foldkit'
 const key = Symbol('Child')
 const Model = Schema.Struct({ timestamp: Schema.Number })
 const ChildDefinition = Block.makeDefinition('Child', {
-  key, Model, Message: Schema.Never, Init: Schema.Tuple([]),
+  key, Model, Message: Schema.Never, InitArgs: Schema.Tuple([]),
 })
 export const ChildBlock = ChildDefinition.contract
 `

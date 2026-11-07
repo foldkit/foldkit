@@ -57,7 +57,7 @@ it('rejects erased layer-family conveniences that replace the ready Instance Sch
     Model: Schema.Number,
     Message: Schema.Never,
     isMessageFree: true,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   })
   const Composition = Definition.makeComposition()
   const implementation = Definition.makeLayer(

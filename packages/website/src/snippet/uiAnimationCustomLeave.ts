@@ -19,7 +19,7 @@ export const AnimationExampleBlock = Block.make('AnimationExample', {
   key: AnimationExampleKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
 })
 const {
   makeCommandsStep,
@@ -41,16 +41,15 @@ const WaitForPanelSettled = makeCommand('WaitForPanelSettled', {
   },
 })
 
-const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
-  StartedLeaveAnimating: ({ generation }) =>
-    makeCommandsStep(() => [WaitForPanelSettled({ generation })]),
-  TransitionedOut: makeNoopStep,
-})
 const AnimationBinding = makeRequiredFieldBinding(Animation.AnimationBlock, {
   field: 'animation',
   init: { contextToArgs: () => [{ id: 'drawer' }] },
 }).withOutMessagePolicy({
-  fold: foldAnimationOutMessage,
+  fold: makeOutMessageFold(Animation.AnimationBlock, {
+    StartedLeaveAnimating: ({ generation }) =>
+      makeCommandsStep(() => [WaitForPanelSettled({ generation })]),
+    TransitionedOut: makeNoopStep,
+  }),
 })
 const AnimationExampleComposition = makeComposition({
   bindings: [AnimationBinding],
@@ -66,10 +65,10 @@ const update = AnimationExampleComposition.makeUpdate({
 
 export const layer = AnimationExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const animation = yield* AnimationBinding
+    const children = yield* AnimationExampleComposition.acquireChildren()
 
     return {
-      children: [animation],
+      children,
       init,
       update,
       EffectsLayer: WaitForPanelSettled.layer,

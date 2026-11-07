@@ -9,7 +9,7 @@ export const PlainDefinition = Block.makeDefinition(
     Model: Schema.Number,
     Message: Schema.Never,
     isMessageFree: true,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 const PlainComposition = PlainDefinition.makeComposition()

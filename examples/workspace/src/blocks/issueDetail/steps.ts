@@ -1,4 +1,4 @@
-import { String } from 'effect'
+import { Option, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { type Issue } from '../../domain'
@@ -16,13 +16,26 @@ export const editDraft = (
       : modifyFields(model, { draft: transformDraft }),
   }))
 
-export const saveIssue = (issue: Issue.Issue) =>
+export const saveIssue = (maybeIssue: Option.Option<Issue.Issue>) =>
   makeStep(model => {
-    if (
-      SaveState.guards.Saving(model.saveState) ||
-      hasConflict(model, issue) ||
-      !hasUnsavedIssueChanges(model, issue)
-    ) {
+    if (SaveState.guards.Saving(model.saveState)) {
+      return { model }
+    }
+
+    if (Option.isNone(maybeIssue)) {
+      return {
+        model: modifyFields(model, {
+          saveState: () =>
+            SaveState.Failed({
+              error: 'This issue is unavailable. Your draft has been kept.',
+            }),
+        }),
+      }
+    }
+
+    const issue = maybeIssue.value
+
+    if (hasConflict(model, issue) || !hasUnsavedIssueChanges(model, issue)) {
       return { model }
     }
 

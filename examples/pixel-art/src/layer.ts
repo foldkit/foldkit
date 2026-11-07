@@ -3,14 +3,7 @@ import { Effect, Layer } from 'effect'
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
 import { ApplicationBlock } from './block'
-import {
-  ErrorDialogBinding,
-  GridSizeConfirmDialogBinding,
-  GridSizeRadioGroupBinding,
-  PaletteRadioGroupBinding,
-  ThemeListboxBinding,
-  ToolRadioGroupBinding,
-} from './composition'
+import { ApplicationComposition } from './composition'
 import { EffectsLayer } from './effectsLayer'
 import { init } from './init'
 import { subscriptions } from './subscription'
@@ -19,22 +12,10 @@ import { view } from './view'
 
 export const layer = ApplicationBlock.makeLayer(
   Effect.gen(function* () {
-    const errorDialog = yield* ErrorDialogBinding
-    const themeListbox = yield* ThemeListboxBinding
-    const gridSizeConfirmDialog = yield* GridSizeConfirmDialogBinding
-    const toolRadioGroup = yield* ToolRadioGroupBinding
-    const gridSizeRadioGroup = yield* GridSizeRadioGroupBinding
-    const paletteRadioGroup = yield* PaletteRadioGroupBinding
+    const children = yield* ApplicationComposition.acquireChildren()
 
     return {
-      children: [
-        errorDialog,
-        themeListbox,
-        gridSizeConfirmDialog,
-        toolRadioGroup,
-        gridSizeRadioGroup,
-        paletteRadioGroup,
-      ],
+      children,
       init,
       update,
       view,

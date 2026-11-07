@@ -34,7 +34,7 @@ const CounterDefinition = makeDefinition('OccurrenceCounter', {
   Message,
   InMessage,
   OutMessage,
-  Init: Schema.Tuple([Schema.Number]),
+  InitArgs: Schema.Tuple([Schema.Number]),
   effects: { services: [CounterSource] },
   inMessageOutputs: {
     RequestedIncrement: { outMessage: OutMessage.ChangedCount },

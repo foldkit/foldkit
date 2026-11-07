@@ -10,7 +10,7 @@ const TerminalDialogParentKey = Symbol('TerminalDialogParent')
 /** @internal Parent fixture that discards a Dialog only after terminal cleanup. */
 export const TerminalDialogParentBlock = Block.make('TerminalDialogParent', {
   key: TerminalDialogParentKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model: Schema.Struct({
     maybeDialogInstance: Schema.Option(
@@ -74,10 +74,10 @@ const cancelDialog = TerminalDialogParentBlock.makeFieldsStep(() => ({
 /** @internal Constructs the real Dialog and its ordinary attached handlers. */
 export const layer = TerminalDialogParentBlock.makeLayer(
   Effect.gen(function* () {
-    const dialog = yield* MaybeDialogInstanceBinding
+    const children = yield* TerminalDialogParentComposition.acquireChildren()
 
     return {
-      children: [dialog],
+      children,
       init: TerminalDialogParentComposition.makeInit(() => ({
         model: {
           maybeDialogInstance: Option.none(),

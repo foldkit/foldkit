@@ -38,7 +38,7 @@ const defineCatalog = <Item extends string>(Item: ItemSchema<Item>) => {
     Model,
     Message,
     OutMessage,
-    Init: Schema.Tuple([Schema.String]),
+    InitArgs: Schema.Tuple([Schema.String]),
     view: {
       kind: 'Element',
       Inputs:

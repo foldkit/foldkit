@@ -15,7 +15,15 @@ the parent, and where the child renders.
 
 The Block declaration establishes the public contract and typed helpers. The Composition supplies static relationship information for portable typed builders. A Layer-owned constructor acquires the implementations that execute those relationships.
 
-Declare an independent public contract before its implementation. `Block.make` binds a stable module-level unique `key`, Model, local Message, optional OutMessage, and an `Init` tuple. Add a `Context` tuple for dispatch context, `ChildInitContext` for deferred child startup, and a `view` descriptor when the Block renders. A serializable tuple uses `Schema.Tuple`; callbacks or other deliberately nonserialized inputs use `Block.makeInputContract<...>()`.
+Declare an independent public contract before its implementation. `Block.make` binds a stable module-level unique `key`, Model, local Message, optional OutMessage, and an `InitArgs` tuple. Add a `Context` tuple for dispatch context, `ChildInitContext` for deferred child startup, and a `view` descriptor when the Block renders. A serializable tuple uses `Schema.Tuple`; callbacks or other deliberately nonserialized inputs use `Block.makeInputContract<...>()`.
+
+When construction only collects registered child implementations, acquire their
+exact tuple with `const children = yield* FeatureComposition.acquireChildren()`.
+Leave a blank line before returning the implementation with `children` shorthand.
+The helper preserves Binding order, Layer requirements, errors, identities and
+construction Scope; it does not evaluate init arguments, create Models or start
+handlers and lifecycles. Keep individual Binding yields when construction uses
+their handles. A childless constructor can keep `children: []`.
 
 Export the same `FooBlock` declaration for parent authorship. Parents derive Schemas from `FooBlock.Model`, configure Bindings, author extracted Steps, and render through their Composition without importing the child implementation. The key identifies the contract; the readable Block name is a label and may repeat across independent modules. Declare one unique key at module scope. When verified declaration emission needs a Block’s unique-symbol identity, export its original key declaration from the owning module. A public barrel may re-export it with `export type` when downstream declarations only need to name that identity.
 
@@ -43,7 +51,7 @@ export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const SettingsComposition = SettingsBlock.makeComposition()
@@ -420,9 +428,13 @@ it.effect('updates the theme', () =>
 
 Keep a Story or Scene specification declarative. Use immutable fixtures, `messageWith` when a Message needs the current Model at step execution, and assertions of observable Model, OutMessage, pending work, or rendered behavior. Do not use mutable outer variables or `mockImplementation` closures to relay values between steps. If those forms seem necessary, first establish that the test is not expressible through immutable setup and observable behavior, then treat the missing operation as a Story/Scene DSL gap.
 
+Use public assertions for ordinary expectations. `Command.expectExact` is order-independent; `Command.expectExactInOrder` also checks dispatch order while preserving original identity, exact args, occurrence and count matching. Do not inspect `simulation.commands` to reconstruct either assertion. Order in a Command batch does not sequence effects or their completion.
+
 Use `it.effect` from a compatible `@effect/vitest` release for Effect-returning tests and return the runner Effect directly. Pure domain and selector tests stay synchronous. The integration manages execution, scoped cleanup, and test services; use `it.live` for an execution test that deliberately needs the live environment. A plain Vitest test must return or await `Effect.runPromise`; `Effect.runFork` alone does not make Vitest wait. Keep necessary Promise bridges inside typed Vitest fixtures. Normal tests pass the Block and construction Layer together; acquisition wrappers are for fixture initialization, graph identity, private registrations, and custom multi-view renderers. Deliver subsequent application interactions through Story or Scene steps.
 
 A direct child fact in a Block-aware Story uses `Story.messageIn(binding, rawChildMessage)`, with the decoded occurrence key before the Message for a keyed Binding. The runner resolves the relationship against its acquired graph, including grouped `Story.steps`. Never fabricate generated envelopes. Production parents still use Binding operations.
+
+Nested delivery accepts a nonempty Binding path, such as `Story.messageIn([AttachmentsBinding, ResumeDropBinding], message)`. A keyed segment is `{ binding: EntriesBinding, key: entryId }`. Every next Binding must belong to the previous child and the Message must belong to the leaf. Use the direct DSL spelling instead of a forwarding-only wrapper; name concrete steps when their names clarify the scenario. Prefer ordinary `it.effect` and explicit immutable fixture Effects over a custom test function that injects a Model bundle.
 
 `Story.message` may send another fact while Commands are pending. Pending work keeps its captured identity and must be resolved before the Story ends. This does not change Scene's pending-Command or Mount checks.
 
@@ -443,7 +455,7 @@ Choose startup policy from the storage and child initializer:
 | Parent supplies a required direct field itself                        | `init: false`                                                                                                                          |
 | Optional direct field                                                 | Omit `init` when the parent supplies the `Option`; use `init.contextToArgs` when Composition should create `Some(child)` automatically |
 | Exact Option of one keyed wrapper                                     | Parent-owned; use `Binding.init({ key, args, toParentModel })` for creation                                                            |
-| Exact keyed array                                                     | `init.instances` plus `init.toItem`                                                                                                    |
+| Exact keyed array                                                     | `init.instances`; omit `init.toItem` for direct child Models, supply it for wrappers or metadata                                       |
 | Accessor or custom storage                                            | Parent-owned unless initialized explicitly                                                                                             |
 
 When an optional direct field omits `init`, the parent supplies its `Option`
@@ -483,7 +495,8 @@ plus `key` for keyed storage. `initAndSet` replaces a required/optional direct
 field or a keyed Option wrapper containing only its key and child fields. Direct
 fields need no startup policy; a custom unkeyed accessor can reuse an existing
 `init.toParentFields` projection. `initAndAppend` reuses a keyed array's existing
-`init.instances` and `init.toItem` policy. `initAndInsert` inserts into direct-value
+`init.instances` policy and direct-storage default or explicit `init.toItem`.
+`initAndInsert` inserts into direct-value
 Record storage declared through `makeRecordBinding` or HashMap storage declared through `makeHashMapBinding`.
 
 All preserve passive recipes, child init Commands and registration. Append and
@@ -630,14 +643,14 @@ Message, contracts, init, update, and other non-rendering ownership above it.
 
 ## Compose handlers and Services
 
-| Value                                 | Owns                                                                                                             |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `FeatureBlock`                        | Independent Model, local Message, InMessage, Init/Context, view inputs, operations and external effect contracts |
-| `FeatureComposition`                  | Static Binding/Mount inventory and typed init/update/inMessageUpdate/view builders                               |
-| `FeatureBlock.makeLayer(constructor)` | Layer-owned acquisition of child implementations and checked completion                                          |
-| Feature `EffectsLayer`                | Locally owned handler recipes                                                                                    |
-| Feature `layer`                       | Construction provider for the public contract                                                                    |
-| Root `ApplicationLayer`               | Ordinary HTTP, storage, RPC, browser and other environment Services                                              |
+| Value                                 | Owns                                                                                                                 |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `FeatureBlock`                        | Independent Model, local Message, InMessage, InitArgs/Context, view inputs, operations and external effect contracts |
+| `FeatureComposition`                  | Static Binding/Mount inventory and typed init/update/inMessageUpdate/view builders                                   |
+| `FeatureBlock.makeLayer(constructor)` | Layer-owned acquisition of child implementations and checked completion                                              |
+| Feature `EffectsLayer`                | Locally owned handler recipes                                                                                        |
+| Feature `layer`                       | Construction provider for the public contract                                                                        |
+| Root `ApplicationLayer`               | Ordinary HTTP, storage, RPC, browser and other environment Services                                                  |
 
 Return only local handler recipes as `EffectsLayer` from the Block constructor. Acquired child connections carry their own checked recipes and descendants. Supply each child's construction `layer`; do not merge the child's handler `EffectsLayer` again in the parent.
 
@@ -685,7 +698,7 @@ Do not create a Block declaration or its key in an update, callback or loop. Gen
 
 ## Review invariants
 
-- Public contracts establish their own identity, Init/Context tuple, Model, Messages, view and operation/effect channels independently of implementation.
+- Public contracts establish their own identity, InitArgs/Context tuple, Model, Messages, view and operation/effect channels independently of implementation.
 - Every selected Binding is registered once, acquired in the constructor and returned under `children`; views embed only registered relationships.
 - Extracted init/update/view/Steps depend on the static authoring contract and Composition, never a bag of constructor-local child instances.
 - Connected results and explicit Binding init recipes are preserved intact until graph execution.

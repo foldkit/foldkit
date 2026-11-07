@@ -14,8 +14,6 @@ import { Message } from './message'
 import type { Model } from './model'
 import { ApplicationRoute } from './route'
 
-type ProductsMessage = typeof ProductsBlock.Message.Type
-
 const apple = { id: '1', name: 'Apple', price: 1.5 }
 const banana = { id: '2', name: 'Banana', price: 0.75 }
 
@@ -26,9 +24,6 @@ const baseModel: Model = {
   orderPlaced: false,
   productsPage: ProductsBlock.Model.make({ products, searchText: '' }),
 }
-
-const productsMessage = (message: ProductsMessage) =>
-  Story.messageIn(ProductsPageBinding, message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -104,7 +99,8 @@ describe('update', () => {
         Story.story(
           { block: ApplicationBlock, layer },
           Story.given(baseModel),
-          productsMessage(
+          Story.messageIn(
+            ProductsPageBinding,
             ProductsBlock.Message.ClickedAddToCart({ item: apple }),
           ),
           Story.model(model => {
@@ -119,10 +115,12 @@ describe('update', () => {
       Story.story(
         { block: ApplicationBlock, layer },
         Story.given(baseModel),
-        productsMessage(
+        Story.messageIn(
+          ProductsPageBinding,
           ProductsBlock.Message.ClickedAddToCart({ item: apple }),
         ),
-        productsMessage(
+        Story.messageIn(
+          ProductsPageBinding,
           ProductsBlock.Message.ClickedAddToCart({ item: apple }),
         ),
         Story.model(model => {

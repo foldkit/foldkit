@@ -4,6 +4,7 @@ import { Socket } from 'effect/socket'
 import { makeManagedResources } from './block'
 import { ChatSocket } from './chatSocket'
 import { Message } from './message'
+import { openWebSocketConnection } from './webSocketConnection'
 
 const WS_URL = 'wss://ws.postman-echo.com/raw'
 const CONNECTION_TIMEOUT_MS = 5000
@@ -28,42 +29,11 @@ export const managedResources = makeManagedResources(entry => ({
 
       return {
         acquire: () =>
-          Effect.gen(function* () {
-            const socket = yield* Effect.acquireRelease(
-              Effect.sync(() => makeWebSocket(WS_URL)),
-              socket =>
-                Effect.sync(() => {
-                  socket.close()
-                }),
-            )
-
-            yield* Effect.callback<void, Error>(resume => {
-              const removeListeners = () => {
-                socket.removeEventListener('open', handleOpen)
-                socket.removeEventListener('error', handleError)
-              }
-              const handleOpen = () => {
-                removeListeners()
-                resume(Effect.void)
-              }
-              const handleError = () => {
-                removeListeners()
-                resume(Effect.fail(new Error('Failed to connect to WebSocket')))
-              }
-
-              socket.addEventListener('open', handleOpen)
-              socket.addEventListener('error', handleError)
-
-              return Effect.sync(removeListeners)
-            }).pipe(
-              Effect.timeout(Duration.millis(CONNECTION_TIMEOUT_MS)),
-              Effect.catchTag('TimeoutError', () =>
-                Effect.fail(new Error('Connection timeout')),
-              ),
-            )
-
-            return socket
-          }),
+          openWebSocketConnection(
+            makeWebSocket,
+            WS_URL,
+            Duration.millis(CONNECTION_TIMEOUT_MS),
+          ),
         release: () => Effect.void,
       }
     },

@@ -15,7 +15,7 @@ export const CounterDefinition = Block.makeDefinition(
     key: CounterKey,
     Model,
     Message,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     view: { kind: 'Element' },
   },
 )
@@ -27,7 +27,7 @@ export const ForeignDefinition = Block.makeDefinition(
     key: ForeignKey,
     Model,
     Message,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     view: { kind: 'Element' },
   },
 )
@@ -118,7 +118,7 @@ export const HeadlessDefinition = Block.makeDefinition(
     key: HeadlessKey,
     Model,
     Message,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 export const headlessComposition = HeadlessDefinition.makeComposition()
@@ -149,7 +149,7 @@ export const ContextualDefinition = Block.makeDefinition(
     key: ContextualKey,
     Model,
     Message,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     Context:
       Block.makeInputContract<
         readonly [increment?: number, ...labels: ReadonlyArray<string>]

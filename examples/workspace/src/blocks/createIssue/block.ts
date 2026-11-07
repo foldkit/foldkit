@@ -11,7 +11,7 @@ import { ViewInputs } from './viewInputs'
 export const CreateIssueKey = Symbol('CreateIssue')
 export const CreateIssueBlock = Block.make('CreateIssue', {
   key: CreateIssueKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: ViewInputs },
   effects: { services: [WorkspaceRepository] },
   Model,

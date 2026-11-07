@@ -1,0 +1,177 @@
+{
+  "source": "/private/tmp/foldkit-preview-followup-rendering-20261106-repeat",
+  "files": [
+    {
+      "file": "analysis/analyse-timing.mjs",
+      "bytes": 13500,
+      "sha256": "0c9bc9502611609b7fae961bbe3679c0eb4562ec1b2e4fe54ac59570ffdb17b4"
+    },
+    {
+      "file": "analysis/verify-controls.mjs",
+      "bytes": 3773,
+      "sha256": "a9a3639e0fcce9fd7f782e5efbaf7a3eb858b60f5ae996a8167584e7f288fa73"
+    },
+    {
+      "file": "analysis-controls.json",
+      "bytes": 1097,
+      "sha256": "9a38d5a18cbffeedd9ab25bbda6ae16474baff0b12bcbf6826db1560c86cd004"
+    },
+    {
+      "file": "artifact-reuse.json",
+      "bytes": 238,
+      "sha256": "02488e0b97b4982fc44c19386cc84d65e99c2d6118379ebeae5dbec20175a55c"
+    },
+    {
+      "file": "controls/foreign-driver.execution.json",
+      "bytes": 1283,
+      "sha256": "95860f4c47d98b007fabb5cc6d6b72e5a35eb6e85e72b01fca5467a772089417"
+    },
+    {
+      "file": "controls/foreign-driver.log",
+      "bytes": 1049,
+      "sha256": "8fa3bbbf5756f41cfdad492562cb4eb4d44d52de566581207448142dbc1246d7"
+    },
+    {
+      "file": "controls/foreign-driver.mjs",
+      "bytes": 7471,
+      "sha256": "a93c12e6fe411eb5fa8abc342e32974d94496622ba8a475b81f7d6dc9bbc26f0"
+    },
+    {
+      "file": "controls/foreign-harness.execution.json",
+      "bytes": 1287,
+      "sha256": "12725a274ad6ef165834404d397be0014556f833048141982e71f0411b960982"
+    },
+    {
+      "file": "controls/foreign-harness.log",
+      "bytes": 1020,
+      "sha256": "daf0ca75de3fa4a0460b84ea7880ae1f4273e7754c9e2784692ac9f74efa71fe"
+    },
+    {
+      "file": "controls/omitted-sample.execution.json",
+      "bytes": 1288,
+      "sha256": "9a2f225fe8310efd5116281cd6246d359a15c960804bb0e0226812c3a31a5068"
+    },
+    {
+      "file": "controls/omitted-sample.log",
+      "bytes": 641,
+      "sha256": "8318f4ef30ae4bbdbaf2d9d3144764f65cca1cf79bb764d07afea2ef639a5956"
+    },
+    {
+      "file": "controls/omitted-sample.timing.log",
+      "bytes": 3096,
+      "sha256": "804a37cc13c89e4be28b04d3d9b1bb70b167ef388ba82a52c06952ce461772c7"
+    },
+    {
+      "file": "controls/unchanged.execution.json",
+      "bytes": 1251,
+      "sha256": "7e8aa90e5e91cbd156dbda41c2ceede639b95a51b594ced9a82d659508d695a2"
+    },
+    {
+      "file": "controls/unchanged.log",
+      "bytes": 5470,
+      "sha256": "e061643aba3d6372b90d0c4c488248224b01af850f92a59fac57c3b931e6b286"
+    },
+    {
+      "file": "controls/wrong-counter.execution.json",
+      "bytes": 1287,
+      "sha256": "221e2210df9db352df993417bea4414892ddefb40b849984a9881c5c7a179d6c"
+    },
+    {
+      "file": "controls/wrong-counter.log",
+      "bytes": 986,
+      "sha256": "3840186d1f00ede7cc622c3c0cf69ac028eecc5a4fe18920e3924f9d2f496e16"
+    },
+    {
+      "file": "controls/wrong-counter.timing.log",
+      "bytes": 3130,
+      "sha256": "a365a949842d25423fe3196affb83082de7dacdd685f12b7d2798dc5c6c2f5dc"
+    },
+    {
+      "file": "final-analysis.json",
+      "bytes": 15976,
+      "sha256": "d08582ccff0aeee3da82a3448de315abd112bb423838492c1b7c150903c564cb"
+    },
+    {
+      "file": "final-artifact-receipt.json",
+      "bytes": 705062,
+      "sha256": "3e41c8bd65c33be3f3fcf75cdc707e7c7d46bdef628f8db2a52aabd6ae91a078"
+    },
+    {
+      "file": "host-after.json",
+      "bytes": 396,
+      "sha256": "e8fb38e9603837c3478402a7b95011a9b191ce4764dff6b2dc5569a124538bec"
+    },
+    {
+      "file": "host-before.json",
+      "bytes": 395,
+      "sha256": "41268abdeb1d486144eec29035a12f21fc38f04eaf798649a36decf2073102ef"
+    },
+    {
+      "file": "initial-analysis-controls.log",
+      "bytes": 1711,
+      "sha256": "83b733a0b3150c481ac5e40ab3c7fe25c424a9c105b78597c5c1bebe8e989f11"
+    },
+    {
+      "file": "initial-analysis.log",
+      "bytes": 969,
+      "sha256": "4edd16cb7e850d6f274d7f3e3460f4dfaee938dea72f85e87f76078d00785ef6"
+    },
+    {
+      "file": "preflight-final/foldkit-main-optimised.log",
+      "bytes": 228,
+      "sha256": "84afb338389aa8897ec1555a33e6f07c75bc1f73aa40f33d9eef652577bb92fe"
+    },
+    {
+      "file": "preflight-final/foldkit-main.log",
+      "bytes": 218,
+      "sha256": "a2f6b88eb6db658a84e8655b99870af08261f33deaa6402f1d90762776c35b63"
+    },
+    {
+      "file": "preflight-final/foldkit-preview-final-optimised.log",
+      "bytes": 237,
+      "sha256": "92a8fdd135b04d810385059a40e6aa9e1ce2ba48c0db963ad51b25ab84557228"
+    },
+    {
+      "file": "preflight-final/foldkit-preview-final.log",
+      "bytes": 227,
+      "sha256": "32e5abc86e73657c4bb65e56304dc5e9f7aa1a0b8d22f0d0677ed81d12bc2229"
+    },
+    {
+      "file": "preflight-final/results.json",
+      "bytes": 1519,
+      "sha256": "09014bb555669419371ec8f084a0204139ad093884c85b50088c08020620519f"
+    },
+    {
+      "file": "preparation.json",
+      "bytes": 1078,
+      "sha256": "a1473a95bd6299ba7b5a2a316b7dfee3f0c4b7bb8540685169a3abb829f0b9eb"
+    },
+    {
+      "file": "run-final.mjs",
+      "bytes": 4211,
+      "sha256": "6b07c6048b9f00f26e1709112f9bce441a4c09daf468a37750fd57299b7a3880"
+    },
+    {
+      "file": "timing-final-execution.json",
+      "bytes": 1187,
+      "sha256": "7f7f8c6a71cc8cf27a1703c8a717f2f93c5098da86c073cbc15c89d2df202cc0"
+    },
+    {
+      "file": "timing-final.log",
+      "bytes": 3130,
+      "sha256": "57a969e00f3f41d8caa6a8d715ae8933588ba9f40dfb8dd6ad1d9f9b538956bb"
+    }
+  ],
+  "byteIdenticalExceptDerivedAnalysis": true,
+  "controlsAreSynthetic": true,
+  "derivedAnalysis": {
+    "file": "final-analysis.json",
+    "originalSha256": "394b0534e27e49e0b26ffa0764d86c641ebdf94a886b5f222f553ebfb645c5d0",
+    "omittedFields": [
+      "artifacts"
+    ],
+    "artifactInventoryRetainedAt": "final-artifact-receipt.json"
+  },
+  "omittedDerivedDuplicate": "controls/unchanged.analysis.json",
+  "canonicalPathValidation": "The repeat analyzer compares real filesystem identities for its documented driver/harness symlink aliases. Original bytes, hashes, workload and counter validations remain unchanged; foreign physical destinations are rejected by controls."
+}

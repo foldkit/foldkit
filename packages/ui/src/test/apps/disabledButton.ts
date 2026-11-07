@@ -25,7 +25,7 @@ export type Message = typeof Message.Type
 const DisabledButtonTestKey = Symbol('DisabledButtonTest')
 const DisabledButtonTestBlock = Block.make('DisabledButtonTest', {
   key: DisabledButtonTestKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -149,10 +149,10 @@ export const block = {
   block: DisabledButtonTestBlock,
   layer: DisabledButtonTestBlock.makeLayer(
     Effect.gen(function* () {
-      const dialog = yield* DialogBinding
+      const children = yield* DisabledButtonTestComposition.acquireChildren()
 
       return {
-        children: [dialog],
+        children,
         init,
         update,
         view: viewWithDialog,

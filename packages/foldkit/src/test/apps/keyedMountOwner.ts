@@ -19,7 +19,7 @@ const SurfaceBlock = Block.make('SelectedSurface', {
   key: SurfaceKey,
   Model: SurfaceModel,
   Message: SurfaceMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 export const ObserveSurface = SurfaceBlock.makeMountStream('ObserveSurface', {
@@ -73,7 +73,7 @@ export const ParentBlock = Block.make('SurfaceSelection', {
   key: ParentKey,
   Model: ParentModel,
   Message: ParentMessage,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const SurfacesBinding = ParentBlock.makeKeyedArrayBinding(SurfaceBlock, {

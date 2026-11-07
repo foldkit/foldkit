@@ -25,7 +25,7 @@ export type Flags = typeof Flags.Type
 const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
-  Init: Schema.Tuple([Flags]),
+  InitArgs: Schema.Tuple([Flags]),
   view: { kind: 'Element' },
   Model,
   Message,

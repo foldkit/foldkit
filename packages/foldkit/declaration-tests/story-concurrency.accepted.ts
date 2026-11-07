@@ -1,6 +1,7 @@
 import { Number, Schema } from 'effect'
 import * as Command from 'foldkit/command'
 import { defineMessageUnion } from 'foldkit/message'
+import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 
 export const Model = Schema.Struct({ count: Schema.Number })
@@ -41,6 +42,10 @@ export const concurrentMessages = Story.steps(
     Story.message(Message.RequestedFetch({ requestId: 2 })),
   ),
 )
+export const orderedSceneCommands = Scene.Command.expectExactInOrder(
+  Fetch({ requestId: 1 }),
+  Fetch({ requestId: 2 }),
+)
 
 export const runConcurrentStory = () =>
   Story.story(
@@ -53,7 +58,10 @@ export const runConcurrentStory = () =>
       void beforeModel
       void afterModel
     }),
-    Story.Command.expectExact(Fetch({ requestId: 1 }), Fetch({ requestId: 2 })),
+    Story.Command.expectExactInOrder(
+      Fetch({ requestId: 1 }),
+      Fetch({ requestId: 2 }),
+    ),
     Story.Command.resolveAll(
       [
         Fetch({ requestId: 1 }),

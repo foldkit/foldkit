@@ -134,7 +134,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   const ToastDefinition = BlockFamily.makeFamilyDeclaration('Toast', {
     key: ToastKey,
-    Init: Block.makeInputContract<readonly [config: InitConfig]>(),
+    InitArgs: Block.makeInputContract<readonly [config: InitConfig]>(),
     view: {
       kind: 'Element',
       Inputs: Block.makeInputContract<ViewInputs<A, I>>(),

@@ -48,7 +48,7 @@ HostWindows.toLayer(
 const UnregisteredKey = Symbol('UnregisteredQueryPolicy')
 const Unregistered = Block.makeDefinition('UnregisteredQueryPolicy', {
   key: UnregisteredKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: ParentModel,
   Message: ParentMessage,
 }).makeComposition()
@@ -98,7 +98,7 @@ const dynamicOrdinary = Query.define({
 const DynamicParentKey = Symbol('DynamicOrdinaryPolicyParent')
 const DynamicParent = Block.makeDefinition('DynamicOrdinaryPolicyParent', {
   key: DynamicParentKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: Schema.Struct({ query: dynamicOrdinary.Model }),
   Message: Schema.Never,
 })

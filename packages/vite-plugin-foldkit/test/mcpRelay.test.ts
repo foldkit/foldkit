@@ -47,6 +47,7 @@ import {
   relayRegistryTrust,
 } from '../src/relayRegistryTrust.ts'
 import { boundPort } from './boundPort.ts'
+import { listenOnEphemeralPort } from './listenOnEphemeralPort.ts'
 import {
   POLL_TIMEOUT,
   RELAY_DIRECTORY_VARIABLE,
@@ -91,7 +92,7 @@ const startStandaloneServer = async (devToolsMcpPort: number) => {
     plugins: [foldkit({ devToolsMcpPort })],
   })
   onTestFinished(() => server.close().catch(() => undefined))
-  await server.listen()
+  await listenOnEphemeralPort(() => server.listen())
   return server
 }
 
@@ -230,7 +231,7 @@ const startListeningServer = async (
     plugins: [...plugins, foldkit(options)],
   })
   onTestFinished(() => server.close().catch(() => undefined))
-  await server.listen()
+  await listenOnEphemeralPort(() => server.listen())
   return server
 }
 

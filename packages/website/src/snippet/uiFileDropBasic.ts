@@ -18,7 +18,7 @@ type Message = typeof Message.Type
 export const FileDropExampleKey = Symbol('FileDropExample')
 export const FileDropExampleBlock = Block.make('FileDropExample', {
   key: FileDropExampleKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
   Model,
   Message,
@@ -37,22 +37,22 @@ const {
 // over the parent Model, which already has the next FileDrop Model written
 // back. The parent Block checks every named child variant and infers the
 // parent Step from each handler:
-const foldFileDropOutMessage = makeOutMessageFold(FileDrop.FileDropBlock, {
-  ReceivedFiles: ({ files }) =>
-    makeFieldsStep(() => ({
-      uploadedFiles: Array.appendAll(files),
-    })),
-  // Fires when something is dropped but no files came through (e.g.
-  // a drag of text or a URL). Ignore, or show a hint to the user.
-  RejectedNonFiles: makeNoopStep,
-})
-
 // The Binding declares placement, typed startup, and OutMessage policy.
 // The construction Layer below supplies the child implementation.
 const UploaderBinding = makeRequiredFieldBinding(FileDrop.FileDropBlock, {
   field: 'uploader',
   init: { contextToArgs: () => [{ id: 'uploader' }] },
-}).withOutMessagePolicy({ fold: foldFileDropOutMessage })
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(FileDrop.FileDropBlock, {
+    ReceivedFiles: ({ files }) =>
+      makeFieldsStep(() => ({
+        uploadedFiles: Array.appendAll(files),
+      })),
+    // Fires when something is dropped but no files came through (e.g.
+    // a drag of text or a URL). Ignore, or show a hint to the user.
+    RejectedNonFiles: makeNoopStep,
+  }),
+})
 
 const FileDropExampleComposition = makeComposition({
   bindings: [UploaderBinding],
@@ -104,10 +104,10 @@ const view = FileDropExampleComposition.makeView((model, h) => {
 
 export const layer = FileDropExampleBlock.makeLayer(
   Effect.gen(function* () {
-    const fileDrop = yield* UploaderBinding
+    const children = yield* FileDropExampleComposition.acquireChildren()
 
     return {
-      children: [fileDrop],
+      children,
       init,
       update,
       view,

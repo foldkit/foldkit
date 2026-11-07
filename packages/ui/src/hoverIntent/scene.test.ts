@@ -9,7 +9,7 @@ import { HoverIntentBlock, layer } from './block.js'
 const HoverIntentSceneKey = Symbol('HoverIntentScene')
 const HoverIntentSceneBlock = Block.make('HoverIntentScene', {
   key: HoverIntentSceneKey,
-  Init: Block.makeInputContract<readonly []>(),
+  InitArgs: Block.makeInputContract<readonly []>(),
   Model: Schema.Struct({ hoverIntent: HoverIntentBlock.Model }),
   Message: Schema.Never,
   view: { kind: 'Element' },
@@ -66,10 +66,10 @@ const hoverIntentScene = {
   block: HoverIntentSceneBlock,
   layer: HoverIntentSceneBlock.makeLayer(
     Effect.gen(function* () {
-      const child = yield* HoverIntentBinding
+      const children = yield* HoverIntentSceneComposition.acquireChildren()
 
       return {
-        children: [child],
+        children,
         init,
         update,
         view: sceneView,

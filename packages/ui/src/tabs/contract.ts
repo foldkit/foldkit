@@ -31,7 +31,7 @@ type RefinedContract<Value extends string> = Block.Contract<
 
 type RefinedConfiguration<Value extends string> = Readonly<{
   key: typeof TabsKey
-  Init: Schema.Tuple<readonly [typeof InitConfig]>
+  InitArgs: Schema.Tuple<readonly [typeof InitConfig]>
   view: Readonly<{
     kind: 'Element'
     Inputs: Block.InputContract<ViewInputs<Value>>

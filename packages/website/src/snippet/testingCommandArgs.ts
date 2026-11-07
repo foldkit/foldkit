@@ -1,8 +1,7 @@
-import { Array, Schema } from 'effect'
-import { Scene, Story } from 'foldkit'
+import { Schema } from 'effect'
+import { Story } from 'foldkit'
 import * as Command from 'foldkit/command'
 import { defineMessageUnion } from 'foldkit/message'
-import { expect } from 'vitest'
 
 const Message = defineMessageUnion({
   CompletedPaint: { generation: Schema.Number },
@@ -14,45 +13,13 @@ const Paint = Command.define('Paint', {
   messages: [Message.CompletedPaint],
 })
 
-const requireExactlyOne = <Value>(values: ReadonlyArray<Value>): Value =>
-  Array.match(values, {
-    onEmpty: () => {
-      throw new Error('Expected a pending Paint Command')
-    },
-    onNonEmpty: nonEmpty => {
-      if (Array.isArrayNonEmpty(Array.tailNonEmpty(nonEmpty))) {
-        throw new Error('Expected only one pending Paint Command')
-      }
-      return Array.headNonEmpty(nonEmpty)
-    },
-  })
+const paint = Paint({ generation: 4 })
 
-export const inspectStoryPaint = <Model, ParentMessage, OutMessage>(
-  simulation: Story.StorySimulation<Model, ParentMessage, OutMessage>,
-) => {
-  const args = requireExactlyOne(
-    Array.getSomes(Array.map(simulation.commands, Story.Command.argsOf(Paint))),
-  )
+// Custom testing tools can project typed arguments from an invocation they own.
+export const maybePaintArgs = Story.Command.argsOf(Paint)(paint)
 
-  expect(args.generation).toBe(4)
-
-  return Story.Command.resolve(
-    Paint(args),
-    Message.CompletedPaint({ generation: args.generation }),
-  )(simulation)
-}
-
-export const inspectScenePaint = <Model, ParentMessage, OutMessage>(
-  simulation: Scene.SceneSimulation<Model, ParentMessage, OutMessage>,
-) => {
-  const args = requireExactlyOne(
-    Array.getSomes(Array.map(simulation.commands, Scene.Command.argsOf(Paint))),
-  )
-
-  expect(args.generation).toBe(4)
-
-  return Scene.Command.resolve(
-    Paint(args),
-    Message.CompletedPaint({ generation: args.generation }),
-  )(simulation)
-}
+// An ordinary Story asserts and resolves the expected invocation directly.
+export const completedPaint = Story.steps(
+  Story.Command.expectExact(paint),
+  Story.Command.resolve(paint, Message.CompletedPaint({ generation: 4 })),
+)

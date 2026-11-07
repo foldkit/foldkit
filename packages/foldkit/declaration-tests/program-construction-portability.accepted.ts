@@ -12,7 +12,7 @@ const ElementBlock = Block.make('Application', {
   key: ElementKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element' },
 })
 const ElementComposition = ElementBlock.makeComposition()
@@ -32,7 +32,7 @@ const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   Model,
   Message,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Document' },
 })
 const ApplicationComposition = ApplicationBlock.makeComposition()

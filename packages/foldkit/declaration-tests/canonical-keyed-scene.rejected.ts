@@ -38,7 +38,7 @@ const ForeignSourceBlock = Block.make(
     key: ForeignSourceKey,
     Model: ForeignSourceModel,
     Message: CanonicalChildMessage,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
   },
 )
 const foreignSubscriptions = ForeignSourceBlock.makeSubscriptions(entry => ({
@@ -79,7 +79,7 @@ const ForeignCanonicalParentBlock = Block.make(
     key: ForeignCanonicalParentKey,
     Model: ForeignCanonicalParentModel,
     Message: Schema.Never,
-    Init: Schema.Tuple([]),
+    InitArgs: Schema.Tuple([]),
     view: { kind: 'Element' },
   },
 )

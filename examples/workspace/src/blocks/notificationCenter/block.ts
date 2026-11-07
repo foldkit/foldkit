@@ -10,7 +10,7 @@ import { ViewInputs } from './viewInputs'
 export const NotificationCenterKey = Symbol('NotificationCenter')
 export const NotificationCenterBlock = Block.make('NotificationCenter', {
   key: NotificationCenterKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   view: { kind: 'Element', Inputs: ViewInputs },
   Model,
   Message,

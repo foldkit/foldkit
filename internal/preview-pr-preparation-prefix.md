@@ -5,10 +5,10 @@ The integration branch now contains the next Blocks + Effect Layers API. It is n
 This next round includes:
 
 - One public `Block.make` declaration and ordinary `makeLayer` implementation, with portable typed builders and explicit child Bindings.
-- Storage-specific Binding constructors, `activeWhen` for retained child activity, and one `foldkit/binding` helper import.
+- Storage-specific Binding constructors, `activeWhen` for retained child activity, `InitArgs` contracts, bulk child acquisition, and one `foldkit/binding` helper import.
 - Separate InMessage handling, generated `informOfX` notification methods, ordered update composition, and less keyed initialization and OutMessage wiring.
 - Synchronous, service-free Block serialization and runtime-Schema-backed Listbox values.
-- Scoped Story/Scene testing, `Story.messageIn`, immutable Model observations, and precise keyed lifecycle selection.
+- Scoped Story/Scene testing, checked nested `Story.messageIn` paths, ordered Command assertions, immutable Model observations, and precise keyed lifecycle selection.
 - Lifecycle, Node response cancellation, Menu, DragAndDrop, Dialog, Query and SSR fixes, plus consistent adoption across the examples, Website and Typing Game.
 - A DevTools fix for inspecting Effect Chunks without overflowing the stack, preserving nested secret masking and shared references.
 

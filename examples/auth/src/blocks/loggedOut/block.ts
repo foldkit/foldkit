@@ -8,7 +8,7 @@ import { Model } from './model'
 export const LoggedOutKey = Symbol('LoggedOut')
 export const LoggedOutBlock = Block.make('LoggedOut', {
   key: LoggedOutKey,
-  Init: Schema.Tuple([LoggedOutRoute]),
+  InitArgs: Schema.Tuple([LoggedOutRoute]),
   view: { kind: 'Element' },
 
   Model,

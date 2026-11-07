@@ -80,7 +80,7 @@ export const ParentMessage = defineMessageUnion({
 export const ParentKey = Symbol('QueryPolicyParent')
 export const ParentDefinition = Block.makeDefinition('QueryPolicyParent', {
   key: ParentKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   effects: {
     Error: Schema.instanceOf(MissingCredentials),
     services: [QuoteCredentials, QuoteProvider],
@@ -126,7 +126,7 @@ export const parentUpdate = ParentComposition.makeUpdate({
 const PlainParentKey = Symbol('PlainQueryPolicyParent')
 const PlainParent = Block.makeDefinition('PlainQueryPolicyParent', {
   key: PlainParentKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model: Schema.Struct({ quotes: PlainWindows.Model }),
   Message: Schema.Never,
 })

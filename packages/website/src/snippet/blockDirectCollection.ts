@@ -8,7 +8,7 @@ import { Row } from './row'
 export const TableKey = Symbol('Table')
 const TableBlock = Block.make('Table', {
   key: TableKey,
-  Init: Schema.Tuple([]),
+  InitArgs: Schema.Tuple([]),
   Model,
   Message,
 })
