@@ -185,6 +185,34 @@ const allowedHostsConfiguration = (
   }
 }
 
+const virtualThemePlugin: Plugin = {
+  name: 'virtual-theme',
+  resolveId: id =>
+    id === 'virtual:theme.css' ? '\0virtual:theme.css' : undefined,
+  load: id =>
+    id === '\0virtual:theme.css' ? 'body { color: green; }' : undefined,
+}
+
+const headStylesheetPlugin: Plugin = {
+  name: 'head-stylesheet',
+  transformIndexHtml: () => [
+    {
+      tag: 'link',
+      attrs: { rel: 'stylesheet', href: '/plugin.css' },
+      injectTo: 'head',
+    },
+  ],
+}
+
+const developmentStylesheetLinks = (
+  html: string,
+): ReadonlyArray<Readonly<{ href: string; id: string }>> =>
+  [
+    ...html.matchAll(
+      /<link rel="stylesheet" href="([^"]+)" data-vite-dev-id="([^"]+)"/g,
+    ),
+  ].map(([, href = '', id = '']) => ({ href, id }))
+
 // A second physical copy of Vite, installed under an alias, so a server it
 // creates carries that copy's `RunnableDevEnvironment` class rather than the
 // one this test and the plugin import. Its `createServer` is nominally typed
@@ -223,11 +251,13 @@ const startServer = async (
     root?: string
     clientEntry?: string
     base?: string
+    cspNonce?: string
     origin?: string
     allowedHosts?: true | ReadonlyArray<string>
     cors?: boolean | CorsOptions
     proxyTarget?: string
     seedVary?: string
+    plugins?: ReadonlyArray<Plugin>
     buildId?: string
     runnableSsr?: false
     hostVite?: true
@@ -240,6 +270,9 @@ const startServer = async (
   const server = await createServer({
     root: options.root ?? FIXTURE_ROOT,
     ...(options.base === undefined ? {} : { base: options.base }),
+    ...(options.cspNonce === undefined
+      ? {}
+      : { html: { cspNonce: options.cspNonce } }),
     configFile: false,
     logLevel: 'silent',
     ...(options.warnings === undefined
@@ -248,6 +281,7 @@ const startServer = async (
     plugins: [
       ...(options.runnableSsr === false ? [nonRunnableSsrPlugin] : []),
       ...(options.hostVite === true ? [foreignCopyAssertionPlugin] : []),
+      ...(options.plugins ?? []),
       ...(options.seedVary === undefined
         ? []
         : [seedVaryPlugin(options.seedVary)]),
@@ -329,6 +363,89 @@ describe('code-rendered documents in development', () => {
     const head = await fetch(`${origin}/app/deep/page`, { method: 'HEAD' })
     expect(head.status).toBe(200)
     expect(await head.text()).toBe('')
+  })
+
+  it('links the stylesheets the client entry imports statically, in evaluation order', async () => {
+    const root = resolve(import.meta.dirname, 'fixtures/build-assets')
+    const origin = await startServer({
+      root,
+      clientEntry: '/entry.client.ts',
+      base: '/app/',
+    })
+    const html = await (await fetch(`${origin}/app/deep/page`)).text()
+    const [head = ''] = html.split('</head>')
+    const links = developmentStylesheetLinks(head)
+
+    expect(links).toEqual([
+      { href: '/app/leaf.css', id: resolve(root, 'leaf.css') },
+      { href: '/app/shared.css', id: resolve(root, 'shared.css') },
+      { href: '/app/styles.css', id: resolve(root, 'styles.css') },
+    ])
+
+    const stylesheets = await Promise.all(
+      links.map(async ({ href }) => {
+        const response = await fetch(`${origin}${href}`, {
+          headers: { accept: 'text/css' },
+        })
+
+        return {
+          contentType: response.headers.get('content-type'),
+          css: await response.text(),
+        }
+      }),
+    )
+
+    expect(stylesheets).toEqual([
+      { contentType: 'text/css', css: expect.stringContaining('red') },
+      { contentType: 'text/css', css: expect.stringContaining('green') },
+      { contentType: 'text/css', css: expect.stringContaining('blue') },
+    ])
+  })
+
+  it('puts the stylesheet links before tags that other plugins append to the head', async () => {
+    const origin = await startServer({
+      root: resolve(import.meta.dirname, 'fixtures/build-assets'),
+      clientEntry: '/entry.client.ts',
+      plugins: [headStylesheetPlugin],
+    })
+    const html = await (await fetch(`${origin}/`)).text()
+    const stylesheetHrefs = [
+      ...html.matchAll(/<link rel="stylesheet" href="([^"]+)"/g),
+    ].map(([, href]) => href)
+
+    expect(stylesheetHrefs).toEqual([
+      '/leaf.css',
+      '/shared.css',
+      '/styles.css',
+      '/plugin.css',
+    ])
+  })
+
+  it('skips stylesheets imported as values and stops linking at a stylesheet the client cannot adopt', async () => {
+    const root = resolve(import.meta.dirname, 'fixtures/dev-styles')
+    const origin = await startServer({
+      root,
+      clientEntry: '/entry.client.js',
+      plugins: [virtualThemePlugin],
+    })
+    const html = await (await fetch(`${origin}/`)).text()
+
+    expect(developmentStylesheetLinks(html)).toEqual([
+      { href: '/before.css', id: resolve(root, 'before.css') },
+    ])
+  })
+
+  it('applies the configured CSP nonce to the stylesheet links', async () => {
+    const origin = await startServer({
+      root: resolve(import.meta.dirname, 'fixtures/build-assets'),
+      clientEntry: '/entry.client.ts',
+      cspNonce: 'dev-nonce',
+    })
+    const html = await (await fetch(`${origin}/`)).text()
+
+    expect(html).toMatch(
+      /<link rel="stylesheet" href="[^"]+" data-vite-dev-id="[^"]+" nonce="dev-nonce">/,
+    )
   })
 
   it('reports a missing document renderer when a script entry is configured', async () => {
