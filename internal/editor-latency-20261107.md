@@ -2,6 +2,11 @@
 
 Date: 2026-11-07
 
+The [November 8 input controls](editor-latency-20261108/README.md) separate root
+builders from child implementation Layers. The multi-second cost is already
+present in child Layer inference. The named completion projection proposed at
+the end of this dated report was tested and rejected; it is not a new candidate.
+
 ## Outcome
 
 The retained language-service harness had drifted from the current Layer-based

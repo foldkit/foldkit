@@ -1,0 +1,3999 @@
+[
+  {
+    "kind": "minimal",
+    "summary": {
+      "compressedBytes": 21856,
+      "compressedSha256": "9da38b6ec902fcf6d7b64b7808ed84ad666a0349e0be0d06c3b31dcefdfc4d45",
+      "durationNanos": 529596375,
+      "period": 10000000,
+      "sampleCount": 73,
+      "sampleTypes": [
+        {
+          "type": "samples",
+          "unit": "count"
+        },
+        {
+          "type": "cpu",
+          "unit": "nanoseconds"
+        }
+      ],
+      "selectedSampleType": {
+        "type": "cpu",
+        "unit": "nanoseconds"
+      },
+      "total": 1950000000,
+      "topFlat": [
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 800000000,
+          "percentage": 41.03
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 610000000,
+          "percentage": 31.28
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 110000000,
+          "percentage": 5.64
+        },
+        {
+          "name": "runtime.tryDeferToSpanScan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 60000000,
+          "percentage": 3.08
+        },
+        {
+          "name": "runtime.usleep",
+          "filename": "runtime/sys_darwin.go",
+          "value": 40000000,
+          "percentage": 2.05
+        },
+        {
+          "name": "runtime.memclrNoHeapPointers",
+          "filename": "runtime/memclr_arm64.s",
+          "value": 40000000,
+          "percentage": 2.05
+        },
+        {
+          "name": "runtime.greyobject",
+          "filename": "runtime/mgcmark.go",
+          "value": 40000000,
+          "percentage": 2.05
+        },
+        {
+          "name": "runtime.pthread_cond_wait",
+          "filename": "runtime/sys_darwin.go",
+          "value": 30000000,
+          "percentage": 1.54
+        },
+        {
+          "name": "runtime.pthread_kill",
+          "filename": "runtime/sys_darwin.go",
+          "value": 20000000,
+          "percentage": 1.03
+        },
+        {
+          "name": "runtime.pthread_cond_signal",
+          "filename": "runtime/sys_darwin.go",
+          "value": 20000000,
+          "percentage": 1.03
+        },
+        {
+          "name": "runtime.(*mspan).base",
+          "filename": "runtime/mheap.go",
+          "value": 20000000,
+          "percentage": 1.03
+        },
+        {
+          "name": "runtime.typePointers.next",
+          "filename": "runtime/mbitmap.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "runtime.markroot",
+          "filename": "runtime/mgcmark.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "runtime.(*gcWork).tryGetObjFast",
+          "filename": "runtime/mgcwork.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "runtime.spanOf",
+          "filename": "runtime/mheap.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "internal/runtime/atomic.(*UnsafePointer).StoreNoWB",
+          "filename": "internal/runtime/atomic/types.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "runtime.(*spanInlineMarkBits).tryAcquire",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "runtime.(*spanScanOwnership).or",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "runtime.spanSetScans",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "runtime.heapArenaOf",
+          "filename": "runtime/mheap.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "runtime.mmap",
+          "filename": "runtime/sys_darwin.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "runtime.memmove",
+          "filename": "runtime/memmove_arm64.s",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "internal/runtime/maps.(*Iter).Next",
+          "filename": "internal/runtime/maps/table.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getIndexedAccessTypeOrUndefined",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "internal/runtime/maps.(*ctrlGroup).get",
+          "filename": "internal/runtime/maps/group.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getNamedMembers",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 10000000,
+          "percentage": 0.51
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*TypeMapper).Map",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/mapper.go",
+          "value": 10000000,
+          "percentage": 0.51
+        }
+      ],
+      "topCumulative": [
+        {
+          "name": "runtime.systemstack",
+          "filename": "runtime/asm_arm64.s",
+          "value": 1150000000,
+          "percentage": 58.97
+        },
+        {
+          "name": "runtime.(*mheap).allocSpan",
+          "filename": "runtime/mheap.go",
+          "value": 810000000,
+          "percentage": 41.54
+        },
+        {
+          "name": "runtime.(*mheap).alloc.func1",
+          "filename": "runtime/mheap.go",
+          "value": 810000000,
+          "percentage": 41.54
+        },
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 800000000,
+          "percentage": 41.03
+        },
+        {
+          "name": "runtime.sysUsedOS",
+          "filename": "runtime/mem_darwin.go",
+          "value": 800000000,
+          "percentage": 41.03
+        },
+        {
+          "name": "runtime.sysUsed",
+          "filename": "runtime/mem.go",
+          "value": 800000000,
+          "percentage": 41.03
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*filesParser).start.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 620000000,
+          "percentage": 31.79
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/core.(*parallelWorkGroup).Queue.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/core/workgroup.go",
+          "value": 620000000,
+          "percentage": 31.79
+        },
+        {
+          "name": "sync.(*WaitGroup).Go.func1",
+          "filename": "sync/waitgroup.go",
+          "value": 620000000,
+          "percentage": 31.79
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*parseTask).load",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 610000000,
+          "percentage": 31.28
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 610000000,
+          "percentage": 31.28
+        },
+        {
+          "name": "syscall.syscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 610000000,
+          "percentage": 31.28
+        },
+        {
+          "name": "syscall.syscall",
+          "filename": "syscall/syscall_darwin.go",
+          "value": 610000000,
+          "percentage": 31.28
+        },
+        {
+          "name": "os.ignoringEINTR",
+          "filename": "os/file_posix.go",
+          "value": 600000000,
+          "percentage": 30.77
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*snapshotFSBuilder).GetFileByPath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/snapshotfs.go",
+          "value": 370000000,
+          "percentage": 18.97
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*compilerHost).GetSourceFile",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/compilerhost.go",
+          "value": 360000000,
+          "percentage": 18.46
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*fileLoader).parseSourceFile",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/fileloader.go",
+          "value": 360000000,
+          "percentage": 18.46
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*sourceFS).GetFileByPath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/snapshotfs.go",
+          "value": 350000000,
+          "percentage": 17.95
+        },
+        {
+          "name": "runtime.gcDrain",
+          "filename": "runtime/mgcmark.go",
+          "value": 320000000,
+          "percentage": 16.41
+        },
+        {
+          "name": "runtime.gcBgMarkWorker.func2",
+          "filename": "runtime/mgc.go",
+          "value": 320000000,
+          "percentage": 16.41
+        },
+        {
+          "name": "runtime.gcBgMarkWorker",
+          "filename": "runtime/mgc.go",
+          "value": 300000000,
+          "percentage": 15.38
+        },
+        {
+          "name": "runtime.scanSpan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 230000000,
+          "percentage": 11.79
+        },
+        {
+          "name": "runtime.gcDrainMarkWorkerDedicated",
+          "filename": "runtime/mgcmark.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "syscall.Lstat",
+          "filename": "syscall/zsyscall_darwin_arm64.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "os.lstatNolog.func1",
+          "filename": "os/stat_unix.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "os.lstatNolog",
+          "filename": "os/stat_unix.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "os.Lstat",
+          "filename": "os/stat.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "path/filepath.walkSymlinks",
+          "filename": "path/filepath/symlink.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "path/filepath.evalSymlinks",
+          "filename": "path/filepath/symlink_unix.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "path/filepath.EvalSymlinks",
+          "filename": "path/filepath/path.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/nativepath.Realpath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/nativepath/realpath_other.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/vfs/osvfs.osFSRealpath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/vfs/osvfs/os.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/vfs/osvfs.(*osFS).Realpath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/vfs/osvfs/os.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*overlayFS).Realpath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/overlayfs.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/vfs/cachedvfs.(*FS).Realpath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/vfs/cachedvfs/cachedvfs.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 220000000,
+          "percentage": 11.28
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/module.(*resolutionState).resolveNodeLikeWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/module/resolver.go",
+          "value": 210000000,
+          "percentage": 10.77
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/module.(*resolutionState).resolveNodeLike",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/module/resolver.go",
+          "value": 210000000,
+          "percentage": 10.77
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/module.(*DefaultResolver).resolveModuleName",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/module/resolver.go",
+          "value": 210000000,
+          "percentage": 10.77
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/module.(*DefaultResolver).ResolveModuleName",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/module/resolver.go",
+          "value": 210000000,
+          "percentage": 10.77
+        }
+      ],
+      "flatGroups": [
+        {
+          "group": "runtime-other",
+          "value": 1160000000,
+          "percentage": 59.49
+        },
+        {
+          "group": "other",
+          "value": 610000000,
+          "percentage": 31.28
+        },
+        {
+          "group": "runtime-gc",
+          "value": 150000000,
+          "percentage": 7.69
+        },
+        {
+          "group": "checker",
+          "value": 30000000,
+          "percentage": 1.54
+        }
+      ],
+      "cumulativePresenceGroups": [
+        {
+          "group": "runtime-gc",
+          "value": 1170000000,
+          "percentage": 60
+        },
+        {
+          "group": "runtime-other",
+          "value": 1160000000,
+          "percentage": 59.49
+        },
+        {
+          "group": "typescript-other",
+          "value": 700000000,
+          "percentage": 35.9
+        },
+        {
+          "group": "other",
+          "value": 640000000,
+          "percentage": 32.82
+        },
+        {
+          "group": "project",
+          "value": 620000000,
+          "percentage": 31.79
+        },
+        {
+          "group": "checker",
+          "value": 90000000,
+          "percentage": 4.62
+        },
+        {
+          "group": "parser",
+          "value": 20000000,
+          "percentage": 1.03
+        },
+        {
+          "group": "language-service",
+          "value": 20000000,
+          "percentage": 1.03
+        },
+        {
+          "group": "binder",
+          "value": 10000000,
+          "percentage": 0.51
+        }
+      ],
+      "cumulativePresenceNote": "A sample may contain several groups, so cumulative presence percentages overlap and need not sum to 100%."
+    }
+  },
+  {
+    "kind": "root-inputs",
+    "summary": {
+      "compressedBytes": 25357,
+      "compressedSha256": "5424df8e967fec3bd6d75fd5339c063cecdaa4890823531aa6417ce3fa978b59",
+      "durationNanos": 1034926292,
+      "period": 10000000,
+      "sampleCount": 84,
+      "sampleTypes": [
+        {
+          "type": "samples",
+          "unit": "count"
+        },
+        {
+          "type": "cpu",
+          "unit": "nanoseconds"
+        }
+      ],
+      "selectedSampleType": {
+        "type": "cpu",
+        "unit": "nanoseconds"
+      },
+      "total": 2350000000,
+      "topFlat": [
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 1190000000,
+          "percentage": 50.64
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 440000000,
+          "percentage": 18.72
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 80000000,
+          "percentage": 3.4
+        },
+        {
+          "name": "runtime.tryDeferToSpanScan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 80000000,
+          "percentage": 3.4
+        },
+        {
+          "name": "runtime.pthread_cond_wait",
+          "filename": "runtime/sys_darwin.go",
+          "value": 60000000,
+          "percentage": 2.55
+        },
+        {
+          "name": "runtime.pthread_kill",
+          "filename": "runtime/sys_darwin.go",
+          "value": 50000000,
+          "percentage": 2.13
+        },
+        {
+          "name": "runtime.mmap",
+          "filename": "runtime/sys_darwin.go",
+          "value": 50000000,
+          "percentage": 2.13
+        },
+        {
+          "name": "runtime.memclrNoHeapPointers",
+          "filename": "runtime/memclr_arm64.s",
+          "value": 40000000,
+          "percentage": 1.7
+        },
+        {
+          "name": "runtime.(*spanScanOwnership).or",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 30000000,
+          "percentage": 1.28
+        },
+        {
+          "name": "runtime.typePointers.next",
+          "filename": "runtime/mbitmap.go",
+          "value": 20000000,
+          "percentage": 0.85
+        },
+        {
+          "name": "runtime.spanOf",
+          "filename": "runtime/mheap.go",
+          "value": 20000000,
+          "percentage": 0.85
+        },
+        {
+          "name": "runtime.memmove",
+          "filename": "runtime/memmove_arm64.s",
+          "value": 20000000,
+          "percentage": 0.85
+        },
+        {
+          "name": "runtime.(*spanQueue).tryDrain",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.85
+        },
+        {
+          "name": "runtime.findObject",
+          "filename": "runtime/mbitmap.go",
+          "value": 20000000,
+          "percentage": 0.85
+        },
+        {
+          "name": "runtime.(*gcWork).tryStealSpan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/ast.(*NodeFactory).NewJSDocSeeTag",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/ast/ast_generated.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "runtime.typePointers.nextFast",
+          "filename": "runtime/mbitmap.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "runtime.(*gcBitsArena).tryAlloc",
+          "filename": "runtime/mheap.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "runtime.procyieldAsm",
+          "filename": "runtime/asm_arm64.s",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "internal/runtime/atomic.(*Uint64).Add",
+          "filename": "internal/runtime/atomic/types.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "runtime.newBucket",
+          "filename": "runtime/mprof.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "runtime.(*mspan).base",
+          "filename": "runtime/mheap.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "runtime.spanClass.sizeclass",
+          "filename": "runtime/mheap.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "runtime.pthread_cond_signal",
+          "filename": "runtime/sys_darwin.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "runtime.usleep",
+          "filename": "runtime/sys_darwin.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "runtime.(*unwinder).resolveInternal",
+          "filename": "runtime/traceback.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "internal/runtime/maps.(*Map).directoryAt",
+          "filename": "internal/runtime/maps/map.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "internal/runtime/maps.(*ctrlGroup).setEmpty",
+          "filename": "internal/runtime/maps/group.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*TypeMapper).Map",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/mapper.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "runtime.recordspan",
+          "filename": "runtime/mheap.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "runtime.gcDrain",
+          "filename": "runtime/mgcmark.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "runtime.scanObject",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "internal/runtime/atomic.(*Uintptr).Load",
+          "filename": "internal/runtime/atomic/types.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).mapTypeWithCompositeMapper",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/mapper.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*nodeLinkStore[go.shape.struct { github.com/microsoft/TypeScript/tsc/internal/checker.resolvedType *github.com/microsoft/TypeScript/tsc/internal/checker.Type; github.com/microsoft/TypeScript/tsc/internal/checker.outerTypeParameters *[]*github.com/microsoft/TypeScript/tsc/internal/checker.Type }]).Get",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/links.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "internal/runtime/maps.MemHash",
+          "filename": "internal/runtime/maps/memhash_aes.go",
+          "value": 10000000,
+          "percentage": 0.43
+        },
+        {
+          "name": "internal/runtime/maps.memHashAES",
+          "filename": "internal/runtime/maps/memhash_arm64.s",
+          "value": 10000000,
+          "percentage": 0.43
+        }
+      ],
+      "topCumulative": [
+        {
+          "name": "runtime.systemstack",
+          "filename": "runtime/asm_arm64.s",
+          "value": 1660000000,
+          "percentage": 70.64
+        },
+        {
+          "name": "runtime.(*mheap).allocSpan",
+          "filename": "runtime/mheap.go",
+          "value": 1220000000,
+          "percentage": 51.91
+        },
+        {
+          "name": "runtime.(*mheap).alloc.func1",
+          "filename": "runtime/mheap.go",
+          "value": 1220000000,
+          "percentage": 51.91
+        },
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 1190000000,
+          "percentage": 50.64
+        },
+        {
+          "name": "runtime.sysUsedOS",
+          "filename": "runtime/mem_darwin.go",
+          "value": 1190000000,
+          "percentage": 50.64
+        },
+        {
+          "name": "runtime.sysUsed",
+          "filename": "runtime/mem.go",
+          "value": 1190000000,
+          "percentage": 50.64
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*filesParser).start.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 520000000,
+          "percentage": 22.13
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/core.(*parallelWorkGroup).Queue.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/core/workgroup.go",
+          "value": 520000000,
+          "percentage": 22.13
+        },
+        {
+          "name": "sync.(*WaitGroup).Go.func1",
+          "filename": "sync/waitgroup.go",
+          "value": 520000000,
+          "percentage": 22.13
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*parseTask).load",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 510000000,
+          "percentage": 21.7
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 440000000,
+          "percentage": 18.72
+        },
+        {
+          "name": "syscall.syscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 440000000,
+          "percentage": 18.72
+        },
+        {
+          "name": "syscall.syscall",
+          "filename": "syscall/syscall_darwin.go",
+          "value": 440000000,
+          "percentage": 18.72
+        },
+        {
+          "name": "os.ignoringEINTR",
+          "filename": "os/file_posix.go",
+          "value": 420000000,
+          "percentage": 17.87
+        },
+        {
+          "name": "runtime.gcDrain",
+          "filename": "runtime/mgcmark.go",
+          "value": 400000000,
+          "percentage": 17.02
+        },
+        {
+          "name": "runtime.gcBgMarkWorker.func2",
+          "filename": "runtime/mgc.go",
+          "value": 400000000,
+          "percentage": 17.02
+        },
+        {
+          "name": "runtime.gcBgMarkWorker",
+          "filename": "runtime/mgc.go",
+          "value": 330000000,
+          "percentage": 14.04
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*compilerHost).GetSourceFile",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/compilerhost.go",
+          "value": 330000000,
+          "percentage": 14.04
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*fileLoader).parseSourceFile",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/fileloader.go",
+          "value": 330000000,
+          "percentage": 14.04
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*snapshotFSBuilder).GetFileByPath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/snapshotfs.go",
+          "value": 280000000,
+          "percentage": 11.91
+        },
+        {
+          "name": "runtime.gcDrainMarkWorkerDedicated",
+          "filename": "runtime/mgcmark.go",
+          "value": 270000000,
+          "percentage": 11.49
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*sourceFS).GetFileByPath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/snapshotfs.go",
+          "value": 260000000,
+          "percentage": 11.06
+        },
+        {
+          "name": "runtime.scanSpan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 240000000,
+          "percentage": 10.21
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 230000000,
+          "percentage": 9.79
+        },
+        {
+          "name": "os.ReadFile",
+          "filename": "os/file.go",
+          "value": 170000000,
+          "percentage": 7.23
+        },
+        {
+          "name": "os.dirFS.ReadFile",
+          "filename": "os/file.go",
+          "value": 170000000,
+          "percentage": 7.23
+        },
+        {
+          "name": "io/fs.ReadFile",
+          "filename": "io/fs/readfile.go",
+          "value": 170000000,
+          "percentage": 7.23
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/vfs/internal.(*Common).ReadFile",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/vfs/internal/internal.go",
+          "value": 170000000,
+          "percentage": 7.23
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/vfs/osvfs.(*osFS).ReadFile",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/vfs/osvfs/os.go",
+          "value": 170000000,
+          "percentage": 7.23
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*overlayFS).GetFileByPath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/overlayfs.go",
+          "value": 170000000,
+          "percentage": 7.23
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*cachedLayeredFileSystem).GetFileByPath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/snapshotfs.go",
+          "value": 170000000,
+          "percentage": 7.23
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/module.(*resolutionState).resolveNodeLikeWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/module/resolver.go",
+          "value": 170000000,
+          "percentage": 7.23
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/module.(*resolutionState).resolveNodeLike",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/module/resolver.go",
+          "value": 170000000,
+          "percentage": 7.23
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/module.(*DefaultResolver).resolveModuleName",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/module/resolver.go",
+          "value": 170000000,
+          "percentage": 7.23
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/module.(*DefaultResolver).ResolveModuleName",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/module/resolver.go",
+          "value": 170000000,
+          "percentage": 7.23
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*fileLoader).resolveImportsAndModuleAugmentations",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/fileloader.go",
+          "value": 170000000,
+          "percentage": 7.23
+        },
+        {
+          "name": "os.openFileNolog",
+          "filename": "os/file_unix.go",
+          "value": 160000000,
+          "percentage": 6.81
+        },
+        {
+          "name": "os.OpenFile",
+          "filename": "os/file.go",
+          "value": 160000000,
+          "percentage": 6.81
+        },
+        {
+          "name": "os.Open",
+          "filename": "os/file.go",
+          "value": 160000000,
+          "percentage": 6.81
+        },
+        {
+          "name": "path/filepath.walkSymlinks",
+          "filename": "path/filepath/symlink.go",
+          "value": 150000000,
+          "percentage": 6.38
+        }
+      ],
+      "flatGroups": [
+        {
+          "group": "runtime-other",
+          "value": 1750000000,
+          "percentage": 74.47
+        },
+        {
+          "group": "other",
+          "value": 440000000,
+          "percentage": 18.72
+        },
+        {
+          "group": "runtime-gc",
+          "value": 120000000,
+          "percentage": 5.11
+        },
+        {
+          "group": "checker",
+          "value": 30000000,
+          "percentage": 1.28
+        },
+        {
+          "group": "typescript-other",
+          "value": 10000000,
+          "percentage": 0.43
+        }
+      ],
+      "cumulativePresenceGroups": [
+        {
+          "group": "runtime-other",
+          "value": 1750000000,
+          "percentage": 74.47
+        },
+        {
+          "group": "runtime-gc",
+          "value": 1690000000,
+          "percentage": 71.91
+        },
+        {
+          "group": "typescript-other",
+          "value": 620000000,
+          "percentage": 26.38
+        },
+        {
+          "group": "other",
+          "value": 540000000,
+          "percentage": 22.98
+        },
+        {
+          "group": "project",
+          "value": 530000000,
+          "percentage": 22.55
+        },
+        {
+          "group": "checker",
+          "value": 100000000,
+          "percentage": 4.26
+        },
+        {
+          "group": "parser",
+          "value": 90000000,
+          "percentage": 3.83
+        },
+        {
+          "group": "language-service",
+          "value": 20000000,
+          "percentage": 0.85
+        },
+        {
+          "group": "binder",
+          "value": 10000000,
+          "percentage": 0.43
+        }
+      ],
+      "cumulativePresenceNote": "A sample may contain several groups, so cumulative presence percentages overlap and need not sum to 100%."
+    }
+  },
+  {
+    "kind": "child-layers",
+    "summary": {
+      "compressedBytes": 42070,
+      "compressedSha256": "0ac83fab7ea17e8e65320339a76e9d497301de7b20bc927a6ccda7bca4069109",
+      "durationNanos": 4086312708,
+      "period": 10000000,
+      "sampleCount": 195,
+      "sampleTypes": [
+        {
+          "type": "samples",
+          "unit": "count"
+        },
+        {
+          "type": "cpu",
+          "unit": "nanoseconds"
+        }
+      ],
+      "selectedSampleType": {
+        "type": "cpu",
+        "unit": "nanoseconds"
+      },
+      "total": 5750000000,
+      "topFlat": [
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 3250000000,
+          "percentage": 56.52
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 550000000,
+          "percentage": 9.57
+        },
+        {
+          "name": "runtime.tryDeferToSpanScan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 180000000,
+          "percentage": 3.13
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 160000000,
+          "percentage": 2.78
+        },
+        {
+          "name": "internal/runtime/maps.(*ctrlGroup).setEmpty",
+          "filename": "internal/runtime/maps/group.go",
+          "value": 110000000,
+          "percentage": 1.91
+        },
+        {
+          "name": "runtime.mmap",
+          "filename": "runtime/sys_darwin.go",
+          "value": 90000000,
+          "percentage": 1.57
+        },
+        {
+          "name": "runtime.mapaccess2",
+          "filename": "internal/runtime/maps/runtime.go",
+          "value": 90000000,
+          "percentage": 1.57
+        },
+        {
+          "name": "runtime.memclrNoHeapPointers",
+          "filename": "runtime/memclr_arm64.s",
+          "value": 80000000,
+          "percentage": 1.39
+        },
+        {
+          "name": "runtime.pthread_cond_signal",
+          "filename": "runtime/sys_darwin.go",
+          "value": 60000000,
+          "percentage": 1.04
+        },
+        {
+          "name": "runtime.(*spanQueue).tryDrain",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 50000000,
+          "percentage": 0.87
+        },
+        {
+          "name": "internal/runtime/maps.memHashAES",
+          "filename": "internal/runtime/maps/memhash_arm64.s",
+          "value": 40000000,
+          "percentage": 0.7
+        },
+        {
+          "name": "runtime.mapassign",
+          "filename": "internal/runtime/maps/runtime.go",
+          "value": 40000000,
+          "percentage": 0.7
+        },
+        {
+          "name": "internal/runtime/atomic.(*Int64).Add",
+          "filename": "internal/runtime/atomic/types.go",
+          "value": 30000000,
+          "percentage": 0.52
+        },
+        {
+          "name": "runtime.greyobject",
+          "filename": "runtime/mgcmark.go",
+          "value": 30000000,
+          "percentage": 0.52
+        },
+        {
+          "name": "internal/runtime/maps.(*groupReference).ctrls",
+          "filename": "internal/runtime/maps/group.go",
+          "value": 30000000,
+          "percentage": 0.52
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*keyBuilder).hash",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 30000000,
+          "percentage": 0.52
+        },
+        {
+          "name": "runtime.memmove",
+          "filename": "runtime/memmove_arm64.s",
+          "value": 30000000,
+          "percentage": 0.52
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/core.(*PagedLinkStore[go.shape.struct { github.com/microsoft/TypeScript/tsc/internal/checker.resolvedType *github.com/microsoft/TypeScript/tsc/internal/checker.Type; github.com/microsoft/TypeScript/tsc/internal/checker.outerTypeParameters *[]*github.com/microsoft/TypeScript/tsc/internal/checker.Type }]).Get",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/core/linkstore.go",
+          "value": 30000000,
+          "percentage": 0.52
+        },
+        {
+          "name": "runtime.usleep",
+          "filename": "runtime/sys_darwin.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "runtime.(*unwinder).resolveInternal",
+          "filename": "runtime/traceback.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "runtime.(*mspan).init",
+          "filename": "runtime/mheap.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "runtime.spanSetScans",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "runtime.heapArenaOf",
+          "filename": "runtime/mheap.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "runtime.scanObjectSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "runtime.scanSpan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "internal/runtime/maps.probeSeq.next",
+          "filename": "internal/runtime/maps/table.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "runtime.(*gcBits).bytep",
+          "filename": "runtime/mheap.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "runtime.(*mspan).typePointersOfUnchecked",
+          "filename": "runtime/mbitmap.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "runtime.pthread_kill",
+          "filename": "runtime/sys_darwin.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "runtime.mapassign_faststr",
+          "filename": "internal/runtime/maps/runtime_faststr.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "internal/runtime/maps.(*table).Clear",
+          "filename": "internal/runtime/maps/table.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getUnmatchedPropertiesWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 20000000,
+          "percentage": 0.35
+        },
+        {
+          "name": "runtime.markBits.setMarked",
+          "filename": "runtime/mbitmap.go",
+          "value": 10000000,
+          "percentage": 0.17
+        },
+        {
+          "name": "internal/runtime/atomic.(*UnsafePointer).StoreNoWB",
+          "filename": "internal/runtime/atomic/types.go",
+          "value": 10000000,
+          "percentage": 0.17
+        },
+        {
+          "name": "runtime.recordspan",
+          "filename": "runtime/mheap.go",
+          "value": 10000000,
+          "percentage": 0.17
+        },
+        {
+          "name": "runtime.(*spanInlineMarkBits).init",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 10000000,
+          "percentage": 0.17
+        },
+        {
+          "name": "runtime.(*atomicHeadTailIndex).incTail",
+          "filename": "runtime/mspanset.go",
+          "value": 10000000,
+          "percentage": 0.17
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/ast.GetCombinedModifierFlags",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/ast/utilities.go",
+          "value": 10000000,
+          "percentage": 0.17
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/parser.(*Parser).parseModifiersEx",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/parser/parser.go",
+          "value": 10000000,
+          "percentage": 0.17
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/ast.(*Node).ForEachChild",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/ast/ast_generated.go",
+          "value": 10000000,
+          "percentage": 0.17
+        }
+      ],
+      "topCumulative": [
+        {
+          "name": "runtime.systemstack",
+          "filename": "runtime/asm_arm64.s",
+          "value": 4070000000,
+          "percentage": 70.78
+        },
+        {
+          "name": "runtime.(*mheap).allocSpan",
+          "filename": "runtime/mheap.go",
+          "value": 3310000000,
+          "percentage": 57.57
+        },
+        {
+          "name": "runtime.(*mheap).alloc.func1",
+          "filename": "runtime/mheap.go",
+          "value": 3300000000,
+          "percentage": 57.39
+        },
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 3250000000,
+          "percentage": 56.52
+        },
+        {
+          "name": "runtime.sysUsedOS",
+          "filename": "runtime/mem_darwin.go",
+          "value": 3250000000,
+          "percentage": 56.52
+        },
+        {
+          "name": "runtime.sysUsed",
+          "filename": "runtime/mem.go",
+          "value": 3250000000,
+          "percentage": 56.52
+        },
+        {
+          "name": "runtime.gcDrain",
+          "filename": "runtime/mgcmark.go",
+          "value": 740000000,
+          "percentage": 12.87
+        },
+        {
+          "name": "runtime.gcBgMarkWorker.func2",
+          "filename": "runtime/mgc.go",
+          "value": 740000000,
+          "percentage": 12.87
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 710000000,
+          "percentage": 12.35
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWithAlias",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 710000000,
+          "percentage": 12.35
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 700000000,
+          "percentage": 12.17
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*filesParser).start.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 680000000,
+          "percentage": 11.83
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/core.(*parallelWorkGroup).Queue.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/core/workgroup.go",
+          "value": 680000000,
+          "percentage": 11.83
+        },
+        {
+          "name": "sync.(*WaitGroup).Go.func1",
+          "filename": "sync/waitgroup.go",
+          "value": 680000000,
+          "percentage": 11.83
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*parseTask).load",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 660000000,
+          "percentage": 11.48
+        },
+        {
+          "name": "runtime.gcBgMarkWorker",
+          "filename": "runtime/mgc.go",
+          "value": 660000000,
+          "percentage": 11.48
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).isRelatedToEx",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 590000000,
+          "percentage": 10.26
+        },
+        {
+          "name": "runtime.scanSpan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 560000000,
+          "percentage": 9.74
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).structuredTypeRelatedToWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 560000000,
+          "percentage": 9.74
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).structuredTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 560000000,
+          "percentage": 9.74
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 550000000,
+          "percentage": 9.57
+        },
+        {
+          "name": "syscall.syscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 550000000,
+          "percentage": 9.57
+        },
+        {
+          "name": "syscall.syscall",
+          "filename": "syscall/syscall_darwin.go",
+          "value": 550000000,
+          "percentage": 9.57
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).recursiveTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 550000000,
+          "percentage": 9.57
+        },
+        {
+          "name": "os.ignoringEINTR",
+          "filename": "os/file_posix.go",
+          "value": 520000000,
+          "percentage": 9.04
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getConditionalTypeInstantiation",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 520000000,
+          "percentage": 9.04
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 480000000,
+          "percentage": 8.35
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*compilerHost).GetSourceFile",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/compilerhost.go",
+          "value": 470000000,
+          "percentage": 8.17
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*fileLoader).parseSourceFile",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/fileloader.go",
+          "value": 470000000,
+          "percentage": 8.17
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateList[go.shape.*github.com/microsoft/TypeScript/tsc/internal/checker.Type]",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 460000000,
+          "percentage": 8
+        },
+        {
+          "name": "runtime.gcDrainMarkWorkerIdle",
+          "filename": "runtime/mgcmark.go",
+          "value": 450000000,
+          "percentage": 7.83
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypes",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 450000000,
+          "percentage": 7.83
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getConditionalType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 400000000,
+          "percentage": 6.96
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).isRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 400000000,
+          "percentage": 6.96
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*snapshotFSBuilder).GetFileByPath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/snapshotfs.go",
+          "value": 390000000,
+          "percentage": 6.78
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).checkTypeRelatedToEx",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 390000000,
+          "percentage": 6.78
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).isTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 390000000,
+          "percentage": 6.78
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).checkTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 380000000,
+          "percentage": 6.61
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*sourceFS).GetFileByPath",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/snapshotfs.go",
+          "value": 370000000,
+          "percentage": 6.43
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).unionOrIntersectionRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 360000000,
+          "percentage": 6.26
+        }
+      ],
+      "flatGroups": [
+        {
+          "group": "runtime-other",
+          "value": 4590000000,
+          "percentage": 79.83
+        },
+        {
+          "group": "other",
+          "value": 570000000,
+          "percentage": 9.91
+        },
+        {
+          "group": "checker",
+          "value": 280000000,
+          "percentage": 4.87
+        },
+        {
+          "group": "runtime-gc",
+          "value": 250000000,
+          "percentage": 4.35
+        },
+        {
+          "group": "typescript-other",
+          "value": 50000000,
+          "percentage": 0.87
+        },
+        {
+          "group": "parser",
+          "value": 10000000,
+          "percentage": 0.17
+        }
+      ],
+      "cumulativePresenceGroups": [
+        {
+          "group": "runtime-other",
+          "value": 4600000000,
+          "percentage": 80
+        },
+        {
+          "group": "runtime-gc",
+          "value": 4100000000,
+          "percentage": 71.3
+        },
+        {
+          "group": "typescript-other",
+          "value": 1110000000,
+          "percentage": 19.3
+        },
+        {
+          "group": "checker",
+          "value": 950000000,
+          "percentage": 16.52
+        },
+        {
+          "group": "other",
+          "value": 780000000,
+          "percentage": 13.57
+        },
+        {
+          "group": "project",
+          "value": 650000000,
+          "percentage": 11.3
+        },
+        {
+          "group": "parser",
+          "value": 90000000,
+          "percentage": 1.57
+        },
+        {
+          "group": "binder",
+          "value": 30000000,
+          "percentage": 0.52
+        }
+      ],
+      "cumulativePresenceNote": "A sample may contain several groups, so cumulative presence percentages overlap and need not sum to 100%."
+    }
+  },
+  {
+    "kind": "imports",
+    "summary": {
+      "compressedBytes": 44652,
+      "compressedSha256": "1f800754d7bc148252cb1abd8db1bdc5eefa14fdd1b245ea8d090be7fcb54a96",
+      "durationNanos": 4549442417,
+      "period": 10000000,
+      "sampleCount": 240,
+      "sampleTypes": [
+        {
+          "type": "samples",
+          "unit": "count"
+        },
+        {
+          "type": "cpu",
+          "unit": "nanoseconds"
+        }
+      ],
+      "selectedSampleType": {
+        "type": "cpu",
+        "unit": "nanoseconds"
+      },
+      "total": 6770000000,
+      "topFlat": [
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 3590000000,
+          "percentage": 53.03
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 510000000,
+          "percentage": 7.53
+        },
+        {
+          "name": "runtime.tryDeferToSpanScan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 370000000,
+          "percentage": 5.47
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 290000000,
+          "percentage": 4.28
+        },
+        {
+          "name": "internal/runtime/maps.(*ctrlGroup).setEmpty",
+          "filename": "internal/runtime/maps/group.go",
+          "value": 130000000,
+          "percentage": 1.92
+        },
+        {
+          "name": "runtime.memclrNoHeapPointers",
+          "filename": "runtime/memclr_arm64.s",
+          "value": 110000000,
+          "percentage": 1.62
+        },
+        {
+          "name": "runtime.(*mspan).typePointersOfUnchecked",
+          "filename": "runtime/mbitmap.go",
+          "value": 110000000,
+          "percentage": 1.62
+        },
+        {
+          "name": "runtime.(*spanQueue).tryDrain",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 80000000,
+          "percentage": 1.18
+        },
+        {
+          "name": "runtime.mmap",
+          "filename": "runtime/sys_darwin.go",
+          "value": 70000000,
+          "percentage": 1.03
+        },
+        {
+          "name": "runtime.pthread_kill",
+          "filename": "runtime/sys_darwin.go",
+          "value": 60000000,
+          "percentage": 0.89
+        },
+        {
+          "name": "runtime.scanObject",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 60000000,
+          "percentage": 0.89
+        },
+        {
+          "name": "runtime.(*gcBits).bytep",
+          "filename": "runtime/mheap.go",
+          "value": 50000000,
+          "percentage": 0.74
+        },
+        {
+          "name": "runtime.pthread_cond_signal",
+          "filename": "runtime/sys_darwin.go",
+          "value": 40000000,
+          "percentage": 0.59
+        },
+        {
+          "name": "internal/runtime/maps.(*table).Clear",
+          "filename": "internal/runtime/maps/table.go",
+          "value": 40000000,
+          "percentage": 0.59
+        },
+        {
+          "name": "runtime.(*mspan).base",
+          "filename": "runtime/mheap.go",
+          "value": 30000000,
+          "percentage": 0.44
+        },
+        {
+          "name": "runtime.pthread_cond_wait",
+          "filename": "runtime/sys_darwin.go",
+          "value": 30000000,
+          "percentage": 0.44
+        },
+        {
+          "name": "runtime.usleep",
+          "filename": "runtime/sys_darwin.go",
+          "value": 30000000,
+          "percentage": 0.44
+        },
+        {
+          "name": "runtime.(*mspan).init",
+          "filename": "runtime/mheap.go",
+          "value": 30000000,
+          "percentage": 0.44
+        },
+        {
+          "name": "runtime.greyobject",
+          "filename": "runtime/mgcmark.go",
+          "value": 30000000,
+          "percentage": 0.44
+        },
+        {
+          "name": "runtime.(*spanScanOwnership).or",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 30000000,
+          "percentage": 0.44
+        },
+        {
+          "name": "runtime.mapaccess2",
+          "filename": "internal/runtime/maps/runtime.go",
+          "value": 30000000,
+          "percentage": 0.44
+        },
+        {
+          "name": "runtime.scanObjectSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "runtime.scanSpan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "runtime.kevent",
+          "filename": "runtime/sys_darwin.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "runtime.findObject",
+          "filename": "runtime/mbitmap.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "runtime.typePointers.next",
+          "filename": "runtime/mbitmap.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWithAlias",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*symbolLinkStore[go.shape.87f6db56fcb55bbbc53f6f014d2aa235df17a478fda937d47a3dd321b938059f]).Get",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/links.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.compareTypeMappers",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/utilities.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "slices.Backward[go.shape.[]go.shape.*uint8,go.shape.*uint8].func1",
+          "filename": "slices/iter.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).isDeeplyNestedType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "internal/runtime/maps.memHashAES",
+          "filename": "internal/runtime/maps/memhash_arm64.s",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).compareNodes",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/utilities.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "runtime.mapaccess2_fast64",
+          "filename": "internal/runtime/maps/runtime_fast64.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "runtime.mapassign",
+          "filename": "internal/runtime/maps/runtime.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "internal/runtime/maps.typedmemmove",
+          "filename": "runtime/mbarrier.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.getRecursionIdentityTarget",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "internal/runtime/atomic.(*Uint8).Load",
+          "filename": "internal/runtime/atomic/types.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "runtime.extractHeapBitsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.3
+        },
+        {
+          "name": "internal/runtime/atomic.(*Uint32).Add",
+          "filename": "internal/runtime/atomic/types.go",
+          "value": 20000000,
+          "percentage": 0.3
+        }
+      ],
+      "topCumulative": [
+        {
+          "name": "runtime.systemstack",
+          "filename": "runtime/asm_arm64.s",
+          "value": 5010000000,
+          "percentage": 74
+        },
+        {
+          "name": "runtime.(*mheap).alloc.func1",
+          "filename": "runtime/mheap.go",
+          "value": 3680000000,
+          "percentage": 54.36
+        },
+        {
+          "name": "runtime.(*mheap).allocSpan",
+          "filename": "runtime/mheap.go",
+          "value": 3670000000,
+          "percentage": 54.21
+        },
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 3590000000,
+          "percentage": 53.03
+        },
+        {
+          "name": "runtime.sysUsedOS",
+          "filename": "runtime/mem_darwin.go",
+          "value": 3590000000,
+          "percentage": 53.03
+        },
+        {
+          "name": "runtime.sysUsed",
+          "filename": "runtime/mem.go",
+          "value": 3590000000,
+          "percentage": 53.03
+        },
+        {
+          "name": "runtime.gcDrain",
+          "filename": "runtime/mgcmark.go",
+          "value": 1300000000,
+          "percentage": 19.2
+        },
+        {
+          "name": "runtime.gcBgMarkWorker.func2",
+          "filename": "runtime/mgc.go",
+          "value": 1300000000,
+          "percentage": 19.2
+        },
+        {
+          "name": "runtime.gcBgMarkWorker",
+          "filename": "runtime/mgc.go",
+          "value": 1220000000,
+          "percentage": 18.02
+        },
+        {
+          "name": "runtime.scanSpan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 880000000,
+          "percentage": 13
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 750000000,
+          "percentage": 11.08
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWithAlias",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 690000000,
+          "percentage": 10.19
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 670000000,
+          "percentage": 9.9
+        },
+        {
+          "name": "runtime.gcDrainMarkWorkerDedicated",
+          "filename": "runtime/mgcmark.go",
+          "value": 650000000,
+          "percentage": 9.6
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 650000000,
+          "percentage": 9.6
+        },
+        {
+          "name": "runtime.gcDrainMarkWorkerIdle",
+          "filename": "runtime/mgcmark.go",
+          "value": 650000000,
+          "percentage": 9.6
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*filesParser).start.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 610000000,
+          "percentage": 9.01
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/core.(*parallelWorkGroup).Queue.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/core/workgroup.go",
+          "value": 610000000,
+          "percentage": 9.01
+        },
+        {
+          "name": "sync.(*WaitGroup).Go.func1",
+          "filename": "sync/waitgroup.go",
+          "value": 610000000,
+          "percentage": 9.01
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*parseTask).load",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 600000000,
+          "percentage": 8.86
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).isRelatedToEx",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 600000000,
+          "percentage": 8.86
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).structuredTypeRelatedToWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 570000000,
+          "percentage": 8.42
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).structuredTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 570000000,
+          "percentage": 8.42
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).recursiveTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 570000000,
+          "percentage": 8.42
+        },
+        {
+          "name": "runtime.tryDeferToSpanScan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 560000000,
+          "percentage": 8.27
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 510000000,
+          "percentage": 7.53
+        },
+        {
+          "name": "syscall.syscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 510000000,
+          "percentage": 7.53
+        },
+        {
+          "name": "syscall.syscall",
+          "filename": "syscall/syscall_darwin.go",
+          "value": 510000000,
+          "percentage": 7.53
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getConditionalTypeInstantiation",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 510000000,
+          "percentage": 7.53
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateList[go.shape.*github.com/microsoft/TypeScript/tsc/internal/checker.Type]",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 490000000,
+          "percentage": 7.24
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypes",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 490000000,
+          "percentage": 7.24
+        },
+        {
+          "name": "os.ignoringEINTR",
+          "filename": "os/file_posix.go",
+          "value": 480000000,
+          "percentage": 7.09
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getConditionalType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 430000000,
+          "percentage": 6.35
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).propertiesRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 420000000,
+          "percentage": 6.2
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).isPropertySymbolTypeRelated",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 390000000,
+          "percentage": 5.76
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).propertyRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 390000000,
+          "percentage": 5.76
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*compilerHost).GetSourceFile",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/compilerhost.go",
+          "value": 370000000,
+          "percentage": 5.47
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*fileLoader).parseSourceFile",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/fileloader.go",
+          "value": 370000000,
+          "percentage": 5.47
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getObjectTypeInstantiation",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 370000000,
+          "percentage": 5.47
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).checkTypeRelatedToEx",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 360000000,
+          "percentage": 5.32
+        }
+      ],
+      "flatGroups": [
+        {
+          "group": "runtime-other",
+          "value": 5350000000,
+          "percentage": 79.03
+        },
+        {
+          "group": "other",
+          "value": 570000000,
+          "percentage": 8.42
+        },
+        {
+          "group": "runtime-gc",
+          "value": 450000000,
+          "percentage": 6.65
+        },
+        {
+          "group": "checker",
+          "value": 360000000,
+          "percentage": 5.32
+        },
+        {
+          "group": "typescript-other",
+          "value": 30000000,
+          "percentage": 0.44
+        },
+        {
+          "group": "binder",
+          "value": 10000000,
+          "percentage": 0.15
+        }
+      ],
+      "cumulativePresenceGroups": [
+        {
+          "group": "runtime-other",
+          "value": 5360000000,
+          "percentage": 79.17
+        },
+        {
+          "group": "runtime-gc",
+          "value": 5060000000,
+          "percentage": 74.74
+        },
+        {
+          "group": "typescript-other",
+          "value": 1110000000,
+          "percentage": 16.4
+        },
+        {
+          "group": "checker",
+          "value": 1020000000,
+          "percentage": 15.07
+        },
+        {
+          "group": "other",
+          "value": 770000000,
+          "percentage": 11.37
+        },
+        {
+          "group": "project",
+          "value": 610000000,
+          "percentage": 9.01
+        },
+        {
+          "group": "parser",
+          "value": 90000000,
+          "percentage": 1.33
+        },
+        {
+          "group": "binder",
+          "value": 30000000,
+          "percentage": 0.44
+        }
+      ],
+      "cumulativePresenceNote": "A sample may contain several groups, so cumulative presence percentages overlap and need not sum to 100%."
+    }
+  },
+  {
+    "kind": "unprovided",
+    "summary": {
+      "compressedBytes": 43751,
+      "compressedSha256": "27e79c79ed6158d9c03f8911d462cfe035277e85ff27874a29b78dadfc60f166",
+      "durationNanos": 4683369000,
+      "period": 10000000,
+      "sampleCount": 217,
+      "sampleTypes": [
+        {
+          "type": "samples",
+          "unit": "count"
+        },
+        {
+          "type": "cpu",
+          "unit": "nanoseconds"
+        }
+      ],
+      "selectedSampleType": {
+        "type": "cpu",
+        "unit": "nanoseconds"
+      },
+      "total": 6420000000,
+      "topFlat": [
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 3800000000,
+          "percentage": 59.19
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 430000000,
+          "percentage": 6.7
+        },
+        {
+          "name": "runtime.tryDeferToSpanScan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 300000000,
+          "percentage": 4.67
+        },
+        {
+          "name": "runtime.memclrNoHeapPointers",
+          "filename": "runtime/memclr_arm64.s",
+          "value": 160000000,
+          "percentage": 2.49
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 160000000,
+          "percentage": 2.49
+        },
+        {
+          "name": "internal/runtime/maps.(*ctrlGroup).setEmpty",
+          "filename": "internal/runtime/maps/group.go",
+          "value": 130000000,
+          "percentage": 2.02
+        },
+        {
+          "name": "runtime.usleep",
+          "filename": "runtime/sys_darwin.go",
+          "value": 70000000,
+          "percentage": 1.09
+        },
+        {
+          "name": "runtime.mmap",
+          "filename": "runtime/sys_darwin.go",
+          "value": 70000000,
+          "percentage": 1.09
+        },
+        {
+          "name": "internal/runtime/maps.(*groupReference).ctrls",
+          "filename": "internal/runtime/maps/group.go",
+          "value": 70000000,
+          "percentage": 1.09
+        },
+        {
+          "name": "runtime.pthread_kill",
+          "filename": "runtime/sys_darwin.go",
+          "value": 50000000,
+          "percentage": 0.78
+        },
+        {
+          "name": "runtime.(*spanQueue).tryDrain",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 50000000,
+          "percentage": 0.78
+        },
+        {
+          "name": "runtime.(*gcBits).bytep",
+          "filename": "runtime/mheap.go",
+          "value": 50000000,
+          "percentage": 0.78
+        },
+        {
+          "name": "runtime.pthread_cond_wait",
+          "filename": "runtime/sys_darwin.go",
+          "value": 40000000,
+          "percentage": 0.62
+        },
+        {
+          "name": "runtime.newBucket",
+          "filename": "runtime/mprof.go",
+          "value": 40000000,
+          "percentage": 0.62
+        },
+        {
+          "name": "runtime.memmove",
+          "filename": "runtime/memmove_arm64.s",
+          "value": 40000000,
+          "percentage": 0.62
+        },
+        {
+          "name": "runtime.greyobject",
+          "filename": "runtime/mgcmark.go",
+          "value": 40000000,
+          "percentage": 0.62
+        },
+        {
+          "name": "internal/runtime/maps.(*table).Clear",
+          "filename": "internal/runtime/maps/table.go",
+          "value": 40000000,
+          "percentage": 0.62
+        },
+        {
+          "name": "internal/runtime/maps.memHashAES",
+          "filename": "internal/runtime/maps/memhash_arm64.s",
+          "value": 40000000,
+          "percentage": 0.62
+        },
+        {
+          "name": "runtime.alignDown",
+          "filename": "runtime/stubs.go",
+          "value": 30000000,
+          "percentage": 0.47
+        },
+        {
+          "name": "runtime.typePointers.next",
+          "filename": "runtime/mbitmap.go",
+          "value": 30000000,
+          "percentage": 0.47
+        },
+        {
+          "name": "runtime.(*mspan).typePointersOfUnchecked",
+          "filename": "runtime/mbitmap.go",
+          "value": 30000000,
+          "percentage": 0.47
+        },
+        {
+          "name": "runtime.(*spanScanOwnership).or",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.31
+        },
+        {
+          "name": "runtime.scanSpan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.31
+        },
+        {
+          "name": "runtime.scanObject",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.31
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.getRecursionIdentityFromTarget",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 20000000,
+          "percentage": 0.31
+        },
+        {
+          "name": "runtime.mapaccess2",
+          "filename": "internal/runtime/maps/runtime.go",
+          "value": 20000000,
+          "percentage": 0.31
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*keyBuilder).hash",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 20000000,
+          "percentage": 0.31
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).couldContainTypeVariablesWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 20000000,
+          "percentage": 0.31
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).addTypesToIntersection",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 20000000,
+          "percentage": 0.31
+        },
+        {
+          "name": "runtime.extractHeapBitsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.31
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getObjectTypeInstantiation",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 20000000,
+          "percentage": 0.31
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWithAlias",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 20000000,
+          "percentage": 0.31
+        },
+        {
+          "name": "runtime.findObject",
+          "filename": "runtime/mbitmap.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "runtime.typePointers.nextFast",
+          "filename": "runtime/mbitmap.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "internal/bytealg.IndexByteString",
+          "filename": "internal/bytealg/indexbyte_arm64.s",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/parser.collectExternalModuleReferences.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/parser/references.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/ast.GetNodeAtPosition.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/ast/utilities.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*filesParser).addIncludeReason",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "internal/runtime/atomic.(*UnsafePointer).StoreNoWB",
+          "filename": "internal/runtime/atomic/types.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "runtime.scanObjectSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 10000000,
+          "percentage": 0.16
+        }
+      ],
+      "topCumulative": [
+        {
+          "name": "runtime.systemstack",
+          "filename": "runtime/asm_arm64.s",
+          "value": 4740000000,
+          "percentage": 73.83
+        },
+        {
+          "name": "runtime.(*mheap).allocSpan",
+          "filename": "runtime/mheap.go",
+          "value": 3840000000,
+          "percentage": 59.81
+        },
+        {
+          "name": "runtime.(*mheap).alloc.func1",
+          "filename": "runtime/mheap.go",
+          "value": 3830000000,
+          "percentage": 59.66
+        },
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 3800000000,
+          "percentage": 59.19
+        },
+        {
+          "name": "runtime.sysUsedOS",
+          "filename": "runtime/mem_darwin.go",
+          "value": 3800000000,
+          "percentage": 59.19
+        },
+        {
+          "name": "runtime.sysUsed",
+          "filename": "runtime/mem.go",
+          "value": 3800000000,
+          "percentage": 59.19
+        },
+        {
+          "name": "runtime.gcDrain",
+          "filename": "runtime/mgcmark.go",
+          "value": 880000000,
+          "percentage": 13.71
+        },
+        {
+          "name": "runtime.gcBgMarkWorker.func2",
+          "filename": "runtime/mgc.go",
+          "value": 880000000,
+          "percentage": 13.71
+        },
+        {
+          "name": "runtime.gcBgMarkWorker",
+          "filename": "runtime/mgc.go",
+          "value": 800000000,
+          "percentage": 12.46
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWithAlias",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 700000000,
+          "percentage": 10.9
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 690000000,
+          "percentage": 10.75
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 670000000,
+          "percentage": 10.44
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).isRelatedToEx",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 620000000,
+          "percentage": 9.66
+        },
+        {
+          "name": "runtime.scanSpan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 610000000,
+          "percentage": 9.5
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).structuredTypeRelatedToWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 600000000,
+          "percentage": 9.35
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).structuredTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 600000000,
+          "percentage": 9.35
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).recursiveTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 590000000,
+          "percentage": 9.19
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*filesParser).start.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 520000000,
+          "percentage": 8.1
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/core.(*parallelWorkGroup).Queue.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/core/workgroup.go",
+          "value": 520000000,
+          "percentage": 8.1
+        },
+        {
+          "name": "sync.(*WaitGroup).Go.func1",
+          "filename": "sync/waitgroup.go",
+          "value": 520000000,
+          "percentage": 8.1
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 500000000,
+          "percentage": 7.79
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*parseTask).load",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 490000000,
+          "percentage": 7.63
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getConditionalTypeInstantiation",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 480000000,
+          "percentage": 7.48
+        },
+        {
+          "name": "runtime.tryDeferToSpanScan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 440000000,
+          "percentage": 6.85
+        },
+        {
+          "name": "runtime.gcDrainMarkWorkerDedicated",
+          "filename": "runtime/mgcmark.go",
+          "value": 440000000,
+          "percentage": 6.85
+        },
+        {
+          "name": "runtime.gcDrainMarkWorkerIdle",
+          "filename": "runtime/mgcmark.go",
+          "value": 440000000,
+          "percentage": 6.85
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 430000000,
+          "percentage": 6.7
+        },
+        {
+          "name": "syscall.syscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 430000000,
+          "percentage": 6.7
+        },
+        {
+          "name": "syscall.syscall",
+          "filename": "syscall/syscall_darwin.go",
+          "value": 430000000,
+          "percentage": 6.7
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).unionOrIntersectionRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 420000000,
+          "percentage": 6.54
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).propertiesRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 410000000,
+          "percentage": 6.39
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).checkTypeRelatedToEx",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 410000000,
+          "percentage": 6.39
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).checkTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 410000000,
+          "percentage": 6.39
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).isTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 410000000,
+          "percentage": 6.39
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getConditionalType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 400000000,
+          "percentage": 6.23
+        },
+        {
+          "name": "os.ignoringEINTR",
+          "filename": "os/file_posix.go",
+          "value": 390000000,
+          "percentage": 6.07
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateList[go.shape.*github.com/microsoft/TypeScript/tsc/internal/checker.Type]",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 390000000,
+          "percentage": 6.07
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypes",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 390000000,
+          "percentage": 6.07
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).isRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 370000000,
+          "percentage": 5.76
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).isTypeAssignableTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 370000000,
+          "percentage": 5.76
+        }
+      ],
+      "flatGroups": [
+        {
+          "group": "runtime-other",
+          "value": 5310000000,
+          "percentage": 82.71
+        },
+        {
+          "group": "other",
+          "value": 470000000,
+          "percentage": 7.32
+        },
+        {
+          "group": "checker",
+          "value": 320000000,
+          "percentage": 4.98
+        },
+        {
+          "group": "runtime-gc",
+          "value": 260000000,
+          "percentage": 4.05
+        },
+        {
+          "group": "typescript-other",
+          "value": 40000000,
+          "percentage": 0.62
+        },
+        {
+          "group": "parser",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "group": "binder",
+          "value": 10000000,
+          "percentage": 0.16
+        }
+      ],
+      "cumulativePresenceGroups": [
+        {
+          "group": "runtime-other",
+          "value": 5330000000,
+          "percentage": 83.02
+        },
+        {
+          "group": "runtime-gc",
+          "value": 4770000000,
+          "percentage": 74.3
+        },
+        {
+          "group": "checker",
+          "value": 1030000000,
+          "percentage": 16.04
+        },
+        {
+          "group": "typescript-other",
+          "value": 980000000,
+          "percentage": 15.26
+        },
+        {
+          "group": "other",
+          "value": 650000000,
+          "percentage": 10.12
+        },
+        {
+          "group": "project",
+          "value": 510000000,
+          "percentage": 7.94
+        },
+        {
+          "group": "parser",
+          "value": 60000000,
+          "percentage": 0.93
+        },
+        {
+          "group": "binder",
+          "value": 30000000,
+          "percentage": 0.47
+        },
+        {
+          "group": "language-service",
+          "value": 10000000,
+          "percentage": 0.16
+        }
+      ],
+      "cumulativePresenceNote": "A sample may contain several groups, so cumulative presence percentages overlap and need not sum to 100%."
+    }
+  },
+  {
+    "kind": "full",
+    "summary": {
+      "compressedBytes": 42180,
+      "compressedSha256": "67896abd099baa5b9916a8ecce4409d112083a5772e5e2210e1278bbb94cc4bd",
+      "durationNanos": 4714775625,
+      "period": 10000000,
+      "sampleCount": 194,
+      "sampleTypes": [
+        {
+          "type": "samples",
+          "unit": "count"
+        },
+        {
+          "type": "cpu",
+          "unit": "nanoseconds"
+        }
+      ],
+      "selectedSampleType": {
+        "type": "cpu",
+        "unit": "nanoseconds"
+      },
+      "total": 6240000000,
+      "topFlat": [
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 3850000000,
+          "percentage": 61.7
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 380000000,
+          "percentage": 6.09
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 230000000,
+          "percentage": 3.69
+        },
+        {
+          "name": "runtime.tryDeferToSpanScan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 170000000,
+          "percentage": 2.72
+        },
+        {
+          "name": "internal/runtime/maps.(*ctrlGroup).setEmpty",
+          "filename": "internal/runtime/maps/group.go",
+          "value": 120000000,
+          "percentage": 1.92
+        },
+        {
+          "name": "runtime.memclrNoHeapPointers",
+          "filename": "runtime/memclr_arm64.s",
+          "value": 100000000,
+          "percentage": 1.6
+        },
+        {
+          "name": "runtime.mmap",
+          "filename": "runtime/sys_darwin.go",
+          "value": 80000000,
+          "percentage": 1.28
+        },
+        {
+          "name": "runtime.(*spanQueue).tryDrain",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 80000000,
+          "percentage": 1.28
+        },
+        {
+          "name": "runtime.usleep",
+          "filename": "runtime/sys_darwin.go",
+          "value": 60000000,
+          "percentage": 0.96
+        },
+        {
+          "name": "runtime.pthread_cond_signal",
+          "filename": "runtime/sys_darwin.go",
+          "value": 60000000,
+          "percentage": 0.96
+        },
+        {
+          "name": "runtime.pthread_kill",
+          "filename": "runtime/sys_darwin.go",
+          "value": 50000000,
+          "percentage": 0.8
+        },
+        {
+          "name": "runtime.scanObject",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 50000000,
+          "percentage": 0.8
+        },
+        {
+          "name": "runtime.newBucket",
+          "filename": "runtime/mprof.go",
+          "value": 50000000,
+          "percentage": 0.8
+        },
+        {
+          "name": "runtime.mapaccess2",
+          "filename": "internal/runtime/maps/runtime.go",
+          "value": 50000000,
+          "percentage": 0.8
+        },
+        {
+          "name": "runtime.memmove",
+          "filename": "runtime/memmove_arm64.s",
+          "value": 50000000,
+          "percentage": 0.8
+        },
+        {
+          "name": "runtime.gcDrain",
+          "filename": "runtime/mgcmark.go",
+          "value": 30000000,
+          "percentage": 0.48
+        },
+        {
+          "name": "runtime.(*mspan).init",
+          "filename": "runtime/mheap.go",
+          "value": 30000000,
+          "percentage": 0.48
+        },
+        {
+          "name": "internal/runtime/maps.memHashAES",
+          "filename": "internal/runtime/maps/memhash_arm64.s",
+          "value": 30000000,
+          "percentage": 0.48
+        },
+        {
+          "name": "internal/runtime/maps.(*table).Clear",
+          "filename": "internal/runtime/maps/table.go",
+          "value": 30000000,
+          "percentage": 0.48
+        },
+        {
+          "name": "runtime.mapaccess2_fast64",
+          "filename": "internal/runtime/maps/runtime_fast64.go",
+          "value": 30000000,
+          "percentage": 0.48
+        },
+        {
+          "name": "runtime.(*gcBitsArena).tryAlloc",
+          "filename": "runtime/mheap.go",
+          "value": 20000000,
+          "percentage": 0.32
+        },
+        {
+          "name": "internal/runtime/atomic.(*Int64).Add",
+          "filename": "internal/runtime/atomic/types.go",
+          "value": 20000000,
+          "percentage": 0.32
+        },
+        {
+          "name": "runtime.(*spanScanOwnership).or",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.32
+        },
+        {
+          "name": "runtime.scanObjectSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.32
+        },
+        {
+          "name": "runtime.(*gcBits).bytep",
+          "filename": "runtime/mheap.go",
+          "value": 20000000,
+          "percentage": 0.32
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWithAlias",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 20000000,
+          "percentage": 0.32
+        },
+        {
+          "name": "slices.partitionCmpFunc[go.shape.*uint8]",
+          "filename": "slices/zsortanyfunc.go",
+          "value": 20000000,
+          "percentage": 0.32
+        },
+        {
+          "name": "internal/runtime/maps.typedmemmove",
+          "filename": "runtime/mbarrier.go",
+          "value": 20000000,
+          "percentage": 0.32
+        },
+        {
+          "name": "runtime.mapassign_faststr",
+          "filename": "internal/runtime/maps/runtime_faststr.go",
+          "value": 20000000,
+          "percentage": 0.32
+        },
+        {
+          "name": "internal/runtime/atomic.(*UnsafePointer).StoreNoWB",
+          "filename": "internal/runtime/atomic/types.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "runtime.alignDown",
+          "filename": "runtime/stubs.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/parser.(*Parser).doInContext[go.shape.*uint8]",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/parser/parser.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "runtime.heapArenaOf",
+          "filename": "runtime/mheap.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/binder.(*Binder).bind",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/binder/binder.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/ast.(*Node).Modifiers",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/ast/ast_generated.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "strings.IndexAny",
+          "filename": "strings/strings.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "runtime.(*activeSweep).begin",
+          "filename": "runtime/mgcsweep.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "internal/runtime/atomic.(*Uint64).Add",
+          "filename": "internal/runtime/atomic/types.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "runtime.(*spanInlineMarkBits).init",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "name": "runtime.pcvalue",
+          "filename": "runtime/symtab.go",
+          "value": 10000000,
+          "percentage": 0.16
+        }
+      ],
+      "topCumulative": [
+        {
+          "name": "runtime.systemstack",
+          "filename": "runtime/asm_arm64.s",
+          "value": 4720000000,
+          "percentage": 75.64
+        },
+        {
+          "name": "runtime.(*mheap).allocSpan",
+          "filename": "runtime/mheap.go",
+          "value": 3910000000,
+          "percentage": 62.66
+        },
+        {
+          "name": "runtime.(*mheap).alloc.func1",
+          "filename": "runtime/mheap.go",
+          "value": 3900000000,
+          "percentage": 62.5
+        },
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 3850000000,
+          "percentage": 61.7
+        },
+        {
+          "name": "runtime.sysUsedOS",
+          "filename": "runtime/mem_darwin.go",
+          "value": 3850000000,
+          "percentage": 61.7
+        },
+        {
+          "name": "runtime.sysUsed",
+          "filename": "runtime/mem.go",
+          "value": 3850000000,
+          "percentage": 61.7
+        },
+        {
+          "name": "runtime.gcDrain",
+          "filename": "runtime/mgcmark.go",
+          "value": 770000000,
+          "percentage": 12.34
+        },
+        {
+          "name": "runtime.gcBgMarkWorker.func2",
+          "filename": "runtime/mgc.go",
+          "value": 770000000,
+          "percentage": 12.34
+        },
+        {
+          "name": "runtime.gcBgMarkWorker",
+          "filename": "runtime/mgc.go",
+          "value": 710000000,
+          "percentage": 11.38
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).isRelatedToEx",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 630000000,
+          "percentage": 10.1
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).recursiveTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 610000000,
+          "percentage": 9.78
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 600000000,
+          "percentage": 9.62
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWithAlias",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 590000000,
+          "percentage": 9.46
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).structuredTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 590000000,
+          "percentage": 9.46
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 590000000,
+          "percentage": 9.46
+        },
+        {
+          "name": "runtime.scanSpan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 580000000,
+          "percentage": 9.29
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).structuredTypeRelatedToWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 580000000,
+          "percentage": 9.29
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 530000000,
+          "percentage": 8.49
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*parseTask).load",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 500000000,
+          "percentage": 8.01
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/compiler.(*filesParser).start.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/compiler/filesparser.go",
+          "value": 500000000,
+          "percentage": 8.01
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/core.(*parallelWorkGroup).Queue.func1",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/core/workgroup.go",
+          "value": 500000000,
+          "percentage": 8.01
+        },
+        {
+          "name": "sync.(*WaitGroup).Go.func1",
+          "filename": "sync/waitgroup.go",
+          "value": 500000000,
+          "percentage": 8.01
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getConditionalTypeInstantiation",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 470000000,
+          "percentage": 7.53
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).checkTypeRelatedToEx",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 450000000,
+          "percentage": 7.21
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).checkTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 440000000,
+          "percentage": 7.05
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).isTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 440000000,
+          "percentage": 7.05
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getConditionalType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 430000000,
+          "percentage": 6.89
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).unionOrIntersectionRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 420000000,
+          "percentage": 6.73
+        },
+        {
+          "name": "runtime.gcDrainMarkWorkerIdle",
+          "filename": "runtime/mgcmark.go",
+          "value": 400000000,
+          "percentage": 6.41
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 380000000,
+          "percentage": 6.09
+        },
+        {
+          "name": "syscall.syscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 380000000,
+          "percentage": 6.09
+        },
+        {
+          "name": "syscall.syscall",
+          "filename": "syscall/syscall_darwin.go",
+          "value": 380000000,
+          "percentage": 6.09
+        },
+        {
+          "name": "runtime.gcDrainMarkWorkerDedicated",
+          "filename": "runtime/mgcmark.go",
+          "value": 370000000,
+          "percentage": 5.93
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateList[go.shape.*github.com/microsoft/TypeScript/tsc/internal/checker.Type]",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 370000000,
+          "percentage": 5.93
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypes",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 370000000,
+          "percentage": 5.93
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).propertiesRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 360000000,
+          "percentage": 5.77
+        },
+        {
+          "name": "os.ignoringEINTR",
+          "filename": "os/file_posix.go",
+          "value": 350000000,
+          "percentage": 5.61
+        },
+        {
+          "name": "runtime.tryDeferToSpanScan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 350000000,
+          "percentage": 5.61
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).isTypeAssignableTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 350000000,
+          "percentage": 5.61
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/project.(*compilerHost).GetSourceFile",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/project/compilerhost.go",
+          "value": 340000000,
+          "percentage": 5.45
+        }
+      ],
+      "flatGroups": [
+        {
+          "group": "runtime-other",
+          "value": 5230000000,
+          "percentage": 83.81
+        },
+        {
+          "group": "other",
+          "value": 440000000,
+          "percentage": 7.05
+        },
+        {
+          "group": "runtime-gc",
+          "value": 340000000,
+          "percentage": 5.45
+        },
+        {
+          "group": "checker",
+          "value": 200000000,
+          "percentage": 3.21
+        },
+        {
+          "group": "parser",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "group": "binder",
+          "value": 10000000,
+          "percentage": 0.16
+        },
+        {
+          "group": "typescript-other",
+          "value": 10000000,
+          "percentage": 0.16
+        }
+      ],
+      "cumulativePresenceGroups": [
+        {
+          "group": "runtime-other",
+          "value": 5240000000,
+          "percentage": 83.97
+        },
+        {
+          "group": "runtime-gc",
+          "value": 4740000000,
+          "percentage": 75.96
+        },
+        {
+          "group": "typescript-other",
+          "value": 960000000,
+          "percentage": 15.38
+        },
+        {
+          "group": "checker",
+          "value": 890000000,
+          "percentage": 14.26
+        },
+        {
+          "group": "other",
+          "value": 640000000,
+          "percentage": 10.26
+        },
+        {
+          "group": "project",
+          "value": 500000000,
+          "percentage": 8.01
+        },
+        {
+          "group": "binder",
+          "value": 80000000,
+          "percentage": 1.28
+        },
+        {
+          "group": "parser",
+          "value": 70000000,
+          "percentage": 1.12
+        }
+      ],
+      "cumulativePresenceNote": "A sample may contain several groups, so cumulative presence percentages overlap and need not sum to 100%."
+    }
+  },
+  {
+    "kind": "post-open",
+    "summary": {
+      "compressedBytes": 36788,
+      "compressedSha256": "d35210a0b73812e7f6fc26c6192d7f572f9d84c9c5bff513a319a641e4192297",
+      "durationNanos": 4485257959,
+      "period": 10000000,
+      "sampleCount": 220,
+      "sampleTypes": [
+        {
+          "type": "samples",
+          "unit": "count"
+        },
+        {
+          "type": "cpu",
+          "unit": "nanoseconds"
+        }
+      ],
+      "selectedSampleType": {
+        "type": "cpu",
+        "unit": "nanoseconds"
+      },
+      "total": 5180000000,
+      "topFlat": [
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 2600000000,
+          "percentage": 50.19
+        },
+        {
+          "name": "runtime.tryDeferToSpanScan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 490000000,
+          "percentage": 9.46
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 180000000,
+          "percentage": 3.47
+        },
+        {
+          "name": "internal/runtime/maps.(*ctrlGroup).setEmpty",
+          "filename": "internal/runtime/maps/group.go",
+          "value": 130000000,
+          "percentage": 2.51
+        },
+        {
+          "name": "runtime.mapaccess2",
+          "filename": "internal/runtime/maps/runtime.go",
+          "value": 100000000,
+          "percentage": 1.93
+        },
+        {
+          "name": "runtime.mmap",
+          "filename": "runtime/sys_darwin.go",
+          "value": 70000000,
+          "percentage": 1.35
+        },
+        {
+          "name": "runtime.(*spanQueue).tryDrain",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 60000000,
+          "percentage": 1.16
+        },
+        {
+          "name": "github.com/zeebo/xxh3.hashAny128",
+          "filename": "github.com/zeebo/xxh3@v1.1.0/hash128.go",
+          "value": 50000000,
+          "percentage": 0.97
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWithAlias",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 50000000,
+          "percentage": 0.97
+        },
+        {
+          "name": "runtime.pthread_cond_signal",
+          "filename": "runtime/sys_darwin.go",
+          "value": 50000000,
+          "percentage": 0.97
+        },
+        {
+          "name": "runtime.memclrNoHeapPointers",
+          "filename": "runtime/memclr_arm64.s",
+          "value": 40000000,
+          "percentage": 0.77
+        },
+        {
+          "name": "runtime.memmove",
+          "filename": "runtime/memmove_arm64.s",
+          "value": 40000000,
+          "percentage": 0.77
+        },
+        {
+          "name": "runtime.greyobject",
+          "filename": "runtime/mgcmark.go",
+          "value": 40000000,
+          "percentage": 0.77
+        },
+        {
+          "name": "internal/runtime/maps.memHashAES",
+          "filename": "internal/runtime/maps/memhash_arm64.s",
+          "value": 40000000,
+          "percentage": 0.77
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*keyBuilder).writeByte",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 40000000,
+          "percentage": 0.77
+        },
+        {
+          "name": "runtime.(*gcBits).bytep",
+          "filename": "runtime/mheap.go",
+          "value": 40000000,
+          "percentage": 0.77
+        },
+        {
+          "name": "runtime.(*mspan).typePointersOfUnchecked",
+          "filename": "runtime/mbitmap.go",
+          "value": 40000000,
+          "percentage": 0.77
+        },
+        {
+          "name": "runtime.(*mspan).init",
+          "filename": "runtime/mheap.go",
+          "value": 30000000,
+          "percentage": 0.58
+        },
+        {
+          "name": "runtime.newBucket",
+          "filename": "runtime/mprof.go",
+          "value": 30000000,
+          "percentage": 0.58
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.hasMatchingRecursionIdentity",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 30000000,
+          "percentage": 0.58
+        },
+        {
+          "name": "internal/runtime/maps.(*groupReference).ctrls",
+          "filename": "internal/runtime/maps/group.go",
+          "value": 30000000,
+          "percentage": 0.58
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getObjectTypeInstantiation",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 30000000,
+          "percentage": 0.58
+        },
+        {
+          "name": "runtime.scanObject",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "runtime.alignDown",
+          "filename": "runtime/stubs.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "runtime.extractHeapBitsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "runtime.spanSetScans",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "runtime.arenaIndex",
+          "filename": "runtime/mheap.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "runtime.pthread_cond_wait",
+          "filename": "runtime/sys_darwin.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "runtime.mallocgcSmallScanNoHeaderSC2",
+          "filename": "runtime/malloc_generated.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "runtime.memequal128",
+          "filename": "runtime/alg.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).addTypeToIntersection",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "runtime.mapaccess2_fast64",
+          "filename": "internal/runtime/maps/runtime_fast64.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "internal/runtime/maps.typedmemclr",
+          "filename": "runtime/mbarrier.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).couldContainTypeVariablesWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*keyBuilder).hash",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.getRecursionIdentityFromTarget",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "runtime.mallocgcSmallScanNoHeaderSC5",
+          "filename": "runtime/malloc_generated.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "internal/runtime/maps.probeSeq.next",
+          "filename": "internal/runtime/maps/table.go",
+          "value": 20000000,
+          "percentage": 0.39
+        },
+        {
+          "name": "syscall.rawsyscalln",
+          "filename": "runtime/sys_darwin.go",
+          "value": 10000000,
+          "percentage": 0.19
+        },
+        {
+          "name": "runtime.bitCursor.write",
+          "filename": "runtime/type.go",
+          "value": 10000000,
+          "percentage": 0.19
+        }
+      ],
+      "topCumulative": [
+        {
+          "name": "runtime.systemstack",
+          "filename": "runtime/asm_arm64.s",
+          "value": 3720000000,
+          "percentage": 71.81
+        },
+        {
+          "name": "runtime.(*mheap).allocSpan",
+          "filename": "runtime/mheap.go",
+          "value": 2690000000,
+          "percentage": 51.93
+        },
+        {
+          "name": "runtime.(*mheap).alloc.func1",
+          "filename": "runtime/mheap.go",
+          "value": 2690000000,
+          "percentage": 51.93
+        },
+        {
+          "name": "runtime.madvise",
+          "filename": "runtime/sys_darwin.go",
+          "value": 2600000000,
+          "percentage": 50.19
+        },
+        {
+          "name": "runtime.sysUsedOS",
+          "filename": "runtime/mem_darwin.go",
+          "value": 2600000000,
+          "percentage": 50.19
+        },
+        {
+          "name": "runtime.sysUsed",
+          "filename": "runtime/mem.go",
+          "value": 2600000000,
+          "percentage": 50.19
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWithAlias",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 1120000000,
+          "percentage": 21.62
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 1120000000,
+          "percentage": 21.62
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypeWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 1110000000,
+          "percentage": 21.43
+        },
+        {
+          "name": "runtime.gcDrain",
+          "filename": "runtime/mgcmark.go",
+          "value": 990000000,
+          "percentage": 19.11
+        },
+        {
+          "name": "runtime.gcBgMarkWorker.func2",
+          "filename": "runtime/mgc.go",
+          "value": 990000000,
+          "percentage": 19.11
+        },
+        {
+          "name": "runtime.gcBgMarkWorker",
+          "filename": "runtime/mgc.go",
+          "value": 980000000,
+          "percentage": 18.92
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateList[go.shape.*github.com/microsoft/TypeScript/tsc/internal/checker.Type]",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 910000000,
+          "percentage": 17.57
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).instantiateTypes",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 910000000,
+          "percentage": 17.57
+        },
+        {
+          "name": "runtime.scanSpan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 760000000,
+          "percentage": 14.67
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getObjectTypeInstantiation",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 740000000,
+          "percentage": 14.29
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getConditionalTypeInstantiation",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 730000000,
+          "percentage": 14.09
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getConditionalType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 680000000,
+          "percentage": 13.13
+        },
+        {
+          "name": "runtime.gcDrainMarkWorkerIdle",
+          "filename": "runtime/mgcmark.go",
+          "value": 650000000,
+          "percentage": 12.55
+        },
+        {
+          "name": "runtime.tryDeferToSpanScan",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 630000000,
+          "percentage": 12.16
+        },
+        {
+          "name": "runtime.scanObjectsSmall",
+          "filename": "runtime/mgcmark_greenteagc.go",
+          "value": 630000000,
+          "percentage": 12.16
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*TypeMapper).Map",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/mapper.go",
+          "value": 620000000,
+          "percentage": 11.97
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*CompositeTypeMapper).Map",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/mapper.go",
+          "value": 610000000,
+          "percentage": 11.78
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).mapTypeWithCompositeMapper",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/mapper.go",
+          "value": 600000000,
+          "percentage": 11.58
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).isRelatedToEx",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 600000000,
+          "percentage": 11.58
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).recursiveTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 520000000,
+          "percentage": 10.04
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getTypeOfSymbol",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 510000000,
+          "percentage": 9.85
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).structuredTypeRelatedToWorker",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 510000000,
+          "percentage": 9.85
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Relater).structuredTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 510000000,
+          "percentage": 9.85
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).checkTypeRelatedToEx",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 480000000,
+          "percentage": 9.27
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/core.Map[go.shape.*uint8,go.shape.*uint8]",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/core/core.go",
+          "value": 460000000,
+          "percentage": 8.88
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).checkTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 460000000,
+          "percentage": 8.88
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).isTypeRelatedTo",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/relater.go",
+          "value": 460000000,
+          "percentage": 8.88
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).resolveStructuredTypeMembers",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 410000000,
+          "percentage": 7.92
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getTypeOfInstantiatedSymbol",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 390000000,
+          "percentage": 7.53
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getPropertiesOfType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 370000000,
+          "percentage": 7.14
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getPropertiesOfObjectType",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 350000000,
+          "percentage": 6.76
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getIndexedAccessTypeOrUndefined",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 340000000,
+          "percentage": 6.56
+        },
+        {
+          "name": "github.com/microsoft/TypeScript/tsc/internal/checker.(*Checker).getIndexedAccessTypeEx",
+          "filename": "github.com/microsoft/TypeScript/tsc/internal/checker/checker.go",
+          "value": 340000000,
+          "percentage": 6.56
+        },
+        {
+          "name": "runtime.gcDrainMarkWorkerDedicated",
+          "filename": "runtime/mgcmark.go",
+          "value": 340000000,
+          "percentage": 6.56
+        }
+      ],
+      "flatGroups": [
+        {
+          "group": "runtime-other",
+          "value": 4260000000,
+          "percentage": 82.24
+        },
+        {
+          "group": "checker",
+          "value": 520000000,
+          "percentage": 10.04
+        },
+        {
+          "group": "runtime-gc",
+          "value": 260000000,
+          "percentage": 5.02
+        },
+        {
+          "group": "other",
+          "value": 80000000,
+          "percentage": 1.54
+        },
+        {
+          "group": "typescript-other",
+          "value": 60000000,
+          "percentage": 1.16
+        }
+      ],
+      "cumulativePresenceGroups": [
+        {
+          "group": "runtime-other",
+          "value": 4260000000,
+          "percentage": 82.24
+        },
+        {
+          "group": "runtime-gc",
+          "value": 3770000000,
+          "percentage": 72.78
+        },
+        {
+          "group": "checker",
+          "value": 1410000000,
+          "percentage": 27.22
+        },
+        {
+          "group": "typescript-other",
+          "value": 590000000,
+          "percentage": 11.39
+        },
+        {
+          "group": "other",
+          "value": 160000000,
+          "percentage": 3.09
+        },
+        {
+          "group": "language-service",
+          "value": 10000000,
+          "percentage": 0.19
+        },
+        {
+          "group": "project",
+          "value": 10000000,
+          "percentage": 0.19
+        },
+        {
+          "group": "binder",
+          "value": 10000000,
+          "percentage": 0.19
+        }
+      ],
+      "cumulativePresenceNote": "A sample may contain several groups, so cumulative presence percentages overlap and need not sum to 100%."
+    }
+  }
+]

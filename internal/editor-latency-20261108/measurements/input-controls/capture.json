@@ -1,0 +1,276 @@
+{
+  "metadata": {
+    "formatVersion": 8,
+    "measuredAt": "2026-11-08T04:35:43.511Z",
+    "sourceCommit": "7cc7d90e68dc5a55b4765bbd7f0469b55cdd928f",
+    "sourceWorkloadDirty": true,
+    "workloadSha256": "6f2d8d3ae1dff3474b7df96b129639f980cfec133616b4eb46c317ec2a739fc7",
+    "lockfileSha256": "3659249b317572543f8f9e01f4997a099f4fa32ee6285825694fe4b83ebd582f",
+    "benchmarkScriptSha256": "c91413f96bf2525aebfcedfa951f2a33d129c17f7bd926dd6941257375db4c9c",
+    "measuredHarnessSnapshotSha256": "14f5cba79e287995a032217ea63b601b3653d4105cf76031efe951637328d2d8",
+    "compilerPackageVersion": "7.1.0-beta",
+    "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+    "nativeCompilerExecutable": {
+      "path": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/@typescript+typescript-darwin-arm64@7.1.0-beta/node_modules/@typescript/typescript-darwin-arm64/lib/tsc",
+      "sha256": "29f5eb8daa5c8cf6ef1c0cb79fbcf47c0cfdf26edabdf148bb779d0b2d56cebc"
+    },
+    "server": {
+      "name": "typescript",
+      "version": "7.1.0-beta"
+    },
+    "nodeVersion": "v26.13.0",
+    "nodeExecutable": {
+      "path": "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node",
+      "sha256": "533bd644c5ae0e0ea3a80e433aad16b817447ccba1e1eea701875eac80cb75d4"
+    },
+    "platform": "darwin",
+    "architecture": "arm64",
+    "runs": 1,
+    "scenario": "layer-profile",
+    "timeoutMs": 60000,
+    "completionSnippetSupport": true,
+    "documentChangeMode": "Seven fresh request-scoped CPU profiles; controls are in-memory documents at the real Layer URI"
+  },
+  "workload": {
+    "layerProfile": {
+      "source": "packages/website/src/layer.ts",
+      "outputDirectory": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles",
+      "controls": {
+        "minimal": "Same URI and project with only passive ApplicationBlock access",
+        "imports": "Every real import used in a plain exported record; no makeLayer",
+        "unprovided": "Real makeLayer record plus every child Layer used outside provider composition",
+        "full": "Unmodified real Layer source",
+        "postOpen": "Unmodified real Layer source opened before the profiling barrier"
+      },
+      "mode": "custom/startCPUProfile immediately before the selected window and custom/stopCPUProfile immediately after exact clean pull diagnostics"
+    }
+  },
+  "summary": [
+    {
+      "label": "layerProfile.minimal.diagnostic",
+      "samplesMs": [
+        431.82
+      ],
+      "medianMs": 431.82,
+      "minimumMs": 431.82,
+      "maximumMs": 431.82
+    },
+    {
+      "label": "layerProfile.root-inputs.diagnostic",
+      "samplesMs": [
+        901.777
+      ],
+      "medianMs": 901.777,
+      "minimumMs": 901.777,
+      "maximumMs": 901.777
+    },
+    {
+      "label": "layerProfile.child-layers.diagnostic",
+      "samplesMs": [
+        3971.861
+      ],
+      "medianMs": 3971.861,
+      "minimumMs": 3971.861,
+      "maximumMs": 3971.861
+    },
+    {
+      "label": "layerProfile.imports.diagnostic",
+      "samplesMs": [
+        4415.754
+      ],
+      "medianMs": 4415.754,
+      "minimumMs": 4415.754,
+      "maximumMs": 4415.754
+    },
+    {
+      "label": "layerProfile.unprovided.diagnostic",
+      "samplesMs": [
+        4497.285
+      ],
+      "medianMs": 4497.285,
+      "minimumMs": 4497.285,
+      "maximumMs": 4497.285
+    },
+    {
+      "label": "layerProfile.full.diagnostic",
+      "samplesMs": [
+        4520.799
+      ],
+      "medianMs": 4520.799,
+      "minimumMs": 4520.799,
+      "maximumMs": 4520.799
+    },
+    {
+      "label": "layerProfile.post-open.diagnostic",
+      "samplesMs": [
+        4292.793
+      ],
+      "medianMs": 4292.793,
+      "minimumMs": 4292.793,
+      "maximumMs": 4292.793
+    }
+  ],
+  "runs": [
+    {
+      "run": 1,
+      "measurements": [
+        {
+          "label": "layerProfile.minimal.diagnostic",
+          "latencyMs": 431.82,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "5aa60f4a1a133625b286cb02160780073cf30b0d9ae888cb80af47b290398760",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layerProfile.root-inputs.diagnostic",
+          "latencyMs": 901.777,
+          "resultCount": 3,
+          "resultBytes": 551,
+          "resultSha256": "c9dd434ab0eedf3dd2fb04e564eaa5f35c615cf1fa8cbf7f75be9c53cfcbaaa4",
+          "documentVersion": 1,
+          "sourceSha256": "1b5e443b0f0626eb6c5e97dbb304430f44384d0fe24e688571e7ce6875bc8b3e",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layerProfile.child-layers.diagnostic",
+          "latencyMs": 3971.861,
+          "resultCount": 6,
+          "resultBytes": 1122,
+          "resultSha256": "9735f1095da79ca43f07681f0439edeb2477b4d42c5c0cd86b41a71864790416",
+          "documentVersion": 1,
+          "sourceSha256": "b1e6a2312b668edee80d61795222a3b47109eec828de1c9610721fbcca8e63b7",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layerProfile.imports.diagnostic",
+          "latencyMs": 4415.754,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "ae8b21033ef8b885fb761e51e2f159446ea4529241ffedc4c319f8e7a7153c73",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layerProfile.unprovided.diagnostic",
+          "latencyMs": 4497.285,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "ca27d712f0a323eaecaf45fc9a3d27c7c04f6f08fd0ca35aadb854f5824c61a1",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layerProfile.full.diagnostic",
+          "latencyMs": 4520.799,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "42d2ec07aa26331e176919fefd1f8f7710fa34944784350b0220e354c2c4d85c",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layerProfile.post-open.diagnostic",
+          "latencyMs": 4292.793,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "42d2ec07aa26331e176919fefd1f8f7710fa34944784350b0220e354c2c4d85c",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "cpuProfiles": [
+        {
+          "kind": "minimal",
+          "profilePath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/minimal/5374-1794112518419-cpuprofile.pb.gz",
+          "profileBytes": 21856,
+          "profileSha256": "9da38b6ec902fcf6d7b64b7808ed84ad666a0349e0be0d06c3b31dcefdfc4d45",
+          "startProfileLatencyMs": 1.113,
+          "stopProfileLatencyMs": 99.337,
+          "didOpenBeforeProfile": false
+        },
+        {
+          "kind": "root-inputs",
+          "profilePath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/root-inputs/5375-1794112518969-cpuprofile.pb.gz",
+          "profileBytes": 25357,
+          "profileSha256": "5424df8e967fec3bd6d75fd5339c063cecdaa4890823531aa6417ce3fa978b59",
+          "startProfileLatencyMs": 0.68,
+          "stopProfileLatencyMs": 135.16,
+          "didOpenBeforeProfile": false
+        },
+        {
+          "kind": "child-layers",
+          "profilePath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/child-layers/5381-1794112520026-cpuprofile.pb.gz",
+          "profileBytes": 42070,
+          "profileSha256": "0ac83fab7ea17e8e65320339a76e9d497301de7b20bc927a6ccda7bca4069109",
+          "startProfileLatencyMs": 0.754,
+          "stopProfileLatencyMs": 120.075,
+          "didOpenBeforeProfile": false
+        },
+        {
+          "kind": "imports",
+          "profilePath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/imports/5392-1794112524150-cpuprofile.pb.gz",
+          "profileBytes": 44652,
+          "profileSha256": "1f800754d7bc148252cb1abd8db1bdc5eefa14fdd1b245ea8d090be7fcb54a96",
+          "startProfileLatencyMs": 0.935,
+          "stopProfileLatencyMs": 140.561,
+          "didOpenBeforeProfile": false
+        },
+        {
+          "kind": "unprovided",
+          "profilePath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/unprovided/5394-1794112528752-cpuprofile.pb.gz",
+          "profileBytes": 43751,
+          "profileSha256": "27e79c79ed6158d9c03f8911d462cfe035277e85ff27874a29b78dadfc60f166",
+          "startProfileLatencyMs": 0.628,
+          "stopProfileLatencyMs": 194.972,
+          "didOpenBeforeProfile": false
+        },
+        {
+          "kind": "full",
+          "profilePath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/full/5397-1794112533494-cpuprofile.pb.gz",
+          "profileBytes": 42180,
+          "profileSha256": "67896abd099baa5b9916a8ecce4409d112083a5772e5e2210e1278bbb94cc4bd",
+          "startProfileLatencyMs": 0.509,
+          "stopProfileLatencyMs": 204.269,
+          "didOpenBeforeProfile": false
+        },
+        {
+          "kind": "post-open",
+          "profilePath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/post-open/5402-1794112538497-cpuprofile.pb.gz",
+          "profileBytes": 36788,
+          "profileSha256": "d35210a0b73812e7f6fc26c6192d7f572f9d84c9c5bff513a319a641e4192297",
+          "startProfileLatencyMs": 227.162,
+          "stopProfileLatencyMs": 200.541,
+          "didOpenBeforeProfile": true
+        }
+      ]
+    }
+  ]
+}

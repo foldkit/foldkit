@@ -90,10 +90,22 @@ type ScenarioResult = Readonly<{
 
 type LayerProfileKind =
   | 'minimal'
+  | 'root-inputs'
+  | 'child-layers'
   | 'imports'
   | 'unprovided'
   | 'full'
   | 'post-open'
+
+const layerProfileKinds: ReadonlyArray<LayerProfileKind> = [
+  'minimal',
+  'root-inputs',
+  'child-layers',
+  'imports',
+  'unprovided',
+  'full',
+  'post-open',
+]
 
 type CPUProfileCapture = Readonly<{
   kind: LayerProfileKind
@@ -1491,8 +1503,7 @@ export const layerProfileSource = (
     'Menu',
   ]
 
-  if (kind === 'imports') {
-    return `${imports}export const rootInputs = {
+  const rootInputs = `export const rootInputs = {
   ApplicationBlock,
   EffectsLayer,
   init,
@@ -1500,12 +1511,20 @@ export const layerProfileSource = (
   view,
   subscriptions,
 }
+`
 
-export const childLayers = {
+  const childLayers = `export const childLayers = {
   Layer,
   ${childValues.map(name => `${name}: ${name}.layer`).join(',\n  ')},
 }
 `
+
+  if (kind === 'root-inputs') {
+    return `${imports}${rootInputs}`
+  } else if (kind === 'child-layers') {
+    return `${imports}${childLayers}`
+  } else if (kind === 'imports') {
+    return `${imports}${rootInputs}\n${childLayers}`
   }
 
   return `${imports}export const layer = ApplicationBlock.makeLayer({
@@ -1529,13 +1548,6 @@ export const validateLayerProfileSourceHashes = (
   >,
   realSource: string,
 ): void => {
-  const kinds = [
-    'minimal',
-    'imports',
-    'unprovided',
-    'full',
-    'post-open',
-  ] as const
   const actualHashes = new Map<string, string>()
   for (const measurement of measurements) {
     const sourceSha256 = measurement.sourceSha256
@@ -1545,10 +1557,13 @@ export const validateLayerProfileSourceHashes = (
     actualHashes.set(measurement.label, sourceSha256)
   }
   const expectedHashes = new Map(
-    kinds.map(kind => [kind, sha256(layerProfileSource(kind, realSource))]),
+    layerProfileKinds.map(kind => [
+      kind,
+      sha256(layerProfileSource(kind, realSource)),
+    ]),
   )
 
-  for (const kind of kinds) {
+  for (const kind of layerProfileKinds) {
     const label = `layerProfile.${kind}.diagnostic`
     const actual = actualHashes.get(label)
     const expected = expectedHashes.get(kind)
@@ -1557,11 +1572,13 @@ export const validateLayerProfileSourceHashes = (
     }
   }
 
-  const boundaryHashes = ['minimal', 'imports', 'unprovided', 'full'].map(
-    kind =>
-      actualHashes.get(`layerProfile.${kind}.diagnostic`) ??
-      fail(`Missing ${kind} measured source hash.`),
-  )
+  const boundaryHashes = layerProfileKinds
+    .filter(kind => kind !== 'post-open')
+    .map(
+      kind =>
+        actualHashes.get(`layerProfile.${kind}.diagnostic`) ??
+        fail(`Missing ${kind} measured source hash.`),
+    )
   if (new Set(boundaryHashes).size !== boundaryHashes.length) {
     return fail(`Layer profile boundary control sources are not distinct.`)
   }
@@ -2077,17 +2094,12 @@ const selectedScenarios = async (
   if (options.scenario === 'layer-profile') {
     const profileDir =
       options.profileDir ?? fail(`Profile directory is missing.`)
-    const scenarios = [
-      await layerCPUProfileScenario(options.timeoutMs, profileDir, 'minimal'),
-      await layerCPUProfileScenario(options.timeoutMs, profileDir, 'imports'),
-      await layerCPUProfileScenario(
-        options.timeoutMs,
-        profileDir,
-        'unprovided',
-      ),
-      await layerCPUProfileScenario(options.timeoutMs, profileDir, 'full'),
-      await layerCPUProfileScenario(options.timeoutMs, profileDir, 'post-open'),
-    ]
+    const scenarios: Array<ScenarioResult> = []
+    for (const kind of layerProfileKinds) {
+      scenarios.push(
+        await layerCPUProfileScenario(options.timeoutMs, profileDir, kind),
+      )
+    }
     validateLayerProfileSourceHashes(
       scenarios.flatMap(scenario => scenario.measurements),
       readFileSync(join(workspaceRoot, layerPath), 'utf8'),
@@ -2122,7 +2134,7 @@ const selectedScenarios = async (
 
 const documentChangeMode = (scenario: Options['scenario']): string => {
   if (scenario === 'layer-profile') {
-    return 'Five fresh request-scoped CPU profiles; controls are in-memory documents at the real Layer URI'
+    return 'Seven fresh request-scoped CPU profiles; controls are in-memory documents at the real Layer URI'
   } else if (scenario === 'message-constructors') {
     return 'One fresh document per cold constructor scenario; no edits'
   } else if (scenario === 'workspace') {
@@ -2225,7 +2237,7 @@ const main = async (): Promise<void> => {
 
   const output = {
     metadata: {
-      formatVersion: 7,
+      formatVersion: 8,
       measuredAt: new Date().toISOString(),
       sourceCommit,
       sourceWorkloadDirty,
@@ -2310,6 +2322,10 @@ const main = async (): Promise<void> => {
               controls: {
                 minimal:
                   'Same URI and project with only passive ApplicationBlock access',
+                rootInputs:
+                  'Real root builders in a plain record; no child Layer access or makeLayer',
+                childLayers:
+                  'Real child construction Layers in a plain record; no root builder use or makeLayer',
                 imports:
                   'Every real import used in a plain exported record; no makeLayer',
                 unprovided:

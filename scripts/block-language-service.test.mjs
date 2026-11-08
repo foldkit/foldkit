@@ -280,6 +280,8 @@ test('Layer profile controls vary only the intended completion boundary', () => 
     'utf8',
   )
   const imports = layerProfileSource('imports', realSource)
+  const rootInputs = layerProfileSource('root-inputs', realSource)
+  const childLayers = layerProfileSource('child-layers', realSource)
   const unprovided = layerProfileSource('unprovided', realSource)
   const childNames = [
     'ApiReference',
@@ -297,11 +299,23 @@ test('Layer profile controls vary only the intended completion boundary', () => 
   ]
 
   assert.doesNotMatch(imports, /\.makeLayer|\.pipe\(/)
+  assert.match(rootInputs, /export const rootInputs = \{/)
+  assert.doesNotMatch(
+    rootInputs,
+    /export const childLayers|\.makeLayer|\.pipe\(/,
+  )
+  assert.match(childLayers, /export const childLayers = \{/)
+  assert.doesNotMatch(
+    childLayers,
+    /export const rootInputs|\.makeLayer|\.pipe\(/,
+  )
   assert.match(unprovided, /ApplicationBlock\.makeLayer\(\{/)
   assert.doesNotMatch(unprovided, /\.pipe\(/)
   for (const name of childNames) {
     const member = `${name}: ${name}.layer`
     assert.equal(imports.includes(member), true)
+    assert.equal(rootInputs.includes(member), false)
+    assert.equal(childLayers.includes(member), true)
     assert.equal(unprovided.includes(member), true)
   }
   assert.equal(layerProfileSource('full', realSource), realSource)
@@ -312,7 +326,15 @@ test('Layer profile controls vary only the intended completion boundary', () => 
   )
 
   const hash = value => createHash('sha256').update(value).digest('hex')
-  const kinds = ['minimal', 'imports', 'unprovided', 'full', 'post-open']
+  const kinds = [
+    'minimal',
+    'root-inputs',
+    'child-layers',
+    'imports',
+    'unprovided',
+    'full',
+    'post-open',
+  ]
   const measurements = kinds.map(kind => ({
     label: `layerProfile.${kind}.diagnostic`,
     sourceSha256: hash(layerProfileSource(kind, realSource)),
