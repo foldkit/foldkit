@@ -312,9 +312,10 @@ describe('Render.afterCommit inside a View Transition', () => {
   })
 })
 
-// A frame that gives up without patching still owes its waiters a resume.
+// A frame that gives up without patching still owes its waiters an exit.
 // Without that, a Command gated on `afterCommit` (which is every `Dom` helper)
-// parks for the life of the runtime.
+// parks for the life of the runtime. A crash interrupts the waiter instead of
+// resuming it, since no Command runs past a crash.
 describe('a frame that abandons its render', () => {
   let container: HTMLElement
 
@@ -330,14 +331,48 @@ describe('a frame that abandons its render', () => {
     vi.restoreAllMocks()
   })
 
-  it('resumes waiters when the render itself throws', async () => {
+  it('interrupts a waiter parked on afterCommit when the render itself throws', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
+    // NOTE: the frame is held so the probe can park on `afterCommit` before
+    // the render that throws. happy-dom fires animation frames ahead of the
+    // scheduler tick that starts a forked Command.
+    const heldFrames: Array<FrameRequestCallback> = []
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
+      heldFrames.push(callback)
+      return heldFrames.length
+    })
+    let isProbeParked = false
+    let wasProbeInterrupted = false
+
+    const ProbeUntilCrash = Command.define('ProbeUntilCrash', {
+      messages: [Message.CompletedProbeCommittedDom],
+      execute: Effect.gen(function* () {
+        isProbeParked = true
+        yield* afterCommit
+        const label = document.getElementById(LABEL_ELEMENT_ID)
+        observedLabels.push(label?.textContent ?? '')
+        return Message.CompletedProbeCommittedDom()
+      }).pipe(
+        Effect.onInterrupt(() =>
+          Effect.sync(() => {
+            wasProbeInterrupted = true
+          }),
+        ),
+      ),
+    })
 
     const fiber = Effect.runFork(
       makeElement({
         Model,
         init: () => ({ model: { label: 'initial' } }),
-        update,
+        update: (model: Model, message: Message) =>
+          Message.match<Update.Return<Model, Message>>(message, {
+            ClickedTransition: () => ({
+              model: { label: 'transitioned' },
+              commands: [ProbeUntilCrash()],
+            }),
+            CompletedProbeCommittedDom: () => ({ model }),
+          }),
         view: model => {
           if (model.label === 'transitioned') {
             throw new Error('boom from view')
@@ -363,16 +398,22 @@ describe('a frame that abandons its render', () => {
       })
 
       document.body.querySelector('button')!.click()
+      await vi.waitFor(() => {
+        expect(isProbeParked).toBe(true)
+      })
+
+      for (const frame of heldFrames.splice(0)) {
+        frame(performance.now())
+      }
 
       await vi.waitFor(() => {
         expect(document.body.textContent).toContain('Crashed')
       })
 
       // The probe was already parked on `afterCommit` when the render threw.
-      // It has to come back even though the frame produced no patch.
-      await vi.waitFor(() => {
-        expect(observedLabels).toHaveLength(1)
-      })
+      // The crash interrupts it, so it never observes the crash view's DOM.
+      expect(wasProbeInterrupted).toBe(true)
+      expect(observedLabels).toEqual([])
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
     }

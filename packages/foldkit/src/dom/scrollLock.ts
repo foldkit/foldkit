@@ -96,11 +96,29 @@ export const unlockScroll: Effect.Effect<void> = Effect.sync(() => {
   scrollLockState.count = Math.max(0, Number.decrement(scrollLockState.count))
 
   if (scrollLockState.count === 0) {
-    const {
-      documentElement: { style },
-    } = document
-    style.overflow = scrollLockState.overflow
-    style.paddingRight = scrollLockState.paddingRight
-    document.removeEventListener('touchmove', handleTouchMove)
+    restoreDocumentScroll()
   }
 })
+
+const restoreDocumentScroll = (): void => {
+  const {
+    documentElement: { style },
+  } = document
+  style.overflow = scrollLockState.overflow
+  style.paddingRight = scrollLockState.paddingRight
+  document.removeEventListener('touchmove', handleTouchMove)
+}
+
+/** Releases every scroll lock at once, restoring the document element's
+ *  original `overflow` and `padding-right`. The runtime calls it when the
+ *  application crashes, where a lock taken by a Command with no release still
+ *  pending would otherwise outlive the application.
+ * @internal */
+export const __releaseAllScrollLocks = (): void => {
+  if (scrollLockState.count === 0) {
+    return
+  }
+
+  scrollLockState.count = 0
+  restoreDocumentScroll()
+}

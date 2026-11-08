@@ -9,6 +9,7 @@ import {
   Predicate,
   PubSub,
   Schema,
+  Scope,
   pipe,
 } from 'effect'
 
@@ -396,12 +397,23 @@ export const makeRuntime = <
           )
         }
 
-        // NOTE: every perpetual fiber (for example, Subscription streams
-        // and ManagedResource lifecycles) and every Command fiber forks
-        // into the runtime scope, so interrupting the runtime fiber (what
-        // dispose does) interrupts them all and runs their finalizers. A
-        // detached fork would outlive the runtime.
+        // NOTE: the runtime scope lives until the runtime fiber is
+        // interrupted (what dispose does). It holds what must survive a
+        // crash: the rendered container and its teardown patch, the
+        // `resources` Layer, the navigation listeners, and the host
+        // connector. Everything the running application acquires goes
+        // into `applicationScope` below instead.
         const runtimeScope = yield* Effect.scope
+
+        // NOTE: every perpetual fiber (for example, Subscription streams
+        // and ManagedResource lifecycles), every Command fiber, and every
+        // dialog registered through `DialogRuntime` belongs to the
+        // application scope, so closing it interrupts them all and runs
+        // their finalizers. A crash closes it before the crash view renders,
+        // and dispose closes it through the runtime scope at the point
+        // registered below, after the renderer is built. A detached fork
+        // would outlive both.
+        const applicationScope = yield* Scope.make()
 
         const maybePortChannels: Option.Option<PortChannelsBundle> = pipe(
           Option.fromNullishOr(ports),
@@ -621,6 +633,7 @@ export const makeRuntime = <
 
         const {
           crashWith,
+          recordReleaseFailure,
           render,
           setLastDirtyMessage,
           scheduleRenderFrame,
@@ -645,13 +658,25 @@ export const makeRuntime = <
           readLiveModel: () => liveModel,
           messageQueue,
           devToolsIntegration,
+          applicationScope,
         })
 
-        yield* Effect.addFinalizer(() =>
-          Effect.forEach(
-            pipe(dialogIds, Array.fromIterable, Array.reverse),
-            releaseDialogResources,
-            { discard: true },
+        // NOTE: registered after the renderer so that on dispose the
+        // application scope closes before the teardown patch (finalizers
+        // are LIFO): fibers are interrupted and dialogs released while
+        // their DOM is still on screen, as they were when they forked into
+        // the runtime scope directly. After a crash the application scope
+        // is already closed and this returns at once.
+        yield* Effect.addFinalizer(exit => Scope.close(applicationScope, exit))
+
+        yield* Scope.addFinalizer(
+          applicationScope,
+          Effect.suspend(() =>
+            Effect.forEach(
+              pipe(dialogIds, Array.fromIterable, Array.reverse),
+              releaseDialogResources,
+              { discard: true },
+            ),
           ),
         )
 
@@ -660,7 +685,7 @@ export const makeRuntime = <
         // outside the update loop; their results always arrive
         // asynchronously, exactly as under the old queue. The fork runs
         // through `Effect.runForkWith` (which starts its fiber
-        // synchronously, so the child is registered in `runtimeScope`
+        // synchronously, so the child is registered in `applicationScope`
         // before this callback returns), not `Effect.runSyncWith`:
         // `runSyncWith` injects a temporary synchronous scheduler into the
         // fiber context, the child would inherit it, and every later yield
@@ -705,10 +730,11 @@ export const makeRuntime = <
                 : providedCommand
 
             Effect.runForkWith(runtimeContext)(
-              Effect.forkIn(runtimeScope)(
+              Effect.forkIn(applicationScope)(
                 recordedCommand.pipe(
                   Effect.flatMap(enqueueMessageEffect),
                   Effect.catchCause(cause => crashWith(cause, message)),
+                  recordReleaseFailure,
                 ),
               ),
             )
@@ -811,11 +837,12 @@ export const makeRuntime = <
             subscriptions,
             initModel,
             modelPubSub,
-            runtimeScope,
+            applicationScope,
             maybeSlowSubscriptionDependencies,
             enqueueMessageEffect,
             provideAllResources,
             crashWith,
+            recordReleaseFailure,
           })
         }
 
@@ -823,9 +850,10 @@ export const makeRuntime = <
           managedResourceRefs,
           initModel,
           modelPubSub,
-          runtimeScope,
+          applicationScope,
           enqueueMessageEffect,
           crashWith,
+          recordReleaseFailure,
         })
 
         // NOTE: registered before the boot buffer drains, so an interrupt

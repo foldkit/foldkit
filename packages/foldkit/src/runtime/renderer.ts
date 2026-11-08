@@ -1,5 +1,6 @@
-import { Cause, Context, Effect, Exit, Option, type Scope } from 'effect'
+import { Cause, Context, Effect, Exit, Option, Scope } from 'effect'
 
+import { __releaseAllDomResources } from '../dom/dom.js'
 import {
   type BoundaryRegistry,
   type Document,
@@ -23,9 +24,12 @@ import {
 } from '../vdom.js'
 import {
   type CrashConfig,
+  type CrashContext,
   type VNodeSlot,
   noOpDispatch,
   renderCrashView,
+  reportCrash,
+  toCrashError,
 } from './crashUI.js'
 import type {
   DevToolsIntegration,
@@ -72,8 +76,11 @@ type PendingViewTransition = Readonly<{
 }>
 
 /**
- * What the boot closure uses from the render side. `crashWith` paints the
- * crash view and stops the runtime, `render` runs one live render (the boot
+ * What the boot closure uses from the render side. `crashWith` stops the
+ * runtime, releases what the application holds, and paints the crash view,
+ * `recordReleaseFailure` wraps every fiber forked into the application scope
+ * so a cause escaping it during that release reaches the crash context,
+ * `render` runs one live render (the boot
  * calls it for the first paint), `setLastDirtyMessage` records the Message
  * the next frame is attributed to, `scheduleRenderFrame` asks for a frame,
  * `skipPendingViewTransition` cuts short a transition the browser is still
@@ -85,6 +92,9 @@ export type Renderer<Model, Message> = Readonly<{
     cause: Cause.Cause<never>,
     maybeMessage: Option.Option<Message>,
   ) => Effect.Effect<void>
+  recordReleaseFailure: <A, R>(
+    effect: Effect.Effect<A, never, R>,
+  ) => Effect.Effect<A, never, R>
   render: (
     model: Model,
     maybeMessage: Option.Option<Message>,
@@ -126,6 +136,7 @@ export const makeRenderer = <Model, Message>({
   readLiveModel,
   messageQueue,
   devToolsIntegration,
+  applicationScope,
 }: Readonly<{
   status: RuntimeStatus
   container: HTMLElement
@@ -151,6 +162,7 @@ export const makeRenderer = <Model, Message>({
   readLiveModel: () => Model
   messageQueue: MessageQueue<Message>
   devToolsIntegration: DevToolsIntegration<Model, Message>
+  applicationScope: Scope.Closeable
 }>): Effect.Effect<Renderer<Model, Message>, never, Scope.Scope> =>
   Effect.gen(function* () {
     const {
@@ -297,6 +309,90 @@ export const makeRenderer = <Model, Message>({
       }),
     )
 
+    // NOTE: patches the live tree away before the crash view is built, so
+    // every Mount releases through its destroy hook while its element is
+    // still in the document, and the crash view never shares the
+    // container with the tree that crashed. The OnUnmount dispatches this
+    // fires are dropped by the crashed queue. A patch that throws is
+    // logged and leaves the slot on whatever the recovery produced; the
+    // crash view patch then starts from there.
+    const unmountLiveTree = (): void => {
+      const { maybeCurrentVNode } = vnodeSlot
+      if (Option.isNone(maybeCurrentVNode)) {
+        return
+      }
+      try {
+        vnodeSlot.maybeCurrentVNode = Option.some(
+          patchRuntimeVNode(maybeCurrentVNode, null),
+        )
+      } catch (unmountError) {
+        console.error(
+          '[foldkit] Unmounting the application view on crash failed:',
+          unmountError,
+        )
+      }
+    }
+
+    let maybeReleaseCause = Option.none<Cause.Cause<never>>()
+
+    const recordReleaseCause = (cause: Cause.Cause<never>): void => {
+      maybeReleaseCause = Option.some(
+        Option.match(maybeReleaseCause, {
+          onNone: () => cause,
+          onSome: releaseCause => Cause.combine(releaseCause, cause),
+        }),
+      )
+    }
+
+    // NOTE: `catchCause` does not run when a fiber is interrupted, so a
+    // finalizer that throws while the crash releases its fiber escapes
+    // through the fiber's exit, combined with the interruption. `onExit`
+    // runs on the interrupted fiber before `Scope.close` returns, so the
+    // cause is recorded before the crash context is built. On dispose the
+    // exits are plain interruptions and nothing is recorded.
+    const recordReleaseFailure = <A, R>(
+      effect: Effect.Effect<A, never, R>,
+    ): Effect.Effect<A, never, R> =>
+      Effect.onExit(effect, exit =>
+        Effect.sync(() => {
+          if (
+            status.isCrashed &&
+            Exit.isFailure(exit) &&
+            !Cause.hasInterruptsOnly(exit.cause)
+          ) {
+            recordReleaseCause(exit.cause)
+          }
+        }),
+      )
+
+    // NOTE: closing `applicationScope` interrupts every Command,
+    // Subscription, and Managed Resource fiber and releases every dialog
+    // registered with the runtime, so their `acquireRelease` finalizers
+    // run with the DOM still on screen. The application is already dead,
+    // so a failing finalizer is logged and handed to `crash.report` and
+    // `crash.view` as `maybeReleaseError` rather than allowed to stop the
+    // crash view. A fiber that dispatches while releasing is dropped by
+    // the crashed queue.
+    const releaseApplicationScope = (
+      cause: Cause.Cause<never>,
+    ): Effect.Effect<Option.Option<Error>> =>
+      Scope.close(applicationScope, Exit.failCause(cause)).pipe(
+        Effect.catchCause(closeCause =>
+          Effect.sync(() => {
+            recordReleaseCause(closeCause)
+          }),
+        ),
+        Effect.map(() =>
+          Option.map(maybeReleaseCause, releaseCause => {
+            console.error(
+              '[foldkit] Releasing the application on crash failed:',
+              releaseCause,
+            )
+            return toCrashError(Cause.squash(releaseCause))
+          }),
+        ),
+      )
+
     // NOTE: shared by every crash path: the init render, the plain
     // message drain and render frame (which reach it through
     // `Effect.runFork` from their catch blocks), and the Command and
@@ -308,30 +404,51 @@ export const makeRenderer = <Model, Message>({
     // silently and leaving the DOM frozen at the last successful
     // render. The first crash wins: concurrent Command fibers can fail
     // on the same broken Layer, and only one should report and render.
+    // `isCrashed` flips synchronously, before the release, so a Command
+    // fork sitting in its microtask and every later dispatch see it.
+    // The release itself runs on the calling fiber: a Command fiber that
+    // crashed closes the scope it belongs to, and `Scope.close` skips
+    // interrupting the closing fiber, so the sequence cannot wait on
+    // itself. When every finalizer is synchronous the crash view is on
+    // screen before `crashWith` returns.
     const crashWith = (
       cause: Cause.Cause<never>,
       maybeMessage: Option.Option<Message>,
     ): Effect.Effect<void> =>
-      Effect.sync(() => {
+      Effect.suspend(() => {
         if (status.isCrashed) {
-          return
+          return Effect.void
         }
         status.isCrashed = true
         // NOTE: the crash view should appear at once, not animate in from
         // a snapshot of the state that crashed.
         skipPendingViewTransition()
+        const error = toCrashError(Cause.squash(cause))
+        console.error('[foldkit] Application crash:', error)
         const model = readLiveModel()
-        const squashed = Cause.squash(cause)
-        const error =
-          squashed instanceof Error ? squashed : new Error(String(squashed))
-        renderCrashView(
-          { error, model, message: maybeMessage },
-          crash,
-          container,
-          vnodeSlot,
-          manageDocument,
+        return releaseApplicationScope(cause).pipe(
+          Effect.flatMap(maybeReleaseError =>
+            Effect.sync(() => {
+              unmountLiveTree()
+              __releaseAllDomResources()
+              const context: CrashContext<Model, Message> = {
+                error,
+                model,
+                message: maybeMessage,
+                maybeReleaseError,
+              }
+              reportCrash(context, crash)
+              renderCrashView(
+                context,
+                crash,
+                container,
+                vnodeSlot,
+                manageDocument,
+              )
+              settlePendingCommit()
+            }),
+          ),
         )
-        settlePendingCommit()
       })
 
     // NOTE: `maybeLastDirtyMessage` holds the most recent dirtying Message,
@@ -819,6 +936,7 @@ export const makeRenderer = <Model, Message>({
 
     return {
       crashWith,
+      recordReleaseFailure,
       render,
       setLastDirtyMessage,
       scheduleRenderFrame,

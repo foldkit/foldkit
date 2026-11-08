@@ -9,9 +9,13 @@ const application = Runtime.makeApplication({
   update,
   view,
   crash: {
-    report: ({ error, model, message }) => {
+    report: ({ error, model, message, maybeReleaseError }) => {
       Sentry.captureException(error, {
-        extra: { model, message: Option.getOrUndefined(message) },
+        extra: {
+          model,
+          message: Option.getOrUndefined(message),
+          releaseError: Option.getOrUndefined(maybeReleaseError),
+        },
       })
     },
   },

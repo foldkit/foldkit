@@ -845,7 +845,7 @@ describe('makeElement with viewTransition', () => {
     }
   })
 
-  it('settles afterCommit when a crash invalidates a pending transition', async () => {
+  it('interrupts Commands when a crash invalidates a pending transition', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
     let maybeUpdate: (() => void) | null = null
@@ -861,11 +861,10 @@ describe('makeElement with viewTransition', () => {
     })
 
     const crashTrigger = await Effect.runPromise(Queue.unbounded<void>())
-    const afterCrashProbeTrigger = await Effect.runPromise(
-      Queue.unbounded<void>(),
-    )
+    const blockedProbeTrigger = await Effect.runPromise(Queue.unbounded<void>())
     let didPendingProbeResume = false
-    let didAfterCrashProbeResume = false
+    let wasPendingProbeInterrupted = false
+    let wasBlockedProbeInterrupted = false
 
     const ProbePendingCommit = Command.define('ProbePendingCommit', {
       messages: [Message.CompletedProbeCommittedDom],
@@ -873,7 +872,13 @@ describe('makeElement with viewTransition', () => {
         yield* afterCommit
         didPendingProbeResume = true
         return Message.CompletedProbeCommittedDom()
-      }),
+      }).pipe(
+        Effect.onInterrupt(() =>
+          Effect.sync(() => {
+            wasPendingProbeInterrupted = true
+          }),
+        ),
+      ),
     })
     const CrashRuntime = Command.define('CrashRuntime', {
       messages: [Message.CompletedProbeCommittedDom],
@@ -882,14 +887,19 @@ describe('makeElement with viewTransition', () => {
         return yield* Effect.die(new Error('boom from Command'))
       }),
     })
-    const ProbeAfterCrash = Command.define('ProbeAfterCrash', {
+    const ProbeBlockedAtCrash = Command.define('ProbeBlockedAtCrash', {
       messages: [Message.CompletedProbeCommittedDom],
       execute: Effect.gen(function* () {
-        yield* Queue.take(afterCrashProbeTrigger)
+        yield* Queue.take(blockedProbeTrigger)
         yield* afterCommit
-        didAfterCrashProbeResume = true
         return Message.CompletedProbeCommittedDom()
-      }),
+      }).pipe(
+        Effect.onInterrupt(() =>
+          Effect.sync(() => {
+            wasBlockedProbeInterrupted = true
+          }),
+        ),
+      ),
     })
 
     const element = makeElement({
@@ -899,7 +909,11 @@ describe('makeElement with viewTransition', () => {
         Message.match<Update.Return<Model, Message>>(message, {
           ClickedTransition: () => ({
             model: { label: 'transitioned' },
-            commands: [ProbePendingCommit(), CrashRuntime(), ProbeAfterCrash()],
+            commands: [
+              ProbePendingCommit(),
+              CrashRuntime(),
+              ProbeBlockedAtCrash(),
+            ],
           }),
           ClickedPlain: () => ({ model: { label: 'plain' } }),
           CompletedProbeCommittedDom: () => ({ model }),
@@ -931,14 +945,15 @@ describe('makeElement with viewTransition', () => {
       await awaitBodyText('Crashed')
       maybeUpdate!()
 
+      // The crash interrupts every Command: the one parked on `afterCommit`
+      // and the one still blocked on its trigger. Neither runs past the
+      // crash, and the stale transition callback does not repaint.
       await vi.waitFor(() => {
-        expect(didPendingProbeResume).toBe(true)
+        expect(wasPendingProbeInterrupted).toBe(true)
+        expect(wasBlockedProbeInterrupted).toBe(true)
       })
-
-      Queue.offerUnsafe(afterCrashProbeTrigger, undefined)
-      await vi.waitFor(() => {
-        expect(didAfterCrashProbeResume).toBe(true)
-      })
+      expect(didPendingProbeResume).toBe(false)
+      expect(document.body.textContent).toContain('Crashed')
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
       vi.restoreAllMocks()
