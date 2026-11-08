@@ -1,5 +1,26 @@
 # Next preview tasks
 
+## November 8 overnight follow-ups
+
+- [x] Preserve the reviewed HTML and diagnostic commits on #1922 through the
+      normal push gate. Examples E2E passes; the current CI run is pending.
+- [x] Reproduce #1921's frame-cadence failure on current preview source and
+      verify the adaptation through the Runtime suite and negative controls.
+- [ ] Review the cadence change independently and complete combined checks.
+- [ ] Prove the isolated paired R11/R19 construction prototype, then measure it
+      with unchanged ordinary workloads and identical-code controls.
+- [ ] Prove immediate child-operation output precision without losing emitting
+      policy channels, graph registrations or later Command delivery.
+- [ ] Prove the view-default refinement before repository adoption.
+- [x] Refresh preview feedback. Assess the new main-targeted crash-cleanup
+      proposal #1923 separately from preview regressions.
+
+The [cadence checkpoint](preview-frame-cadence-20261108.md) distinguishes the
+reproduced frame-rate bug from rendering time and records the scope question in
+the new crash-cleanup proposal. Publication and a new Daybreak transfer remain
+held. These checks do not approve a main merge or accept the measured rendering
+and editor costs.
+
 ## November 8 rendering diagnostics
 
 - [x] Capture ordinary CPU profiles and separate precise coverage for exact
@@ -10,7 +31,7 @@
       single invocations cannot allocate the ordinary median regression.
 - [ ] Prototype the retained combined R11/R19 construction changes against
       current source, preserving the existing ownership and lifecycle contracts.
-- [ ] Independently review and push the diagnostic evidence. Rendering parity
+- [x] Independently review and push the diagnostic evidence. Rendering parity
       and editor performance remain open before main.
 
 The [diagnostic report](preview-final-20261107/rendering/measurements/official-workcount-cpu-20261108/README.md)
@@ -27,7 +48,7 @@ experiments. New publication still requires approval.
 - [x] Verify current source, emitted consumers, 546 focused tests and all nine
       unchanged compiler ceilings. Retain the negative controls and exact assets.
 - [x] Independently approve exact HTML commit `977b57321f`.
-- [ ] Pass its normal push gate and CI. The prior stabilization commit
+- [x] Pass its normal push gate. CI is pending. The prior stabilization commit
       `3f0a41b927` is already pushed.
 - [x] Analyze the separate optimized-first CPU and work-count captures before
       choosing the next runtime experiment. Bundle size is not rendering time.

@@ -176,6 +176,7 @@ export const makeRenderer = <Model, Message>({
       enqueueMessage,
       enqueueMessageEffect,
       drainPendingMessages,
+      drainDeferredNow,
       resetDrainBudget,
       isAnyMessageDeferred,
     } = messageQueue
@@ -206,6 +207,18 @@ export const makeRenderer = <Model, Message>({
     // from an ordinary frame that was already queued when jumpTo installed
     // the historical view.
     let isLiveViewRestorePending = false
+    let isRenderFrameArmed = false
+    let maybeArmRenderFrameChannel: MessageChannel | null = null
+
+    yield* Effect.addFinalizer(() =>
+      Effect.sync(() => {
+        if (maybeArmRenderFrameChannel !== null) {
+          maybeArmRenderFrameChannel.port1.close()
+          maybeArmRenderFrameChannel.port2.close()
+          maybeArmRenderFrameChannel = null
+        }
+      }),
+    )
 
     // NOTE: the Model behind the DOM currently on screen, which is what a
     // View Transition animates away from. Seeded with `initModel` because
@@ -767,9 +780,17 @@ export const makeRenderer = <Model, Message>({
     // would strand any `Render.afterCommit` registered against it, and
     // the Dom helpers that gate on it would never run their DOM work.
     const renderFramePlain = (): void => {
+      // NOTE: a frame proves the browser regained control after a budget yield.
+      if (isLiveModelBehindQueue()) {
+        drainDeferredNow()
+      }
       // NOTE: retain the scheduled frame's pending commit while the drain waits.
       if (isLiveModelBehindQueue()) {
         requestAnimationFrame(renderFramePlain)
+        return
+      }
+      isRenderFrameArmed = false
+      if (!isRenderFrameScheduled) {
         return
       }
       isRenderFrameScheduled = false
@@ -808,11 +829,41 @@ export const makeRenderer = <Model, Message>({
       // the render runs later, inside the transition's update callback.
       if (Option.isNone(maybeResolvedViewTransition)) {
         runRenderFrameBody()
+        armNextRenderFrame()
         return
       }
       if (!startFrameViewTransition(maybeResolvedViewTransition.value)) {
         runRenderFrameBody()
       }
+      armNextRenderFrame()
+    }
+
+    // NOTE: requesting from a task after this frame places the render after
+    // the next tick that an animation-frame Subscription already requested.
+    // An unchanged frame returns without arming another callback.
+    const armNextRenderFrame = (): void => {
+      if (status.isRuntimeDisposed || status.isCrashed) {
+        return
+      }
+
+      if (maybeArmRenderFrameChannel === null) {
+        maybeArmRenderFrameChannel = new MessageChannel()
+        maybeArmRenderFrameChannel.port2.onmessage = () => {
+          if (
+            isRenderFrameArmed ||
+            isRenderFrameScheduled ||
+            status.isRuntimeDisposed ||
+            status.isCrashed
+          ) {
+            return
+          }
+
+          isRenderFrameArmed = true
+          requestAnimationFrame(renderFramePlain)
+        }
+      }
+
+      maybeArmRenderFrameChannel.port1.postMessage(null)
     }
 
     // NOTE: render frames run as plain JavaScript inside the
@@ -830,6 +881,9 @@ export const makeRenderer = <Model, Message>({
       }
       isRenderFrameScheduled = true
       commitNotifier.markCommitPending()
+      if (isRenderFrameArmed) {
+        return
+      }
       requestAnimationFrame(renderFramePlain)
     }
 

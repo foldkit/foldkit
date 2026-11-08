@@ -1,5 +1,23 @@
 # Next preview review
 
+## November 8 overnight review
+
+- [x] Review and push exact HTML and diagnostic commits through the ordinary
+      hook. Examples E2E passes; CI is pending.
+- [x] Observe frame-cadence and deferred-drain controls fail before accepting
+      focused Runtime results. Preserve occurrence checks and receipts.
+- [ ] Review the exact cadence commit and run the combined verification.
+- [ ] Require independent proof for operation-output precision and view
+      defaults, including source and relocated emitted consumers.
+- [ ] Require current-source timings with duplicate baseline controls before
+      treating the paired construction prototype as a rendering improvement.
+- [x] Keep main-targeted crash cleanup separate and flag cross-runtime resource
+      ownership for review. No external review or comment has been posted.
+
+The [cadence checkpoint](preview-frame-cadence-20261108.md) records the focused
+results and their limits. Publication and new Daybreak source transfer remain
+held.
+
 ## November 8 diagnostic review
 
 - [x] Preserve exact assets, maps, all CPU and coverage captures and the failed
@@ -8,7 +26,7 @@
       a root HtmlBuilder identity regression.
 - [x] Distinguish instrumented single observations from ordinary cyclic timing
       medians; retain raw fields and every material protocol difference.
-- [ ] Independently review the exact diagnostic commit and complete push checks.
+- [x] Independently review the exact diagnostic commit and complete push checks.
 - [ ] Verify a current-source optimization with unchanged ordinary workloads
       and identical-code controls before claiming runtime improvement.
 
