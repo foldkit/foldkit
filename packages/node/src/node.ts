@@ -427,19 +427,21 @@ const makeHandler = (options: ServeOptions, port: number) =>
 const serverLayer = (options: ServeOptions, port: number) =>
   Layer.unwrap(
     Effect.map(makeHandler(options, port), handler =>
-      HttpServer.serve(handler),
+      HttpServer.serve(handler).pipe(
+        HttpServer.withLogAddress,
+        Layer.provide(NodeHttpServer.layerServer(createServer, { port })),
+      ),
     ),
-  ).pipe(
-    HttpServer.withLogAddress,
-    Layer.provide(NodeHttpServer.layer(createServer, { port })),
-  )
+  ).pipe(Layer.provide(NodeHttpServer.layerHttpServices))
 
 /**
  * Starts a Node HTTP server for a built Foldkit application.
  *
  * The server reads `foldkit.build.json`, serves its client directory for GET
  * and HEAD requests, and sends every other application request to the emitted
- * Web Fetch handler. Interrupting the returned Effect closes the HTTP server.
+ * Web Fetch handler. It loads that handler before it listens, so the port
+ * opens only once the server can answer requests, and a failed startup never
+ * opens it. Interrupting the returned Effect closes the HTTP server.
  */
 export const serve = (options: ServeOptions) =>
   Effect.flatMap(options.port, port => Layer.launch(serverLayer(options, port)))
