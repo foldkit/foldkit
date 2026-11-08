@@ -60,6 +60,7 @@ export const cardView = (
           itemId: card.id,
           containerId: columnId,
           index,
+          hasDragInstructions: true,
         },
         h,
       ),

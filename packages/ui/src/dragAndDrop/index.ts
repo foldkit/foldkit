@@ -12,7 +12,12 @@ import {
 } from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
-import { type Attribute, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import {
+  type Attribute,
+  type Html,
+  type HtmlBuilder,
+  inertHtml as ih,
+} from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -751,6 +756,9 @@ export type DraggableConfig<ParentMessage> = Readonly<{
   itemId: string
   containerId: string
   index: number
+  /** Points the draggable's `aria-describedby` at the element rendered by
+   *  `dragInstructions`. Set it only when that element is rendered. */
+  hasDragInstructions?: boolean
 }>
 
 /** Returns attributes the parent attaches to a draggable element. Handles pointer-down, keyboard activation, and ARIA. */
@@ -785,6 +793,9 @@ export const draggable = <ParentMessage>(
     h.DataAttribute('sortable-id', config.itemId),
     h.Role('option'),
     h.AriaRoleDescription('draggable'),
+    ...(config.hasDragInstructions
+      ? [h.AriaDescribedBy(dragInstructionsId(config.model))]
+      : []),
     h.Tabindex(0),
     h.OnPointerDown(
       (
@@ -829,6 +840,56 @@ export const droppable = (
   ih.Role('listbox'),
   ...(label ? [ih.AriaLabel(label)] : []),
 ]
+
+/** Returns the id of the element rendered by `dragInstructions`: `model.id`
+ *  followed by `-drag-instructions`. Draggables with `hasDragInstructions`
+ *  reference it through `aria-describedby`. */
+export const dragInstructionsId = (model: Model): string =>
+  `${model.id}-drag-instructions`
+
+const DEFAULT_IDLE_DRAG_INSTRUCTIONS = 'Press Space or Enter to start dragging.'
+
+const DEFAULT_KEYBOARD_DRAG_INSTRUCTIONS =
+  'Dragging. Press the arrow keys to move within the current container, ' +
+  'Tab or Shift+Tab to move to the next or previous container, ' +
+  'Space or Enter to drop, or Escape to cancel.'
+
+/** Replacement text for `dragInstructions`, such as a translation. Each field
+ *  defaults to English. */
+export type DragInstructionsText = Readonly<{
+  /** Read while no keyboard drag is in progress. Defaults to
+   *  "Press Space or Enter to start dragging." */
+  idle?: string
+  /** Read during a keyboard drag. Defaults to text naming the arrow keys,
+   *  Tab and Shift+Tab, Space or Enter, and Escape. */
+  keyboardDragging?: string
+}>
+
+/** Renders the element that draggables with `hasDragInstructions` reference
+ *  through `aria-describedby`. Render it once per DragAndDrop instance. Its
+ *  text says how to start a keyboard drag, and during a keyboard drag how to
+ *  move, drop, and cancel. The element carries the `hidden` attribute, so a
+ *  screen reader reads it only as the focused draggable's description and
+ *  skips it while reading the page. Handler-free, so it is built with
+ *  `inertHtml` and renders inside any Message universe. */
+export const dragInstructions = (
+  model: Model,
+  text: DragInstructionsText = {},
+): Html => {
+  const instructions = DragState.matchOrElse<string>(
+    model.dragState,
+    {
+      KeyboardDragging: () =>
+        text.keyboardDragging ?? DEFAULT_KEYBOARD_DRAG_INSTRUCTIONS,
+    },
+    () => text.idle ?? DEFAULT_IDLE_DRAG_INSTRUCTIONS,
+  )
+
+  return ih.div(
+    [ih.Id(dragInstructionsId(model)), ih.Hidden(true)],
+    [instructions],
+  )
+}
 
 /** Returns attributes the parent attaches to a sortable item element.
  *  Typically combined with `draggable`. Handler-free, so the bundle is built

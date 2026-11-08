@@ -62,6 +62,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         ),
       ),
       ghostElement(model, h),
+      DragAndDrop.dragInstructions(model.dragAndDrop),
       h.div(
         [h.Class('sr-only'), h.AriaLive('assertive')],
         [model.announcement],
