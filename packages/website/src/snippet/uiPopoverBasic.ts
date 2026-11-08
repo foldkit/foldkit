@@ -18,7 +18,6 @@ export const PopoverExampleKey = Symbol('PopoverExample')
 export const PopoverExampleBlock = Block.make('PopoverExample', {
   key: PopoverExampleKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

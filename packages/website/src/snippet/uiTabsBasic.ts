@@ -26,7 +26,6 @@ export const TabsExampleKey = Symbol('TabsExample')
 export const TabsExampleBlock = Block.make('TabsExample', {
   key: TabsExampleKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

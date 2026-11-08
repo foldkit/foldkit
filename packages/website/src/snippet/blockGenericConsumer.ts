@@ -23,7 +23,6 @@ export const FruitSelectionBlock = Block.make('FruitSelection', {
   Model: ParentModel,
   Message: ParentMessage,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
 })
 const {
   makeFieldsStep,

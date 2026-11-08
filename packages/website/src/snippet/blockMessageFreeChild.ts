@@ -9,6 +9,7 @@ export const PreviewKey = Symbol('Preview')
 export const PreviewBlock = Block.make('Preview', {
   key: PreviewKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
   isMessageFree: true,
 
   Model: PreviewModel,

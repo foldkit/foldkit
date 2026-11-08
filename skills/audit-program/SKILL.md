@@ -265,6 +265,10 @@ into a finding. Verify one Block declaration and Composition per owner, one
 registration per selected Binding, exact storage and inverse routing,
 exhaustive OutMessage policy, explicit startup ownership, local-only handler
 recipes, child graph propagation, explicit ordinary Services, passive Layer recipes, and scope cleanup under Runtime/Server/test acquisition.
+Verify that contracted Blocks omit `view` only for the default Element view,
+use `{ Inputs }` for Element inputs, keep Document explicit, and use `false`
+for intentional viewlessness. Do not apply the contracted default to legacy
+Schema-only definitions.
 
 Preserve inferred Command requirements in Composition update and owned Steps.
 Build a local child fold with the parent Block's `makeOutMessageFold`

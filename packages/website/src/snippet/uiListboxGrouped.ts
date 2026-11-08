@@ -35,7 +35,6 @@ export const CharacterPickerKey = Symbol('CharacterPicker')
 export const CharacterPickerBlock = Block.make('CharacterPicker', {
   key: CharacterPickerKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

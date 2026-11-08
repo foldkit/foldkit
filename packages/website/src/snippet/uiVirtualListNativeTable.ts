@@ -26,7 +26,6 @@ export const InvoiceTableKey = Symbol('InvoiceTable')
 export const InvoiceTableBlock = Block.make('InvoiceTable', {
   key: InvoiceTableKey,
   InitArgs: Schema.Tuple([Schema.Array(Invoice)]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

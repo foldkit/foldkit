@@ -18,10 +18,14 @@
       compiler costs. Three of nine ceilings fail; no implementation is adopted.
 - [ ] Prove immediate child-operation output precision without losing emitting
       policy channels, graph registrations or later Command delivery.
-- [x] Prove the view-default refinement with source, relocated declarations,
-      focused runtime controls and all nine unchanged compiler ceilings.
-- [ ] Finish and independently review the repository-wide view migration,
-      then run the combined verification and normal push gate.
+- [x] Prove the view-default refinement with source, relocated declarations
+      and focused runtime controls. The authenticated final compiler run passes
+      eight original ceilings; layered Types exceed the original by 55.
+- [x] Integrate the independently reviewed repository-wide view migration,
+      preserving literal and generic authoring, precise view inputs and Mounts,
+      wrong-host rejection and the existing Schema-only assembly behavior.
+- [ ] Review the exact integrated view commit, then run the combined
+      verification and normal push gate.
 - [x] Isolate child-Layer editor cost in authenticated controls. Commit
       `befaa93b15` is independently reviewed; it demonstrates no latency fix.
 - [x] Refresh preview feedback. Assess the new main-targeted crash-cleanup
@@ -36,6 +40,16 @@ newer #1655 replies or new issues. Publication and a new Daybreak
 transfer remain held. These checks do not approve a main merge, accept the
 measured rendering and editor costs, or defer the open precision limitation.
 
+The [view-default proof](view-default-proof/REPORT.md) records the migration,
+source-free TypeScript 6/7 consumers and measured compiler counts. The first
+normal push caught a stale isolated passing report. Its original evidence and
+failed push log are retained. The corrected formulation uses fewer
+instantiations and adds 55 Types to the layered fixture. The lead selected an
+explicit Type-only ceiling revision from 336,291 to 336,346 under the overnight
+work authorization; this is not a user-approved performance tradeoff. All
+workload bodies and other ceilings remain unchanged. Omission declares an
+Element view; it does not make the implementation's view optional.
+
 ## November 8 rendering diagnostics
 
 - [x] Capture ordinary CPU profiles and separate precise coverage for exact
@@ -44,8 +58,10 @@ measured rendering and editor costs, or defer the open precision limitation.
       descendant views and lazy-cache counts. Preserve failed launches separately.
 - [x] Reconcile the raw timing fields and protocol differences. Instrumented
       single invocations cannot allocate the ordinary median regression.
-- [ ] Prototype the retained combined R11/R19 construction changes against
-      current source, preserving the existing ownership and lifecycle contracts.
+- [x] Prototype the retained combined R11/R19 construction changes against
+      current source, preserving ownership and lifecycle contracts. The
+      ordinary timing result does not justify adoption; retain the rejection
+      and all samples in the overnight section above.
 - [x] Independently review and push the diagnostic evidence. Rendering parity
       and editor performance remain open before main.
 
@@ -94,7 +110,7 @@ exhaustive OutMessage folds, including deliberately ignored variants.
 - [ ] Investigate whether child-operation output precision can avoid the
       reported close/focus workaround without changing `combineSteps` emission
       semantics. The pilot's placement asymmetry is not a current regression.
-- [ ] Refine the view contract: prototype Element as the ordinary default,
+- [x] Refine the view contract: prototype Element as the ordinary default,
       optional explicit view inputs, explicit Document kind and explicit
       viewless Blocks. Preserve passive contracts, portable builders and exact
       completion checks before selecting a spelling or migrating consumers.
@@ -103,7 +119,7 @@ exhaustive OutMessage folds, including deliberately ignored variants.
       of acceptable rendering or editor performance. Compare unchanged
       workloads and require an explicit decision on any remaining material
       cost; documentation alone does not approve it.
-- [ ] Investigate [#1921](https://github.com/foldkit/foldkit/pull/1921)'s animation-frame
+- [x] Investigate [#1921](https://github.com/foldkit/foldkit/pull/1921)'s animation-frame
       cadence fix against the current preview queue and lifecycle implementation.
       Treat cadence separately from time per workload. Do not transplant its
       older Runtime code.

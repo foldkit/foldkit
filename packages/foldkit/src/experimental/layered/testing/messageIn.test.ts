@@ -23,6 +23,7 @@ const LeafBlock = Block.make('StoryMessageInPathLeaf', {
   Message: LeafMessage,
   OutMessage: LeafOutMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const RememberCount = LeafBlock.makeCommand('RememberCount', {
   args: { count: Schema.Number },
@@ -65,6 +66,7 @@ const MiddleBlock = Block.make('StoryMessageInPathMiddle', {
   Model: MiddleModel,
   Message: Schema.Never,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const foldLeafOutMessage = MiddleBlock.makeOutMessageFold(LeafBlock, {
   ChangedCount: ({ count }) =>
@@ -104,6 +106,7 @@ const RootBlock = Block.make('StoryMessageInPathRoot', {
   Model: RootModel,
   Message: Schema.Never,
   InitArgs: Schema.Tuple([Schema.Boolean]),
+  view: false,
 })
 const MiddleBinding = RootBlock.makeRequiredFieldBinding(MiddleBlock, {
   field: 'middle',

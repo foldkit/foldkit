@@ -73,7 +73,6 @@ export const NotePlayerDemoKey = Symbol('NotePlayerDemo')
 export const NotePlayerDemoBlock = Block.make('NotePlayerDemo', {
   key: NotePlayerDemoKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

@@ -26,7 +26,6 @@ export const PlanPickerKey = Symbol('PlanPicker')
 export const PlanPickerBlock = Block.make('PlanPicker', {
   key: PlanPickerKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

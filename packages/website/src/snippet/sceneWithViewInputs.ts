@@ -18,7 +18,7 @@ type ViewInputs = Readonly<{ value: number; isDisabled?: boolean }>
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  view: { Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,
 })

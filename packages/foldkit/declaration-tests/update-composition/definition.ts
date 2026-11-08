@@ -28,6 +28,7 @@ export const ApplicationKey = Symbol('DraftApplication')
 export const ApplicationBlock = Block.make('DraftApplication', {
   key: ApplicationKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
   effects: { services: [DraftStore] },
   Model,
   Message,

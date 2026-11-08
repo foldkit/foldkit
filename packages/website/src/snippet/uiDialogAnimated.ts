@@ -20,7 +20,6 @@ export const AnimatedDialogExampleKey = Symbol('AnimatedDialogExample')
 export const AnimatedDialogExampleBlock = Block.make('AnimatedDialogExample', {
   key: AnimatedDialogExampleKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

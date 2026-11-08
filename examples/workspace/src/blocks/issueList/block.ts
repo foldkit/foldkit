@@ -10,7 +10,7 @@ export const IssueListKey = Symbol('IssueList')
 export const IssueListBlock = Block.make('IssueList', {
   key: IssueListKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element', Inputs: ViewInputs },
+  view: { Inputs: ViewInputs },
   Model,
   Message,
   OutMessage,

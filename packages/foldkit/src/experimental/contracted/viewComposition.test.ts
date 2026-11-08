@@ -303,6 +303,7 @@ const ViewlessDefinition = Block.makeDefinition('ViewlessAlternateCounter', {
   Model: CounterModel,
   Message: CounterMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const ViewlessComposition = ViewlessDefinition.makeComposition()
 const ViewlessImplementation = ViewlessDefinition.makeBlock(

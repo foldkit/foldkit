@@ -42,6 +42,7 @@ describe('Composition.acquireChildren', () => {
           Message: Schema.Never,
           isMessageFree: true,
           InitArgs: Schema.Tuple([]),
+          view: false,
         })
         const FirstComposition = First.makeComposition()
         const firstInit = FirstComposition.makeInit(() => {
@@ -75,6 +76,7 @@ describe('Composition.acquireChildren', () => {
           Message: Schema.Never,
           isMessageFree: true,
           InitArgs: Schema.Tuple([]),
+          view: false,
         })
         const SecondComposition = Second.makeComposition()
         const secondInit = SecondComposition.makeInit(() => {
@@ -105,6 +107,7 @@ describe('Composition.acquireChildren', () => {
           Message: Schema.Never,
           isMessageFree: true,
           InitArgs: Schema.Tuple([]),
+          view: false,
         })
         const FirstBinding = Parent.makeRequiredFieldBinding(First, {
           field: 'first',
@@ -196,6 +199,7 @@ describe('Composition.acquireChildren', () => {
           Message: Schema.Never,
           isMessageFree: true,
           InitArgs: Schema.Tuple([]),
+          view: false,
         })
         const FirstComposition = First.makeComposition()
         const firstLayer = First.makeLayer(
@@ -218,6 +222,7 @@ describe('Composition.acquireChildren', () => {
           Message: Schema.Never,
           isMessageFree: true,
           InitArgs: Schema.Tuple([]),
+          view: false,
         })
         const SecondComposition = Second.makeComposition()
         const secondLayer = Second.makeLayer(
@@ -236,6 +241,7 @@ describe('Composition.acquireChildren', () => {
           Message: Schema.Never,
           isMessageFree: true,
           InitArgs: Schema.Tuple([]),
+          view: false,
         })
         const FirstBinding = Parent.makeRequiredFieldBinding(First, {
           field: 'first',

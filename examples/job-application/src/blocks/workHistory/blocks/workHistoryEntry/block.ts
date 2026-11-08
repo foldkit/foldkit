@@ -42,7 +42,6 @@ export const WorkHistoryEntryKey = Symbol('WorkHistoryEntry')
 export const WorkHistoryEntryBlock = Block.make('WorkHistoryEntry', {
   key: WorkHistoryEntryKey,
   InitArgs: Schema.Tuple([Schema.String, CalendarDate]),
-  view: { kind: 'Element' },
   Model,
   Message,
   InMessage,

@@ -36,6 +36,7 @@ export const ApplicationBlock = Block.make('InputApplication', {
   InMessage,
   OutMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
   effects: { services: [DraftStore] },
   inMessageOutputs: { RequestedSubmit: { outMessage: OutMessage.Submitted } },
 })

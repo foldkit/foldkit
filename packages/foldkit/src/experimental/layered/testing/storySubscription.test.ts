@@ -24,6 +24,7 @@ const LeafBlock = Block.make('StorySubscriptionLeaf', {
   Message: LeafMessage,
   OutMessage: LeafOutMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const leafHandlerConstructed = vi.fn()
 const leafSubscriptions = LeafBlock.makeSubscriptions(entry => ({
@@ -98,6 +99,7 @@ const RootBlock = Block.make('StorySubscriptionRoot', {
   Model: RootModel,
   Message: RootMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const Work = RootBlock.makeCommand('Work', {
   messages: [RootMessage.CompletedWork],
@@ -174,6 +176,7 @@ const ShellBlock = Block.make('StorySubscriptionShell', {
   Model: ShellModel,
   Message: Schema.Never,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const RootBinding = ShellBlock.makeRequiredFieldBinding(RootBlock, {
   field: 'root',

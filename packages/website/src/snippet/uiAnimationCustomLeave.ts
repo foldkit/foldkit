@@ -20,6 +20,7 @@ export const AnimationExampleBlock = Block.make('AnimationExample', {
   Model,
   Message,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const {
   makeCommandsStep,

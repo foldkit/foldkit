@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "skipLibCheck": false,
+    "types": []
+  },
+  "files": ["emitted/source.accepted.d.ts", "consume.ts", "source.rejected.ts"]
+}

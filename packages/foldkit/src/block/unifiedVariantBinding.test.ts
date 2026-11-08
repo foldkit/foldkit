@@ -37,6 +37,7 @@ const ChildBlock = Block.make('UnifiedActiveVariant', {
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
   InitArgs: Schema.Tuple([Schema.Number]),
+  view: false,
   operations: {
     setCount: ChildMessage.UpdatedCount,
     notify: {
@@ -71,6 +72,7 @@ const ParentBlock = Block.make('UnifiedVariantParent', {
   Message,
   OutMessage,
   InitArgs: Schema.Tuple([Schema.Number]),
+  view: false,
 })
 const ActiveBinding = ParentBlock.makeVariantBinding(
   ChildBlock,

@@ -16,7 +16,7 @@ export const IssueDetailBlock = Block.make('IssueDetail', {
   InitArgs: Schema.Tuple([Issue.Issue]),
   Context: Schema.Tuple([Schema.Option(Issue.Issue)]),
   InMessageContext: Schema.Tuple([Schema.Option(Issue.Issue)]),
-  view: { kind: 'Element', Inputs: ViewInputs },
+  view: { Inputs: ViewInputs },
   effects: { services: [WorkspaceRepository] },
   Model,
   Message,

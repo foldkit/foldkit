@@ -17,7 +17,6 @@ export const ConfirmBlock = Block.make('Confirm', {
   Model,
   Message,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
 })
 
 const {

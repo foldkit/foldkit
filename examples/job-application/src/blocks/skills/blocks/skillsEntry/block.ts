@@ -39,7 +39,6 @@ export const SkillsEntryKey = Symbol('SkillsEntry')
 export const SkillsEntryBlock = Block.make('SkillsEntry', {
   key: SkillsEntryKey,
   InitArgs: Schema.Tuple([Schema.String]),
-  view: { kind: 'Element' },
   Model,
   Message,
   InMessage,

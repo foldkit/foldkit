@@ -24,7 +24,6 @@ export const FrequentlyAskedQuestionsBlock = Block.make(
   {
     key: FrequentlyAskedQuestionsKey,
     InitArgs: Schema.Tuple([]),
-    view: { kind: 'Element' },
     Model,
     Message,
   },

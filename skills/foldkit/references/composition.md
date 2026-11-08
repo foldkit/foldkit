@@ -15,7 +15,7 @@ the parent, and where the child renders.
 
 The Block declaration establishes the public contract and typed helpers. The Composition supplies static relationship information for portable typed builders. Ordinary record completion acquires the implementations registered by init's Composition.
 
-Declare an independent public contract before its implementation. `Block.make` binds a stable module-level unique `key`, Model, local Message, optional OutMessage, and an `InitArgs` tuple. Add a `Context` tuple for dispatch context, `ChildInitContext` for deferred child startup, and a `view` descriptor when the Block renders. A serializable tuple uses `Schema.Tuple`; callbacks or other deliberately nonserialized inputs use `Block.makeInputContract<...>()`.
+Declare an independent public contract before its implementation. `Block.make` binds a stable module-level unique `key`, Model, local Message, optional OutMessage, and an `InitArgs` tuple. Add a `Context` tuple for dispatch context and `ChildInitContext` for deferred child startup. An omitted `view` defaults to an Element view with no inputs. Use `view: { Inputs }` when that Element view accepts inputs, `view: { kind: 'Document' }` for a Document view, and `view: false` for an intentionally viewless Block. A serializable tuple uses `Schema.Tuple`; callbacks or other deliberately nonserialized inputs use `Block.makeInputContract<...>()`.
 
 Complete ordinary implementations with
 `FeatureBlock.makeLayer({ init, update, view, ... })`. Init selects the exact
@@ -50,7 +50,6 @@ export const SettingsBlock = Block.make('Settings', {
   Model,
   Message,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
 })
 const SettingsComposition = SettingsBlock.makeComposition()
 const init = SettingsComposition.makeInit(() => ({
@@ -66,7 +65,7 @@ const view = SettingsComposition.makeView((model, h) => h.p([], [model.theme]))
 export const layer = SettingsBlock.makeLayer({ init, update, view })
 ```
 
-A graphless Block still uses a Composition and passes its portable plans directly to `makeLayer`. Use `makeUpdate({})` for an empty local Message union. A leaf with an empty complete dispatch contract declares `isMessageFree: true`; a routed-only parent omits that flag because child delivery is nonempty. An InMessage does not make the local dispatch contract nonempty. A viewless Block omits the view descriptor and implementation view. For a Document root, declare `view: { kind: 'Document' }` and return a Document from the canonical view. Do not pass an operations record to completion.
+A graphless Block still uses a Composition and passes its portable plans directly to `makeLayer`. Use `makeUpdate({})` for an empty local Message union. A leaf with an empty complete dispatch contract declares `isMessageFree: true`; a routed-only parent omits that flag because child delivery is nonempty. An InMessage does not make the local dispatch contract nonempty. A viewless Block declares `view: false` and omits the implementation view. For a Document root, declare `view: { kind: 'Document' }` and return a Document from the canonical view. Do not pass an operations record to completion.
 
 ## Composing updates
 

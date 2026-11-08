@@ -11,7 +11,7 @@ export const CommandPaletteKey = Symbol('CommandPalette')
 export const CommandPaletteBlock = Block.make('CommandPalette', {
   key: CommandPaletteKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element', Inputs: ViewInputs },
+  view: { Inputs: ViewInputs },
   Model,
   Message,
   InMessage,

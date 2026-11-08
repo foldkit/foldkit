@@ -21,6 +21,7 @@ const makeValueFamily = <Value extends Schema.Codec<any, any, never, never>>(
     Message: Schema.Never,
     isMessageFree: true,
     InitArgs: Schema.Tuple([Model]),
+    view: false,
   })
   const Composition = Definition.makeComposition()
   const recipe = Definition.makeBlock(
@@ -58,6 +59,7 @@ export const FamilyDefinition = Block.makeDefinition(
     Model: FamilyModel,
     Message: FamilyMessage,
     InitArgs: Schema.Tuple([]),
+    view: false,
   },
 )
 export const NumbersBinding = FamilyDefinition.makeKeyedArrayBinding(

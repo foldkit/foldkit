@@ -81,6 +81,7 @@ export const ParentKey = Symbol('QueryPolicyParent')
 export const ParentDefinition = Block.makeDefinition('QueryPolicyParent', {
   key: ParentKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
   effects: {
     Error: Schema.instanceOf(MissingCredentials),
     services: [QuoteCredentials, QuoteProvider],

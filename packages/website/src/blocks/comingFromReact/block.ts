@@ -8,7 +8,7 @@ export const ComingFromReactKey = Symbol('ComingFromReact')
 export const ComingFromReactBlock = Block.make('ComingFromReact', {
   key: ComingFromReactKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  view: { Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,
 })

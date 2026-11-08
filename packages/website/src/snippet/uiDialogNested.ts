@@ -23,7 +23,6 @@ export const ProjectDialogsKey = Symbol('ProjectDialogs')
 export const ProjectDialogsBlock = Block.make('ProjectDialogs', {
   key: ProjectDialogsKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

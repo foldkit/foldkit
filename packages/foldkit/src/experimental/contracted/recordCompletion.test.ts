@@ -37,6 +37,7 @@ const makeChildGraph = (isSecondAcquisitionFailure = false) => {
     Model: Schema.Struct({ value: Schema.Number }),
     Message: FirstMessage,
     InitArgs: Schema.Tuple([]),
+    view: false,
   })
   const Read = First.makeCommand('Read', {
     messages: [FirstMessage.CompletedRead],
@@ -79,6 +80,7 @@ const makeChildGraph = (isSecondAcquisitionFailure = false) => {
     Message: Schema.Never,
     isMessageFree: true,
     InitArgs: Schema.Tuple([]),
+    view: false,
   })
   const SecondComposition = Second.makeComposition()
   const secondLayer = Second.makeLayer(
@@ -134,6 +136,7 @@ const makeChildGraph = (isSecondAcquisitionFailure = false) => {
     }),
     Message: Schema.Never,
     InitArgs: Schema.Tuple([]),
+    view: false,
   })
   const FirstBinding = Parent.makeRequiredFieldBinding(First, {
     field: 'first',
@@ -184,6 +187,7 @@ describe('record Block completion', () => {
         Message: Schema.Never,
         isMessageFree: true,
         InitArgs: Schema.Tuple([]),
+        view: false,
       })
       const FirstComposition = Snapshot.makeComposition()
       const SecondComposition = Snapshot.makeComposition()
@@ -256,6 +260,7 @@ describe('record Block completion', () => {
       Message: Schema.Never,
       isMessageFree: true,
       InitArgs: Schema.Tuple([]),
+      view: false,
     })
     const SecondKey = Symbol('RecordCompletionForeign')
     const Second = Block.make('RecordCompletionForeign', {
@@ -264,6 +269,7 @@ describe('record Block completion', () => {
       Message: Schema.Never,
       isMessageFree: true,
       InitArgs: Schema.Tuple([]),
+      view: false,
     })
     const ForeignComposition = Second.makeComposition()
     const layer = Reflect.apply(First.makeLayer, undefined, [
@@ -391,6 +397,7 @@ describe('record Block completion', () => {
           Model: Schema.Number,
           Message: ChildMessage,
           InitArgs: Schema.Tuple([Schema.Number]),
+          view: false,
         })
         const RememberCount = Child.makeCommand('RememberCount', {
           args: { count: Schema.Number },
@@ -419,6 +426,7 @@ describe('record Block completion', () => {
           Model: Schema.Struct({ child: Child.Model }),
           Message: ParentMessage,
           InitArgs: Schema.Tuple([Schema.Number]),
+          view: false,
           ChildInitContext: Schema.Struct({ count: Schema.Number }),
         })
         const RememberAfterChild = Parent.makeCommand('RememberAfterChild', {
@@ -505,6 +513,7 @@ describe('record Block completion', () => {
           Message: Schema.Never,
           isMessageFree: true,
           InitArgs: Schema.Tuple([]),
+          view: false,
         })
         const ChildComposition = Child.makeComposition()
         const childLayer = Child.makeLayer(
@@ -532,6 +541,7 @@ describe('record Block completion', () => {
           Message: Schema.Never,
           isMessageFree: true,
           InitArgs: Schema.Tuple([]),
+          view: false,
         })
         const FirstBinding = Parent.makeRequiredFieldBinding(Child, {
           field: 'first',
@@ -575,6 +585,7 @@ describe('record Block completion', () => {
       Model: Schema.Number,
       Message,
       InitArgs: Schema.Tuple([]),
+      view: false,
     })
     const Read = Host.makeCommand('Read', {
       messages: [Message.CompletedRead],
@@ -620,6 +631,7 @@ describe('record Block completion', () => {
       Message: Schema.Never,
       isMessageFree: true,
       InitArgs: Schema.Tuple([]),
+      view: false,
     })
     const Composition = Hybrid.makeComposition()
     const init = Composition.makeInit(() => ({ model: 0 }))
@@ -658,6 +670,7 @@ describe('record Block completion', () => {
       Message: Schema.Never,
       isMessageFree: true,
       InitArgs: Schema.Tuple([]),
+      view: false,
     })
     const Composition = Metadata.makeComposition()
     const init = Composition.makeInit(() => ({ model: 0 }))

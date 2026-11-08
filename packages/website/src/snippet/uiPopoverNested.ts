@@ -20,7 +20,6 @@ export const AccountMenuKey = Symbol('AccountMenu')
 export const AccountMenuBlock = Block.make('AccountMenu', {
   key: AccountMenuKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

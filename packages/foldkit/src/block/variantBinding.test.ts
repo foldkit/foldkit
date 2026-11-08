@@ -64,6 +64,7 @@ it('uses each child id as the default placement for whole-variant relationships'
     Model: ParentModel,
     Message: Schema.Never,
     InitArgs: Schema.Tuple([]),
+    view: false,
     isMessageFree: true,
   })
   const ActiveBinding = ParentDefinition.makeVariantBinding(
@@ -90,6 +91,7 @@ it.effect(
       Message: ChildMessage,
       OutMessage: ChildOutMessage,
       InitArgs: Schema.Tuple([Schema.Number]),
+      view: false,
       operations: {
         setCount: (count: number) =>
           Tuple.make(ChildMessage.UpdatedCount({ count })),
@@ -130,6 +132,7 @@ it.effect(
       Message: ParentMessage,
       OutMessage: ParentOutMessage,
       InitArgs: Schema.Tuple([Schema.Number]),
+      view: false,
     })
     const ChildBinding = ParentDefinition.makeVariantBinding(
       ChildDefinition.contract,

@@ -22,7 +22,6 @@ export const NotificationSettingsKey = Symbol('NotificationSettings')
 export const NotificationSettingsBlock = Block.make('NotificationSettings', {
   key: NotificationSettingsKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

@@ -72,6 +72,7 @@ const DialogParentTestKey = Symbol('DialogParentTest')
 const DialogParentTestBlock = Block.make('DialogParentTest', {
   key: DialogParentTestKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
   Model: ParentModel,
   Message: ParentMessage,
 })

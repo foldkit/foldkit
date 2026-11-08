@@ -30,6 +30,7 @@ export const defineQuery = <Name extends string, A, AI, E, EI>(
     InMessage,
     OutMessage,
     InitArgs: Schema.Tuple([]),
+    view: false,
     operations: makeQueryClockOperations(Message),
   })
   const Fetch = Definition.makeCommand('Fetch', {
@@ -64,6 +65,7 @@ export const defineSilentQuery = <Name extends string, A, AI, E, EI>(
     Message,
     InMessage,
     InitArgs: Schema.Tuple([]),
+    view: false,
     operations: makeQueryClockOperations(Message),
   })
   const Fetch = Definition.makeCommand('Fetch', {

@@ -1,0 +1,4 @@
+d28eba6a8eb714c74e1764fb03eabeebdcf511634cb6e75765b387a825412183  packages/foldkit/src/experimental/contracted/contract.ts
+2bc441e5064eb29a624cebff4e5544bb3dfb1c9af56018a0505ae582330089c4  packages/foldkit/src/experimental/contracted/configSnapshot.test.ts
+95974a25e7f5cfd405ce623a5c157e494f2f1d245b9e52d7b3002846bdb77723  internal/view-default-proof/source.accepted.ts
+d7f11ebe4eca48594bb586112108ffa114902cab2906c9ccb69cf72bb3a59563  internal/view-default-proof/source.rejected.ts

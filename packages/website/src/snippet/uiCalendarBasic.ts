@@ -35,7 +35,6 @@ export const CalendarExampleKey = Symbol('CalendarExample')
 export const CalendarExampleBlock = Block.make('CalendarExample', {
   key: CalendarExampleKey,
   InitArgs: Schema.Tuple([Flags]),
-  view: { kind: 'Element' },
   Model,
   Message,
   ChildInitContext: Flags,

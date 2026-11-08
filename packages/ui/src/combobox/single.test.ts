@@ -53,6 +53,7 @@ const FruitComboboxTestKey = Symbol('FruitComboboxTest')
 const FruitComboboxTestBlock = Block.make('FruitComboboxTest', {
   key: FruitComboboxTestKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
   operations: {
     requestSelectFruitAndClose: (item: Fruit) =>
       Tuple.make(FruitParentMessage.RequestedSelectFruitAndClose({ item })),

@@ -15,6 +15,7 @@ export const CounterBlock = Block.make('InMessagePlanOwnership', {
   Message,
   InMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 export const FirstMount = CounterBlock.makeMount('First', {
   messages: [Message.CompletedTick],
@@ -74,6 +75,7 @@ export const ChildBlock = Block.make('ConstructorUnionChild', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const childComposition = ChildBlock.makeComposition()
 export const childLayer = ChildBlock.makeLayer(
@@ -95,6 +97,7 @@ export const ParentBlock = Block.make('ConstructorUnionParent', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 export const FirstBinding = ParentBlock.makeRequiredFieldBinding(ChildBlock, {
   field: 'first',
@@ -151,6 +154,7 @@ export const EffectsBlock = Block.make('ConstructorUnionEffects', {
   Model: Schema.Number,
   Message: EffectsMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 export const First = EffectsBlock.makeCommand('First', {
   messages: [EffectsMessage.CompletedFirst],
@@ -217,6 +221,7 @@ export const HostBlock = Block.make('ConstructorUnionHost', {
   Model: Schema.Number,
   Message: EffectsMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 export const HostFirst = HostBlock.makeCommand('First', {
   messages: [EffectsMessage.CompletedFirst],
@@ -274,6 +279,7 @@ export const InputBlock = Block.make('ConstructorUnionInputs', {
   Message: EffectsMessage,
   InMessage: InputMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 export const InputFirst = InputBlock.makeCommand('First', {
   messages: [EffectsMessage.CompletedFirst],

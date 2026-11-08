@@ -35,6 +35,7 @@ const ToastFixtureParentBlock = Block.make('ToastFixtureParent', {
   Model: ParentModel,
   Message: ParentMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
   ChildInitContext: Schema.String,
 })
 
@@ -131,6 +132,7 @@ const KeyedToastFixtureParentBlock = Block.make('KeyedToastFixtureParent', {
   Model: KeyedParentModel,
   Message: KeyedParentMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
   ChildInitContext: Schema.String,
 })
 const foldKeyedToastOutMessage =

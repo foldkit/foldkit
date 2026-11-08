@@ -157,6 +157,7 @@ describe('Definition-owned construction plans', () => {
       Message: Schema.Never,
       isMessageFree: true,
       InitArgs: Schema.Tuple([]),
+      view: false,
     })
     const Composition = Definition.makeComposition()
     const body = Object.defineProperty(
@@ -191,6 +192,7 @@ describe('Definition-owned construction plans', () => {
             Model,
             Message,
             InitArgs: Schema.Tuple([Schema.String]),
+            view: false,
           },
         )
         const FirstComposition = Definition.makeComposition()

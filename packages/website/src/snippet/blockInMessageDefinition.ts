@@ -31,7 +31,6 @@ export const MessageComposerBlock = Block.make('MessageComposer', {
   InMessage,
   OutMessage,
   InitArgs: Schema.Tuple([Schema.String]),
-  view: { kind: 'Element' },
   inMessageOutputs: {
     RequestedSubmit: { outMessage: OutMessage.Submitted },
   },

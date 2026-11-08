@@ -36,6 +36,7 @@ const SelectionParentKey = Symbol('SelectionParent')
 const SelectionParentBlock = Block.make('SelectionParent', {
   key: SelectionParentKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
   Model,
   Message: Schema.Never,
 })

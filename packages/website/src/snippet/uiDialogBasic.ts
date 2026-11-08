@@ -21,7 +21,6 @@ export const DialogExampleKey = Symbol('DialogExample')
 export const DialogExampleBlock = Block.make('DialogExample', {
   key: DialogExampleKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

@@ -14,6 +14,7 @@ export const UiBlock = Block.make('Ui', {
   Message,
   InMessage,
   ChildInitContext: CalendarDate,
+  view: false,
 })
 
 export const {

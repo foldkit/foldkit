@@ -30,7 +30,6 @@ export const LoginKey = Symbol('Login')
 export const LoginBlock = Block.make('Login', {
   key: LoginKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
 
   Model,
   Message,

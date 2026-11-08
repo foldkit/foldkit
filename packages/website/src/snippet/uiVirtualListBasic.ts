@@ -33,7 +33,6 @@ export const ActivityListExampleKey = Symbol('ActivityListExample')
 export const ActivityListExampleBlock = Block.make('ActivityListExample', {
   key: ActivityListExampleKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

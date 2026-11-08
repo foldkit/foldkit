@@ -11,7 +11,6 @@ export const ProjectSettingsKey = Symbol('ProjectSettings')
 export const ProjectSettingsBlock = Block.make('ProjectSettings', {
   key: ProjectSettingsKey,
   InitArgs: Schema.Tuple([Project.Project]),
-  view: { kind: 'Element' },
   effects: { services: [WorkspaceRepository] },
   Model,
   Message,

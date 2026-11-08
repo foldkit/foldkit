@@ -25,7 +25,6 @@ export const ActivityFeedKey = Symbol('ActivityFeed')
 export const ActivityFeedBlock = Block.make('ActivityFeed', {
   key: ActivityFeedKey,
   InitArgs: Schema.Tuple([Schema.Array(Activity)]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

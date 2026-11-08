@@ -41,7 +41,6 @@ export const AsyncCounterDemoKey = Symbol('AsyncCounterDemo')
 export const AsyncCounterDemoBlock = Block.make('AsyncCounterDemo', {
   key: AsyncCounterDemoKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

@@ -23,7 +23,6 @@ export const ActionMenuExampleKey = Symbol('ActionMenuExample')
 export const ActionMenuExampleBlock = Block.make('ActionMenuExample', {
   key: ActionMenuExampleKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

@@ -47,6 +47,7 @@ import type {
   ContractConfiguration,
   Definition,
   DefinitionConfigurationArguments,
+  StaticContractConfiguration,
 } from './contract.js'
 import {
   assertInMessageConfiguration,
@@ -421,23 +422,48 @@ export function snapshotDefinitionConfiguration(config: Declaration): object {
   }
 
   if (Object.hasOwn(snapshot, 'view')) {
-    const view = snapshotRecord(snapshot['view'], 'view')
-
-    if (Object.hasOwn(view, 'mounts')) {
-      Object.defineProperty(view, 'mounts', {
+    if (snapshot['view'] === false) {
+      Object.defineProperty(snapshot, 'view', {
         configurable: false,
         enumerable: true,
-        value: snapshotArray(view['mounts'], 'view.mounts'),
+        value: false,
+        writable: false,
+      })
+    } else {
+      const view = snapshotRecord(snapshot['view'], 'view')
+
+      if (
+        Object.hasOwn(view, 'kind') &&
+        view['kind'] !== 'Element' &&
+        view['kind'] !== 'Document'
+      ) {
+        throw new Error(
+          '[foldkit] A Block view kind must be "Element" or "Document".',
+        )
+      }
+
+      if (view['kind'] === 'Document' && Object.hasOwn(view, 'Inputs')) {
+        throw new Error(
+          '[foldkit] A Document Block view cannot declare Inputs.',
+        )
+      }
+
+      if (Object.hasOwn(view, 'mounts')) {
+        Object.defineProperty(view, 'mounts', {
+          configurable: false,
+          enumerable: true,
+          value: snapshotArray(view['mounts'], 'view.mounts'),
+          writable: false,
+        })
+      }
+
+      Object.defineProperty(snapshot, 'view', {
+        configurable: false,
+        enumerable: true,
+        value: Object.freeze(view),
         writable: false,
       })
     }
-
-    Object.defineProperty(snapshot, 'view', {
-      configurable: false,
-      enumerable: true,
-      value: Object.freeze(view),
-      writable: false,
-    })
   }
 
   if (Object.hasOwn(snapshot, 'codec')) {
@@ -531,6 +557,7 @@ export const makeDefinition = <
   id: Id & LiteralContractId<Id>,
   config: Config &
     Readonly<{ key: Key }> &
+    StaticContractConfiguration &
     (symbol extends Key ? never : true extends IsUnion<Key> ? never : unknown),
   ..._validation: readonly [
     ...MessageFreeValidation<NoInfer<Config & Readonly<{ key: Key }>>>,
@@ -552,6 +579,7 @@ export interface ContractNamespaceMakeDefinition<Id extends string> {
   <const Key extends symbol, const Config extends Omit<Declaration, 'key'>>(
     config: Config &
       Readonly<{ key: Key }> &
+      StaticContractConfiguration &
       (symbol extends Key
         ? never
         : true extends IsUnion<Key>
@@ -679,7 +707,9 @@ export const makeDefinitionRuntime = (
   })
   const operations = operationMessages(config)
   const publishedMounts = Object.freeze(
-    globalThis.Array.from(config.view?.mounts ?? []),
+    globalThis.Array.from(
+      config.view === false ? [] : (config.view?.mounts ?? []),
+    ),
   )
 
   if (isOrdinaryDeclaration) {

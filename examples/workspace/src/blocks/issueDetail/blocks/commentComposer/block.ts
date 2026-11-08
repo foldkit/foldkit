@@ -11,7 +11,7 @@ export const CommentComposerKey = Symbol('CommentComposer')
 export const CommentComposerBlock = Block.make('CommentComposer', {
   key: CommentComposerKey,
   InitArgs: Schema.Tuple([Schema.String, Schema.optional(Schema.String)]),
-  view: { kind: 'Element', Inputs: ViewInputs },
+  view: { Inputs: ViewInputs },
   effects: { services: [WorkspaceRepository] },
   Model,
   Message,

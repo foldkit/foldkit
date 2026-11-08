@@ -32,6 +32,7 @@ const Child = Block.make('DirectBlockLayerChild', {
   Message: ChildMessage,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const ChildComposition = Child.makeComposition()
 const childInit = ChildComposition.makeInit(() => ({ model: { value: 7 } }))
@@ -109,6 +110,7 @@ const ForeignChild = Block.make('DirectBlockLayerForeignChild', {
   Message: ChildMessage,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const ForeignChildComposition = ForeignChild.makeComposition()
 const foreignChildLayer = ForeignChild.makeLayer(

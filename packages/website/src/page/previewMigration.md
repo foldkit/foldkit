@@ -57,6 +57,8 @@ The candidate keeps typed Block and Composition builders and completes ordinary 
 
 Declare each feature once as `FooBlock = Block.make(...)`, with a module-level unique `key` and an `InitArgs` tuple. Export that same Block and its implementation `layer`. Parents bind the Block and provide child implementation Layers through ordinary `Layer.provide`.
 
+An omitted `view` on this contracted Block declares an Element view with no inputs. Use `view: { Inputs }` when the Element view accepts inputs, keep `view: { kind: 'Document' }` explicit for a page-owning root, and use `view: false` for an intentionally viewless completed Block. Do not change legacy Schema-only `makeDefinition` assembly solely to adopt this spelling.
+
 ::Snippet{name="blockFeatureExports" label="Public contract and implementation Layer"}
 
 `FeatureBlock.makeLayer` checks the implementation without running it. Its ordinary record form acquires the Binding inventory selected by init's Composition when the host builds the Layer under its Scope. Construction does not initialize a Model, evaluate deferred child arguments, construct handler Layers, or start lifecycle work. Acquired init, update, and operations remain pure and synchronous.

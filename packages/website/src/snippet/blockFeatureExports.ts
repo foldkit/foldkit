@@ -15,7 +15,6 @@ export const SettingsBlock = Block.make('Settings', {
   InMessage,
   OutMessage,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   inMessageOutputs: {
     RequestedReset: {
       outMessage: OutMessage.ChangedTheme,

@@ -13,7 +13,6 @@ const ElementBlock = Block.make('Application', {
   Model,
   Message,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
 })
 const ElementComposition = ElementBlock.makeComposition()
 

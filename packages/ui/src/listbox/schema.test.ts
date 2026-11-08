@@ -92,6 +92,7 @@ const ParentKey = Symbol('ListboxSchemaParent')
 const ListboxSchemaParentBlock = Block.make('ListboxSchemaParent', {
   key: ParentKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
   Model: ParentModel,
   Message: Schema.Never,
 })

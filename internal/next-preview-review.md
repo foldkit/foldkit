@@ -16,8 +16,16 @@
 - [x] Independently audit and reject the paired construction prototype as a
       production optimization. Preserve the failed outer timing receipt and
       secondary readback without claiming a reliable speedup.
-- [ ] Independently review the full view-default migration and combined gates.
-      The isolated source, emitted, runtime and unchanged-ceiling proof passes.
+- [x] Independently review the full isolated view-default migration, including
+      generic forwarders, optional input and Mount rejection, mixed-contract
+      completion controls and source-free consumers.
+- [x] Reject the stale isolated compiler table after the normal push fails.
+      Authenticate the corrected source and declaration hashes against all
+      nine original budgets, retaining the sole 55-Type layered overrun and
+      every original failed receipt. Review the exact Type-only revision;
+      no latency improvement or user acceptance is inferred.
+- [ ] Review the exact integrated view-default commit and complete combined
+      checks before push.
 - [ ] Complete current-source ordinary timings after diagnosing the cadence
       callback-count change; use duplicate baselines and unchanged workloads.
 - [x] Keep main-targeted crash cleanup separate and flag cross-runtime resource

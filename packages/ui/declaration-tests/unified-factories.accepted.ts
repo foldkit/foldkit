@@ -85,6 +85,7 @@ export const MenuParentKey = Symbol('MenuParent')
 export const MenuParentBlock = Block.make('MenuParent', {
   key: MenuParentKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
   Model: Schema.Struct({ fruitMenu: FruitMenu.Model }),
   Message: Schema.Never,
 })

@@ -11,7 +11,7 @@ export const IssueBoardKey = Symbol('IssueBoard')
 export const IssueBoardBlock = Block.make('IssueBoard', {
   key: IssueBoardKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element', Inputs: ViewInputs },
+  view: { Inputs: ViewInputs },
   Model,
   Message,
   InMessage,

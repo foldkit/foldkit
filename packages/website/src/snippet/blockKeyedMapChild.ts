@@ -15,6 +15,7 @@ export const EntryKey = Symbol('Entry')
 export const EntryBlock = Block.make('Entry', {
   key: EntryKey,
   InitArgs: Schema.Tuple([Schema.String]),
+  view: false,
   InMessage,
   isMessageFree: true,
 

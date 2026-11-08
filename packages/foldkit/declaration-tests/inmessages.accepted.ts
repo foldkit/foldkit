@@ -65,6 +65,7 @@ export const CounterDefinition = Block.makeDefinition('InMessagesCounter', {
   InMessage,
   OutMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
   inMessageOutputs: {
     RequestedReport: { outMessage: OutMessage.Reported },
   },
@@ -193,6 +194,7 @@ export const ParentDefinition = Block.makeDefinition('InMessagesParent', {
   InMessage: ParentInMessage,
   OutMessage: ParentOutMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
   inMessageOutputs: {
     RequestedReportChild: { outMessage: ParentOutMessage.ChildReported },
   },
@@ -270,6 +272,7 @@ export const InputOnlyDefinition = Block.makeDefinition('InMessagesInputOnly', {
   InMessage: InputOnlyInMessage,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 export const InputOnlyContract = InputOnlyDefinition.contract
 export const InputOnlyComposition = InputOnlyDefinition.makeComposition()
@@ -339,6 +342,7 @@ export const makeInputFamily = <Value, Encoded>(
     OutMessage: FamilyOutMessage,
     isMessageFree: true,
     InitArgs: Block.makeInputContract<readonly [value: Value]>(),
+    view: false,
     inMessageOutputs: {
       RequestedSet: { outMessage: FamilyOutMessage.Reported },
     },

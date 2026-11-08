@@ -33,6 +33,7 @@ const GenericMenuBindingIdentityBlock = Block.make(
     Message,
     OutMessage,
     InitArgs: Schema.Tuple([]),
+    view: false,
     ChildInitContext: Menu.InitConfig,
   },
 )

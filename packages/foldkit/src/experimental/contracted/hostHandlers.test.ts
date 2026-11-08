@@ -237,6 +237,7 @@ describe('ordinary Block host-handler selection', () => {
       Model,
       Message,
       InitArgs: Schema.Tuple([]),
+      view: false,
       effects: Block.makeEffectsContract<BuildFailure>(),
     })
     const ReadFailure = FailureDefinition.makeCommand('ReadFailure', {
@@ -404,6 +405,7 @@ describe('ordinary Block host-handler selection', () => {
       Message: Schema.Never,
       isMessageFree: true,
       InitArgs: Schema.Tuple([]),
+      view: false,
     })
     const ChildComposition = ChildDefinition.makeComposition()
     const ChildBlock = ChildDefinition.makeBlock(
@@ -422,6 +424,7 @@ describe('ordinary Block host-handler selection', () => {
       }),
       Message,
       InitArgs: Schema.Tuple([]),
+      view: false,
       effects: { services: [HostValue] },
     })
     const ChildBinding = ParentDefinition.makeRequiredFieldBinding(

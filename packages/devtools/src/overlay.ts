@@ -393,7 +393,6 @@ const ApplicationKey = Symbol('Application')
 const ApplicationDefinition = Block.makeDefinition('Application', {
   key: ApplicationKey,
   InitArgs: Schema.Tuple([Flags]),
-  view: { kind: 'Element' },
   effects: {
     services: [StoreService, ShadowRootService, KeyValueStore.KeyValueStore],
   },

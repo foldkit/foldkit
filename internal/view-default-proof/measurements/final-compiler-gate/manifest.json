@@ -1,0 +1,27 @@
+{
+  "node": "v26.13.0",
+  "typescript": "7.1.0-beta",
+  "oldBudgetResult": "8 of 9 passed; layered-composition-6 failed only Types by 55",
+  "layeredComposition6": {
+    "instantiations": 2706693,
+    "types": 336346,
+    "symbols": 238978,
+    "originalInstantiationsMaximum": 2707124,
+    "originalTypesMaximum": 336291,
+    "proposedExactTypesMaximum": 336346
+  },
+  "files": {
+    "README.md": "2ca75955e0c54358f05968d4885ad4553ce463a58ff58e29f15ec54539201204",
+    "all-nine-old-budgets-final.log.gz": "dcc08e04016dedf6fa45f00ce44eacf9826b488cc021c00499e062b7a5c140cd",
+    "all-nine-old-budgets-first-authenticated.log.gz": "dcc08e04016dedf6fa45f00ce44eacf9826b488cc021c00499e062b7a5c140cd",
+    "before-dist-dts.sha256": "c73987569708f749620104178a319e707e2a933670883d656954462691741b81",
+    "before-owned-source.sha256": "98f34da861604bc1dc03798ce615ba6cf82895525733f030be164448b9f5de7d",
+    "before-type-performance.sha256": "342f616e70ec3bcae917d1480c7aa4f8c8aa08d65a2c6a7700978c1fb17d2c5a",
+    "final-after-dist-dts.sha256": "c73987569708f749620104178a319e707e2a933670883d656954462691741b81",
+    "final-after-owned-source.sha256": "98f34da861604bc1dc03798ce615ba6cf82895525733f030be164448b9f5de7d",
+    "final-after-type-performance.sha256": "342f616e70ec3bcae917d1480c7aa4f8c8aa08d65a2c6a7700978c1fb17d2c5a",
+    "proposed-layered-type-ceiling.patch": "a94a466df63b1e237a25f5f960cc5be8c0f5702bca024cdd62fefbc2fdc57fe1",
+    "toolchain.txt": "86014ff0b51bc346eccf3b4574f9dcdffc6e43b8342028305d4ee842785452ef"
+  },
+  "rawLogSha256": "0ae433ca44fb935a38a6bc4fbf6b493d363025c4ac62f70e26f9d727b86590cf"
+}

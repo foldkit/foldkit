@@ -28,6 +28,7 @@ const DifferentSessionKey = Symbol('DifferentSession')
 const DifferentSessionBlock = Block.make('DifferentSession', {
   ...config,
   key: DifferentSessionKey,
+  view: false,
 })
 
 // @ts-expect-error ManagedResource requirements use effects.managedResources.

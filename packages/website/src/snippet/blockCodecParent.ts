@@ -15,7 +15,6 @@ export const ApplicationBlock = Block.make('Application', {
   Model,
   Message,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
 })
 const { makeRequiredFieldBinding, makeComposition, makeNoopStep } =
   ApplicationBlock

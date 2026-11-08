@@ -27,7 +27,6 @@ export const SortableListKey = Symbol('SortableList')
 export const SortableListBlock = Block.make('SortableList', {
   key: SortableListKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

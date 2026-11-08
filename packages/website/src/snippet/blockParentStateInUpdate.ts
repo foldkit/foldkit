@@ -25,7 +25,6 @@ export const AccountSettingsBlock = Block.make('AccountSettings', {
   key: AccountSettingsKey,
   InitArgs: Schema.Tuple([]),
   Context: Schema.Tuple([CurrentUser]),
-  view: { kind: 'Element' },
   Model: AccountSettingsModel,
   Message: AccountSettingsMessage,
 })

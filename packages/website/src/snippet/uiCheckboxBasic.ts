@@ -22,7 +22,6 @@ export const TermsFormKey = Symbol('TermsForm')
 export const TermsFormBlock = Block.make('TermsForm', {
   key: TermsFormKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

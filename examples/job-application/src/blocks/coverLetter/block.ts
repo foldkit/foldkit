@@ -19,7 +19,6 @@ export const CoverLetterKey = Symbol('CoverLetter')
 export const CoverLetterBlock = Block.make('CoverLetter', {
   key: CoverLetterKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

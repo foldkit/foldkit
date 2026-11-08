@@ -732,6 +732,7 @@ const WithOutMessageOnlyBlock = Block.make('WithOutMessageOnly', {
   Message: ShapeMessage,
   OutMessage: ShapeOutMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const WithOutMessageOnlyComposition = WithOutMessageOnlyBlock.makeComposition()
 export const WithOutMessageOnly = WithOutMessageOnlyBlock
@@ -780,6 +781,7 @@ const WithoutViewOrOutMessageBlock = Block.make('WithoutViewOrOutMessage', {
   Model: ShapeModel,
   Message: ShapeMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const WithoutViewOrOutMessageComposition =
   WithoutViewOrOutMessageBlock.makeComposition()

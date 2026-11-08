@@ -9,7 +9,7 @@ export const MemberDirectoryKey = Symbol('MemberDirectory')
 export const MemberDirectoryBlock = Block.make('MemberDirectory', {
   key: MemberDirectoryKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element', Inputs: ViewInputs },
+  view: { Inputs: ViewInputs },
   Model,
   Message,
 })

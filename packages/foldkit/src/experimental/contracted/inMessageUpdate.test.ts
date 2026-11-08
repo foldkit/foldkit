@@ -36,6 +36,7 @@ const Definition = Block.makeDefinition('InputOnlyRuntime', {
   InMessage,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const Composition = Definition.makeComposition()
 const init = Composition.makeInit(() => ({ model: Model.make({ value: 0 }) }))
@@ -197,6 +198,7 @@ describe('separate InMessage execution', () => {
           Model: Schema.Struct({ child: Model }),
           Message: ParentMessage,
           InitArgs: Schema.Tuple([]),
+          view: false,
         })
         const ChildBinding = ParentDefinition.makeRequiredFieldBinding(
           Definition.contract,
@@ -262,6 +264,7 @@ describe('separate InMessage execution', () => {
             OutMessage: Reported,
             isMessageFree: true,
             InitArgs: Schema.Tuple([]),
+            view: false,
             inMessageOutputs: {
               RequestedReport: { outMessage: Reported.Reported },
             },
@@ -292,6 +295,7 @@ describe('separate InMessage execution', () => {
           InMessage: ReportInput,
           isMessageFree: true,
           InitArgs: Schema.Tuple([]),
+          view: false,
         })
         const ReporterBinding = ParentDefinition.makeRequiredFieldBinding(
           ReporterDefinition.contract,

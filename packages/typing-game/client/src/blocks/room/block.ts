@@ -14,7 +14,7 @@ export const RoomBlock = Block.make('Room', {
   InitArgs: Schema.Tuple([Schema.Option(Schema.String)]),
   Context: Schema.Tuple([Context]),
   InMessageContext: Schema.Tuple([Context]),
-  view: { kind: 'Element', Inputs: Schema.Struct({ roomId: Schema.String }) },
+  view: { Inputs: Schema.Struct({ roomId: Schema.String }) },
   effects: { services: [RoomsClient, KeyValueStore.KeyValueStore] },
   Model,
   Message,

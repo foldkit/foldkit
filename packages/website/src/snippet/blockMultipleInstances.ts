@@ -9,7 +9,6 @@ export const ApplicationKey = Symbol('Application')
 const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

@@ -11,7 +11,7 @@ export const NotificationCenterKey = Symbol('NotificationCenter')
 export const NotificationCenterBlock = Block.make('NotificationCenter', {
   key: NotificationCenterKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element', Inputs: ViewInputs },
+  view: { Inputs: ViewInputs },
   Model,
   Message,
   InMessage,

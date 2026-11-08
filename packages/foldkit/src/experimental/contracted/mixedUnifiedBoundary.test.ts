@@ -12,6 +12,7 @@ const LegacyChildDefinition = Block.makeDefinition('MixedLegacyChild', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const LegacyChild = LegacyChildDefinition.contract
 const LegacyChildComposition = LegacyChildDefinition.makeComposition()
@@ -30,6 +31,7 @@ const UnifiedParent = Block.make('MixedUnifiedParent', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const LegacyChildBinding = UnifiedParent.makeRequiredFieldBinding(LegacyChild, {
   field: 'child',
@@ -55,6 +57,7 @@ const UnifiedChild = Block.make('MixedUnifiedChild', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const UnifiedChildComposition = UnifiedChild.makeComposition()
 const unifiedChildLayer = UnifiedChild.makeLayer(
@@ -71,6 +74,7 @@ const LegacyParent = Block.makeDefinition('MixedLegacyParent', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const UnifiedChildBinding = LegacyParent.makeRequiredFieldBinding(
   UnifiedChild,

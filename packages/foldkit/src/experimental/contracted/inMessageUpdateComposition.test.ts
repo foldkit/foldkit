@@ -28,6 +28,7 @@ const EditorDefinition = Block.makeDefinition('InputEditor', {
   InMessage: EditorInMessage,
   OutMessage: EditorOutMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
   inMessageOutputs: {
     InformedOfTextChange: { outMessage: EditorOutMessage.Edited },
   },
@@ -88,6 +89,7 @@ const ApplicationDefinition = Block.makeDefinition('InputApplication', {
   InMessage,
   OutMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
   effects: { services: [DraftStore] },
   inMessageOutputs: { RequestedSubmit: { outMessage: OutMessage.Submitted } },
 })
@@ -195,6 +197,7 @@ const ContextDefinition = Block.makeDefinition('InputContexts', {
   Message: ContextMessage,
   InMessage: ContextInMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
   Context: Schema.Tuple([Schema.Number]),
   InMessageContext:
     Block.makeInputContract<

@@ -9,7 +9,7 @@ export const SnippetDisclosureKey = Symbol('SnippetDisclosure')
 export const SnippetDisclosureBlock = Block.make('SnippetDisclosure', {
   key: SnippetDisclosureKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  view: { Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,
 })

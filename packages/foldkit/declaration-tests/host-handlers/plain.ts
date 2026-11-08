@@ -10,6 +10,7 @@ export const PlainDefinition = Block.makeDefinition(
     Message: Schema.Never,
     isMessageFree: true,
     InitArgs: Schema.Tuple([]),
+    view: false,
   },
 )
 const PlainComposition = PlainDefinition.makeComposition()

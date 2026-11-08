@@ -18,7 +18,6 @@ export const ThemePickerKey = Symbol('ThemePicker')
 export const ThemePickerBlock = Block.make('ThemePicker', {
   key: ThemePickerKey,
   InitArgs: Schema.Tuple([Theme]),
-  view: { kind: 'Element' },
   Model: ThemePickerModel,
   Message: ThemePickerMessage,
 })

@@ -32,6 +32,7 @@ const ParentKey = Symbol('PopoverBindingClose')
 const PopoverBindingCloseBlock = Block.make('PopoverBindingClose', {
   key: ParentKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
   Model,
   Message,
 })

@@ -30,7 +30,6 @@ export const PeoplePickerKey = Symbol('PeoplePicker')
 export const PeoplePickerBlock = Block.make('PeoplePicker', {
   key: PeoplePickerKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

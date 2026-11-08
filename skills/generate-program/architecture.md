@@ -594,6 +594,8 @@ Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, o
 
 Establish `FooBlock` once at module scope with a unique `key`, Model, local Message, `InitArgs` tuple, optional Context/OutMessage/ChildInitContext, view inputs and operation/effect contracts. Export `FooBlock = Block.make(...)` for parents. Register static relationships in `FooComposition`, author portable init/update/view plans, then complete ordinary implementations with `FooBlock.makeLayer({ init, update, view, ... })`; init selects the Composition's registered inventory and Foldkit acquires it automatically. Export the implementation `layer` and provide child Layers separately. Program and Server receive `{ block: ApplicationBlock, layer }`. Reserve the explicit Effect constructor and `children` result for genuine graph-construction dependencies, scoped resources, or code that uses acquired handles. Read [Block composition and Layers](../foldkit/references/composition.md) for the complete spelling and ownership rules.
 
+An ordinary `Block.make` contract with no `view` entry defaults to an Element view with no inputs. Use `view: { Inputs }` for an Element view with inputs, `view: { kind: 'Document' }` for a Document view, and `view: false` for a viewless Block. Legacy Schema-only definitions keep their existing assembly semantics.
+
 ### Without Routing
 
 ```ts

@@ -22,7 +22,6 @@ export const LabelEditorBlock = Block.make('LabelEditor', {
   Model,
   Message,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
 })
 const { makeComposition } = LabelEditorBlock
 const LabelEditorComposition = makeComposition()

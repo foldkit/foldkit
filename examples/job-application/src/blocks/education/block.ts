@@ -27,7 +27,6 @@ export const EducationKey = Symbol('Education')
 export const EducationBlock = Block.make('Education', {
   key: EducationKey,
   InitArgs: Schema.Tuple([Calendar.CalendarDate, Schema.String]),
-  view: { kind: 'Element' },
   effects: { services: [SecureRandom.SecureRandom] },
   Model,
   Message,

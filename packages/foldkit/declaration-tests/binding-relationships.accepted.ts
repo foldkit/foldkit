@@ -37,6 +37,7 @@ export const ChildBlock = Block.make('BindingRelationshipsChild', {
   Model: ChildModel,
   Message: ChildMessage,
   InitArgs: Schema.Tuple([ChildId, Schema.String]),
+  view: false,
   effects: { services: [ChildStore], Error: HandlerUnavailable },
   operations: {
     requestRead: ChildMessage.RequestedRead,
@@ -298,6 +299,7 @@ export const ServiceParentBlock = Block.make(
     Model: ServiceParentModel,
     Message: Schema.Never,
     InitArgs: Schema.Tuple([]),
+    view: false,
     ChildInitContext: ServiceParentChildInitContext,
     effects: { services: [ChildStore], Error: HandlerUnavailable },
   },

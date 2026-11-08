@@ -343,6 +343,8 @@ Declare the root's unique key, InitArgs, Model, Message, and view contract in `A
 
 Use a Document view for `Program.make` and an Element view for `Program.makeElement`. Importing the Block declaration or Layer does not construct its graph or run init.
 
+For contracted Blocks, remove a redundant `view: { kind: 'Element' }`: omission now declares an Element view with no inputs. Keep only `view: { Inputs }` for Element inputs. Keep `view: { kind: 'Document' }` explicit, and change a completed viewless contracted Block to `view: false` so its intent remains visible. Legacy Schema-only `makeDefinition` assembly keeps its existing view semantics.
+
 ### Create the browser Program
 
 Create the browser host in `entry.ts`. Use `Program.make` for a page-owning application or `Program.makeElement` for an application scoped to its container. Pass `block: ApplicationBlock` and its construction `layer`, alongside the container, Flags, routing, DevTools and other browser host options. Supply ordinary Services with `program.provide(ApplicationLayer)` before starting the Runtime.
