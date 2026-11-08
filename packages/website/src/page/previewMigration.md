@@ -14,7 +14,9 @@ The deployment URL and manifest belong together. Do not copy a guide from one pr
 
 For an agent-assisted migration, give the agent this guide's full deployment URL and the `/preview-release.json` URL from that same deployment. The ready announcement includes prompts with the source commit and package versions already pinned. Ask the agent to preserve the application's existing behavior, run its real checks, and fix type errors at the ownership boundary instead of adding broad casts.
 
-Update every installed Foldkit package named by the manifest as one snapshot. Keep `effect` and `@effect/platform-browser` on the exact peer versions declared by those packages. Commit the resulting lockfile only after the application compiles and its tests pass.
+Update every installed Foldkit package named by the manifest as one snapshot. The repository and generated app pin `effect` and `@effect/platform-browser` to 4.1.0 for reproducible verification. Published Foldkit peers support compatible patches through `~4.1.0`; that range is a compatibility contract, not a claim that every 4.1.x patch was exercised by the repository. Prefer the verified 4.1.0 pins for a reproducible migration. If the application deliberately selects a later compatible patch, update every declared Effect package together, keep one Effect runtime in the application graph, and run the application's complete checks. Commit the resulting lockfile only after the application compiles and its tests pass.
+
+For an npm workspace, update every sharing workspace manifest and reconcile stable third-party constraints before regenerating the affected lockfile graph. Do not begin by deleting the whole lockfile. Preserve the original lockfile and any install error, regenerate the graph from the workspace root, then run `npm ci`. Inspect the resolved Foldkit versions and physical Effect installations, and confirm that the application resolves one compatible Effect runtime. One reported migration recovered from retained Effect 4.0 records by removing only the affected Effect and Foldkit records before regenerating the lockfile; Foldkit has not reproduced that recovery locally, so it is documented as a bounded fallback rather than the default procedure. See [Verify an npm workspace upgrade](/preview-upgrade#verify-an-npm-workspace-upgrade) for its scope, commands, and evidence requirements.
 
 The stable package lane was checked against the published `foldkit@0.169.0` and `@foldkit/ui@0.169.0` APIs with `effect@4.0.0` and `@effect/platform-browser@4.0.0`. Those packages were released from Foldkit commit `7ee214268c602967937b80f6f20d1e831f2e8ab6`.
 
@@ -62,6 +64,12 @@ An omitted `view` on this contracted Block declares an Element view with no inpu
 ::Snippet{name="blockFeatureExports" label="Public contract and implementation Layer"}
 
 `FeatureBlock.makeLayer` checks the implementation without running it. Its ordinary record form acquires the Binding inventory selected by init's Composition when the host builds the Layer under its Scope. Construction does not initialize a Model, evaluate deferred child arguments, construct handler Layers, or start lifecycle work. Acquired init, update, and operations remain pure and synchronous.
+
+Keep an explicit local-Message operation when its public arguments intentionally enter the Block's ordinary update. Put the local Message constructor directly in the declaration's `operations` record:
+
+::Snippet{name="previewLocalMessageOperation" label="Declaring a local Message operation"}
+
+After acquisition, `block.operations.rename(model, { name })` returns the readable update result. A registered parent Binding exposes `ProfileBinding.rename({ name })`, with the occurrence key first for a keyed Binding. Use InMessage instead when the input is a parent request or notification rather than an adapter to an existing local Message. See [explicit operation arguments](/core/block#adapt-explicit-operation-arguments) for mapped tuples, context, and output contracts.
 
 Complete builder expressions retain inference inline, in implementation-local values, and in extracted modules. Remove private `prepare` functions and application assembly annotations after moving to the declared contract. Keep the existing child storage, policies, operations, and lifecycle ownership. See [Block](/core/block) for the full authoring flow.
 
@@ -416,7 +424,7 @@ For a generic UI factory, the concrete public Block contract owns the result Mes
 
 Enable the current Foldkit Oxlint preset before treating the migration as finished. Its Block rules catch manual child routing, direct child Model updates, child Message construction in a parent, empty OutMessage forwarding, unstable component factories, and naming mismatches. Fix the reported ownership problem; do not disable the rule around migrated code.
 
-After typecheck and lint pass, run the application's full Story, Scene, unit, integration, browser, SSR or SSG, and production build checks that were green in the baseline. Verify the lockfile contains only the exact preview snapshot from the deployment manifest and the exact compatible Effect peers.
+After typecheck and lint pass, run the application's full Story, Scene, unit, integration, browser, SSR or SSG, and production build checks that were green in the baseline. Verify the lockfile contains only the exact preview snapshot from the deployment manifest and one compatible Effect runtime graph. A deliberate Effect patch newer than the repository's verified 4.1.0 pins remains within the published `~4.1.0` peer range, but requires the application's own complete verification.
 
 ### Linked Packages and Duplicate Foldkit Copies
 

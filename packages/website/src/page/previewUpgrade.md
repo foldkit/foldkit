@@ -52,7 +52,17 @@ Inspect the physical Effect installations too:
 
 The result lists installed Effect copies and their locations. Check that the application and its Foldkit packages resolve the same installation. A workspace can contain other copies used by separate applications or tools; inspect the dependency tree to establish which copies enter the application graph. Choose matching Effect and platform versions as described in [Effect compatibility](#effect-compatibility), then repeat both checks.
 
-After updating manifests and the lockfile, run `npm ci` to verify that the lockfile reproduces the intended graph. Preserve the existing lockfile while diagnosing an upgrade; an older workspace constraint can explain a retained version without a corrupt lockfile. If a prerelease lockfile still cannot resolve the declared target, retain the npm version, manifests, lockfile and error for a reproduction before attempting a wider lockfile regeneration.
+Reconcile every sharing workspace manifest and stable third-party constraint before editing lockfile package records. An older workspace or dependency constraint can retain Effect 4.0 without making the lockfile corrupt. After updating the manifests and lockfile, run `npm ci` to verify that the lockfile reproduces the intended graph. Preserve the original lockfile and install error while diagnosing the upgrade.
+
+One reported migration still encountered stale Effect 4.0 or earlier-preview peer records after those manifest constraints were reconciled. The reporter used the targeted recovery below. Foldkit has not reproduced this lockfile repair locally, so do not treat it as the default remediation:
+
+1. Keep the failed lockfile and error as reproduction evidence.
+2. Confirm again that every sharing workspace manifest and stable third-party dependency accepts the new Foldkit snapshot and compatible Effect set.
+3. Remove only the affected `effect`, `@effect/*`, `foldkit`, and `@foldkit/*` records from the lockfile. Leave every unrelated package record intact.
+4. Run `npm install --package-lock-only` from the workspace root, followed by `npm ci` against the resulting lockfile.
+5. Repeat both inspections above. Confirm that the application resolves one Foldkit snapshot and one compatible Effect runtime.
+
+If choosing that fallback, keep the npm version, manifests, before-and-after lockfiles, command, and result together. If it still fails, retain those artifacts before attempting a wider regeneration.
 
 ## Rename child notification methods
 
@@ -215,11 +225,11 @@ Run [the upgrade checks](#verify-the-upgrade), including public declaration outp
 
 ### Effect compatibility
 
-This candidate requires Effect 4.1. Published peers accept patch updates through `~4.1.0` for `effect` and `@effect/platform-browser`. Repository and generated-app dependencies remain exactly pinned to 4.1.0 for reproducible verification. Effect minor releases can change APIs, so each minor upgrade is reviewed before Foldkit widens its supported range. The 4.0.0 and 4.0.6 pairs supported by earlier previews are outside this candidate's range.
+This candidate requires Effect 4.1. Published peers accept compatible patches through `~4.1.0` for `effect` and `@effect/platform-browser`. Repository and generated-app dependencies remain exactly pinned to 4.1.0; those exact pins are the reproducibly verified package set. The peer range is a support contract, not a claim that every later 4.1.x patch was run locally. Effect minor releases can change APIs, so each minor upgrade is reviewed before Foldkit widens its supported range. The 4.0.0 and 4.0.6 pairs supported by earlier previews are outside this candidate's range.
 
 The Node adapter, Vite plugin, and DevTools MCP require Node.js 22.19.0 or newer. Keep the scaffolder's separate engine requirement when generating an app.
 
-Upgrade Effect and every declared platform package together within the supported minor. Pin an already declared `@effect/platform-browser` dependency to the same tested version as Effect, preserving its dependency placement. Keep one resolved Effect runtime: a successful install can still leave nested copies in a workspace.
+Upgrade Effect and every declared platform package together within the supported minor. For the repository-verified set, pin an already declared `@effect/platform-browser` dependency to 4.1.0 with Effect 4.1.0, preserving its dependency placement. If the application deliberately selects a later compatible patch, align every declared Effect package to a mutually compatible 4.1.x set and run the application's complete checks. Keep one resolved Effect runtime: a successful install can still leave nested copies in a workspace.
 
 Effect 4.1 replaces `Crypto.Crypto` with the services under `effect/crypto`. For UUID generation, import `SecureRandom`, capture `SecureRandom.SecureRandom` in the handler constructor, and call its `uuidV4()` method inside the invocation Effect. Supply `BrowserCrypto.layerSecureRandom` at the application root. UUID generation has no typed error channel, so it no longer needs `Effect.orDie`, a catch, or a paired failure Message. See [deferred execution boundaries](/tooling/linting#deferred-execution-boundaries).
 
@@ -234,6 +244,12 @@ This override selects platform-browser 4.1.0 for an application using Effect 4.1
 Inline Model-aware `makeStep` producers now infer the exact Message from their handler-record entry, including `.withContext`. Redundant Message parameter annotations can be removed at those inline sites. Extracted Steps retain their own precise parameter contracts. See [handlers and Steps](/core/update#choosing-between-handlers-and-steps).
 
 Contextual update records now accept compatible Steps and Binding operations directly, including records that mix them with callback handlers. Remove an adapter such as `model => close(model)` when it only forwards to the Step. Keep callbacks that map payloads, derive arguments or supply context.
+
+An explicit adapter to an existing local Message remains supported. Put the Message constructor directly under the Block declaration's `operations` record when the public operation takes that constructor's payload unchanged:
+
+::Snippet{name="previewLocalMessageOperation" label="Declaring a local Message operation"}
+
+The acquired Block exposes `block.operations.rename(model, { name })`; a registered parent Binding exposes `ProfileBinding.rename({ name })`. Use a tuple producer for argument mapping or update context. Use InMessage for parent requests and notifications that are not existing local Messages. See [explicit operation arguments](/core/block#adapt-explicit-operation-arguments) for the complete boundary.
 
 Extracting registration evidence from returned Commands now avoids TS2589 in the reported large Root composition, while retaining registration checks. This does not establish a general limit on the number of Blocks or remove all compiler costs in large graphs.
 
