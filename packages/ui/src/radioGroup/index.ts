@@ -203,6 +203,16 @@ export type ViewInputs<Value extends string = string> = Readonly<{
   name?: string
 }>
 
+// NOTE: Native radio buttons and the WAI-ARIA radio group pattern move with
+// every arrow key, so Right and Left act as Down and Up. Unlike in Tabs,
+// orientation only sets aria-orientation.
+const toVerticalArrowKey = (key: string): string =>
+  Match.value(key).pipe(
+    Match.when('ArrowRight', () => 'ArrowDown'),
+    Match.when('ArrowLeft', () => 'ArrowUp'),
+    Match.orElse(() => key),
+  )
+
 const internalView = defineView<Model, Message, ViewInputs>(
   (model, viewInputs, h): Html => {
     const { id, maybeFocusedIndex } = model
@@ -262,21 +272,9 @@ const internalView = defineView<Model, Message, ViewInputs>(
       Option.getOrElse(() => selectionTabStopIndex),
     )
 
-    const { nextKey, previousKey } = Match.value(orientation).pipe(
-      Match.when('Horizontal', () => ({
-        nextKey: 'ArrowRight',
-        previousKey: 'ArrowLeft',
-      })),
-      Match.when('Vertical', () => ({
-        nextKey: 'ArrowDown',
-        previousKey: 'ArrowUp',
-      })),
-      Match.exhaustive,
-    )
-
     const resolveKeyIndex = keyToIndex(
-      nextKey,
-      previousKey,
+      'ArrowDown',
+      'ArrowUp',
       options.length,
       focusedIndex,
       isDisabled,
@@ -295,8 +293,8 @@ const internalView = defineView<Model, Message, ViewInputs>(
     ): Option.Option<SelectedOption> =>
       Match.value(key).pipe(
         Match.whenOr(
-          nextKey,
-          previousKey,
+          'ArrowDown',
+          'ArrowUp',
           'Home',
           'End',
           'PageUp',
@@ -310,8 +308,8 @@ const internalView = defineView<Model, Message, ViewInputs>(
     const handleReadOnlyKeyDown = (key: string): Option.Option<FocusedOption> =>
       Match.value(key).pipe(
         Match.whenOr(
-          nextKey,
-          previousKey,
+          'ArrowDown',
+          'ArrowUp',
           'Home',
           'End',
           'PageUp',
@@ -326,9 +324,9 @@ const internalView = defineView<Model, Message, ViewInputs>(
       (currentIndex: number) =>
       (key: string): Option.Option<SelectedOption | FocusedOption> => {
         if (isReadOnly) {
-          return handleReadOnlyKeyDown(key)
+          return handleReadOnlyKeyDown(toVerticalArrowKey(key))
         } else {
-          return handleSelectingKeyDown(currentIndex, key)
+          return handleSelectingKeyDown(currentIndex, toVerticalArrowKey(key))
         }
       }
 
