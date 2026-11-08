@@ -1225,16 +1225,25 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
     closeBundle() {
       return Effect.runPromise(stopMain(this.environment.getTopLevelConfig()))
     },
-    handleHotUpdate: ({
-      server,
-      modules,
-    }: {
-      server: ViteDevServer
-      modules: ReadonlyArray<unknown>
-    }) => {
-      if (modules.length === 0) {
-        return
+    // NOTE: An edit to a client or `ssr` module reloads the whole page, so
+    // Vite's client HMR is suppressed. This hook runs only for the client
+    // environment, so the `ssr` module runner receives Vite's updates, which
+    // run the server entry's `import.meta.hot.dispose` callback.
+    hotUpdate({ type, file, modules, server }) {
+      if (type !== 'update' || this.environment.name !== 'client') {
+        return undefined
       }
+
+      const serverModules =
+        server.environments.ssr?.moduleGraph.getModulesByFile(file)
+
+      if (
+        Array.isArrayEmpty(modules) &&
+        (serverModules === undefined || serverModules.size === 0)
+      ) {
+        return undefined
+      }
+
       server.ws.send({ type: 'full-reload' })
       const run = mainRuns.get(server.config)
       if (run !== undefined) {
