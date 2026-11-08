@@ -1,0 +1,270 @@
+{
+  "formatVersion": 1,
+  "sourceRoot": "/private/tmp/foldkit-frame-cadence-browser-20261108",
+  "entries": [
+    {
+      "path": "tools/app.ts",
+      "bytes": 1693,
+      "sha256": "a88c866addfd584e5a980e2fce1427d9cdc9435eb4ce4ef20bf2c372e1a95d28",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/app.ts"
+    },
+    {
+      "path": "tools/index.html",
+      "bytes": 217,
+      "sha256": "8f463b86b93cbbc7a3875fba33a8fc77b9864bff98350afd896dcf4a2dbfbfa1",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/index.html"
+    },
+    {
+      "path": "tools/run.mjs",
+      "bytes": 7867,
+      "sha256": "e36c4a859bd9c393bf164e31040aa11c755cb326bea95e08cb09f1dae6bb60cb",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/run.mjs"
+    },
+    {
+      "path": "tools/assert-cadence.mjs",
+      "bytes": 2379,
+      "sha256": "4115472fbb3e5d5508a348da03a8221413c839f82a1917e7321f157a270ff002",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/assert-cadence.mjs"
+    },
+    {
+      "path": "source-provenance.json",
+      "bytes": 1942,
+      "sha256": "c120a62b0459704f7f041aa546f05a43cce301cb281782c33f2ef5950ebb9d26",
+      "originalPath": "post-capture Git-object provenance for authenticated Renderer and Stream sources"
+    },
+    {
+      "path": "baseline-authenticated/capture.json",
+      "bytes": 9884,
+      "sha256": "164421939e52e6adc233e02a9a42a88feaf47a11b6a73948f12763819f7be620",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline-authenticated/capture.json"
+    },
+    {
+      "path": "baseline-authenticated/renderer-419489ca2fa68e59fcc69e2406a45b77c2321dc20d575eccc84f690a7e191bdc.js.gz",
+      "bytes": 27811,
+      "sha256": "f42de886f89ef4715cabd50465e1fb5469f8c54995a90dfaf91c8bf0235c2e28",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline-authenticated/renderer-419489ca2fa68e59fcc69e2406a45b77c2321dc20d575eccc84f690a7e191bdc.js",
+      "encoding": "gzip",
+      "uncompressedBytes": 89139,
+      "uncompressedSha256": "419489ca2fa68e59fcc69e2406a45b77c2321dc20d575eccc84f690a7e191bdc"
+    },
+    {
+      "path": "baseline-authenticated/renderer-4e8eea59e969e96b8779b40877274223e12c271013cc9e939b0f230616cf5031.js.gz",
+      "bytes": 27811,
+      "sha256": "189b15e7701c9b499340ddef8ca296d6f56bed565e3f5a0f73bf972173b6c768",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline-authenticated/renderer-4e8eea59e969e96b8779b40877274223e12c271013cc9e939b0f230616cf5031.js",
+      "encoding": "gzip",
+      "uncompressedBytes": 89139,
+      "uncompressedSha256": "4e8eea59e969e96b8779b40877274223e12c271013cc9e939b0f230616cf5031"
+    },
+    {
+      "path": "baseline-authenticated/stream-1ea91ba933c7b72584d7e441c088209edfbac12145c9027611ced3aa51a70cdc.js.gz",
+      "bytes": 2956,
+      "sha256": "d5b91d01c41a3e7443b2e4d6f460eaa25971106c45355fe5733889b48e4684ff",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline-authenticated/stream-1ea91ba933c7b72584d7e441c088209edfbac12145c9027611ced3aa51a70cdc.js",
+      "encoding": "gzip",
+      "uncompressedBytes": 6475,
+      "uncompressedSha256": "1ea91ba933c7b72584d7e441c088209edfbac12145c9027611ced3aa51a70cdc"
+    },
+    {
+      "path": "baseline-authenticated/stream-6249a213d6a276383020f0b2517b309f571392f7ae983582455c99fd9fe68a9d.js.gz",
+      "bytes": 2957,
+      "sha256": "ad5149fc013cab2400015d945dc94e144c3c126929d2e0e7a224ddcca5cf721d",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline-authenticated/stream-6249a213d6a276383020f0b2517b309f571392f7ae983582455c99fd9fe68a9d.js",
+      "encoding": "gzip",
+      "uncompressedBytes": 6475,
+      "uncompressedSha256": "6249a213d6a276383020f0b2517b309f571392f7ae983582455c99fd9fe68a9d"
+    },
+    {
+      "path": "baseline-authenticated/stdout.log.gz",
+      "bytes": 339,
+      "sha256": "ca3d8ca29c29606978e75c27601a4147145caf19e91c310838557ae50ee389f2",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline-authenticated.log",
+      "encoding": "gzip",
+      "uncompressedBytes": 557,
+      "uncompressedSha256": "78de4adb7d654aa97730a55c956a557c896cfb1c7e36c6598e4c22bf10630eb4"
+    },
+    {
+      "path": "candidate-authenticated/capture.json",
+      "bytes": 10063,
+      "sha256": "61234e0d3a09461c441c1db4993bddc1005e70289f5dac036ec40eca3e3da54f",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/candidate-authenticated/capture.json"
+    },
+    {
+      "path": "candidate-authenticated/renderer-a2d26dc187f1cadfb99c1603225e316519068d714d3ceb9e32b17c13c5580c45.js.gz",
+      "bytes": 28268,
+      "sha256": "fa37eec0a7a3023d6a7f8be9e80a7da4ed80d89a60863150150da462d515d29d",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/candidate-authenticated/renderer-a2d26dc187f1cadfb99c1603225e316519068d714d3ceb9e32b17c13c5580c45.js",
+      "encoding": "gzip",
+      "uncompressedBytes": 89409,
+      "uncompressedSha256": "a2d26dc187f1cadfb99c1603225e316519068d714d3ceb9e32b17c13c5580c45"
+    },
+    {
+      "path": "candidate-authenticated/renderer-bb75693f5599bc50c9d20524fa32597d4a5f9366e8870f19ec7bc962053d0a1d.js.gz",
+      "bytes": 28267,
+      "sha256": "e0c31f7b8ed6faf661fd4d4018315d53202ab00848c7b83ecd0ad163f7a8c30a",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/candidate-authenticated/renderer-bb75693f5599bc50c9d20524fa32597d4a5f9366e8870f19ec7bc962053d0a1d.js",
+      "encoding": "gzip",
+      "uncompressedBytes": 89409,
+      "uncompressedSha256": "bb75693f5599bc50c9d20524fa32597d4a5f9366e8870f19ec7bc962053d0a1d"
+    },
+    {
+      "path": "candidate-authenticated/stream-33b43d55e35312b491be8f49cfa3a94c8a9149bc08762a7553635a7765a8ed6f.js.gz",
+      "bytes": 2596,
+      "sha256": "34031d0462a2927183492c4326f4cc03f0df3d98e47e57a6858757282095e435",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/candidate-authenticated/stream-33b43d55e35312b491be8f49cfa3a94c8a9149bc08762a7553635a7765a8ed6f.js",
+      "encoding": "gzip",
+      "uncompressedBytes": 5357,
+      "uncompressedSha256": "33b43d55e35312b491be8f49cfa3a94c8a9149bc08762a7553635a7765a8ed6f"
+    },
+    {
+      "path": "candidate-authenticated/stream-86684029407f6f7b8e67717c4545d7ec5abab6f0cd508473d8a5c7a2041ed48f.js.gz",
+      "bytes": 2597,
+      "sha256": "76e430356bcb01f82b98097b3743cfac75edff5e9f1e696ecfc2b6afc8fa2883",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/candidate-authenticated/stream-86684029407f6f7b8e67717c4545d7ec5abab6f0cd508473d8a5c7a2041ed48f.js",
+      "encoding": "gzip",
+      "uncompressedBytes": 5357,
+      "uncompressedSha256": "86684029407f6f7b8e67717c4545d7ec5abab6f0cd508473d8a5c7a2041ed48f"
+    },
+    {
+      "path": "candidate-authenticated/stdout.log.gz",
+      "bytes": 337,
+      "sha256": "c9b58c45b3e31c8d1fe307d706d9cc87997851b4c6f662d21de3c4487eaf1611",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/candidate-authenticated.log",
+      "encoding": "gzip",
+      "uncompressedBytes": 556,
+      "uncompressedSha256": "de0e8f4ecc64ad9badbbdf3b87c51ba18d69a84f4142571c0ceac320138f87c2"
+    },
+    {
+      "path": "preliminary/baseline/app.ts.gz",
+      "bytes": 733,
+      "sha256": "d6ca2b619e6ada16a5b3abf49ee81ed7b5f3176fe5ac90050bd96a7a823339e0",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline/app.ts",
+      "encoding": "gzip",
+      "uncompressedBytes": 1693,
+      "uncompressedSha256": "a88c866addfd584e5a980e2fce1427d9cdc9435eb4ce4ef20bf2c372e1a95d28"
+    },
+    {
+      "path": "preliminary/baseline/driver.mjs.gz",
+      "bytes": 2267,
+      "sha256": "c5cf43f7819796287f4690bd5cadd64349ce827c52127f62c79bdf99dff5913e",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline/driver.mjs",
+      "encoding": "gzip",
+      "uncompressedBytes": 6223,
+      "uncompressedSha256": "e04a45d69b8052e97067ef9e9e15671c18d3958e8990d433c742c8533d19bf90"
+    },
+    {
+      "path": "preliminary/baseline/failure.json",
+      "bytes": 860,
+      "sha256": "ab75ef87c22febda428a38d2f7bca21c8cec6b80fb283178a294a1211a4daa0f",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline/failure.json"
+    },
+    {
+      "path": "preliminary/baseline/stdout.log.gz",
+      "bytes": 321,
+      "sha256": "83a6d15a85a55c64a0ef96b78e75f0d54c71d8996bd96d86167e547aafeeaee0",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline.log",
+      "encoding": "gzip",
+      "uncompressedBytes": 524,
+      "uncompressedSha256": "f4d7e235943ab2c5177eb70f8c5cf0ce4d136ecc1681db68815df8d79a97ca6d"
+    },
+    {
+      "path": "preliminary/baseline-cjs/app.ts.gz",
+      "bytes": 733,
+      "sha256": "d6ca2b619e6ada16a5b3abf49ee81ed7b5f3176fe5ac90050bd96a7a823339e0",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline-cjs/app.ts",
+      "encoding": "gzip",
+      "uncompressedBytes": 1693,
+      "uncompressedSha256": "a88c866addfd584e5a980e2fce1427d9cdc9435eb4ce4ef20bf2c372e1a95d28"
+    },
+    {
+      "path": "preliminary/baseline-cjs/capture.json",
+      "bytes": 8306,
+      "sha256": "39ac2f5a9872a24bd1560f2accec99d0ec3c4a3bda11269ef9eb0d9823bd0e9e",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline-cjs/capture.json"
+    },
+    {
+      "path": "preliminary/baseline-cjs/driver.mjs.gz",
+      "bytes": 2281,
+      "sha256": "57083de7834c8264ee7332717f27dacff42930316847bd54ba6950b8613ba8b5",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline-cjs/driver.mjs",
+      "encoding": "gzip",
+      "uncompressedBytes": 6212,
+      "uncompressedSha256": "da003caacfc9e9d3361abff816d8151555cbecad85aa2147249ac242f242f29d"
+    },
+    {
+      "path": "preliminary/baseline-cjs/stdout.log.gz",
+      "bytes": 302,
+      "sha256": "4f9a1d25c5e5d4e4b05c0202feab90f208e1666b2797e5f04d79a3f6564d61f0",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/baseline-cjs.log",
+      "encoding": "gzip",
+      "uncompressedBytes": 460,
+      "uncompressedSha256": "0bf0de9a246163e723e2d749e116735630ca8d6961048cdfe2fcd7cd4d27552e"
+    },
+    {
+      "path": "preliminary/candidate/app.ts.gz",
+      "bytes": 733,
+      "sha256": "d6ca2b619e6ada16a5b3abf49ee81ed7b5f3176fe5ac90050bd96a7a823339e0",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/candidate/app.ts",
+      "encoding": "gzip",
+      "uncompressedBytes": 1693,
+      "uncompressedSha256": "a88c866addfd584e5a980e2fce1427d9cdc9435eb4ce4ef20bf2c372e1a95d28"
+    },
+    {
+      "path": "preliminary/candidate/capture.json",
+      "bytes": 8299,
+      "sha256": "2d664d28b8f64edbfdaf65b623346eb78aba2a71696a92035a942d8f589bbec5",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/candidate/capture.json"
+    },
+    {
+      "path": "preliminary/candidate/driver.mjs.gz",
+      "bytes": 2281,
+      "sha256": "57083de7834c8264ee7332717f27dacff42930316847bd54ba6950b8613ba8b5",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/candidate/driver.mjs",
+      "encoding": "gzip",
+      "uncompressedBytes": 6212,
+      "uncompressedSha256": "da003caacfc9e9d3361abff816d8151555cbecad85aa2147249ac242f242f29d"
+    },
+    {
+      "path": "preliminary/candidate/stdout.log.gz",
+      "bytes": 327,
+      "sha256": "80b4d6dd4f300bb44e205ba08ead0c1e2e277942e284ad62a6d756ccd64aa749",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/candidate.log",
+      "encoding": "gzip",
+      "uncompressedBytes": 542,
+      "uncompressedSha256": "0f39a945e2fcafa62c039ef98bbc21dc9897db00909f161591d6f54a922429ba"
+    },
+    {
+      "path": "comparison.log.gz",
+      "bytes": 73,
+      "sha256": "0a76d5f86692128c1b8462395bb5740a0752c8648b8a1d8935ff04b6e252b790",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/comparison-final.log",
+      "encoding": "gzip",
+      "uncompressedBytes": 57,
+      "uncompressedSha256": "0a08fe416906113261ccf727cc2a46113e0dbf4e199b6c6723475b49ec2040b8"
+    },
+    {
+      "path": "comparison-mutation.log.gz",
+      "bytes": 401,
+      "sha256": "5959548d0ad7fe7ed7f3cc274327ce124dcdb8f020a8b151ba857e9299a586a1",
+      "originalPath": "/private/tmp/foldkit-frame-cadence-browser-20261108/comparison-mutation-final.log",
+      "encoding": "gzip",
+      "uncompressedBytes": 622,
+      "uncompressedSha256": "a0dd1a1279ada2421e19377b43b891aade2c2cd6e06359c65d0694be6bec7ab2"
+    },
+    {
+      "path": "comparison-empty-baseline-mutation.log.gz",
+      "bytes": 457,
+      "sha256": "bfb0a79aab01263f85013fa81850f22f78b7aa54353f3105b993b808eba1ba38",
+      "originalPath": "post-review empty-baseline-deltas mutation control",
+      "encoding": "gzip",
+      "uncompressedBytes": 710,
+      "uncompressedSha256": "b49d7f347ce8a85aa2d3474efa883e61e6c43583fe2276b382acc05da239291a"
+    },
+    {
+      "path": "cleanup-readback.json",
+      "bytes": 647,
+      "sha256": "98c3f9d646f622fed6b4612dbbad17393f634c24ce3edff190be4d0a999e6c98",
+      "originalPath": "post-capture local port readback and recorded driver exit results"
+    }
+  ]
+}

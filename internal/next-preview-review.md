@@ -3,14 +3,23 @@
 ## November 8 overnight review
 
 - [x] Review and push exact HTML and diagnostic commits through the ordinary
-      hook. Examples E2E passes; CI is pending.
+      hook. CI and Examples E2E pass for `7cc7d90e68`.
 - [x] Observe frame-cadence and deferred-drain controls fail before accepting
       focused Runtime results. Preserve occurrence checks and receipts.
-- [ ] Review the exact cadence commit and run the combined verification.
-- [ ] Require independent proof for operation-output precision and view
-      defaults, including source and relocated emitted consumers.
-- [ ] Require current-source timings with duplicate baseline controls before
-      treating the paired construction prototype as a rendering improvement.
+- [x] Independently review exact cadence commit `5c96e577cc` and editor-control
+      commit `befaa93b15`.
+- [ ] Run the combined cadence verification and independently review its
+      browser packet, provenance and original callback-guard failure.
+- [x] Reject both operation-precision encodings after three compiler ceilings
+      fail. Preserve successful proofs and their limits, including the emitted
+      gate run only on the common-path candidate.
+- [x] Independently audit and reject the paired construction prototype as a
+      production optimization. Preserve the failed outer timing receipt and
+      secondary readback without claiming a reliable speedup.
+- [ ] Independently review the full view-default migration and combined gates.
+      The isolated source, emitted, runtime and unchanged-ceiling proof passes.
+- [ ] Complete current-source ordinary timings after diagnosing the cadence
+      callback-count change; use duplicate baselines and unchanged workloads.
 - [x] Keep main-targeted crash cleanup separate and flag cross-runtime resource
       ownership for review. No external review or comment has been posted.
 

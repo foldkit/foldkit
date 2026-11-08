@@ -1,0 +1,493 @@
+{
+  "label": "baseline-authenticated",
+  "sourceRoot": "/private/tmp/foldkit-r11-r19-prototype-20261108.OnQh5N/baseline",
+  "mode": "Vite source aliases; functional browser cadence only",
+  "appSha256": "a88c866addfd584e5a980e2fce1427d9cdc9435eb4ce4ef20bf2c372e1a95d28",
+  "driverSha256": "e36c4a859bd9c393bf164e31040aa11c755cb326bea95e08cb09f1dae6bb60cb",
+  "rendererSha256": "f6cfca5de37e6a8fea745d600d3d7bea07ccd4df0afab68c99d683714329e805",
+  "streamSha256": "b6056947ef840c2ac907d0d5b40942a7a5130f663081c971dd660ed6abc43cd1",
+  "port": 38631,
+  "browserVersion": "153.0.8010.12",
+  "capture": {
+    "values": [
+      {
+        "count": 2,
+        "frame": 659.6,
+        "lastTickFrame": 659.6
+      },
+      {
+        "count": 4,
+        "frame": 693,
+        "lastTickFrame": 693
+      },
+      {
+        "count": 6,
+        "frame": 726.3,
+        "lastTickFrame": 726.3
+      },
+      {
+        "count": 8,
+        "frame": 759.6,
+        "lastTickFrame": 759.6
+      },
+      {
+        "count": 10,
+        "frame": 792.9,
+        "lastTickFrame": 792.9
+      },
+      {
+        "count": 12,
+        "frame": 826.3,
+        "lastTickFrame": 826.3
+      },
+      {
+        "count": 14,
+        "frame": 859.7,
+        "lastTickFrame": 859.7
+      },
+      {
+        "count": 16,
+        "frame": 893,
+        "lastTickFrame": 893
+      },
+      {
+        "count": 18,
+        "frame": 926.3,
+        "lastTickFrame": 926.3
+      },
+      {
+        "count": 20,
+        "frame": 959.6,
+        "lastTickFrame": 959.6
+      },
+      {
+        "count": 22,
+        "frame": 993,
+        "lastTickFrame": 993
+      },
+      {
+        "count": 24,
+        "frame": 1026.3,
+        "lastTickFrame": 1026.3
+      },
+      {
+        "count": 26,
+        "frame": 1059.6,
+        "lastTickFrame": 1059.6
+      },
+      {
+        "count": 28,
+        "frame": 1093,
+        "lastTickFrame": 1093
+      },
+      {
+        "count": 30,
+        "frame": 1126.3,
+        "lastTickFrame": 1126.3
+      },
+      {
+        "count": 32,
+        "frame": 1159.6,
+        "lastTickFrame": 1159.6
+      },
+      {
+        "count": 34,
+        "frame": 1192.9,
+        "lastTickFrame": 1192.9
+      },
+      {
+        "count": 36,
+        "frame": 1226.3,
+        "lastTickFrame": 1226.3
+      },
+      {
+        "count": 38,
+        "frame": 1259.7,
+        "lastTickFrame": 1259.7
+      },
+      {
+        "count": 40,
+        "frame": 1293,
+        "lastTickFrame": 1293
+      },
+      {
+        "count": 42,
+        "frame": 1326.3,
+        "lastTickFrame": 1326.3
+      },
+      {
+        "count": 44,
+        "frame": 1359.6,
+        "lastTickFrame": 1359.6
+      },
+      {
+        "count": 46,
+        "frame": 1393,
+        "lastTickFrame": 1393
+      },
+      {
+        "count": 48,
+        "frame": 1426.3,
+        "lastTickFrame": 1426.3
+      },
+      {
+        "count": 50,
+        "frame": 1459.6,
+        "lastTickFrame": 1459.6
+      },
+      {
+        "count": 52,
+        "frame": 1492.9,
+        "lastTickFrame": 1492.9
+      },
+      {
+        "count": 54,
+        "frame": 1526.3,
+        "lastTickFrame": 1526.3
+      },
+      {
+        "count": 56,
+        "frame": 1559.6,
+        "lastTickFrame": 1559.6
+      },
+      {
+        "count": 58,
+        "frame": 1593,
+        "lastTickFrame": 1593
+      },
+      {
+        "count": 60,
+        "frame": 1626.2,
+        "lastTickFrame": 1626.2
+      },
+      {
+        "count": 62,
+        "frame": 1659.6,
+        "lastTickFrame": 1659.6
+      },
+      {
+        "count": 64,
+        "frame": 1692.9,
+        "lastTickFrame": 1692.9
+      },
+      {
+        "count": 66,
+        "frame": 1726.3,
+        "lastTickFrame": 1726.3
+      },
+      {
+        "count": 68,
+        "frame": 1759.6,
+        "lastTickFrame": 1759.6
+      },
+      {
+        "count": 70,
+        "frame": 1793,
+        "lastTickFrame": 1793
+      },
+      {
+        "count": 72,
+        "frame": 1826.3,
+        "lastTickFrame": 1826.3
+      },
+      {
+        "count": 74,
+        "frame": 1859.6,
+        "lastTickFrame": 1859.6
+      },
+      {
+        "count": 76,
+        "frame": 1892.9,
+        "lastTickFrame": 1892.9
+      },
+      {
+        "count": 78,
+        "frame": 1926.3,
+        "lastTickFrame": 1926.3
+      },
+      {
+        "count": 80,
+        "frame": 1959.6,
+        "lastTickFrame": 1959.6
+      },
+      {
+        "count": 82,
+        "frame": 1993,
+        "lastTickFrame": 1993
+      },
+      {
+        "count": 84,
+        "frame": 2026.3,
+        "lastTickFrame": 2026.3
+      },
+      {
+        "count": 86,
+        "frame": 2059.6,
+        "lastTickFrame": 2059.6
+      },
+      {
+        "count": 88,
+        "frame": 2092.9,
+        "lastTickFrame": 2092.9
+      },
+      {
+        "count": 90,
+        "frame": 2126.3,
+        "lastTickFrame": 2126.3
+      },
+      {
+        "count": 92,
+        "frame": 2159.6,
+        "lastTickFrame": 2159.6
+      },
+      {
+        "count": 94,
+        "frame": 2192.9,
+        "lastTickFrame": 2192.9
+      },
+      {
+        "count": 96,
+        "frame": 2226.2,
+        "lastTickFrame": 2226.2
+      },
+      {
+        "count": 98,
+        "frame": 2259.6,
+        "lastTickFrame": 2259.6
+      },
+      {
+        "count": 100,
+        "frame": 2293,
+        "lastTickFrame": 2293
+      },
+      {
+        "count": 102,
+        "frame": 2326.2,
+        "lastTickFrame": 2326.2
+      },
+      {
+        "count": 104,
+        "frame": 2359.6,
+        "lastTickFrame": 2359.6
+      },
+      {
+        "count": 106,
+        "frame": 2393,
+        "lastTickFrame": 2393
+      },
+      {
+        "count": 108,
+        "frame": 2426.2,
+        "lastTickFrame": 2426.2
+      },
+      {
+        "count": 110,
+        "frame": 2459.6,
+        "lastTickFrame": 2459.6
+      },
+      {
+        "count": 112,
+        "frame": 2492.9,
+        "lastTickFrame": 2492.9
+      },
+      {
+        "count": 114,
+        "frame": 2526.3,
+        "lastTickFrame": 2526.3
+      },
+      {
+        "count": 116,
+        "frame": 2559.6,
+        "lastTickFrame": 2559.6
+      },
+      {
+        "count": 118,
+        "frame": 2592.9,
+        "lastTickFrame": 2592.9
+      },
+      {
+        "count": 120,
+        "frame": 2626.2,
+        "lastTickFrame": 2626.2
+      },
+      {
+        "count": 122,
+        "frame": 2659.6,
+        "lastTickFrame": 2659.6
+      },
+      {
+        "count": 124,
+        "frame": 2692.9,
+        "lastTickFrame": 2692.9
+      },
+      {
+        "count": 126,
+        "frame": 2726.2,
+        "lastTickFrame": 2726.2
+      },
+      {
+        "count": 128,
+        "frame": 2759.6,
+        "lastTickFrame": 2759.6
+      },
+      {
+        "count": 130,
+        "frame": 2792.9,
+        "lastTickFrame": 2792.9
+      },
+      {
+        "count": 132,
+        "frame": 2826.2,
+        "lastTickFrame": 2826.2
+      },
+      {
+        "count": 134,
+        "frame": 2859.6,
+        "lastTickFrame": 2859.6
+      },
+      {
+        "count": 136,
+        "frame": 2892.9,
+        "lastTickFrame": 2892.9
+      },
+      {
+        "count": 138,
+        "frame": 2926.2,
+        "lastTickFrame": 2926.2
+      },
+      {
+        "count": 140,
+        "frame": 2959.6,
+        "lastTickFrame": 2959.6
+      },
+      {
+        "count": 142,
+        "frame": 2992.9,
+        "lastTickFrame": 2992.9
+      },
+      {
+        "count": 144,
+        "frame": 3026.3,
+        "lastTickFrame": 3026.3
+      },
+      {
+        "count": 146,
+        "frame": 3059.6,
+        "lastTickFrame": 3059.6
+      },
+      {
+        "count": 148,
+        "frame": 3092.8,
+        "lastTickFrame": 3092.8
+      },
+      {
+        "count": 150,
+        "frame": 3126.3,
+        "lastTickFrame": 3126.3
+      }
+    ],
+    "callbacks": {
+      "tick": 150,
+      "renderFramePlain": 75,
+      "next": 149
+    }
+  },
+  "authenticatedSources": [
+    {
+      "url": "http://127.0.0.1:38631/@fs/private/tmp/foldkit-r11-r19-prototype-20261108.OnQh5N/baseline/packages/foldkit/src/dom/animationFrameTicks.ts",
+      "kind": "stream",
+      "responseSha256": "6249a213d6a276383020f0b2517b309f571392f7ae983582455c99fd9fe68a9d",
+      "sourceHashes": [
+        "b6056947ef840c2ac907d0d5b40942a7a5130f663081c971dd660ed6abc43cd1"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:38631/@fs/private/tmp/foldkit-r11-r19-prototype-20261108.OnQh5N/baseline/packages/foldkit/src/runtime/renderer.ts",
+      "kind": "renderer",
+      "responseSha256": "419489ca2fa68e59fcc69e2406a45b77c2321dc20d575eccc84f690a7e191bdc",
+      "sourceHashes": [
+        "f6cfca5de37e6a8fea745d600d3d7bea07ccd4df0afab68c99d683714329e805"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:38631/@fs/private/tmp/foldkit-r11-r19-prototype-20261108.OnQh5N/baseline/packages/foldkit/src/dom/animationFrameTicks.ts",
+      "kind": "stream",
+      "responseSha256": "1ea91ba933c7b72584d7e441c088209edfbac12145c9027611ced3aa51a70cdc",
+      "sourceHashes": [
+        "b6056947ef840c2ac907d0d5b40942a7a5130f663081c971dd660ed6abc43cd1"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:38631/@fs/private/tmp/foldkit-r11-r19-prototype-20261108.OnQh5N/baseline/packages/foldkit/src/runtime/renderer.ts",
+      "kind": "renderer",
+      "responseSha256": "4e8eea59e969e96b8779b40877274223e12c271013cc9e939b0f230616cf5031",
+      "sourceHashes": [
+        "f6cfca5de37e6a8fea745d600d3d7bea07ccd4df0afab68c99d683714329e805"
+      ]
+    }
+  ],
+  "deltas": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "sameFrameCount": 60,
+  "pendingAfterDisposal": [],
+  "errors": []
+}

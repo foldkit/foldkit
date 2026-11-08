@@ -1,0 +1,464 @@
+{
+  "label": "candidate",
+  "sourceRoot": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+  "mode": "Vite source aliases; functional browser cadence only",
+  "appSha256": "a88c866addfd584e5a980e2fce1427d9cdc9435eb4ce4ef20bf2c372e1a95d28",
+  "driverSha256": "da003caacfc9e9d3361abff816d8151555cbecad85aa2147249ac242f242f29d",
+  "rendererSha256": "0cb8fe1490802e526d37be68107b0ea94f3c6636b2785aa2d0273e32aa4b718f",
+  "streamSha256": "b6056947ef840c2ac907d0d5b40942a7a5130f663081c971dd660ed6abc43cd1",
+  "port": 38632,
+  "browserVersion": "153.0.8010.12",
+  "capture": {
+    "values": [
+      {
+        "count": 2,
+        "frame": 394.7,
+        "lastTickFrame": 394.7
+      },
+      {
+        "count": 3,
+        "frame": 411.4,
+        "lastTickFrame": 411.4
+      },
+      {
+        "count": 4,
+        "frame": 428.1,
+        "lastTickFrame": 428.1
+      },
+      {
+        "count": 5,
+        "frame": 444.8,
+        "lastTickFrame": 444.8
+      },
+      {
+        "count": 6,
+        "frame": 461.4,
+        "lastTickFrame": 461.4
+      },
+      {
+        "count": 7,
+        "frame": 478,
+        "lastTickFrame": 478
+      },
+      {
+        "count": 8,
+        "frame": 494.7,
+        "lastTickFrame": 494.7
+      },
+      {
+        "count": 9,
+        "frame": 511.3,
+        "lastTickFrame": 511.3
+      },
+      {
+        "count": 10,
+        "frame": 528,
+        "lastTickFrame": 528
+      },
+      {
+        "count": 11,
+        "frame": 544.7,
+        "lastTickFrame": 544.7
+      },
+      {
+        "count": 12,
+        "frame": 561.4,
+        "lastTickFrame": 561.4
+      },
+      {
+        "count": 13,
+        "frame": 578,
+        "lastTickFrame": 578
+      },
+      {
+        "count": 14,
+        "frame": 594.7,
+        "lastTickFrame": 594.7
+      },
+      {
+        "count": 15,
+        "frame": 611.3,
+        "lastTickFrame": 611.3
+      },
+      {
+        "count": 16,
+        "frame": 628,
+        "lastTickFrame": 628
+      },
+      {
+        "count": 17,
+        "frame": 644.7,
+        "lastTickFrame": 644.7
+      },
+      {
+        "count": 18,
+        "frame": 661.4,
+        "lastTickFrame": 661.4
+      },
+      {
+        "count": 19,
+        "frame": 678,
+        "lastTickFrame": 678
+      },
+      {
+        "count": 20,
+        "frame": 694.7,
+        "lastTickFrame": 694.7
+      },
+      {
+        "count": 21,
+        "frame": 711.4,
+        "lastTickFrame": 711.4
+      },
+      {
+        "count": 22,
+        "frame": 728.1,
+        "lastTickFrame": 728.1
+      },
+      {
+        "count": 23,
+        "frame": 744.7,
+        "lastTickFrame": 744.7
+      },
+      {
+        "count": 24,
+        "frame": 761.4,
+        "lastTickFrame": 761.4
+      },
+      {
+        "count": 25,
+        "frame": 778.1,
+        "lastTickFrame": 778.1
+      },
+      {
+        "count": 26,
+        "frame": 794.7,
+        "lastTickFrame": 794.7
+      },
+      {
+        "count": 27,
+        "frame": 811.4,
+        "lastTickFrame": 811.4
+      },
+      {
+        "count": 28,
+        "frame": 828,
+        "lastTickFrame": 828
+      },
+      {
+        "count": 29,
+        "frame": 844.7,
+        "lastTickFrame": 844.7
+      },
+      {
+        "count": 30,
+        "frame": 861.4,
+        "lastTickFrame": 861.4
+      },
+      {
+        "count": 31,
+        "frame": 878.1,
+        "lastTickFrame": 878.1
+      },
+      {
+        "count": 32,
+        "frame": 894.7,
+        "lastTickFrame": 894.7
+      },
+      {
+        "count": 33,
+        "frame": 911.3,
+        "lastTickFrame": 911.3
+      },
+      {
+        "count": 34,
+        "frame": 928.1,
+        "lastTickFrame": 928.1
+      },
+      {
+        "count": 35,
+        "frame": 944.7,
+        "lastTickFrame": 944.7
+      },
+      {
+        "count": 36,
+        "frame": 961.4,
+        "lastTickFrame": 961.4
+      },
+      {
+        "count": 37,
+        "frame": 978,
+        "lastTickFrame": 978
+      },
+      {
+        "count": 38,
+        "frame": 994.7,
+        "lastTickFrame": 994.7
+      },
+      {
+        "count": 39,
+        "frame": 1011.4,
+        "lastTickFrame": 1011.4
+      },
+      {
+        "count": 40,
+        "frame": 1028,
+        "lastTickFrame": 1028
+      },
+      {
+        "count": 41,
+        "frame": 1044.6,
+        "lastTickFrame": 1044.6
+      },
+      {
+        "count": 42,
+        "frame": 1061.3,
+        "lastTickFrame": 1061.3
+      },
+      {
+        "count": 43,
+        "frame": 1078.1,
+        "lastTickFrame": 1078.1
+      },
+      {
+        "count": 44,
+        "frame": 1094.7,
+        "lastTickFrame": 1094.7
+      },
+      {
+        "count": 45,
+        "frame": 1111.4,
+        "lastTickFrame": 1111.4
+      },
+      {
+        "count": 46,
+        "frame": 1128,
+        "lastTickFrame": 1128
+      },
+      {
+        "count": 47,
+        "frame": 1144.7,
+        "lastTickFrame": 1144.7
+      },
+      {
+        "count": 48,
+        "frame": 1161.3,
+        "lastTickFrame": 1161.3
+      },
+      {
+        "count": 49,
+        "frame": 1178,
+        "lastTickFrame": 1178
+      },
+      {
+        "count": 50,
+        "frame": 1194.7,
+        "lastTickFrame": 1194.7
+      },
+      {
+        "count": 51,
+        "frame": 1211.3,
+        "lastTickFrame": 1211.3
+      },
+      {
+        "count": 52,
+        "frame": 1228,
+        "lastTickFrame": 1228
+      },
+      {
+        "count": 53,
+        "frame": 1244.7,
+        "lastTickFrame": 1244.7
+      },
+      {
+        "count": 54,
+        "frame": 1261.4,
+        "lastTickFrame": 1261.4
+      },
+      {
+        "count": 55,
+        "frame": 1278,
+        "lastTickFrame": 1278
+      },
+      {
+        "count": 56,
+        "frame": 1294.7,
+        "lastTickFrame": 1294.7
+      },
+      {
+        "count": 57,
+        "frame": 1311.3,
+        "lastTickFrame": 1311.3
+      },
+      {
+        "count": 58,
+        "frame": 1328,
+        "lastTickFrame": 1328
+      },
+      {
+        "count": 59,
+        "frame": 1344.7,
+        "lastTickFrame": 1344.7
+      },
+      {
+        "count": 60,
+        "frame": 1361.3,
+        "lastTickFrame": 1361.3
+      },
+      {
+        "count": 61,
+        "frame": 1378,
+        "lastTickFrame": 1378
+      },
+      {
+        "count": 62,
+        "frame": 1394.6,
+        "lastTickFrame": 1394.6
+      },
+      {
+        "count": 63,
+        "frame": 1411.4,
+        "lastTickFrame": 1411.4
+      },
+      {
+        "count": 64,
+        "frame": 1428,
+        "lastTickFrame": 1428
+      },
+      {
+        "count": 65,
+        "frame": 1444.7,
+        "lastTickFrame": 1444.7
+      },
+      {
+        "count": 66,
+        "frame": 1461.3,
+        "lastTickFrame": 1461.3
+      },
+      {
+        "count": 67,
+        "frame": 1478,
+        "lastTickFrame": 1478
+      },
+      {
+        "count": 68,
+        "frame": 1494.7,
+        "lastTickFrame": 1494.7
+      },
+      {
+        "count": 69,
+        "frame": 1511.3,
+        "lastTickFrame": 1511.3
+      },
+      {
+        "count": 70,
+        "frame": 1528,
+        "lastTickFrame": 1528
+      },
+      {
+        "count": 71,
+        "frame": 1544.6,
+        "lastTickFrame": 1544.6
+      },
+      {
+        "count": 72,
+        "frame": 1561.4,
+        "lastTickFrame": 1561.4
+      },
+      {
+        "count": 73,
+        "frame": 1578,
+        "lastTickFrame": 1578
+      },
+      {
+        "count": 74,
+        "frame": 1594.6,
+        "lastTickFrame": 1594.6
+      },
+      {
+        "count": 75,
+        "frame": 1611.3,
+        "lastTickFrame": 1611.3
+      },
+      {
+        "count": 76,
+        "frame": 1628,
+        "lastTickFrame": 1628
+      },
+      {
+        "count": 77,
+        "frame": 1644.7,
+        "lastTickFrame": 1644.7
+      }
+    ],
+    "callbacks": {
+      "tick": 77,
+      "renderFramePlain": 76,
+      "next": 76
+    }
+  },
+  "deltas": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "sameFrameCount": 60,
+  "pendingAfterDisposal": [],
+  "errors": []
+}

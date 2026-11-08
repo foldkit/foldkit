@@ -1,0 +1,498 @@
+{
+  "label": "candidate-authenticated",
+  "sourceRoot": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+  "mode": "Vite source aliases; functional browser cadence only",
+  "appSha256": "a88c866addfd584e5a980e2fce1427d9cdc9435eb4ce4ef20bf2c372e1a95d28",
+  "driverSha256": "e36c4a859bd9c393bf164e31040aa11c755cb326bea95e08cb09f1dae6bb60cb",
+  "rendererSha256": "0cb8fe1490802e526d37be68107b0ea94f3c6636b2785aa2d0273e32aa4b718f",
+  "streamSha256": "b6056947ef840c2ac907d0d5b40942a7a5130f663081c971dd660ed6abc43cd1",
+  "port": 38632,
+  "browserVersion": "153.0.8010.12",
+  "capture": {
+    "values": [
+      {
+        "count": 2,
+        "frame": 394.4,
+        "lastTickFrame": 394.4
+      },
+      {
+        "count": 3,
+        "frame": 411.1,
+        "lastTickFrame": 411.1
+      },
+      {
+        "count": 4,
+        "frame": 427.8,
+        "lastTickFrame": 427.8
+      },
+      {
+        "count": 5,
+        "frame": 444.4,
+        "lastTickFrame": 444.4
+      },
+      {
+        "count": 6,
+        "frame": 461.1,
+        "lastTickFrame": 461.1
+      },
+      {
+        "count": 7,
+        "frame": 477.7,
+        "lastTickFrame": 477.7
+      },
+      {
+        "count": 8,
+        "frame": 494.4,
+        "lastTickFrame": 494.4
+      },
+      {
+        "count": 9,
+        "frame": 511.1,
+        "lastTickFrame": 511.1
+      },
+      {
+        "count": 10,
+        "frame": 527.7,
+        "lastTickFrame": 527.7
+      },
+      {
+        "count": 11,
+        "frame": 544.4,
+        "lastTickFrame": 544.4
+      },
+      {
+        "count": 12,
+        "frame": 561.1,
+        "lastTickFrame": 561.1
+      },
+      {
+        "count": 13,
+        "frame": 577.8,
+        "lastTickFrame": 577.8
+      },
+      {
+        "count": 14,
+        "frame": 594.5,
+        "lastTickFrame": 594.5
+      },
+      {
+        "count": 15,
+        "frame": 611.1,
+        "lastTickFrame": 611.1
+      },
+      {
+        "count": 16,
+        "frame": 627.7,
+        "lastTickFrame": 627.7
+      },
+      {
+        "count": 17,
+        "frame": 644.4,
+        "lastTickFrame": 644.4
+      },
+      {
+        "count": 18,
+        "frame": 661.1,
+        "lastTickFrame": 661.1
+      },
+      {
+        "count": 19,
+        "frame": 677.8,
+        "lastTickFrame": 677.8
+      },
+      {
+        "count": 20,
+        "frame": 694.4,
+        "lastTickFrame": 694.4
+      },
+      {
+        "count": 21,
+        "frame": 711.1,
+        "lastTickFrame": 711.1
+      },
+      {
+        "count": 22,
+        "frame": 727.7,
+        "lastTickFrame": 727.7
+      },
+      {
+        "count": 23,
+        "frame": 744.4,
+        "lastTickFrame": 744.4
+      },
+      {
+        "count": 24,
+        "frame": 761,
+        "lastTickFrame": 761
+      },
+      {
+        "count": 25,
+        "frame": 777.7,
+        "lastTickFrame": 777.7
+      },
+      {
+        "count": 26,
+        "frame": 794.4,
+        "lastTickFrame": 794.4
+      },
+      {
+        "count": 27,
+        "frame": 811.1,
+        "lastTickFrame": 811.1
+      },
+      {
+        "count": 28,
+        "frame": 827.7,
+        "lastTickFrame": 827.7
+      },
+      {
+        "count": 29,
+        "frame": 844.3,
+        "lastTickFrame": 844.3
+      },
+      {
+        "count": 30,
+        "frame": 861.1,
+        "lastTickFrame": 861.1
+      },
+      {
+        "count": 31,
+        "frame": 877.7,
+        "lastTickFrame": 877.7
+      },
+      {
+        "count": 32,
+        "frame": 894.4,
+        "lastTickFrame": 894.4
+      },
+      {
+        "count": 33,
+        "frame": 911,
+        "lastTickFrame": 911
+      },
+      {
+        "count": 34,
+        "frame": 927.7,
+        "lastTickFrame": 927.7
+      },
+      {
+        "count": 35,
+        "frame": 944.4,
+        "lastTickFrame": 944.4
+      },
+      {
+        "count": 36,
+        "frame": 961.1,
+        "lastTickFrame": 961.1
+      },
+      {
+        "count": 37,
+        "frame": 977.7,
+        "lastTickFrame": 977.7
+      },
+      {
+        "count": 38,
+        "frame": 994.4,
+        "lastTickFrame": 994.4
+      },
+      {
+        "count": 39,
+        "frame": 1011,
+        "lastTickFrame": 1011
+      },
+      {
+        "count": 40,
+        "frame": 1027.7,
+        "lastTickFrame": 1027.7
+      },
+      {
+        "count": 41,
+        "frame": 1044.4,
+        "lastTickFrame": 1044.4
+      },
+      {
+        "count": 42,
+        "frame": 1061.1,
+        "lastTickFrame": 1061.1
+      },
+      {
+        "count": 43,
+        "frame": 1077.7,
+        "lastTickFrame": 1077.7
+      },
+      {
+        "count": 44,
+        "frame": 1094.4,
+        "lastTickFrame": 1094.4
+      },
+      {
+        "count": 45,
+        "frame": 1111.1,
+        "lastTickFrame": 1111.1
+      },
+      {
+        "count": 46,
+        "frame": 1127.8,
+        "lastTickFrame": 1127.8
+      },
+      {
+        "count": 47,
+        "frame": 1144.3,
+        "lastTickFrame": 1144.3
+      },
+      {
+        "count": 48,
+        "frame": 1161.1,
+        "lastTickFrame": 1161.1
+      },
+      {
+        "count": 49,
+        "frame": 1177.7,
+        "lastTickFrame": 1177.7
+      },
+      {
+        "count": 50,
+        "frame": 1194.4,
+        "lastTickFrame": 1194.4
+      },
+      {
+        "count": 51,
+        "frame": 1211.1,
+        "lastTickFrame": 1211.1
+      },
+      {
+        "count": 52,
+        "frame": 1227.8,
+        "lastTickFrame": 1227.8
+      },
+      {
+        "count": 53,
+        "frame": 1244.4,
+        "lastTickFrame": 1244.4
+      },
+      {
+        "count": 54,
+        "frame": 1261.1,
+        "lastTickFrame": 1261.1
+      },
+      {
+        "count": 55,
+        "frame": 1277.7,
+        "lastTickFrame": 1277.7
+      },
+      {
+        "count": 56,
+        "frame": 1294.4,
+        "lastTickFrame": 1294.4
+      },
+      {
+        "count": 57,
+        "frame": 1311.1,
+        "lastTickFrame": 1311.1
+      },
+      {
+        "count": 58,
+        "frame": 1327.7,
+        "lastTickFrame": 1327.7
+      },
+      {
+        "count": 59,
+        "frame": 1344.3,
+        "lastTickFrame": 1344.3
+      },
+      {
+        "count": 60,
+        "frame": 1361.1,
+        "lastTickFrame": 1361.1
+      },
+      {
+        "count": 61,
+        "frame": 1377.7,
+        "lastTickFrame": 1377.7
+      },
+      {
+        "count": 62,
+        "frame": 1394.3,
+        "lastTickFrame": 1394.3
+      },
+      {
+        "count": 63,
+        "frame": 1411,
+        "lastTickFrame": 1411
+      },
+      {
+        "count": 64,
+        "frame": 1427.7,
+        "lastTickFrame": 1427.7
+      },
+      {
+        "count": 65,
+        "frame": 1444.4,
+        "lastTickFrame": 1444.4
+      },
+      {
+        "count": 66,
+        "frame": 1461,
+        "lastTickFrame": 1461
+      },
+      {
+        "count": 67,
+        "frame": 1477.7,
+        "lastTickFrame": 1477.7
+      },
+      {
+        "count": 68,
+        "frame": 1494.4,
+        "lastTickFrame": 1494.4
+      },
+      {
+        "count": 69,
+        "frame": 1511,
+        "lastTickFrame": 1511
+      },
+      {
+        "count": 70,
+        "frame": 1527.7,
+        "lastTickFrame": 1527.7
+      },
+      {
+        "count": 71,
+        "frame": 1544.3,
+        "lastTickFrame": 1544.3
+      },
+      {
+        "count": 72,
+        "frame": 1561,
+        "lastTickFrame": 1561
+      },
+      {
+        "count": 73,
+        "frame": 1577.7,
+        "lastTickFrame": 1577.7
+      },
+      {
+        "count": 74,
+        "frame": 1594.4,
+        "lastTickFrame": 1594.4
+      },
+      {
+        "count": 75,
+        "frame": 1611,
+        "lastTickFrame": 1611
+      },
+      {
+        "count": 76,
+        "frame": 1627.7,
+        "lastTickFrame": 1627.7
+      },
+      {
+        "count": 77,
+        "frame": 1644.4,
+        "lastTickFrame": 1644.4
+      }
+    ],
+    "callbacks": {
+      "tick": 77,
+      "renderFramePlain": 76,
+      "next": 76
+    }
+  },
+  "authenticatedSources": [
+    {
+      "url": "http://127.0.0.1:38632/@fs/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/packages/foldkit/src/dom/animationFrameTicks.ts",
+      "kind": "stream",
+      "responseSha256": "33b43d55e35312b491be8f49cfa3a94c8a9149bc08762a7553635a7765a8ed6f",
+      "sourceHashes": [
+        "b6056947ef840c2ac907d0d5b40942a7a5130f663081c971dd660ed6abc43cd1"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:38632/@fs/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/packages/foldkit/src/runtime/renderer.ts",
+      "kind": "renderer",
+      "responseSha256": "bb75693f5599bc50c9d20524fa32597d4a5f9366e8870f19ec7bc962053d0a1d",
+      "sourceHashes": [
+        "0cb8fe1490802e526d37be68107b0ea94f3c6636b2785aa2d0273e32aa4b718f"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:38632/@fs/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/packages/foldkit/src/dom/animationFrameTicks.ts",
+      "kind": "stream",
+      "responseSha256": "86684029407f6f7b8e67717c4545d7ec5abab6f0cd508473d8a5c7a2041ed48f",
+      "sourceHashes": [
+        "b6056947ef840c2ac907d0d5b40942a7a5130f663081c971dd660ed6abc43cd1"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:38632/@fs/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/packages/foldkit/src/runtime/renderer.ts",
+      "kind": "renderer",
+      "responseSha256": "a2d26dc187f1cadfb99c1603225e316519068d714d3ceb9e32b17c13c5580c45",
+      "sourceHashes": [
+        "0cb8fe1490802e526d37be68107b0ea94f3c6636b2785aa2d0273e32aa4b718f"
+      ]
+    }
+  ],
+  "deltas": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "sameFrameCount": 60,
+  "pendingAfterDisposal": [],
+  "errors": []
+}

@@ -3,23 +3,38 @@
 ## November 8 overnight follow-ups
 
 - [x] Preserve the reviewed HTML and diagnostic commits on #1922 through the
-      normal push gate. Examples E2E passes; the current CI run is pending.
+      normal push gate. CI and Examples E2E pass for `7cc7d90e68`.
 - [x] Reproduce #1921's frame-cadence failure on current preview source and
       verify the adaptation through the Runtime suite and negative controls.
-- [ ] Review the cadence change independently and complete combined checks.
-- [ ] Prove the isolated paired R11/R19 construction prototype, then measure it
-      with unchanged ordinary workloads and identical-code controls.
+- [x] Independently review cadence commit `5c96e577cc`. Verify the same-frame
+      behavior in a browser against the authenticated unchanged Renderer.
+- [ ] Complete the combined cadence checks and account for the extra idle
+      callbacks before current-source ordinary timing. Preserve the failed
+      original 400-callback guard.
+- [x] Prove and measure the isolated paired R11/R19 construction prototype
+      with unchanged ordinary workloads and identical-code controls. Reject
+      adoption because the primary result is smaller than control variation.
+- [x] Preserve both bounded operation-precision prototypes and their exact
+      compiler costs. Three of nine ceilings fail; no implementation is adopted.
 - [ ] Prove immediate child-operation output precision without losing emitting
       policy channels, graph registrations or later Command delivery.
-- [ ] Prove the view-default refinement before repository adoption.
+- [x] Prove the view-default refinement with source, relocated declarations,
+      focused runtime controls and all nine unchanged compiler ceilings.
+- [ ] Finish and independently review the repository-wide view migration,
+      then run the combined verification and normal push gate.
+- [x] Isolate child-Layer editor cost in authenticated controls. Commit
+      `befaa93b15` is independently reviewed; it demonstrates no latency fix.
 - [x] Refresh preview feedback. Assess the new main-targeted crash-cleanup
       proposal #1923 separately from preview regressions.
 
 The [cadence checkpoint](preview-frame-cadence-20261108.md) distinguishes the
 reproduced frame-rate bug from rendering time and records the scope question in
-the new crash-cleanup proposal. Publication and a new Daybreak transfer remain
-held. These checks do not approve a main merge or accept the measured rendering
-and editor costs.
+the new crash-cleanup proposal. The rejected [rendering pair](preview-render-construction-20261108/README.md)
+and [operation-precision prototypes](operation-output-precision-20261108/README.md)
+retain their source and evidence. The November 8 feedback refresh found no
+newer #1655 replies or new issues. Publication and a new Daybreak
+transfer remain held. These checks do not approve a main merge, accept the
+measured rendering and editor costs, or defer the open precision limitation.
 
 ## November 8 rendering diagnostics
 

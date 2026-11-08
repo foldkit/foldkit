@@ -1,0 +1,459 @@
+{
+  "label": "baseline-cjs",
+  "sourceRoot": "/private/tmp/foldkit-r11-r19-prototype-20261108.OnQh5N/baseline",
+  "mode": "Vite source aliases; functional browser cadence only",
+  "appSha256": "a88c866addfd584e5a980e2fce1427d9cdc9435eb4ce4ef20bf2c372e1a95d28",
+  "driverSha256": "da003caacfc9e9d3361abff816d8151555cbecad85aa2147249ac242f242f29d",
+  "rendererSha256": "f6cfca5de37e6a8fea745d600d3d7bea07ccd4df0afab68c99d683714329e805",
+  "streamSha256": "b6056947ef840c2ac907d0d5b40942a7a5130f663081c971dd660ed6abc43cd1",
+  "port": 38631,
+  "browserVersion": "153.0.8010.12",
+  "capture": {
+    "values": [
+      {
+        "count": 2,
+        "frame": 602.5,
+        "lastTickFrame": 602.5
+      },
+      {
+        "count": 4,
+        "frame": 635.8,
+        "lastTickFrame": 635.8
+      },
+      {
+        "count": 6,
+        "frame": 669.1,
+        "lastTickFrame": 669.1
+      },
+      {
+        "count": 8,
+        "frame": 702.5,
+        "lastTickFrame": 702.5
+      },
+      {
+        "count": 10,
+        "frame": 735.8,
+        "lastTickFrame": 735.8
+      },
+      {
+        "count": 12,
+        "frame": 769.1,
+        "lastTickFrame": 769.1
+      },
+      {
+        "count": 14,
+        "frame": 802.5,
+        "lastTickFrame": 802.5
+      },
+      {
+        "count": 16,
+        "frame": 835.8,
+        "lastTickFrame": 835.8
+      },
+      {
+        "count": 18,
+        "frame": 869.1,
+        "lastTickFrame": 869.1
+      },
+      {
+        "count": 20,
+        "frame": 902.4,
+        "lastTickFrame": 902.4
+      },
+      {
+        "count": 22,
+        "frame": 935.8,
+        "lastTickFrame": 935.8
+      },
+      {
+        "count": 24,
+        "frame": 969.2,
+        "lastTickFrame": 969.2
+      },
+      {
+        "count": 26,
+        "frame": 1002.5,
+        "lastTickFrame": 1002.5
+      },
+      {
+        "count": 28,
+        "frame": 1035.8,
+        "lastTickFrame": 1035.8
+      },
+      {
+        "count": 30,
+        "frame": 1069.1,
+        "lastTickFrame": 1069.1
+      },
+      {
+        "count": 32,
+        "frame": 1102.5,
+        "lastTickFrame": 1102.5
+      },
+      {
+        "count": 34,
+        "frame": 1135.7,
+        "lastTickFrame": 1135.7
+      },
+      {
+        "count": 36,
+        "frame": 1169.1,
+        "lastTickFrame": 1169.1
+      },
+      {
+        "count": 38,
+        "frame": 1202.4,
+        "lastTickFrame": 1202.4
+      },
+      {
+        "count": 40,
+        "frame": 1235.8,
+        "lastTickFrame": 1235.8
+      },
+      {
+        "count": 42,
+        "frame": 1269.1,
+        "lastTickFrame": 1269.1
+      },
+      {
+        "count": 44,
+        "frame": 1302.5,
+        "lastTickFrame": 1302.5
+      },
+      {
+        "count": 46,
+        "frame": 1335.8,
+        "lastTickFrame": 1335.8
+      },
+      {
+        "count": 48,
+        "frame": 1369.1,
+        "lastTickFrame": 1369.1
+      },
+      {
+        "count": 50,
+        "frame": 1402.4,
+        "lastTickFrame": 1402.4
+      },
+      {
+        "count": 52,
+        "frame": 1435.8,
+        "lastTickFrame": 1435.8
+      },
+      {
+        "count": 54,
+        "frame": 1469.1,
+        "lastTickFrame": 1469.1
+      },
+      {
+        "count": 56,
+        "frame": 1502.5,
+        "lastTickFrame": 1502.5
+      },
+      {
+        "count": 58,
+        "frame": 1535.8,
+        "lastTickFrame": 1535.8
+      },
+      {
+        "count": 60,
+        "frame": 1569.1,
+        "lastTickFrame": 1569.1
+      },
+      {
+        "count": 62,
+        "frame": 1602.5,
+        "lastTickFrame": 1602.5
+      },
+      {
+        "count": 64,
+        "frame": 1635.8,
+        "lastTickFrame": 1635.8
+      },
+      {
+        "count": 66,
+        "frame": 1669.1,
+        "lastTickFrame": 1669.1
+      },
+      {
+        "count": 68,
+        "frame": 1702.4,
+        "lastTickFrame": 1702.4
+      },
+      {
+        "count": 70,
+        "frame": 1735.7,
+        "lastTickFrame": 1735.7
+      },
+      {
+        "count": 72,
+        "frame": 1769.1,
+        "lastTickFrame": 1769.1
+      },
+      {
+        "count": 74,
+        "frame": 1802.5,
+        "lastTickFrame": 1802.5
+      },
+      {
+        "count": 76,
+        "frame": 1835.8,
+        "lastTickFrame": 1835.8
+      },
+      {
+        "count": 78,
+        "frame": 1869,
+        "lastTickFrame": 1869
+      },
+      {
+        "count": 80,
+        "frame": 1902.4,
+        "lastTickFrame": 1902.4
+      },
+      {
+        "count": 82,
+        "frame": 1935.8,
+        "lastTickFrame": 1935.8
+      },
+      {
+        "count": 84,
+        "frame": 1969.1,
+        "lastTickFrame": 1969.1
+      },
+      {
+        "count": 86,
+        "frame": 2002.4,
+        "lastTickFrame": 2002.4
+      },
+      {
+        "count": 88,
+        "frame": 2035.8,
+        "lastTickFrame": 2035.8
+      },
+      {
+        "count": 90,
+        "frame": 2069.1,
+        "lastTickFrame": 2069.1
+      },
+      {
+        "count": 92,
+        "frame": 2102.4,
+        "lastTickFrame": 2102.4
+      },
+      {
+        "count": 94,
+        "frame": 2135.8,
+        "lastTickFrame": 2135.8
+      },
+      {
+        "count": 96,
+        "frame": 2169,
+        "lastTickFrame": 2169
+      },
+      {
+        "count": 98,
+        "frame": 2202.4,
+        "lastTickFrame": 2202.4
+      },
+      {
+        "count": 100,
+        "frame": 2235.7,
+        "lastTickFrame": 2235.7
+      },
+      {
+        "count": 102,
+        "frame": 2269.1,
+        "lastTickFrame": 2269.1
+      },
+      {
+        "count": 104,
+        "frame": 2302.4,
+        "lastTickFrame": 2302.4
+      },
+      {
+        "count": 106,
+        "frame": 2335.8,
+        "lastTickFrame": 2335.8
+      },
+      {
+        "count": 108,
+        "frame": 2369,
+        "lastTickFrame": 2369
+      },
+      {
+        "count": 110,
+        "frame": 2402.3,
+        "lastTickFrame": 2402.3
+      },
+      {
+        "count": 112,
+        "frame": 2435.7,
+        "lastTickFrame": 2435.7
+      },
+      {
+        "count": 114,
+        "frame": 2469,
+        "lastTickFrame": 2469
+      },
+      {
+        "count": 116,
+        "frame": 2502.4,
+        "lastTickFrame": 2502.4
+      },
+      {
+        "count": 118,
+        "frame": 2535.7,
+        "lastTickFrame": 2535.7
+      },
+      {
+        "count": 120,
+        "frame": 2569.1,
+        "lastTickFrame": 2569.1
+      },
+      {
+        "count": 122,
+        "frame": 2602.4,
+        "lastTickFrame": 2602.4
+      },
+      {
+        "count": 124,
+        "frame": 2635.7,
+        "lastTickFrame": 2635.7
+      },
+      {
+        "count": 126,
+        "frame": 2669,
+        "lastTickFrame": 2669
+      },
+      {
+        "count": 128,
+        "frame": 2702.3,
+        "lastTickFrame": 2702.3
+      },
+      {
+        "count": 130,
+        "frame": 2735.7,
+        "lastTickFrame": 2735.7
+      },
+      {
+        "count": 132,
+        "frame": 2769.1,
+        "lastTickFrame": 2769.1
+      },
+      {
+        "count": 134,
+        "frame": 2802.3,
+        "lastTickFrame": 2802.3
+      },
+      {
+        "count": 136,
+        "frame": 2835.8,
+        "lastTickFrame": 2835.8
+      },
+      {
+        "count": 138,
+        "frame": 2869.1,
+        "lastTickFrame": 2869.1
+      },
+      {
+        "count": 140,
+        "frame": 2902.4,
+        "lastTickFrame": 2902.4
+      },
+      {
+        "count": 142,
+        "frame": 2935.7,
+        "lastTickFrame": 2935.7
+      },
+      {
+        "count": 144,
+        "frame": 2969,
+        "lastTickFrame": 2969
+      },
+      {
+        "count": 146,
+        "frame": 3002.3,
+        "lastTickFrame": 3002.3
+      },
+      {
+        "count": 148,
+        "frame": 3035.7,
+        "lastTickFrame": 3035.7
+      },
+      {
+        "count": 150,
+        "frame": 3069,
+        "lastTickFrame": 3069
+      }
+    ],
+    "callbacks": {
+      "tick": 150,
+      "renderFramePlain": 75,
+      "next": 148
+    }
+  },
+  "deltas": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "sameFrameCount": 60,
+  "pendingAfterDisposal": [],
+  "errors": []
+}

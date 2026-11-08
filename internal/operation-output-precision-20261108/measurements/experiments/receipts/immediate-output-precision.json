@@ -1,0 +1,59 @@
+{
+  "formatVersion": 1,
+  "candidate": "immediate-output-precision",
+  "status": "rejected-for-adoption",
+  "baseCommit": "7cc7d90e68dc5a55b4765bbd7f0469b55cdd928f",
+  "resultSource": {
+    "path": "results/immediate-output-precision.RESULTS.md",
+    "sha256": "ddb2dc2be8ab920e1c61a5e80711d80967b2c289e22ba3b31715e9217c13e3d4"
+  },
+  "recordingLimits": {
+    "rawCommandLogsRetained": false,
+    "note": "This receipt normalizes the contemporaneous RESULTS.md. It does not invent command lines or compiler versions that the result did not record."
+  },
+  "checks": [
+    {
+      "name": "core-source-no-emit",
+      "status": "pass",
+      "typescriptVersion": null
+    },
+    {
+      "name": "ui-popover-declaration-source-fixture",
+      "status": "pass",
+      "typescriptVersion": null
+    },
+    {
+      "name": "focused-runtime",
+      "status": "pass",
+      "files": 2,
+      "tests": 9
+    },
+    {
+      "name": "git-diff-check",
+      "status": "pass"
+    },
+    {
+      "name": "final-tag-only-emitted-source-free-gate",
+      "status": "not-run",
+      "note": "A preceding ResultContract-only encoding passed this gate, but that encoding is not the retained candidate."
+    }
+  ],
+  "compilerCeilings": {
+    "typescriptVersion": "7.1.0-beta",
+    "status": "fail",
+    "passed": 6,
+    "failed": 3,
+    "rows": [
+      { "fixture": "deep-composition-8", "instantiations": 668962, "instantiationsMaximum": 671225, "types": 54028, "typesMaximum": 54305, "status": "pass" },
+      { "fixture": "wide-composition-100", "instantiations": 1399757, "instantiationsMaximum": 1407702, "types": 81490, "typesMaximum": 81772, "status": "pass" },
+      { "fixture": "command-requirements-200", "instantiations": 344558, "instantiationsMaximum": 346362, "types": 64167, "typesMaximum": 64468, "status": "pass" },
+      { "fixture": "wide-subscriptions-100", "instantiations": 548136, "instantiationsMaximum": 548577, "types": 23588, "typesMaximum": 24507, "status": "pass" },
+      { "fixture": "workspace-composition-4", "instantiations": 1637511, "instantiationsMaximum": 1609171, "instantiationsExcess": 28340, "types": 117907, "typesMaximum": 117873, "typesExcess": 34, "status": "fail" },
+      { "fixture": "workspace-composition-8", "instantiations": 2840443, "instantiationsMaximum": 2787171, "instantiationsExcess": 53272, "types": 160940, "typesMaximum": 160966, "typesExcess": -26, "status": "fail" },
+      { "fixture": "machine-search", "instantiations": 69498, "instantiationsMaximum": 70054, "types": 13132, "typesMaximum": 13402, "status": "pass" },
+      { "fixture": "attribute-bundles-200", "instantiations": 114226, "instantiationsMaximum": 114226, "types": 29369, "typesMaximum": 29370, "status": "pass" },
+      { "fixture": "layered-composition-6", "instantiations": 2713079, "instantiationsMaximum": 2707124, "instantiationsExcess": 5955, "types": 336491, "typesMaximum": 336291, "typesExcess": 200, "status": "fail" }
+    ]
+  },
+  "decision": "Correctness proof passed within the recorded scope, but three of nine unchanged TypeScript 7.1 compiler ceilings failed. No ceiling change was proposed. The experiment remains unadopted and open research."
+}
