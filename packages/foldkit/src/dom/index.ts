@@ -8,6 +8,7 @@ export {
   scrollIntoView,
   scrollIntoViewAfterPaint,
   scrollIntoViewIfNotVisible,
+  setSelection,
   showDialog,
 } from './dom.js'
 export type { FocusDirection } from './dom.js'
