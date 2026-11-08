@@ -7,6 +7,7 @@ import * as Block from '../../../block/public.js'
 import { defineMessageUnion } from '../../../message/index.js'
 import { modifyFields } from '../../../struct/index.js'
 import * as CoreStory from '../../../test/story.js'
+import * as Scene from './scene.js'
 import * as Story from './story.js'
 
 const LeafModel = Schema.Struct({ count: Schema.Number })
@@ -349,6 +350,27 @@ describe('Story Subscription delivery through a Block graph', () => {
 })
 
 if (false) {
+  const rootSubject = { block: RootBlock, layer: rootLayer }
+  const selectedStoryStep: Story.Step<typeof rootSubject> =
+    Story.Subscription.emit(
+      Story.Subscription.at(RightBinding, leafSubscriptions.pulses),
+      LeafMessage.ObservedPulse({ count: 1 }),
+    )
+  const selectedSceneStep: Scene.Step<typeof rootSubject> =
+    Scene.Subscription.emit(
+      rootSubscriptions.pulses,
+      RootMessage.ObservedRootPulse(),
+    )
+  void selectedStoryStep
+  void selectedSceneStep
+
+  // @ts-expect-error The reusable Story step retains the selected Layer's Subscription graph.
+  const unselectedStoryStep: Story.Step<typeof RootBlock> = selectedStoryStep
+  // @ts-expect-error The reusable Scene step retains the selected Layer's Subscription graph.
+  const unselectedSceneStep: Scene.Step<typeof RootBlock> = selectedSceneStep
+  void unselectedStoryStep
+  void unselectedSceneStep
+
   const shellEmission = Story.steps(
     Story.steps(
       Story.Subscription.emit(
@@ -365,6 +387,10 @@ if (false) {
   // oxfmt-ignore
   const wrongParentStory = Story.story({ block: RootBlock, layer: rootLayer }, Story.given(initialModel), shellEmission)
   void wrongParentStory
+
+  // @ts-expect-error An extracted helper retains the selected Binding path's parent owner.
+  const wrongParentStep: Story.Step<typeof rootSubject> = shellEmission
+  void wrongParentStep
 
   // @ts-expect-error Grouping cannot introduce graph-backed steps into an update-only Story.
   // oxfmt-ignore

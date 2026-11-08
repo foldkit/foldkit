@@ -32,6 +32,10 @@
     "attribute-bundles-200": {
       "maxInstantiationsDelta": 114226,
       "maxTypesDelta": 29370
+    },
+    "layered-composition-6": {
+      "maxInstantiationsDelta": 2707124,
+      "maxTypesDelta": 336291
     }
   }
 }

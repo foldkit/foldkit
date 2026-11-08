@@ -1,10 +1,12 @@
 # Block type performance
 
 This harness measures TypeScript allocation counts through Foldkit's published
-declarations. Block-composition fixtures complete their graphs with an
-Application update, `ApplicationComposition.prepareBlock`, `Program.makeElement`,
-and the completed Program's `.provide(...)` method. Other fixtures cover
-Subscription requirements, Machine authoring and shared HTML attributes.
+declarations. The current-authoring workload uses passive `Block.make`
+contracts, split-file builders, record-form `makeLayer` and explicit child
+implementation Layers. Historical composition workloads retain
+`makeDefinition` and `prepareBlock` so their existing ceilings keep the same
+meaning. Other fixtures cover Subscription requirements, Machine authoring
+and shared HTML attributes.
 
 The shared baseline contains the imports and warmup expressions repeated by
 every fixture. Fixture cost is the fixture total minus that baseline for these
@@ -38,6 +40,30 @@ Only update budgets after reviewing an intentional type-level change or a
 coordinated compiler-version or measurement-mode change. The ordinary check
 never changes them and fails when either gated metric exceeds its stored maximum.
 
+## Current Block authoring
+
+`layered-composition-6` composes an editor group with six child placements:
+three required fields, an optional field, Record storage and a standard keyed
+Instance array. The group has independently authored contract, Composition,
+init, update, Steps, view and Layer modules under `layered/`. A routed-only host
+consumes the group's OutMessage and completes `Program.makeElement`.
+
+The workload checks ordinary and connected `combineSteps`, generated InMessage
+methods, an emitting child policy, shared update composition, deferred child
+initialization, dynamic `Binding.create`, view inputs, and runtime handler
+Service requirements. The public Program assertions distinguish construction
+requirements from execution requirements before and after Service provision.
+It measures current authoring in addition to the historical eight workloads;
+it does not replace or recalibrate those workloads.
+
+The fixture's initial ceiling is the exact observed single-checker delta on
+the reviewed preview declarations. It has no additional tolerance. Measure it
+independently with:
+
+```sh
+pnpm check:block-type-performance layered-composition-6
+```
+
 ## Measurement mode
 
 The baseline and every fixture run with TypeScript's `--singleThreaded` option.
@@ -45,8 +71,8 @@ This keeps one checker's type cache for the workload. Parallel workers can each
 check the same dependency, so changing which worker receives a source file can
 increase aggregate counts without increasing its underlying type work.
 
-The TypeScript version and checker mode are part of the metric. All eight
-ceilings were calibrated together against the current candidate and the
+The TypeScript version and checker mode are part of the metric. The eight
+historical ceilings were calibrated together against the current candidate and the
 previously accepted declarations. Each ceiling admits the greater observed
 single-checker count for its metric, without an additional tolerance. The
 fixture sources and their completion contracts are unchanged.

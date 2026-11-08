@@ -104,6 +104,23 @@ export type TestSubject =
       inMessageContext?: ReadonlyArray<unknown>
     }>
 
+/** @internal Resolves the exact Block graph represented by a checked test subject. */
+export type SubjectBlock<Subject> =
+  Subject extends Readonly<{
+    block: infer Block extends DeclaredRootBlock
+    layer: infer LayerValue extends Layer.Layer<any, any, any>
+  }>
+    ? unknown extends ValidateSelectedLayer<Block, LayerValue>
+      ? SelectedLayeredRoot<Block, LayerValue>
+      : never
+    : Subject extends Readonly<{
+          block: infer Block extends BlockSubject
+        }>
+      ? Block
+      : Subject extends BlockSubject
+        ? Subject
+        : never
+
 /** @internal A selected Layer plus the optional per-dispatch test context. */
 export type SelectedTestConfig<
   Block extends DeclaredRootBlock,

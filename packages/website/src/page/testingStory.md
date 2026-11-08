@@ -26,6 +26,17 @@ Qualify every testing step through the namespace so call sites such as `Story.gi
 
 ::Snippet{name="testingApi" label="API reference"}
 
+### Reusable typed steps
+
+Annotate an extracted Block-aware helper as `Story.Step<typeof subject>`, where
+`subject` is the same Block or `{ block, layer, ... }` config passed to
+`Story.story`. The helper retains the selected Layer's local and generated
+Messages, OutMessages, InMessages and keyed Subscription paths. The subject
+also keeps update and InMessage Context requirements on the runner call. Use
+`Story.steps(...)` when several steps form one reusable sequence; annotating the
+group with the same `Story.Step<typeof subject>` keeps its graph evidence after
+declaration emission.
+
 ### Match Commands by Definition or Instance
 
 A Command matcher accepts either a Definition or an instance. A Definition matches the originating declaration, even after a Binding qualifies its displayed name. An instance also checks structurally equal arguments, and a bound instance selects its composition path.

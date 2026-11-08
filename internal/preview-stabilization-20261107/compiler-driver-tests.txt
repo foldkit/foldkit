@@ -1,0 +1,12 @@
+✔ a diagnostic increase beyond a stored budget fails the gate (0.661375ms)
+✔ the CLI fails when a real fixture exceeds a mutated budget (958.988916ms)
+✔ the CLI rejects an incomplete budget before compilation (230.473542ms)
+✔ a targeted update cannot mix budgets from TypeScript versions (265.466416ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1653.575125

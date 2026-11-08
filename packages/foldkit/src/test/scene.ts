@@ -949,17 +949,13 @@ const renderView = <Model, Message>(
     clearHtmlRuntime()
   }
 
-  const vnode = isDocument(result) ? (result.body ?? null) : result
+  const vnode = isDocument(result) ? result.body : result
+  const sceneRoot =
+    vnode === null
+      ? makeVNode(undefined, undefined, undefined, undefined, undefined)
+      : vnode
 
-  if (vnode === null) {
-    throw new Error(
-      'The view function returned null.\n\n' +
-        'Scene tests require a non-null view. ' +
-        'If you need to test null-view states, use Story.story instead.',
-    )
-  }
-
-  return dedupeSharedVNodes(vnode, boundaryRegistry.dedupeSeen)
+  return dedupeSharedVNodes(sceneRoot, boundaryRegistry.dedupeSeen)
 }
 
 const markPreviousRenderVNodes = (node: VNode, seen: Set<object>): void => {

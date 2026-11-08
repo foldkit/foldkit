@@ -1,0 +1,6 @@
+[block-type-performance] TypeScript 7.1.0-beta; --singleThreaded diagnostics
+[block-type-performance] Measuring baseline...
+[block-type-performance] Measuring layered-composition-6...
+fixture                instDelta  instMax    typesDelta  typesMax  symbolsDelta  status
+---------------------  ---------  ---------  ----------  --------  ------------  ----------------------
+layered-composition-6  2,707,124  2,707,123  336,291     336,291   238,868       failed: Instantiations

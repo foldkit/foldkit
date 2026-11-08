@@ -1,0 +1,21 @@
+checkpoint: rejected MakeLayer acquired-record projection
+typescript: 7.1.0-beta
+mode: source aliases, --singleThreaded, --extendedDiagnostics, noEmit
+
+current unified.ts sha256:
+ca4390246a95d02ce695645d63c58d4892bf0d33c312649b0b2e38496907420a
+
+candidate unified.ts sha256:
+27bb11eaf69d2b994bf554b90d8e2de382a6887c66fcf41b773598fe5d27d450
+
+current and candidate layered-composition-6.ts sha256:
+914b4e90ac7af627fdbfcf61a1c15b73be61e6496e53df0e291cf461d5692073
+
+current and candidate layered-composition-6.json sha256:
+82e2b095bc4b51de3e7aa99b751b16d635f22bbfa33b43b438472466d8c8e225
+
+The frozen current/type-performance and candidate/type-performance trees are byte-identical.
+The frozen current/configs and candidate/configs trees are byte-identical.
+The only source-tree difference is src/experimental/contracted/unified.ts, recorded in prototype.patch.
+
+The later candidate-only declaration source checks use candidate/tsconfig.base.json and the copied declaration-tests tree. The temporary program source config adds only the missing foldkit/* source path needed outside the repository workspace package link.

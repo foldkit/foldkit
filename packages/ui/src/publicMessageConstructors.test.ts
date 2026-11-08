@@ -93,6 +93,20 @@ describe('public Block contracts and acquired Message Codecs', () => {
     expect(Popover.InMessage).toBe(Popover.PopoverBlock.InMessage)
     expect(HoverIntent.InMessage).toBe(HoverIntent.HoverIntentBlock.InMessage)
 
+    const requestedCloseWithoutRestoringFocus =
+      Popover.InMessage.RequestedCloseWithoutRestoringFocus()
+
+    expect(
+      Schema.is(Popover.PopoverBlock.InMessage)(
+        requestedCloseWithoutRestoringFocus,
+      ),
+    ).toBe(true)
+    expect(
+      Schema.is(Popover.PopoverBlock.Message)(
+        requestedCloseWithoutRestoringFocus,
+      ),
+    ).toBe(false)
+
     const rangeChange = Slider.InMessage.InformedOfRangeChange({
       min: 0,
       max: 1,

@@ -59,6 +59,28 @@ const runCompiler = (label: string, args: ReadonlyArray<string>): string => {
   return output
 }
 
+const runCompilerExpectFailure = (
+  label: string,
+  args: ReadonlyArray<string>,
+): string => {
+  const result = spawnSync(compiler, args, {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    env: process.env,
+  })
+  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`.trim()
+
+  if (result.error !== undefined) {
+    throw result.error
+  }
+
+  if (result.status === 0) {
+    return fail(`${label} unexpectedly passed.`)
+  }
+
+  return output
+}
+
 const readJson = (path: string): unknown =>
   JSON.parse(readFileSync(path, 'utf8'))
 
@@ -183,6 +205,9 @@ const main = (): void => {
     'listbox-layer-alias.accepted.ts',
     'menu-layer-alias.accepted.ts',
     'popover-layer-alias.accepted.ts',
+    'popover-close-without-restoring-focus.accepted.ts',
+    'popover-close-without-restoring-focus.consume.ts',
+    'popover-close-without-restoring-focus.rejected.ts',
     'dialog-layer-alias.consume.ts',
     'generic-composition.accepted.ts',
     'generic-composition.rejected.ts',
@@ -218,6 +243,14 @@ const main = (): void => {
   runCompiler('Checking unified UI factory source contracts', [
     '-p',
     join(fixtureRoot, 'tsconfig.unified-factories.source.json'),
+  ])
+
+  runCompiler('Checking Popover parent close source contracts', [
+    '-p',
+    join(
+      fixtureRoot,
+      'tsconfig.popover-close-without-restoring-focus.source.json',
+    ),
   ])
 
   const workspace = realpathSync(
@@ -284,6 +317,8 @@ const main = (): void => {
       'listbox-layer-alias.accepted.ts',
       'menu-layer-alias.accepted.ts',
       'popover-layer-alias.accepted.ts',
+      'popover-close-without-restoring-focus.accepted.ts',
+      'popover-close-without-restoring-focus.rejected.ts',
       'generic-composition.accepted.ts',
       'generic-composition.rejected.ts',
       'unified-factories.accepted.ts',
@@ -314,6 +349,7 @@ const main = (): void => {
         join(sources, 'unified-factories.accepted.ts'),
         join(sources, 'test-namespaces.accepted.ts'),
         join(sources, 'kernel-operation-channels.accepted.ts'),
+        join(sources, 'popover-close-without-restoring-focus.accepted.ts'),
         join(sources, 'shared-dialog-renderer.accepted.ts'),
       ],
     })
@@ -375,6 +411,7 @@ const main = (): void => {
         join(sources, 'generic-composition.rejected.ts'),
         join(sources, 'unified-factories.rejected.ts'),
         join(sources, 'shared-dialog-renderer.rejected.ts'),
+        join(sources, 'popover-close-without-restoring-focus.rejected.ts'),
       ],
     })
     runCompiler('Rejecting invalid generic UI wiring', ['-p', rejectedConfig])
@@ -388,6 +425,8 @@ const main = (): void => {
     for (const fixture of [
       'dialog-layer-alias.consume.ts',
       'kernel-operation-channels.consume.ts',
+      'popover-close-without-restoring-focus.consume.ts',
+      'popover-close-without-restoring-focus.rejected.ts',
       'unified-factories.consume.ts',
       'unified-factories.rejected.ts',
       'shared-dialog-renderer.consume.ts',
@@ -404,6 +443,8 @@ const main = (): void => {
         'unified-factories.consume.ts',
         'unified-factories.rejected.ts',
         'kernel-operation-channels.consume.ts',
+        'popover-close-without-restoring-focus.consume.ts',
+        'popover-close-without-restoring-focus.rejected.ts',
         'shared-dialog-renderer.consume.ts',
         'shared-dialog-renderer.rejected.ts',
       ],
@@ -413,8 +454,77 @@ const main = (): void => {
       consumerConfig,
     ])
 
+    const popoverCloseDeclarationPath = join(
+      relocated,
+      'popover-close-without-restoring-focus.accepted.d.ts',
+    )
+    const popoverCloseDeclaration = readFileSync(
+      popoverCloseDeclarationPath,
+      'utf8',
+    )
+    const closeMethod = 'requestCloseWithoutRestoringFocus'
+    if (!popoverCloseDeclaration.includes(closeMethod)) {
+      fail(
+        'The emitted Popover parent fixture did not retain requestCloseWithoutRestoringFocus.',
+      )
+    }
+
+    const popoverCloseFacadeName =
+      'popover-close-without-restoring-focus.method-removed'
+    writeFileSync(
+      join(relocated, `${popoverCloseFacadeName}.d.ts`),
+      [
+        "import { PopoverBinding as originalPopoverBinding } from './popover-close-without-restoring-focus.accepted.js'",
+        "export { type PopoverCloseAssertions, update } from './popover-close-without-restoring-focus.accepted.js'",
+        'export declare const PopoverBinding: Omit<',
+        '  typeof originalPopoverBinding,',
+        `  '${closeMethod}'`,
+        '>',
+        '',
+      ].join('\n'),
+    )
+    const popoverCloseConsumerPath = join(
+      relocated,
+      'popover-close-without-restoring-focus.consume.ts',
+    )
+    const popoverCloseConsumer = readFileSync(popoverCloseConsumerPath, 'utf8')
+    const acceptedImport = './popover-close-without-restoring-focus.accepted.js'
+    if (!popoverCloseConsumer.includes(acceptedImport)) {
+      fail('The Popover close consumer did not import the accepted fixture.')
+    }
+    writeFileSync(
+      popoverCloseConsumerPath,
+      popoverCloseConsumer.replace(
+        acceptedImport,
+        `./${popoverCloseFacadeName}.js`,
+      ),
+    )
+    const mutationConfig = join(relocated, 'popover-close-mutation.json')
+    writeJson(mutationConfig, {
+      compilerOptions: { ...compilerOptions, noEmit: true },
+      files: ['popover-close-without-restoring-focus.consume.ts'],
+    })
+    const mutationOutput = runCompilerExpectFailure(
+      'Rejecting the removed Popover no-focus close method',
+      ['-p', mutationConfig],
+    )
+    const isMissingConsumerMethod = mutationOutput
+      .split('\n')
+      .some(
+        line =>
+          line.includes('popover-close-without-restoring-focus.consume.ts(') &&
+          line.includes('error TS2339') &&
+          line.includes(`Property '${closeMethod}' does not exist on type`),
+      )
+
+    if (!isMissingConsumerMethod) {
+      fail(
+        'The Popover no-focus close mutation did not fail at the consumer method call.',
+      )
+    }
+
     process.stdout.write(
-      `[ui-emitted-declarations] ${version}; shared Dialog source contracts, isolated package build, external emission, exact kernel operation channels, rejected wiring, and relocation checks passed.\n`,
+      `[ui-emitted-declarations] ${version}; shared Dialog source contracts, isolated package build, external emission, exact kernel operation channels, Popover parent close mutation, rejected wiring, and relocation checks passed.\n`,
     )
   } finally {
     rmSync(workspace, { recursive: true, force: true })

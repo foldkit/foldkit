@@ -18,7 +18,23 @@ Use `withBlock` for an advanced fixture that needs initialized state or a custom
 
 Scene operates on VNodes directly. It needs no DOM, jsdom, or browser.
 
+A view may return `h.empty`, including as a Document's body. The empty render
+has no element, role, text, or multi-match Locator results. Later steps can
+render an element, interact with it, and return to empty; Scene still tracks
+root Mount disposal and reports a normal missing-target failure for an
+interaction attempted while empty.
+
 Import the `Scene` namespace from `foldkit` and qualify every step through it. This keeps the testing DSL visible at call sites such as `Scene.given`, `Scene.click`, and `Scene.expect`.
+
+### Reusable typed steps
+
+Annotate an extracted Block-aware helper as `Scene.Step<typeof subject>`, where
+`subject` is the same Block or `{ block, layer, ... }` config passed to
+`Scene.scene`. The type retains the selected Layer's Messages, OutMessages,
+InMessages and keyed Subscription graph. It also retains routing: a helper that
+contains `Scene.Navigation.changedUrl(...)` requires a subject with routing.
+Keep a helper tied to its owning subject instead of widening it to the
+low-level `SceneStep` type.
 
 ## Locators
 

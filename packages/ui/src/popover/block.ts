@@ -73,15 +73,24 @@ export type ClickedButton = typeof Message.ClickedButton.Type
 export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 
-/** Requests accepted from a parent independently of local Popover events. */
+/**
+ * Requests accepted from a parent independently of local Popover events.
+ * `RequestedClose` restores focus to the trigger, while
+ * `RequestedCloseWithoutRestoringFocus` leaves the current focus target alone.
+ */
 export const InMessage = defineInMessageUnion({
   RequestedOpen: {},
   RequestedClose: {},
+  /** Closes the Popover without moving focus back to its trigger. */
+  RequestedCloseWithoutRestoringFocus: {},
 })
 export type InMessage = typeof InMessage.Type
 
 export type RequestedOpen = typeof InMessage.RequestedOpen.Type
 export type RequestedClose = typeof InMessage.RequestedClose.Type
+/** A parent request to close the Popover without restoring trigger focus. */
+export type RequestedCloseWithoutRestoringFocus =
+  typeof InMessage.RequestedCloseWithoutRestoringFocus.Type
 
 // OUT MESSAGE
 
@@ -177,6 +186,7 @@ export const PopoverBlock = Block.make(PopoverNamespace, {
   inMessageOutputs: {
     RequestedOpen: { outMessage: OutMessage },
     RequestedClose: { outMessage: OutMessage },
+    RequestedCloseWithoutRestoringFocus: { outMessage: OutMessage },
   },
   Model,
   Message,
@@ -447,14 +457,18 @@ const closePopoverWithFocus = PopoverBlock.makeStep(model =>
   closePopover(model, closePopoverCommands(model, true)),
 )
 
+const closePopoverWithoutRestoringFocus = PopoverBlock.makeStep(model =>
+  closePopover(model, closePopoverCommands(model, false)),
+)
+
 /** Processes parent requests independently from local Message dispatch. */
 export const inMessageUpdate = PopoverComposition.makeInMessageUpdate({
   RequestedOpen: PopoverBlock.makeStep(openPopover),
   RequestedClose: closePopoverWithFocus,
+  RequestedCloseWithoutRestoringFocus: closePopoverWithoutRestoringFocus,
 })
 
 const internalUpdate = (model: Model, message: Message) => {
-  const closeWithoutFocusCommands = closePopoverCommands(model, false)
   const closeWithFocusCommands = closePopoverCommands(model, true)
 
   return Match.value(message).pipe(
@@ -472,7 +486,7 @@ const internalUpdate = (model: Model, message: Message) => {
           return { model }
         }
 
-        return closePopover(model, closeWithoutFocusCommands)
+        return closePopoverWithoutRestoringFocus
       },
 
       PressedPointerOnButton: ({ pointerType, button }) => {

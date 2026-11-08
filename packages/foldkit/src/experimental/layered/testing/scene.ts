@@ -19,6 +19,7 @@ import { resolveInMessageSteps } from './inMessage.js'
 import type {
   DirectSubject,
   SelectedTestConfig,
+  SubjectBlock,
   TestConfig,
   TestInMessage,
   TestInit,
@@ -35,7 +36,7 @@ import {
 import {
   type BlockSubject,
   type TestBlock,
-  TestContract,
+  type TestContract,
   type TestEffect,
   withBlock,
 } from './withBlock.js'
@@ -95,7 +96,7 @@ type SelectedKeyedSubscriptionStep<Block extends BlockSubject> =
       expected: 'Active' | 'Inactive'
     }>
 
-type Step<Block extends BlockSubject, Routing> =
+type ResolvedStep<Block extends BlockSubject, Routing> =
   | CoreScene.SceneStep<
       TestModel<Block>,
       TestMessage<Block>,
@@ -105,6 +106,24 @@ type Step<Block extends BlockSubject, Routing> =
       TestInMessage<Block>
     >
   | SelectedKeyedSubscriptionStep<Block>
+
+type SubjectRouting<Subject, Block extends BlockSubject> =
+  Subject extends Readonly<{
+    routing: infer Routing extends CoreScene.SceneRouting<TestMessage<Block>>
+  }>
+    ? Routing
+    : undefined
+
+/**
+ * One reusable Scene step for a Block-aware subject. Pass the same Block
+ * or `{ block, layer, ... }` subject used by `scene`; a selected Layer retains
+ * its exact Message, OutMessage, InMessage and Subscription graph.
+ */
+export type Step<Subject> = [SubjectBlock<Subject>] extends [never]
+  ? never
+  : SubjectBlock<Subject> extends infer Block extends BlockSubject
+    ? ResolvedStep<Block, SubjectRouting<Subject, Block>>
+    : never
 
 /**
  * Acquires a Block graph and drives its default view with ordinary Scene
@@ -116,7 +135,7 @@ type Step<Block extends BlockSubject, Routing> =
 export function scene<const Block extends BlockSubject>(
   block: DirectSubject<Block> & DefaultView<NoInfer<Block>>,
   initial: InitialState<NoInfer<Block>>,
-  ...steps: ReadonlyArray<Step<NoInfer<Block>, undefined>>
+  ...steps: ReadonlyArray<ResolvedStep<NoInfer<Block>, undefined>>
 ): Effect.Effect<
   void,
   Effect.Error<TestEffect<Block, void>>,
@@ -134,7 +153,7 @@ export function scene<
     Readonly<{ routing?: undefined }>,
   initial: InitialState<SelectedLayeredRoot<Block, LayerValue>>,
   ...steps: ReadonlyArray<
-    Step<SelectedLayeredRoot<Block, LayerValue>, undefined>
+    ResolvedStep<SelectedLayeredRoot<Block, LayerValue>, undefined>
   >
 ): Effect.Effect<
   void,
@@ -160,7 +179,7 @@ export function scene<
     }>,
   initial: InitialState<SelectedLayeredRoot<Block, LayerValue>>,
   ...steps: ReadonlyArray<
-    Step<
+    ResolvedStep<
       SelectedLayeredRoot<Block, LayerValue>,
       CoreScene.SceneRouting<
         TestMessage<SelectedLayeredRoot<Block, LayerValue>>
@@ -183,7 +202,10 @@ export function scene<const Block extends BlockSubject>(
     }>,
   initial: InitialState<NoInfer<Block>>,
   ...steps: ReadonlyArray<
-    Step<NoInfer<Block>, CoreScene.SceneRouting<TestMessage<NoInfer<Block>>>>
+    ResolvedStep<
+      NoInfer<Block>,
+      CoreScene.SceneRouting<TestMessage<NoInfer<Block>>>
+    >
   >
 ): Effect.Effect<
   void,
@@ -200,7 +222,7 @@ export function scene<
     ViewInputs<NoInfer<Block>> &
     Readonly<{ routing?: Routing }>,
   initial: InitialState<NoInfer<Block>>,
-  ...steps: ReadonlyArray<Step<NoInfer<Block>, NoInfer<Routing>>>
+  ...steps: ReadonlyArray<ResolvedStep<NoInfer<Block>, NoInfer<Routing>>>
 ): Effect.Effect<
   void,
   Effect.Error<TestEffect<Block, void>>,

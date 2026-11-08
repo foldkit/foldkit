@@ -1,5 +1,51 @@
 # Next preview tasks
 
+## November 7 stabilization and new pilot feedback
+
+The first post-publication batch is pushed in [#1922](https://github.com/foldkit/foldkit/pull/1922)
+at `311a7bef9b12028071a701272861a5aad2fdeb6b`. Independent review, the full
+local push gate, CI and Examples E2E pass. It has not been merged or published.
+
+The [new pilot report](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6714254069)
+adds the work below. Recheck preview-related issues, PRs and replies at each
+verification checkpoint and before freezing a candidate. Preserve explicit
+exhaustive OutMessage folds, including deliberately ignored variants.
+
+- [x] Add a split-file compiler workload for the current `Block.make`, record
+      `makeLayer`, InMessage and Binding APIs, including ordinary and connected
+      `combineSteps`. Keep the existing historical fixtures and ceilings.
+- [x] Expose parent-requested Popover closing without restoring trigger focus,
+      preserving animation, modal cleanup and existing close behavior.
+- [x] Let Scene render `h.empty` and transition between empty and visible views.
+      Export precise Block-aware Story/Scene step types for extracted helpers.
+- [ ] Investigate whether child-operation output precision can avoid the
+      reported close/focus workaround without changing `combineSteps` emission
+      semantics. The pilot's placement asymmetry is not a current regression.
+- [ ] Refine the view contract: prototype Element as the ordinary default,
+      optional explicit view inputs, explicit Document kind and explicit
+      viewless Blocks. Preserve passive contracts, portable builders and exact
+      completion checks before selecting a spelling or migrating consumers.
+- [ ] Reduce demonstrated rendering and bundle overhead, and continue editor
+      latency work, before the main merge. Compiler ceilings are not evidence
+      of acceptable rendering or editor performance. Compare unchanged
+      workloads and require an explicit decision on any remaining material
+      cost; documentation alone does not approve it.
+- [ ] Investigate [#1921](https://github.com/foldkit/foldkit/pull/1921)'s animation-frame
+      cadence fix against the current preview queue and lifecycle implementation.
+      Treat cadence separately from time per workload. Do not transplant its
+      older Runtime code.
+- [ ] Reassess relevant open performance PRs against the current baseline.
+      #1918 conflicts with the preview's identity-preserving `modifyFields`;
+      #1919 and #1920 are general optimization candidates requiring separate
+      evidence. #1917 is closed in favor of the split PRs.
+
+Optional `InitArgs`, handler records and Model-derived Bindings remain API
+proposals, not accepted fixes. Another preview publication requires approval.
+
+The [stabilization checkpoint](preview-stabilization-20261107/README.md) records
+the source/emitted proofs and the new compiler ceiling. Exact-commit review,
+the normal push gate and protected integration remain separate checks.
+
 ## November 7 post-publication follow-ups
 
 The preview at `54f8bcd443b4fd18952403a3d02e212abf872d58` is published. Its

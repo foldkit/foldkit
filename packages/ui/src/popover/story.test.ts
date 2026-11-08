@@ -251,6 +251,40 @@ it.layer(layer, { buildPerTest: true })(it => {
         )
       })
 
+      describe('RequestedCloseWithoutRestoringFocus', () => {
+        it.effect('closes without restoring button focus', () =>
+          Story.story(
+            PopoverBlock,
+            givenClosed,
+            givenOpen,
+            Story.inMessage(InMessage.RequestedCloseWithoutRestoringFocus()),
+            Story.expectOutMessage(OutMessage.Closed()),
+            Story.Command.expectNone(),
+            Story.model(model => {
+              expect(model.isOpen).toBe(false)
+              expect(model.maybeLastButtonPointerType).toStrictEqual(
+                Option.none(),
+              )
+            }),
+          ),
+        )
+
+        it.effect(
+          'returns no Command and no OutMessage when already closed',
+          () =>
+            Story.story(
+              PopoverBlock,
+              givenClosed,
+              Story.inMessage(InMessage.RequestedCloseWithoutRestoringFocus()),
+              Story.expectNoOutMessage(),
+              Story.Command.expectNone(),
+              Story.model(model => {
+                expect(model.isOpen).toBe(false)
+              }),
+            ),
+        )
+      })
+
       describe('BlurredPanel', () => {
         it.effect('closes the popover without restoring button focus', () =>
           Story.story(
@@ -624,6 +658,38 @@ it.layer(layer, { buildPerTest: true })(it => {
                 ],
               ),
             ),
+          )
+
+          it.effect(
+            'settles RequestedCloseWithoutRestoringFocus without a focus Command',
+            () =>
+              Story.story(
+                PopoverBlock,
+                givenClosedAnimated,
+                givenOpenAnimated,
+                Story.inMessage(
+                  InMessage.RequestedCloseWithoutRestoringFocus(),
+                ),
+                Story.expectOutMessage(OutMessage.Closed()),
+                Story.model(model => {
+                  expect(model.isOpen).toBe(false)
+                  expect(model.animation.transitionState).toBe('LeaveStart')
+                }),
+                Story.Command.expectExact(Animation.WaitForPaint),
+                Story.Command.resolve(
+                  Animation.WaitForPaint,
+                  Animation.Message.CompletedWaitForPaint({ generation: 2 }),
+                ),
+                Story.Command.expectExact(DetectPopoverMovementOrAnimationEnd),
+                Story.Command.resolve(
+                  DetectPopoverMovementOrAnimationEnd,
+                  completedDetectPopoverMovementOrAnimationEnd(2),
+                ),
+                Story.model(model => {
+                  expect(model.animation.transitionState).toBe('Idle')
+                }),
+                Story.Command.expectNone(),
+              ),
           )
 
           it.effect(

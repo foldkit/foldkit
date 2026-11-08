@@ -1,5 +1,26 @@
 # Next preview review
 
+## November 7 stabilization review
+
+- [x] Independently review and push `dc2bf3175f` and `311a7bef9b`; pass the
+      full normal push gate, CI and Examples E2E for #1922.
+- [x] Read the new pilot report and distinguish reproducible behavior gaps
+      from API proposals and existing explicit-exhaustiveness decisions.
+- [x] Verify current Block/Layer and connected-Step compiler coverage without
+      changing the eight existing fixture workloads or ceilings.
+- [x] Verify Popover focus control, empty Scene rendering and extracted public
+      test-step types through runtime, source and relocated declarations.
+- [ ] Prototype the view-default refinement before consumer migration.
+- [ ] Attempt reductions in demonstrated renderer, bundle and editor costs.
+      Preserve baseline controls and functional behavior; do not count a
+      smaller artifact as a rendering speedup or checker counts as latency.
+- [ ] Refresh preview-related feedback at verification checkpoints and before
+      freezing a new candidate. No new publication is authorized here.
+
+The [stabilization checkpoint](preview-stabilization-20261107/README.md) owns
+the focused verification. The performance prototypes remain isolated and have
+not been adopted as rendering or editor improvements.
+
 ## November 7 post-publication follow-ups
 
 The preview at `54f8bcd443b4fd18952403a3d02e212abf872d58` is published.
