@@ -1,0 +1,12 @@
+$ /Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node /private/tmp/foldkit-html-definition-twins-20261107/candidate/packages/foldkit/node_modules/typescript/bin/tsc -p packages/foldkit/tsconfig.json --noEmit --pretty false
+exit=2
+
+stdout:
+packages/foldkit/src/html/index.ts(4340,3): error TS2353: Object literal may only specify known properties, and 'notAnElement' does not exist in type 'ElementDefinitions'.
+packages/foldkit/src/html/index.ts(4563,21): error TS2345: Argument of type '"a" | "abbr" | "address" | "animate" | "animateMotion" | "animateTransform" | "annotation" | "annotation-xml" | "area" | "article" | "aside" | "audio" | "b" | "base" | "bdi" | ... 198 more ... | "wbr"' is not assignable to parameter of type 'TagName'.
+  Type '"notAnElement"' is not assignable to type 'TagName'.
+packages/foldkit/src/html/index.ts(4563,31): error TS2345: Argument of type '"a" | "abbr" | "address" | "animate" | "animateMotion" | "animateTransform" | "annotation" | "annotation-xml" | "area" | "article" | "aside" | "audio" | "b" | "base" | "bdi" | ... 198 more ... | "wbr"' is not assignable to parameter of type 'TagName'.
+  Type '"notAnElement"' is not assignable to type 'TagName'.
+
+
+stderr:

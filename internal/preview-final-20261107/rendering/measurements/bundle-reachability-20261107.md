@@ -1,5 +1,9 @@
 # Bundle reachability investigation: 2026-11-07
 
+The [HTML adoption checkpoint](../../../preview-html-definitions-20261108.md)
+owns the subsequent production change and its remaining commit gates. This
+report retains the isolated experiments and their exact measured inputs.
+
 ## Decision
 
 The exact current-source attribution gate passes. A properly isolated no-map
@@ -23,8 +27,12 @@ stronger measured precedent and lower architectural risk. Rebase and measure
 those first, then recheck whether the Block bucket and generic bridge remain
 material.
 
-No Foldkit source, public API, benchmark behavior, test, browser state, commit,
-or remote was changed. All builds used copies under
+The isolated experiments did not change shared Foldkit source, public API,
+benchmark behavior, browser state, commits or remotes. The later #1585
+adaptation and its focused
+tests exist only in
+`/private/tmp/foldkit-html-definition-twins-20261107/candidate`. All
+attribution builds used copies under
 `/private/tmp/foldkit-bundle-reachability-20261107`; the frozen source,
 artifacts, and receipts under
 `/private/tmp/foldkit-mount-iterative-20261107-32wcjI` remain untouched.
@@ -326,6 +334,214 @@ substantial later Mount/Block changes and additional
 main file. The concept is largely independent of #1581 and is worth isolating
 against current HTML semantics with the now-reliable asset controls.
 
+### Isolated current-preview #1585 adaptation and #1575 overlap
+
+A runnable source candidate now exists at
+`/private/tmp/foldkit-html-definition-twins-20261107/candidate`, paired with an
+unmodified twin at
+`/private/tmp/foldkit-html-definition-twins-20261107/baseline`. Both start from
+the exact published-preview source used by the accepted artifact controls.
+Their 687 and 688 inventoried source/config inputs differ only in the intended
+`html/index.ts` adaptation and added `attributeConstruction.test.ts`. All four
+local Foldkit/plugin links in each tree resolve into that tree's own package
+root. The adaptation ports the shared attribute and element definitions
+without changing the shared checkout.
+This scope is not independent of the direct-Attribute work in #1575. The
+shared definition table constructs ordinary Attributes as direct plain tagged
+objects and therefore subsumes #1575's constructor mechanism; it additionally
+co-locates each constructor recipe with its handler and generates the element
+table. Only raw public `Prop` and `OnCustomEvent` remain Effect tagged-enum
+constructors. The private declaration shrink is evidence of this shared
+mechanism, not a second public API change, and the two experiments' byte deltas
+must not be added together.
+
+The adaptation deliberately keeps the current code wherever the historical
+patch predates current semantics:
+
+- `OnMount` still checks one-Mount-per-element, Block ownership and registered
+  Mount identity; captures the current occurrence path; records Mount
+  registration and invocation identity; preserves the start barrier, instance
+  fiber registry, cleanup registration, replay-to-live transition, and current
+  dispatch resolver behavior.
+- `OnUnmount` still captures its resolved dispatch eagerly with the current
+  failed-replay and teardown behavior.
+- all five keydown constructors retain IME-composition filtering, `OnClick`
+  retains its current default-action, propagation, and focus options, and the
+  current `AllowedMountRequirements` and Block-view builder types remain the
+  public contracts.
+- raw `Prop` and `OnCustomEvent` remain Effect tagged-enum constructors. All
+  ordinary Attribute constructors move to the shared definition table, and
+  the Html builder remains the same cached singleton.
+
+The complete Foldkit TypeScript check passes for both twins with exact Node
+v26.13.0 and the package-pinned TypeScript 7.1.0-beta compiler. A prior run
+with the unrelated global TypeScript 5.9.3 produced the same 56 primary
+diagnostics in each tree; that compiler-mismatch result is rejected. The
+current `htmlBuilder`, keyboard, keyed, lazy, `OnMount`, and `OnUnmount` tests
+plus the adapted constructor suite pass 118 of 118. The forward-ported #1585
+coverage checks callable metadata, descriptors, raw constructors, payloads,
+singleton identity, and custom-element factories after replacing only the
+historical `OnMount` payload-identity expectation with current intentional
+capture behavior. Package declarations, exact consumer assets and the bounded
+ordinary browser comparison have now been completed; CPU profiling has not run
+for this candidate.
+The focused Runtime correctness gate also passes in both twins: 71 of 71 tests
+cover `mountLayer`, `mountViewState`, `renderCommit`, HTML lazy ownership,
+HTML and CustomElement Mount capabilities, and `OnUnmount`. This specifically
+checks registration, view-state, commit, ownership, and cleanup behavior around
+the constructor/handler consolidation.
+The source inventory, link topology, exact toolchain, rejected compiler
+control, and check results are retained in
+`html-definitions-twin-controls-20261107.json`.
+
+The emitted and exact-asset gate now passes. Both twins were built with exact
+Node v26.13.0 and package-pinned TypeScript 7.1.0-beta. The rebuilt baseline
+matches the retained frozen package output across all 1,164 files. The
+candidate differs in exactly `html/index.js`, `html/index.d.ts`, and its source
+map. Its public declaration text is identical; the sole declaration diff is
+the expected non-exported tagged-constructor binding shrinking from the full
+constructor set to `{ Prop, OnCustomEvent }`.
+
+The frozen Lustre fixture then reproduced the retained JavaScript assets by
+exact SHA-256 before the candidate was compared:
+
+| variant | baseline raw | candidate raw | raw delta | baseline gzip | candidate gzip | gzip delta |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| naive | 475,519 | 462,740 | **-12,779** | 147,123 | 142,804 | **-4,319** |
+| optimised | 482,112 | 469,333 | **-12,779** | 148,452 | 144,175 | **-4,277** |
+
+The corresponding Brotli deltas are -3,638 and -3,545 bytes. The baseline
+hashes are the retained `445b3121...` and `c6802c60...`; candidate hashes are
+`6a755cb350d4f2bee7c3ef0f3225614818636438f042932dfa689bbf1732b93b`
+and `7fdf905c52e487e15ec39be6ebde8b61996cdb158f6b86fa2e6ff62ac30dd7b4`.
+This combined current-preview result closely reproduces #1585's historical
+reduction. It is exact bundle evidence, not a Runtime speed claim.
+
+The bounded ordinary Runtime comparison completes without demonstrating a
+regression or a supported speedup. Six slots covered one candidate and two
+byte-identical baselines for each variant over 12 cyclic rounds, retaining all
+72 samples:
+
+| variant | baseline A median | candidate median | baseline B median | paired median delta | duplicate-baseline median absolute spread | candidate faster rounds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| naive | 767.9 ms | 747.3 ms | 806.3 ms | -8.45 ms | 75.85 ms | 7/12 |
+| optimised | 343.7 ms | 341.4 ms | 339.2 ms | +3.57 ms | 19.0 ms | 5/12 |
+
+Every slot reports the same 400 synchronous and 400 animation-frame callbacks.
+All six functional preflights pass. The server and Chromium close cleanly;
+both benchmark ports are available and the pre/post browser-process lists are
+empty. The host was an Apple M1 Max with 10 logical CPUs and 64 GiB memory;
+load averages fell from 3.41/3.53/3.83 to 2.58/2.80/3.08 during the batch.
+Duplicate-baseline spread is larger than either paired median delta, and the
+optimised candidate is essentially at the duplicate-baseline median midpoint.
+This batch did not predeclare an equivalence threshold or confidence interval,
+so it cannot prove equivalence or exclude smaller Runtime effects. No
+regression was demonstrated in this batch, and it does not show a Runtime
+improvement.
+
+The complete 72-sample log, per-slot preflight logs, input/asset, execution,
+cleanup, analysis and host receipts, exact driver, candidate patch and runnable
+measurement recipes are retained under
+`html-definitions-20261107/`. Its file manifest is
+`html-definitions-20261107/manifest.json`, with SHA-256
+`805e90eb63598c14c8778b6f0e840899aed9698cc204f72151b343d4ae09916a`.
+
+### Hardened table contracts and exact-current integration
+
+The measured candidate was subsequently hardened without changing its runtime
+implementation. A private `VoidElementTag` union and exact
+`ElementDefinitions` mapped type now require every element key, reject extra
+keys and require the correct void-element literal. Representative tests also
+pin constructor names, arities and descriptors plus the captured `OnMount`
+result shape. Eleven restored negative controls prove missing and extra entries
+in both authority tables, both void-classification directions, ordinary versus
+raw Attribute factory placement, and shared-factory name and arity are
+observable at the intended type or runtime boundary.
+
+The hardened published-54 build retains exact measured runtime output:
+`dist/html/index.js` remains `fca0c7e2...`, its public declaration text remains
+`bc4e64d1...`, and both candidate benchmark assets remain exact
+`6a755cb3...` and `7fdf905c...`. Only the declaration source map changes because
+it embeds the new private type text. This byte equality, rather than another
+timing batch, lets the frozen size and 72-sample runtime evidence apply to the
+hardened implementation.
+
+A separate disposable twin starts from exact current commit
+`3f0a41b9279c5296020871303c8bcec2358cb368` and overlays only the hardened
+`html/index.ts` plus `attributeConstruction.test.ts`. Its package source check,
+18-file focused HTML/capture/CustomElement/Mount/SSR/hydration run (546 tests),
+clean package and plugin builds, full emitted-declaration and child-instance
+usability gates, and all nine unchanged compiler workloads pass with unchanged
+ceilings. Its baseline and candidate dist trees contain 1,167 files and differ
+only in `html/index.js`, `html/index.d.ts` and its source map; the declaration
+change is the expected private full-constructor binding shrinking to the two
+raw variants, while the exported contracts pass the complete emitted consumer
+matrix.
+
+The current twins happen to reproduce the published-54 assets byte-for-byte,
+but are recorded independently rather than relabeled: naive remains 475,519 to
+462,740 raw and 147,123 to 142,804 gzip; optimized remains 482,112 to 469,333
+raw and 148,452 to 144,175 gzip. The complete hardening, mutation, current
+integration, constructor-audit and exact-asset receipts are under
+`html-definitions-hardened-20261108/`. Its compact verification receipt has
+SHA-256 `53b1f96c5fe7e56729f7a7b3b4967d2c24cc6c94b60f6be3bf8378643c03cbf8`;
+the packet manifest has SHA-256
+`214962bbc1626f1827f7291f15a9dbadb196f1a9edfff7f2c4998b2f242c327d`.
+Five captured logs whose intentional whitespace is evidence are stored as
+deterministic gzip streams, with both compressed and decompressed SHA-256
+values in the verification receipt.
+
+The fixture uses the frozen benchmark's source-alias topology, so the next
+durable measurement improvement remains #1581's published-export-map harness:
+no source aliases, `write: false`, ES2022, Oxc, exact whole-asset
+raw/gzip/Brotli totals, retained-module lists, and explicit fresh, hydrated,
+and recording capability controls. Rolldown `renderedLength` is a reachability
+lead only and must not be added up as final asset bytes. Before considering
+shared-source adoption, audit every Attribute and element key, raw exception,
+factory tag/name/arity/descriptor/order and void classification. The paired
+ordinary Runtime batch did not demonstrate a regression, but duplicate-control
+variation is too large to establish equivalence or rule out smaller effects.
+
+## Retained CPU profile applicability
+
+The retained actual-main and preview-final browser artifacts execute the same
+TodoMVC runbook, but they do not enter Foldkit through the same assembly API.
+Preview-final imports `ApplicationBlock` and its Layer, then calls
+`Program.make`; the application uses `Block.make`, `makeComposition`,
+`makeInit`, `makeUpdate`, `makeView`, and `makeLayer`. Actual-main's served
+entry instead imports the plain Model, init, update, and view and calls the
+legacy `Runtime.makeApplication`. Block application files were copied beside
+the main benchmark but the served main entry does not import them.
+
+The production controls that can be checked are matched. Both entries set
+`devTools: false`; both use the same production Vite configuration, ES2022
+target, and Oxc minifier. Default Model deep-freezing is inactive because the
+production bundles have no `import.meta.hot`. The newer view brand is a
+TypeScript contract and does not add a runtime brand. The assembly-path
+difference remains substantial. The pair is still a valid end-to-end cost
+comparison of the old and new architectures, but it cannot by itself isolate
+a current Block per-render regression from the legacy-to-Program transition.
+
+The official run records 400 synchronous callbacks and 400 animation-frame
+callbacks for every main and preview slot. It therefore does not show an extra
+scheduled callback per logical action. The retained CPU profiles also assert
+those counts, but sampled profiles do not report exact invocation counts for
+update, view, render, or patch functions. They can identify the Mount walk as
+about 7.5 ms inclusive in one diagnostic preview profile and can show sampled
+view and patch leads; they cannot assign the much larger official aggregate
+gap to those leads.
+
+The smallest next diagnostic is CDP precise coverage on the exact retained
+artifacts with `callCount: true` and `detailed: true`, using the unchanged full
+driver span and the already proven exact hidden source maps. Compare exact
+counts for the Todo update and view, Runtime render-frame and `renderSync`, and
+Snabbdom patch and `patchVnode` functions. Record that the capture is
+boot-inclusive and has diagnostic overhead. Equal counts would support a
+per-call-cost investigation; unequal counts must be reported as different
+work or cadence, not as a per-render slowdown. Even then, a current-preview
+baseline and bounded current-preview candidate are required to attribute an
+optimization because the retained main entry uses the legacy API.
+
 ## Recommended order and controls
 
 1. For every copied workspace, retarget all local package and plugin links into
@@ -342,9 +558,13 @@ against current HTML semantics with the now-reliable asset controls.
    sum to the exact raw asset. Report gzip only for the whole asset.
 4. Port the #1581 published-export-map profiler so these controls and optional
    capability fixtures become durable CI evidence.
-5. Isolate #1585's shared HTML definitions against current types and semantics;
-   compare no-change and experiment artifacts with counter, hydrated,
-   recording, and Typing Game controls.
+5. Adopt the now-audited #1585 candidate as a bounded source change. Its exact
+   key and void table contracts, constructor metadata/result-shape audit,
+   emitted-contract, exact frozen and current asset, focused Runtime, and all
+   nine current compiler gates pass. The ordinary timing batch did not
+   demonstrate a regression but does not prove equivalence; the
+   12,779-raw-byte reduction in both variants remains a bundle result, not a
+   Runtime speed claim.
 6. Port #1581's hydration and DevTools boundaries as current Runtime work, with
    the same fresh/hydrated/recording controls.
 7. Rerun exact attribution after those lower-risk wins. If the 128,187-byte

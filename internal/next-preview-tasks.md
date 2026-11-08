@@ -1,5 +1,23 @@
 # Next preview tasks
 
+## November 8 HTML bundle checkpoint
+
+- [x] Reconcile the retained rendering research before adapting overlapping
+      optimizations. Preserve the measured #1576 pair and rejected experiments.
+- [x] Audit and adopt the shared HTML definitions for their bundle reduction,
+      preserving public signatures, callable metadata and lifecycle behavior.
+- [x] Verify current source, emitted consumers, 546 focused tests and all nine
+      unchanged compiler ceilings. Retain the negative controls and exact assets.
+- [ ] Independently review the exact HTML commit and pass the normal push gate
+      and CI. The prior stabilization commit `3f0a41b927` is already pushed.
+- [ ] Analyze the separate optimized-first CPU and work-count captures before
+      choosing the next runtime optimization. Bundle size is not rendering time.
+
+The [HTML checkpoint](preview-html-definitions-20261108.md) records a 12,779-byte
+raw and about 4.3 KB gzip reduction. The ordinary timing batch establishes
+neither a regression nor a speedup. Rendering, editor performance, view-default
+refinement and connected-operation precision remain open; publication is held.
+
 ## November 7 stabilization and new pilot feedback
 
 The first post-publication batch is pushed in [#1922](https://github.com/foldkit/foldkit/pull/1922)

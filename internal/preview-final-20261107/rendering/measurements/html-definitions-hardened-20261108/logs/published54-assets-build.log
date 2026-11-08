@@ -1,0 +1,38 @@
+startedAt=2026-11-08T02:53:52.928Z
+endedAt=2026-11-08T02:53:54.008Z
+cwd=/private/tmp/foldkit-html-definition-twins-20261107/candidate
+command=["/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node","/private/tmp/build-hardened-html-candidate.mjs"]
+exit=0
+
+stdout:
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 584 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/naive/index.html                  0.67 kB │ gzip:   0.38 kB
+dist/naive/assets/index-pHV5ANOH.js  462.74 kB │ gzip: 144.07 kB
+
+✓ built in 181ms
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 586 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/optimised/index.optimised.html                  0.70 kB │ gzip:   0.39 kB
+dist/optimised/assets/index.optimised-DlOQ8gSF.js  469.33 kB │ gzip: 145.44 kB
+
+✓ built in 175ms
+
+
+stderr:
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:14:27). Use `import.meta.dirname` instead
+  - import "../../examples/vite.aliases" without a file extension (vite.config.ts:5:32). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+<script src="/priv/instrumentation.js"> in "/index.html" can't be bundled without type="module" attribute
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:14:27). Use `import.meta.dirname` instead
+  - import "../../examples/vite.aliases" without a file extension (vite.config.ts:5:32). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+<script src="/priv/instrumentation.js"> in "/index.optimised.html" can't be bundled without type="module" attribute

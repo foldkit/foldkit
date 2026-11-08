@@ -1,5 +1,20 @@
 # Next preview review
 
+## November 8 HTML bundle review
+
+- [x] Preserve the earlier research and distinguish the shared-definition
+      bundle result from the unresolved rendering and editor costs.
+- [x] Independently audit every Attribute handler, constructor and element,
+      including raw constructors, Mount capture and voidness.
+- [x] Observe malformed-table and callable-metadata controls fail, then restore
+      them and pass current source, emitted, runtime and compiler checks.
+- [x] Reproduce exact baseline and candidate assets on the current source.
+      Preserve all timing samples and state the duplicate-control limitation.
+- [ ] Independently review the exact committed diff before push.
+- [ ] Complete the normal push gate and current CI; publication remains held.
+
+The [HTML checkpoint](preview-html-definitions-20261108.md) owns this evidence.
+
 ## November 7 stabilization review
 
 - [x] Independently review and push `dc2bf3175f` and `311a7bef9b`; pass the

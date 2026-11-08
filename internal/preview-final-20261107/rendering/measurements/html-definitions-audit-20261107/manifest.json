@@ -1,0 +1,14 @@
+{
+  "scope": "Read-only emitted Attribute-constructor equivalence audit",
+  "relationshipToMeasuredArchive": "Separate sibling evidence; does not modify the frozen html-definitions-20261107 measured archive",
+  "evidence": {
+    "receipt.md": {
+      "sha256": "089ff963e608b59e6dcae3e9de1492236c7ba5a91c16a548b851f3e6f19ebeca",
+      "status": "Observed two-stage audit receipt"
+    },
+    "audit.mjs": {
+      "sha256": "f60aaf9155095f7b0ea5c28cc24f06a246f81be96f64bbd11614fda66765530f",
+      "status": "Reconstructed combined recipe; not rerun after preservation"
+    }
+  }
+}

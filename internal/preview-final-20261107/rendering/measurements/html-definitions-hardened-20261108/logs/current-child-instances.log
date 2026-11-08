@@ -1,0 +1,19 @@
+startedAt=2026-11-08T02:58:13.865Z
+endedAt=2026-11-08T02:58:17.503Z
+cwd=/private/tmp/foldkit-html-current-twins-20261108/candidate/packages/foldkit
+command=["/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node","scripts/check-child-instances.ts"]
+exit=0
+
+stdout:
+{
+  "checks": [
+    "source",
+    "emitted",
+    "emit-consumer",
+    "relocated",
+    "negative-control"
+  ]
+}
+
+
+stderr:

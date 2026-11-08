@@ -1,0 +1,10 @@
+startedAt=2026-11-08T02:54:12.467Z
+endedAt=2026-11-08T02:54:18.576Z
+cwd=/private/tmp/foldkit-html-current-twins-20261108/candidate
+command=["/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node","packages/foldkit/node_modules/typescript/bin/tsc","-p","packages/foldkit/tsconfig.json","--noEmit","--pretty","false"]
+exit=0
+
+stdout:
+
+
+stderr:

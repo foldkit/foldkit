@@ -1,5 +1,24 @@
 # Open performance PR assessment
 
+## Subsequent evidence
+
+The [bundle investigation](preview-final-20261107/rendering/measurements/bundle-reachability-20261107.md)
+adds the current-source #1585 table prototype. It incorporates the direct
+constructor mechanism from #1575, saves about 4.3 KB gzip, and demonstrates
+neither a Runtime regression nor a speedup in its noisy timing batch. These
+combined savings cannot be added to the separate #1575 result below.
+
+The retained CPU profile attributes about 7.5 ms to Mount registration
+validation. That does not explain the roughly 100 ms optimized workload gap.
+Validation is one observed added cost; the broader cause remains open.
+
+The research retained on `codex/rendering-performance-research` at
+`61606c6335c91950cde46db83d734ca5b11a0e0a` also changes the #1576 recommendation:
+its child-normalization and element-metadata changes were retained as a
+measured pair at `8ba2ccb01678ff166ef6e23b24c717e258810f7f`. That is evidence for
+testing the pair against current source before deciding to split it. Its
+historical timing is not a measurement of the Blocks preview.
+
 ## Decision
 
 The direct Attribute-constructor portion of
@@ -16,15 +35,14 @@ the naive artifact and 1,327 bytes in the optimized artifact. That is bundle
 size evidence only. It is not a speed or allocation claim, and it addresses a
 small part of the measured 48 KB gzip increase.
 
-No CPU or allocation profile was taken because the ordinary timing batch did
-not establish a runtime improvement. No production source from this
-experiment is present in the shared checkout.
+The #1575-only experiment did not include CPU or allocation profiles. Its
+measurements are separate from the combined table candidate described above.
 
-The preview target remains the observed Mount-validation traversal overhead,
-approximately 48% more optimized work, and approximately 48 KB more gzip than
-main. Direct Attribute construction happens before that validation walk and
-does not remove its full VNode traversal. The measured #1575 result therefore
-cannot substitute for evidence on the dominant validator path.
+The preview target remains approximately 49% more optimized callback time and
+approximately 48 KB more gzip than main. Direct Attribute construction does
+not remove the added Mount-validation traversal, but the retained profile
+does not identify that traversal as the dominant cause. The measured #1575
+result cannot explain or resolve the broader timing gap.
 
 ## PR sources
 
@@ -155,15 +173,18 @@ controls.
 
 ### #1576
 
-Do not migrate #1576 in this queue. If later diagnostics still identify VNode
-construction as material, split it into two prototypes:
+The initial recommendation was to split #1576 if later diagnostics identified
+VNode construction as material:
 
 1. Reuse built-in element metadata such as the lowercase tag and property
    classification while keeping current child handling unchanged.
 2. Only after that is measured, evaluate the broader normalize-children-once
    path that bypasses generic snabbdom `h` normalization.
 
-The second piece changes primitive-to-text-VNode construction and is more
+The subsequent retained-research reconciliation above supersedes the order of
+that recommendation. Test the previously measured pair against current source
+before spending time on separate variants. The second piece changes
+primitive-to-text-VNode construction and is more
 correctness-sensitive. Its checks must cover the existing keyed, lazy,
 `patchVNode`, content-ownership, property-representation, and child-normalizing
 tests, plus emitted declarations and the same six-slot negative controls. Do

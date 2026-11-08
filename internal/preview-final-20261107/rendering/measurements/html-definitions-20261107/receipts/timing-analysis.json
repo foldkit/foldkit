@@ -1,0 +1,383 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "measured",
+  "analysedAt": "2026-11-08T02:23:25.792Z",
+  "execution": {
+    "file": "timing-execution.json",
+    "sha256": "e29aba775dc25447d2c3cd5b5afefa14d8e4e2ce11a0ba057593ea219146a6c0"
+  },
+  "artifactReceipt": {
+    "file": "artifact-receipt.json",
+    "sha256": "e7c7871ac11a38c5b98823335e4209308a4cdad313046005c8cf6cea2d195159"
+  },
+  "preflightResults": {
+    "file": "preflight/results.json",
+    "sha256": "551848fbe06e3bffdd98896ecc391b6d808964e9a39b042351f0bf503fae9541"
+  },
+  "retainedSamples": 72,
+  "discardedSamples": 0,
+  "cyclicOrderingVerified": true,
+  "ordinalVisitsPerSlot": 2,
+  "variants": [
+    {
+      "name": "naive",
+      "slots": {
+        "baselineA": "html-baseline-naive-a",
+        "candidate": "html-candidate-naive",
+        "baselineB": "html-baseline-naive-b"
+      },
+      "summary": {
+        "baselineAMedian": 767.9,
+        "candidateMedian": 747.3,
+        "baselineBMedian": 806.3,
+        "baselineMedianMidpoint": 787.1,
+        "candidateMinusBaselineMedianMidpoint": -39.8,
+        "candidateFasterRounds": 7,
+        "candidateSlowerRounds": 5,
+        "tiedRounds": 0,
+        "medianPairedDelta": -8.45,
+        "minimumPairedDelta": -134.75,
+        "maximumPairedDelta": 247.9,
+        "medianDuplicateBaselineAbsoluteDifference": 75.85,
+        "maximumDuplicateBaselineAbsoluteDifference": 160.2,
+        "sync": {
+          "baselineA": 62,
+          "candidate": 60.6,
+          "baselineB": 63.7
+        },
+        "animationFrame": {
+          "baselineA": 704.3,
+          "candidate": 685.8,
+          "baselineB": 743.6
+        },
+        "callbackCounts": {
+          "baselineA": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "candidate": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "baselineB": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          }
+        }
+      },
+      "rounds": [
+        {
+          "round": 1,
+          "baselineA": 707.1,
+          "candidate": 684.8,
+          "baselineB": 837.5,
+          "baselineMidpoint": 772.3,
+          "candidateMinusBaselineMidpoint": -87.5,
+          "duplicateBaselineSignedDifference": -130.4,
+          "duplicateBaselineAbsoluteDifference": 130.4
+        },
+        {
+          "round": 2,
+          "baselineA": 788.7,
+          "candidate": 822.4,
+          "baselineB": 875.6,
+          "baselineMidpoint": 832.15,
+          "candidateMinusBaselineMidpoint": -9.75,
+          "duplicateBaselineSignedDifference": -86.9,
+          "duplicateBaselineAbsoluteDifference": 86.9
+        },
+        {
+          "round": 3,
+          "baselineA": 671.5,
+          "candidate": 722.9,
+          "baselineB": 560.1,
+          "baselineMidpoint": 615.8,
+          "candidateMinusBaselineMidpoint": 107.1,
+          "duplicateBaselineSignedDifference": 111.4,
+          "duplicateBaselineAbsoluteDifference": 111.4
+        },
+        {
+          "round": 4,
+          "baselineA": 494.8,
+          "candidate": 662.6,
+          "baselineB": 334.6,
+          "baselineMidpoint": 414.7,
+          "candidateMinusBaselineMidpoint": 247.9,
+          "duplicateBaselineSignedDifference": 160.2,
+          "duplicateBaselineAbsoluteDifference": 160.2
+        },
+        {
+          "round": 5,
+          "baselineA": 444.3,
+          "candidate": 664.2,
+          "baselineB": 569.7,
+          "baselineMidpoint": 507,
+          "candidateMinusBaselineMidpoint": 157.2,
+          "duplicateBaselineSignedDifference": -125.4,
+          "duplicateBaselineAbsoluteDifference": 125.4
+        },
+        {
+          "round": 6,
+          "baselineA": 768.8,
+          "candidate": 741.1,
+          "baselineB": 749.3,
+          "baselineMidpoint": 759.05,
+          "candidateMinusBaselineMidpoint": -17.95,
+          "duplicateBaselineSignedDifference": 19.5,
+          "duplicateBaselineAbsoluteDifference": 19.5
+        },
+        {
+          "round": 7,
+          "baselineA": 879.3,
+          "candidate": 837,
+          "baselineB": 809,
+          "baselineMidpoint": 844.15,
+          "candidateMinusBaselineMidpoint": -7.15,
+          "duplicateBaselineSignedDifference": 70.3,
+          "duplicateBaselineAbsoluteDifference": 70.3
+        },
+        {
+          "round": 8,
+          "baselineA": 802.7,
+          "candidate": 699,
+          "baselineB": 864.8,
+          "baselineMidpoint": 833.75,
+          "candidateMinusBaselineMidpoint": -134.75,
+          "duplicateBaselineSignedDifference": -62.1,
+          "duplicateBaselineAbsoluteDifference": 62.1
+        },
+        {
+          "round": 9,
+          "baselineA": 768.1,
+          "candidate": 856.1,
+          "baselineB": 739.1,
+          "baselineMidpoint": 753.6,
+          "candidateMinusBaselineMidpoint": 102.5,
+          "duplicateBaselineSignedDifference": 29,
+          "duplicateBaselineAbsoluteDifference": 29
+        },
+        {
+          "round": 10,
+          "baselineA": 767.7,
+          "candidate": 784.3,
+          "baselineB": 825.8,
+          "baselineMidpoint": 796.75,
+          "candidateMinusBaselineMidpoint": -12.45,
+          "duplicateBaselineSignedDifference": -58.1,
+          "duplicateBaselineAbsoluteDifference": 58.1
+        },
+        {
+          "round": 11,
+          "baselineA": 842.5,
+          "candidate": 753.5,
+          "baselineB": 812.8,
+          "baselineMidpoint": 827.65,
+          "candidateMinusBaselineMidpoint": -74.15,
+          "duplicateBaselineSignedDifference": 29.7,
+          "duplicateBaselineAbsoluteDifference": 29.7
+        },
+        {
+          "round": 12,
+          "baselineA": 722.1,
+          "candidate": 869.9,
+          "baselineB": 803.5,
+          "baselineMidpoint": 762.8,
+          "candidateMinusBaselineMidpoint": 107.1,
+          "duplicateBaselineSignedDifference": -81.4,
+          "duplicateBaselineAbsoluteDifference": 81.4
+        }
+      ]
+    },
+    {
+      "name": "optimised",
+      "slots": {
+        "baselineA": "html-baseline-optimised-a",
+        "candidate": "html-candidate-optimised",
+        "baselineB": "html-baseline-optimised-b"
+      },
+      "summary": {
+        "baselineAMedian": 343.7,
+        "candidateMedian": 341.4,
+        "baselineBMedian": 339.2,
+        "baselineMedianMidpoint": 341.45,
+        "candidateMinusBaselineMedianMidpoint": -0.05,
+        "candidateFasterRounds": 5,
+        "candidateSlowerRounds": 7,
+        "tiedRounds": 0,
+        "medianPairedDelta": 3.57,
+        "minimumPairedDelta": -34.1,
+        "maximumPairedDelta": 73.15,
+        "medianDuplicateBaselineAbsoluteDifference": 19,
+        "maximumDuplicateBaselineAbsoluteDifference": 189.1,
+        "sync": {
+          "baselineA": 68.4,
+          "candidate": 68.5,
+          "baselineB": 67
+        },
+        "animationFrame": {
+          "baselineA": 275.9,
+          "candidate": 272.7,
+          "baselineB": 272.2
+        },
+        "callbackCounts": {
+          "baselineA": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "candidate": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "baselineB": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          }
+        }
+      },
+      "rounds": [
+        {
+          "round": 1,
+          "baselineA": 257.4,
+          "candidate": 341.9,
+          "baselineB": 280.1,
+          "baselineMidpoint": 268.75,
+          "candidateMinusBaselineMidpoint": 73.15,
+          "duplicateBaselineSignedDifference": -22.7,
+          "duplicateBaselineAbsoluteDifference": 22.7
+        },
+        {
+          "round": 2,
+          "baselineA": 363.1,
+          "candidate": 351.3,
+          "baselineB": 364,
+          "baselineMidpoint": 363.55,
+          "candidateMinusBaselineMidpoint": -12.25,
+          "duplicateBaselineSignedDifference": -0.9,
+          "duplicateBaselineAbsoluteDifference": 0.9
+        },
+        {
+          "round": 3,
+          "baselineA": 329.4,
+          "candidate": 312,
+          "baselineB": 314.1,
+          "baselineMidpoint": 321.75,
+          "candidateMinusBaselineMidpoint": -9.75,
+          "duplicateBaselineSignedDifference": 15.3,
+          "duplicateBaselineAbsoluteDifference": 15.3
+        },
+        {
+          "round": 4,
+          "baselineA": 318.8,
+          "candidate": 274.5,
+          "baselineB": 291,
+          "baselineMidpoint": 304.9,
+          "candidateMinusBaselineMidpoint": -30.4,
+          "duplicateBaselineSignedDifference": 27.8,
+          "duplicateBaselineAbsoluteDifference": 27.8
+        },
+        {
+          "round": 5,
+          "baselineA": 256.5,
+          "candidate": 274.3,
+          "baselineB": 282.9,
+          "baselineMidpoint": 269.7,
+          "candidateMinusBaselineMidpoint": 4.6,
+          "duplicateBaselineSignedDifference": -26.4,
+          "duplicateBaselineAbsoluteDifference": 26.4
+        },
+        {
+          "round": 6,
+          "baselineA": 162.9,
+          "candidate": 316.2,
+          "baselineB": 352,
+          "baselineMidpoint": 257.45,
+          "candidateMinusBaselineMidpoint": 58.75,
+          "duplicateBaselineSignedDifference": -189.1,
+          "duplicateBaselineAbsoluteDifference": 189.1
+        },
+        {
+          "round": 7,
+          "baselineA": 350.1,
+          "candidate": 352.2,
+          "baselineB": 337.3,
+          "baselineMidpoint": 343.7,
+          "candidateMinusBaselineMidpoint": 8.5,
+          "duplicateBaselineSignedDifference": 12.8,
+          "duplicateBaselineAbsoluteDifference": 12.8
+        },
+        {
+          "round": 8,
+          "baselineA": 350.2,
+          "candidate": 385.5,
+          "baselineB": 341.1,
+          "baselineMidpoint": 345.65,
+          "candidateMinusBaselineMidpoint": 39.85,
+          "duplicateBaselineSignedDifference": 9.1,
+          "duplicateBaselineAbsoluteDifference": 9.1
+        },
+        {
+          "round": 9,
+          "baselineA": 337.3,
+          "candidate": 335,
+          "baselineB": 327.6,
+          "baselineMidpoint": 332.45,
+          "candidateMinusBaselineMidpoint": 2.55,
+          "duplicateBaselineSignedDifference": 9.7,
+          "duplicateBaselineAbsoluteDifference": 9.7
+        },
+        {
+          "round": 10,
+          "baselineA": 390.3,
+          "candidate": 340.9,
+          "baselineB": 346,
+          "baselineMidpoint": 368.15,
+          "candidateMinusBaselineMidpoint": -27.25,
+          "duplicateBaselineSignedDifference": 44.3,
+          "duplicateBaselineAbsoluteDifference": 44.3
+        },
+        {
+          "round": 11,
+          "baselineA": 397.8,
+          "candidate": 361.1,
+          "baselineB": 392.6,
+          "baselineMidpoint": 395.2,
+          "candidateMinusBaselineMidpoint": -34.1,
+          "duplicateBaselineSignedDifference": 5.2,
+          "duplicateBaselineAbsoluteDifference": 5.2
+        },
+        {
+          "round": 12,
+          "baselineA": 356.2,
+          "candidate": 411.2,
+          "baselineB": 388.7,
+          "baselineMidpoint": 372.45,
+          "candidateMinusBaselineMidpoint": 38.75,
+          "duplicateBaselineSignedDifference": -32.5,
+          "duplicateBaselineAbsoluteDifference": 32.5
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "The unchanged driver prints per-run totals rounded to 0.1 ms and only representative median bucket counters, not unrounded per-run bucket values.",
+    "Duplicate baseline controls quantify variation in this batch; they do not identify its source."
+  ]
+}

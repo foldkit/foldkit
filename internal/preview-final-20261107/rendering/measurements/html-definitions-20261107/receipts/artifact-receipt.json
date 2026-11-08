@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-11-08T01:53:33.000Z",
+  "workspace": "/private/tmp/foldkit-html-definition-twins-20261107",
+  "inheritedHarness": "/private/tmp/foldkit-mount-iterative-20261107-32wcjI",
+  "timingStarted": false,
+  "slots": {
+    "html-baseline-naive-a": {
+      "tree": "baseline",
+      "variant": "naive",
+      "files": [
+        {
+          "file": "assets/index-ZmDGH17y.js",
+          "bytes": 475519,
+          "gzipBytes": 147123,
+          "sha256": "445b31212df9efe25ce6e81fe60cb7a5dfc583c46fc098dd84de40e234e9d146"
+        },
+        {
+          "file": "index.html",
+          "bytes": 678,
+          "sha256": "fea15086113640134efec42cff0358ba2e9631a74663f66a44623b55fae81fa7"
+        }
+      ]
+    },
+    "html-candidate-naive": {
+      "tree": "candidate",
+      "variant": "naive",
+      "files": [
+        {
+          "file": "assets/index-pHV5ANOH.js",
+          "bytes": 462740,
+          "gzipBytes": 142804,
+          "sha256": "6a755cb350d4f2bee7c3ef0f3225614818636438f042932dfa689bbf1732b93b"
+        },
+        {
+          "file": "index.html",
+          "bytes": 678,
+          "sha256": "4aa73950e8bfe3cdba6742dc06ca3ac4db4b334aa7fe61d539d8e80529c88321"
+        }
+      ]
+    },
+    "html-baseline-optimised-a": {
+      "tree": "baseline",
+      "variant": "optimised",
+      "files": [
+        {
+          "file": "assets/index.optimised-4XrqNWmx.js",
+          "bytes": 482112,
+          "gzipBytes": 148452,
+          "sha256": "c6802c60c7eccbfb7bbd04f760bb0a9e8e7fc3db2f4945edcf880cca340036ce"
+        },
+        {
+          "file": "index.html",
+          "bytes": 700,
+          "sha256": "9e3a2550ac93df9bce77f9da42eb553c7f56ed6505680843403095f047fe50af"
+        }
+      ]
+    },
+    "html-candidate-optimised": {
+      "tree": "candidate",
+      "variant": "optimised",
+      "files": [
+        {
+          "file": "assets/index.optimised-DlOQ8gSF.js",
+          "bytes": 469333,
+          "gzipBytes": 144175,
+          "sha256": "7fdf905c52e487e15ec39be6ebde8b61996cdb158f6b86fa2e6ff62ac30dd7b4"
+        },
+        {
+          "file": "index.html",
+          "bytes": 700,
+          "sha256": "fad3e262c76ddf920cd414cf032f77ac10b1d6474a1471679e44b341096ec19f"
+        }
+      ]
+    },
+    "html-baseline-naive-b": {
+      "tree": "baseline",
+      "variant": "naive",
+      "files": [
+        {
+          "file": "assets/index-ZmDGH17y.js",
+          "bytes": 475519,
+          "gzipBytes": 147123,
+          "sha256": "445b31212df9efe25ce6e81fe60cb7a5dfc583c46fc098dd84de40e234e9d146"
+        },
+        {
+          "file": "index.html",
+          "bytes": 678,
+          "sha256": "fea15086113640134efec42cff0358ba2e9631a74663f66a44623b55fae81fa7"
+        }
+      ]
+    },
+    "html-baseline-optimised-b": {
+      "tree": "baseline",
+      "variant": "optimised",
+      "files": [
+        {
+          "file": "assets/index.optimised-4XrqNWmx.js",
+          "bytes": 482112,
+          "gzipBytes": 148452,
+          "sha256": "c6802c60c7eccbfb7bbd04f760bb0a9e8e7fc3db2f4945edcf880cca340036ce"
+        },
+        {
+          "file": "index.html",
+          "bytes": 700,
+          "sha256": "9e3a2550ac93df9bce77f9da42eb553c7f56ed6505680843403095f047fe50af"
+        }
+      ]
+    }
+  },
+  "build": {
+    "invocation": [
+      "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node",
+      ".../vite/bin/vite.js",
+      "build",
+      "--mode",
+      "production"
+    ],
+    "environment": {
+      "NODE_ENV": null,
+      "VITE_USER_NODE_ENV": null,
+      "MODE": null,
+      "BUILD_VARIANT": "unset for naive; optimised for optimised",
+      "CI": "1",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "NO_COLOR": "1"
+    },
+    "resolvedConfig": {
+      "base": "./",
+      "mode": "production",
+      "target": "es2022",
+      "minify": "oxc",
+      "sourcemap": false,
+      "outDir": "dist/<variant>",
+      "input": "<variant HTML entry>",
+      "entryFileNames": "assets/[name]-[hash].js",
+      "chunkFileNames": "assets/[name]-[hash].js",
+      "assetFileNames": "assets/[name]-[hash][extname]"
+    }
+  },
+  "inputs": {
+    "node": {
+      "path": "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node",
+      "bytes": 147346864,
+      "sha256": "533bd644c5ae0e0ea3a80e433aad16b817447ccba1e1eea701875eac80cb75d4"
+    },
+    "vitePackage": {
+      "path": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/vite@8.3.5_@types+node@26.4.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/package.json",
+      "bytes": 5057,
+      "sha256": "c9586ac07b42763a8a7f6aac6b4a805d70f057bd8c67c43da81c0cc4e5da8293"
+    },
+    "rolldownPackage": {
+      "path": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/rolldown@1.2.15/node_modules/rolldown/package.json",
+      "bytes": 6101,
+      "sha256": "c7e56b94afb72aaffe463718e98a76330140a2737b4c79b19232b9a55a17b585"
+    },
+    "rolldownBinding": {
+      "path": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/@rolldown+binding-darwin-arm64@1.2.15/node_modules/@rolldown/binding-darwin-arm64/rolldown-binding.darwin-arm64.node",
+      "bytes": 17134016,
+      "sha256": "9d4c0a2b9bb218fe7d335528a6e46afcba641596cde17921be7c0ae2f76c78db"
+    },
+    "lockfile": {
+      "path": "/private/tmp/foldkit-html-definition-twins-20261107/baseline/pnpm-lock.yaml",
+      "bytes": 362951,
+      "sha256": "3659249b317572543f8f9e01f4997a099f4fa32ee6285825694fe4b83ebd582f"
+    },
+    "viteConfig": {
+      "path": "/private/tmp/foldkit-html-definition-twins-20261107/baseline/internal/lustre-benchmark/vite.config.ts",
+      "bytes": 852,
+      "sha256": "e0cfb247448dd13a1ac804c5a99077d847d3dc0361b2df171cb748e0766b7038"
+    },
+    "aliases": {
+      "path": "/private/tmp/foldkit-html-definition-twins-20261107/baseline/examples/vite.aliases.ts",
+      "bytes": 7628,
+      "sha256": "8e810f5f994fce49921352ed9ba8f92aadb94fa2a0b9b2c85574d5f4d9be1863"
+    },
+    "baselineHtmlSource": {
+      "path": "/private/tmp/foldkit-html-definition-twins-20261107/baseline/packages/foldkit/src/html/index.ts",
+      "bytes": 218838,
+      "sha256": "3b2464b443db3614e03dda8e9285fbada713788d906c8c198ab23e7469eb06ac"
+    },
+    "candidateHtmlSource": {
+      "path": "/private/tmp/foldkit-html-definition-twins-20261107/candidate/packages/foldkit/src/html/index.ts",
+      "bytes": 200572,
+      "sha256": "99424407549f6df602f055f3adf7c6f8a528b38f9f7d7002e1ba281d4baebc64"
+    },
+    "driver": {
+      "path": "/private/tmp/foldkit-html-definition-twins-20261107/driver/run.mjs",
+      "bytes": 7471,
+      "sha256": "a93c12e6fe411eb5fa8abc342e32974d94496622ba8a475b81f7d6dc9bbc26f0"
+    },
+    "verifier": {
+      "path": "/private/tmp/foldkit-html-definition-twins-20261107/driver/verify.mjs",
+      "bytes": 4488,
+      "sha256": "8b85d2c9a8695bfcc6d3cb2de4a89cee332550bb08f63381d62d1276528d4cd9"
+    },
+    "buildRecipe": {
+      "path": "/private/tmp/build-html-definition-twins.mjs",
+      "bytes": 1520,
+      "sha256": "fd4e42ab986436f7e7725474ea8ab96f356ad6c504743630d72d811ece61b1d3"
+    }
+  },
+  "timingPlan": {
+    "implementations": [
+      "html-baseline-naive-a",
+      "html-candidate-naive",
+      "html-baseline-optimised-a",
+      "html-candidate-optimised",
+      "html-baseline-naive-b",
+      "html-baseline-optimised-b"
+    ],
+    "runs": 12,
+    "retainedSamples": 72,
+    "cyclicOrdinalVisitsPerSlot": 2,
+    "timingStarted": false
+  }
+}

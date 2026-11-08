@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "3f0a41b9279c5296020871303c8bcec2358cb368",
+  "node": "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node",
+  "baseline": {
+    "naive": {
+      "path": "/private/tmp/foldkit-html-current-twins-20261108/baseline/internal/lustre-benchmark/dist/naive/assets/index-ZmDGH17y.js",
+      "file": "index-ZmDGH17y.js",
+      "bytes": 475519,
+      "gzipBytes": 147123,
+      "brotliBytes": 126226,
+      "sha256": "445b31212df9efe25ce6e81fe60cb7a5dfc583c46fc098dd84de40e234e9d146"
+    },
+    "optimised": {
+      "path": "/private/tmp/foldkit-html-current-twins-20261108/baseline/internal/lustre-benchmark/dist/optimised/assets/index.optimised-4XrqNWmx.js",
+      "file": "index.optimised-4XrqNWmx.js",
+      "bytes": 482112,
+      "gzipBytes": 148452,
+      "brotliBytes": 127331,
+      "sha256": "c6802c60c7eccbfb7bbd04f760bb0a9e8e7fc3db2f4945edcf880cca340036ce"
+    }
+  },
+  "candidate": {
+    "naive": {
+      "path": "/private/tmp/foldkit-html-current-twins-20261108/candidate/internal/lustre-benchmark/dist/naive/assets/index-pHV5ANOH.js",
+      "file": "index-pHV5ANOH.js",
+      "bytes": 462740,
+      "gzipBytes": 142804,
+      "brotliBytes": 122588,
+      "sha256": "6a755cb350d4f2bee7c3ef0f3225614818636438f042932dfa689bbf1732b93b"
+    },
+    "optimised": {
+      "path": "/private/tmp/foldkit-html-current-twins-20261108/candidate/internal/lustre-benchmark/dist/optimised/assets/index.optimised-DlOQ8gSF.js",
+      "file": "index.optimised-DlOQ8gSF.js",
+      "bytes": 469333,
+      "gzipBytes": 144175,
+      "brotliBytes": 123786,
+      "sha256": "7fdf905c52e487e15ec39be6ebde8b61996cdb158f6b86fa2e6ff62ac30dd7b4"
+    }
+  }
+}
