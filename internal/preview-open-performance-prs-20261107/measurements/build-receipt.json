@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-11-07T22:46:31.938Z",
+  "evidenceKind": "current-toolchain-paired-build",
+  "invocation": {
+    "node": "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node",
+    "nodeSha256": "533bd644c5ae0e0ea3a80e433aad16b817447ccba1e1eea701875eac80cb75d4",
+    "viteCommand": [
+      "vite/bin/vite.js",
+      "build",
+      "--mode",
+      "production"
+    ],
+    "environment": {
+      "NODE_ENV": null,
+      "VITE_USER_NODE_ENV": null,
+      "MODE": null,
+      "BUILD_VARIANT": "unset for naive; optimised for optimised",
+      "CI": "1",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "NO_COLOR": "1"
+    },
+    "executedScriptSha256": "0d4cf23fc19b37058e1befa0f96bdc06f8fd0c48c776fd7855f0f94af066e7d9"
+  },
+  "dependencies": {
+    "pnpmLockSha256": "3659249b317572543f8f9e01f4997a099f4fa32ee6285825694fe4b83ebd582f",
+    "vitePackageSha256": "c9586ac07b42763a8a7f6aac6b4a805d70f057bd8c67c43da81c0cc4e5da8293",
+    "rolldownPackageSha256": "c7e56b94afb72aaffe463718e98a76330140a2737b4c79b19232b9a55a17b585",
+    "rolldownDarwinArm64BindingSha256": "9d4c0a2b9bb218fe7d335528a6e46afcba641596cde17921be7c0ae2f76c78db",
+    "viteConfigSha256": "e0cfb247448dd13a1ac804c5a99077d847d3dc0361b2df171cb748e0766b7038",
+    "aliasesSha256": "8e810f5f994fce49921352ed9ba8f92aadb94fa2a0b9b2c85574d5f4d9be1863"
+  },
+  "resolvedConfig": {
+    "base": "./",
+    "mode": "production",
+    "target": "es2022",
+    "minify": "oxc",
+    "sourcemap": false,
+    "entryFileNames": "assets/[name]-[hash].js",
+    "chunkFileNames": "assets/[name]-[hash].js",
+    "assetFileNames": "assets/[name]-[hash][extname]"
+  },
+  "artifacts": {
+    "naive": {
+      "baseline": {
+        "bytes": 475519,
+        "gzipBytes": 147123,
+        "sha256": "445b31212df9efe25ce6e81fe60cb7a5dfc583c46fc098dd84de40e234e9d146"
+      },
+      "candidate": {
+        "bytes": 476157,
+        "gzipBytes": 145791,
+        "sha256": "7c0be2deff014bf4df11f40945bdcc0546a80df7ad4f7784e8fde8b2e29da832"
+      },
+      "delta": {
+        "bytes": 638,
+        "gzipBytes": -1332
+      }
+    },
+    "optimised": {
+      "baseline": {
+        "bytes": 482112,
+        "gzipBytes": 148452,
+        "sha256": "c6802c60c7eccbfb7bbd04f760bb0a9e8e7fc3db2f4945edcf880cca340036ce"
+      },
+      "candidate": {
+        "bytes": 482750,
+        "gzipBytes": 147125,
+        "sha256": "efe9a68a2d0f06b211eb8f72a102d62064d5fa91d71c83df7b2ccf40569f3d75"
+      },
+      "delta": {
+        "bytes": 638,
+        "gzipBytes": -1327
+      }
+    }
+  },
+  "baselineIdentity": {
+    "matchesRetainedPublishedPreviewNaive": true,
+    "matchesRetainedPublishedPreviewOptimised": true
+  },
+  "interpretation": "The deterministic gzip reduction is bundle-size evidence only. It is not evidence of lower runtime work or allocation."
+}

@@ -58,6 +58,7 @@ import type {
   OutValue,
   PublishedMountValidation,
   SelectedActualFacts,
+  StaticContractConfiguration,
   ValidateConstructorBody,
   ValidateFamilyHandlers,
   ValidateHandlerSelection,
@@ -619,6 +620,9 @@ export type UnifiedBlock<
  * and `makeComposition`. Composition registers relationships for independently
  * authored init, update, InMessage update and view plans. Complete an implementation
  * through the Block's `makeLayer` helper and give hosts its Block/Layer pair.
+ * An omitted `view` declares an Element view with no inputs. Use `{ Inputs }`
+ * for Element inputs, `{ kind: 'Document' }` for a Document, and `false` for
+ * an intentionally viewless Block.
  *
  * The declaration is passive and its public type is independent of the inferred
  * implementation graph. Its unique symbol key preserves registration identity;
@@ -632,6 +636,7 @@ export function makeUnifiedBlock<
   id: (Id & LiteralContractId<Id>) | NamespaceIdentity<Id>,
   config: Config &
     Readonly<{ key: Key }> &
+    StaticContractConfiguration &
     (symbol extends Key ? never : true extends IsUnion<Key> ? never : unknown),
   ...validation: readonly [
     ...MessageFreeValidation<NoInfer<Config & Readonly<{ key: Key }>>>,

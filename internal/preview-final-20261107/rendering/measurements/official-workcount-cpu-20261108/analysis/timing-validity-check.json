@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "status": "complete",
+  "evidenceKind": "read-only-validity-check",
+  "question": "Do the CPU capture's callback totals use the same units and aggregation as the ordinary timing batch, and can their magnitudes be compared?",
+  "answer": "The raw callback totals use the same millisecond units and runner aggregation, but the single profiled invocation is not a timing reproduction attempt. Debugger and CPU Profiler instrumentation, one fixed-order observation per slot, and different batch quantity/order prevent quantitative comparison with the ordinary eight-run medians or fresh twelve-run table batch.",
+  "inputs": {
+    "cpuReceipt": {
+      "file": "../receipts/cpu-receipt.json",
+      "sha256": "804ce200ee68ee2d341abbba71185890a2f9f0a3d9719c8f84bab9a29b12ac39"
+    },
+    "ordinaryAnalysis": {
+      "file": "../analysis/official-final-analysis.json",
+      "sha256": "b963e35c08b5ec9d837acbb58f7136166f1caf34f0be8819342da21c56dc8d6e"
+    },
+    "ordinaryLog": {
+      "file": "../../timing-final.log",
+      "sha256": "129d35d40c6885c4d2224a37a7386b8a84edcbb4122e8075f7ec3783eb148d67"
+    },
+    "runner": {
+      "file": "../../driver/run.mjs",
+      "sha256": "a93c12e6fe411eb5fa8abc342e32974d94496622ba8a475b81f7d6dc9bbc26f0"
+    },
+    "runnerPage": {
+      "file": "../../driver/runner.html",
+      "sha256": "6d26843332fa4b5bcd55def19f6219ac8d26a0db242c32bc54a2291a6a695ee1"
+    },
+    "freshTableAnalysis": {
+      "file": "../../html-definitions-20261107/receipts/timing-analysis.json",
+      "sha256": "c2c07732a2129a0a25586259ff76a01fb7f6f69b74797c84a8c1f6aaec9748eb"
+    },
+    "freshTableExecution": {
+      "file": "../../html-definitions-20261107/receipts/timing-execution.json",
+      "sha256": "e29aba775dc25447d2c3cd5b5afefa14d8e4e2ce11a0ba057593ea219146a6c0"
+    }
+  },
+  "unitsAndAggregation": {
+    "unit": "milliseconds from performance.now() deltas",
+    "rawTotalDefinition": "results.sync + results.timeout + results.animation_frame + results.microtask + results.promise after the boot snapshot and reset",
+    "cpuCaptureStorage": "One unrounded window.runBenchmark result object per slot is stored directly in the CPU receipt.",
+    "ordinaryStorage": "The unchanged driver prints every per-run total rounded to 0.1 ms, reports the median of eight raw totals rounded to 0.1 ms, and reports each bucket's median independently.",
+    "ordinaryParser": "The parser verifies 32 rounded samples, cyclic order, exact representative callback counts, and agreement between each reported total median and the eight rounded samples within 0.100001 ms.",
+    "bucketMedianWarning": "Independently reported ordinary bucket medians cannot be summed to reconstruct the total median. Preview optimized sync 56.9 plus animation-frame 250.6 equals 307.5, while the independently computed total median is 308.1."
+  },
+  "profiledInvocationRawResults": {
+    "foldkit-main-optimised": {
+      "total": 71.02000069618225,
+      "results": {
+        "sync": 17.97500091791153,
+        "timeout": 0,
+        "animation_frame": 53.04499977827072,
+        "microtask": 0,
+        "promise": 0
+      },
+      "sumOfBuckets": 71.02000069618225,
+      "counts": {
+        "sync": 400,
+        "timeout": 0,
+        "animation_frame": 400,
+        "microtask": 0,
+        "promise": 0
+      }
+    },
+    "foldkit-preview-final-optimised": {
+      "total": 82.50499993562698,
+      "results": {
+        "sync": 19.819999516010284,
+        "timeout": 0,
+        "animation_frame": 62.6850004196167,
+        "microtask": 0,
+        "promise": 0
+      },
+      "sumOfBuckets": 82.50499993562698,
+      "counts": {
+        "sync": 400,
+        "timeout": 0,
+        "animation_frame": 400,
+        "microtask": 0,
+        "promise": 0
+      }
+    },
+    "optimizedDifference": {
+      "total": 11.484999239444733,
+      "sync": 1.8449985980987549,
+      "animation_frame": 9.640000641345978
+    },
+    "foldkit-main": {
+      "total": 138.61500090360641,
+      "results": {
+        "sync": 14.945000767707825,
+        "timeout": 0,
+        "animation_frame": 123.67000013589859,
+        "microtask": 0,
+        "promise": 0
+      },
+      "sumOfBuckets": 138.61500090360641
+    },
+    "foldkit-preview-final": {
+      "total": 155.8049995303154,
+      "results": {
+        "sync": 18.200000166893005,
+        "timeout": 0,
+        "animation_frame": 137.6049993634224,
+        "microtask": 0,
+        "promise": 0
+      },
+      "sumOfBuckets": 155.8049995303154
+    },
+    "naiveDifference": {
+      "total": 17.189998626708984,
+      "sync": 3.2549993991851807,
+      "animation_frame": 13.934999227523804
+    }
+  },
+  "ordinaryEightRunOptimized": {
+    "foldkit-main-optimised": {
+      "samples": [204.6, 188.5, 206, 222.9, 209.9, 243, 208.7, 205],
+      "reportedMedian": 207.4
+    },
+    "foldkit-preview-final-optimised": {
+      "samples": [255.8, 269.8, 326.6, 309.3, 321.7, 272.5, 306.9, 330.9],
+      "reportedMedian": 308.1
+    },
+    "reportedMedianDifference": 100.7
+  },
+  "freshTwelveRunTableControl": {
+    "driverSha256": "a93c12e6fe411eb5fa8abc342e32974d94496622ba8a475b81f7d6dc9bbc26f0",
+    "publishedPreviewOptimizedAssetSha256": "c6802c60c7eccbfb7bbd04f760bb0a9e8e7fc3db2f4945edcf880cca340036ce",
+    "duplicatePublishedPreviewBaselineMedians": [343.7, 339.2],
+    "candidateMedian": 341.4,
+    "runsPerSlot": 12,
+    "slots": 6,
+    "retainedSamples": 72,
+    "note": "This ordinary unprofiled batch uses duplicate byte-identical published-preview baselines and confirms that the profiled 71/82 ms level is not representative ordinary timing. It does not establish why the profile invocation differs."
+  },
+  "protocolEqualities": [
+    "Exact runner.html, run.mjs and server.mjs bytes",
+    "Same frozen harness and served application assets",
+    "Item count 100 and the same add, toggle and delete workload",
+    "Same boot settle, boot snapshot and measurement reset",
+    "Exactly 400 synchronous and 400 animation-frame callbacks with all other callback buckets zero",
+    "Same CSS interception and final DOM expectations",
+    "Fresh browser context for each workload",
+    "Iframe size 800 by 600 and default Playwright context viewport; neither path sets a viewport override",
+    "Headless Chromium 153.0.8010.12 with no explicit custom browser arguments"
+  ],
+  "protocolDifferences": [
+    "The CPU invocation enables Debugger and CPU Profiler, sets a 100 microsecond sampling interval, and starts profiling before iframe boot; ordinary timing enables neither.",
+    "The CPU invocation retains one fixed-order observation per slot: optimized main, optimized preview, naive main, naive preview.",
+    "The ordinary batch retains eight observations per slot, 32 total, in cyclic order with each slot visiting every ordinal position twice, then reports medians.",
+    "Both reuse one browser process with fresh contexts, but the ordinary browser spans 32 workloads while the CPU browser spans four.",
+    "Neither timing driver declares an explicit warmup. The ordinary batch has repeated browser-process observations per slot; the CPU invocation has one.",
+    "The ordinary run had separate semantic preflights before timing. The CPU capture performs hash and semantic guards inside its own invocation but does not run the ordinary preflight program.",
+    "The CPU profile span is boot-inclusive, although its runner callback total excludes boot after the same reset. Ordinary timing retains only the post-reset callback total.",
+    "The CPU receipt authenticates the Chromium executable SHA-256. The ordinary log authenticates Chromium version 153.0.8010.12, but its execution receipt does not store the executable hash. Both load Playwright from the frozen driver installation."
+  ],
+  "interpretation": [
+    "The exact 71.020 and 82.505 ms totals and their 11.485 ms difference are valid values observed under the single instrumented invocation.",
+    "They are not a reproduction attempt and must not be compared quantitatively with the ordinary 207.4 and 308.1 ms medians.",
+    "The 19.268 ms difference in source-mapped app-bundle self samples likewise cannot allocate or explain the ordinary 100.7 ms difference.",
+    "The profiles remain useful for reached-work counts and descriptive source attribution under their instrumented, boot-inclusive sampling window.",
+    "The magnitude mismatch neither proves sampling or idle time is the stronger explanation nor rules out a future bounded Chrome lifecycle trace."
+  ]
+}

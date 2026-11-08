@@ -13,6 +13,7 @@ import type {
 } from '../experimental/layered/testing/subject.js'
 import type {
   BlockSubject,
+  TestBlock,
   TestEffect,
 } from '../experimental/layered/testing/withBlock.js'
 import type {
@@ -56,7 +57,11 @@ type StorySteps<Subject> = Subject extends StoryUpdate
           TestModel<StoryBlock<Subject>>,
           TestMessage<StoryBlock<Subject>>,
           TestOutMessage<StoryBlock<Subject>>,
-          TestInMessage<StoryBlock<Subject>>
+          TestInMessage<StoryBlock<Subject>>,
+          CoreStory.BlockSubscriptionStepFor<
+            TestBlock<StoryBlock<Subject>>['subscriptions'],
+            TestMessage<StoryBlock<Subject>>
+          >
         >
       >,
     ]

@@ -30,6 +30,7 @@ const DragAndDropTestParentKey = Symbol('DragAndDropTestParent')
 const DragAndDropTestParentBlock = Block.make('DragAndDropTestParent', {
   key: DragAndDropTestParentKey,
   InitArgs: Block.makeInputContract<readonly []>(),
+  view: false,
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -331,6 +332,7 @@ const NestedDragAndDropTestParentBlock = Block.make(
   {
     key: NestedDragAndDropTestParentKey,
     InitArgs: Block.makeInputContract<readonly []>(),
+    view: false,
     Model: NestedModel,
     Message: NestedMessage,
   },
@@ -438,6 +440,7 @@ const KeyedDragAndDropTestParentBlock = Block.make(
   {
     key: KeyedDragAndDropTestParentKey,
     InitArgs: Block.makeInputContract<readonly []>(),
+    view: false,
     Model: KeyedParentModel,
     Message: KeyedParentMessage,
   },

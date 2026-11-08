@@ -22,7 +22,6 @@ const ApplicationBlock = Block.make('Application', {
   Model,
   Message,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
 })
 const ApplicationComposition = ApplicationBlock.makeComposition()
 

@@ -13,6 +13,7 @@ export const CallKey = Symbol('Call')
 export const CallBlock = Block.make('Call', {
   key: CallKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
   Model,
   Message,
 })

@@ -1,14 +1,20 @@
 import { Predicate } from 'effect'
 
-import type { AnyBinding, BlockOfBinding } from '../../../block/binding.js'
-import { bindingResolverOf } from '../../../block/bindingConnection.js'
+import type { AnyBinding } from '../../../block/binding.js'
 import type { BindingParent } from '../../../block/bindingConnection.js'
-import { generatedDeliveryOf } from '../../../block/childEnvelope.js'
+import { runtimeBindingOf } from '../../../block/composition.js'
+import { __messageDeclarations as subscriptionMessageDeclarations } from '../../../subscription/subscription.js'
 import {
-  canonicalBindingOf,
-  runtimeBindingOf,
-  runtimeBindingsOf,
-} from '../../../block/composition.js'
+  type BindingPath,
+  type ParentOwnerOf,
+  type PathBinding,
+  type PathLeafBinding,
+  type ValidateBindingPath,
+  resolveBindingPath,
+  resolveRegisteredBinding,
+  wrapBindingPathMessage,
+} from '../../../test/bindingPath.js'
+import { resolveSubscriptionMessage } from '../../../test/internal.js'
 import * as CoreStory from '../../../test/story.js'
 import { testGraphOf } from '../../../test/testGraph.js'
 import {
@@ -20,66 +26,6 @@ import {
   toParentMessage,
 } from '../../../test/toParentMessage.js'
 import type { PrivateDelivery } from '../../constructed/contract.js'
-import { executionBindingsOf } from '../../constructed/symbolic.js'
-
-type ParentOwnerOf<Binding> =
-  Binding extends BindingParent<infer Owner> ? Owner : never
-
-type ChildOwnerOf<Binding> =
-  BlockOfBinding<Binding> extends Readonly<{ owner: infer Owner }>
-    ? Owner
-    : never
-
-type PathBinding<Element> =
-  Element extends Readonly<{ binding: infer Binding }> ? Binding : Element
-
-type PathKey<Element> =
-  Element extends Readonly<{ key: infer Key }> ? Key : never
-
-type Last<Path extends ReadonlyArray<unknown>> = Path extends readonly [
-  ...infer _Prefix,
-  infer Value,
-]
-  ? Value
-  : never
-
-type PathLeafBinding<Path extends ReadonlyArray<unknown>> = PathBinding<
-  Last<Path>
->
-
-type OwnersMatch<Left, Right> = [Left, Right] extends [Right, Left]
-  ? unknown
-  : never
-
-type ValidatePathElement<Element> =
-  PathBinding<Element> extends infer Binding extends AnyBinding &
-    BindingParent<unknown>
-    ? [GeneratedBindingConstraint<Binding>] extends [never]
-      ? never
-      : Element extends Readonly<{ binding: Binding; key: unknown }>
-        ? [KeyedBindingConstraint<Binding>] extends [never]
-          ? never
-          : PathKey<Element> extends KeyOfBinding<Binding>
-            ? unknown
-            : never
-        : [StaticBindingConstraint<Binding>] extends [never]
-          ? never
-          : unknown
-    : never
-
-type ValidateBindingPath<Path extends ReadonlyArray<unknown>> =
-  Path extends readonly [infer Current, infer Next, ...infer Rest]
-    ? ValidatePathElement<Current> &
-        OwnersMatch<
-          ParentOwnerOf<PathBinding<Next>>,
-          ChildOwnerOf<PathBinding<Current>>
-        > &
-        ValidateBindingPath<readonly [Next, ...Rest]>
-    : Path extends readonly [infer Leaf]
-      ? ValidatePathElement<Leaf>
-      : never
-
-type BindingPath = readonly [unknown, ...ReadonlyArray<unknown>]
 
 type Delivery =
   | Readonly<{
@@ -178,109 +124,6 @@ export function messageIn(
   return step
 }
 
-type TestGraph = Readonly<{ bindings: ReadonlyArray<object> }>
-
-const resolveBinding = (
-  graph: TestGraph,
-  declaration: unknown,
-  pathIndex?: number,
-): object => {
-  if (!Predicate.isObject(declaration)) {
-    throw new Error(
-      pathIndex === undefined
-        ? "[foldkit] messageIn requires a Binding registered in this Story's Block graph."
-        : `[foldkit] messageIn path element ${pathIndex + 1} must be a Binding registered in the selected Block graph.`,
-    )
-  }
-
-  const resolver = bindingResolverOf(declaration)
-  let binding: object
-  try {
-    binding = canonicalBindingOf(
-      resolver === undefined
-        ? declaration
-        : resolver(executionBindingsOf(graph)),
-    )
-  } catch (cause) {
-    if (pathIndex === undefined) {
-      throw cause
-    }
-
-    throw new Error(
-      `[foldkit] messageIn path element ${pathIndex + 1} requires a Binding connected in the selected Block graph.`,
-      { cause },
-    )
-  }
-
-  if (!runtimeBindingsOf(graph).includes(binding)) {
-    throw new Error(
-      pathIndex === undefined
-        ? "[foldkit] messageIn requires a Binding registered in this Story's Block graph."
-        : `[foldkit] messageIn path element ${pathIndex + 1} requires a Binding registered in the selected Block graph.`,
-    )
-  }
-
-  return binding
-}
-
-type ResolvedPathElement = Readonly<{
-  binding: object
-  key?: unknown
-}>
-
-const resolvePath = (
-  implementation: TestGraph,
-  path: ReadonlyArray<unknown>,
-): ReadonlyArray<ResolvedPathElement> => {
-  let graph = implementation
-
-  return path.map((element, index) => {
-    const selected =
-      Predicate.isObject(element) &&
-      Object.hasOwn(element, 'binding') &&
-      Object.hasOwn(element, 'key')
-    const declaration = selected ? Reflect.get(element, 'binding') : element
-    const binding = resolveBinding(graph, declaration, index)
-    const generated = generatedDeliveryOf(binding)
-
-    if (generated === undefined) {
-      throw new Error(
-        `[foldkit] messageIn path element ${index + 1} requires generated child delivery.`,
-      )
-    }
-
-    if (generated.isKeyed !== selected) {
-      throw new Error(
-        generated.isKeyed
-          ? `[foldkit] messageIn path element ${index + 1} requires { binding, key } for its keyed occurrence.`
-          : `[foldkit] messageIn path element ${index + 1} is static and must be passed as its Binding.`,
-      )
-    }
-
-    graph = runtimeBindingOf(binding).block
-
-    return selected
-      ? { binding, key: Reflect.get(element, 'key') }
-      : { binding }
-  })
-}
-
-const wrapPathMessage = (
-  path: ReadonlyArray<ResolvedPathElement>,
-  leafMessage: unknown,
-): unknown =>
-  path.reduceRight(
-    (message, element) =>
-      Object.hasOwn(element, 'key')
-        ? Reflect.apply(toParentMessage, undefined, [
-            element.binding,
-            element.key,
-            message,
-          ])
-        : Reflect.apply(toParentMessage, undefined, [element.binding, message]),
-    leafMessage,
-  )
-
 /** @internal Resolves passive delivery steps against one test's private graph. */
 export const resolveStorySteps = (
   facade: object,
@@ -303,17 +146,62 @@ export const resolveStorySteps = (
 
     if (delivery !== undefined) {
       if (delivery.kind === 'Path') {
-        const path = resolvePath(implementation, delivery.path)
-        return CoreStory.message(wrapPathMessage(path, delivery.message))
+        const path = resolveBindingPath(implementation, delivery.path)
+        return CoreStory.message(wrapBindingPathMessage(path, delivery.message))
       }
 
-      const binding = resolveBinding(implementation, delivery.binding)
+      const binding = resolveRegisteredBinding(implementation, delivery.binding)
       const message: unknown = Reflect.apply(toParentMessage, undefined, [
         binding,
         ...delivery.args,
       ])
 
       return CoreStory.message(message)
+    }
+
+    if (Predicate.isTagged(step, 'BlockSubscriptionMessageStep')) {
+      const entry = Reflect.get(step, 'entry')
+      const message = Reflect.get(step, 'message')
+      const selection = CoreStory.__subscriptionPathSelection(entry)
+
+      if (selection === undefined) {
+        const subscriptions: unknown = Reflect.get(facade, 'subscriptions')
+        if (!Predicate.isObject(subscriptions)) {
+          throw new Error(
+            '[foldkit] Story.Subscription.emit requires registered Subscriptions in the selected Block graph.',
+          )
+        }
+
+        return {
+          _tag: 'SubscriptionMessageStep',
+          declarations: Reflect.apply(
+            subscriptionMessageDeclarations,
+            undefined,
+            [subscriptions],
+          ),
+          entry,
+          message,
+        }
+      }
+
+      const path = resolveBindingPath(implementation, selection.path)
+      const leaf = path.at(-1)
+      if (leaf === undefined) {
+        throw new Error(
+          '[foldkit] Story.Subscription.at requires a nonempty Binding path.',
+        )
+      }
+
+      const leafSubscriptions = runtimeBindingOf(leaf.binding).block
+        .subscriptions
+      const leafMessage = resolveSubscriptionMessage(
+        'Story.Subscription.emit',
+        subscriptionMessageDeclarations(leafSubscriptions),
+        selection.source,
+        message,
+      )
+
+      return CoreStory.message(wrapBindingPathMessage(path, leafMessage))
     }
 
     if (Predicate.isTagged(step, 'StoryStepsStep')) {

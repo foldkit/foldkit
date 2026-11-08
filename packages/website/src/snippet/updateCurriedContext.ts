@@ -19,6 +19,7 @@ export const ContextualRefreshKey = Symbol('ContextualRefresh')
 export const ContextualRefreshBlock = Block.make('ContextualRefresh', {
   key: ContextualRefreshKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
   Context: Schema.Tuple([DispatchContext]),
 
   Model,

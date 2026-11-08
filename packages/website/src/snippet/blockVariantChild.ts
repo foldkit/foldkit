@@ -14,6 +14,7 @@ export const EditorKey = Symbol('Editor')
 export const EditorBlock = Block.make('Editor', {
   key: EditorKey,
   InitArgs: Schema.Tuple([Schema.String]),
+  view: false,
   Model,
   Message,
 })

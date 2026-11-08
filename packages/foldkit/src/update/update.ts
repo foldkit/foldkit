@@ -911,6 +911,9 @@ type CombinedStepRecipe<
  * (`combineSteps(steps)`, for a `pipe` or a nested Step list). Ordinary Steps
  * produce a readable {@link Return}. Connected Steps preserve an opaque
  * {@link ResultRecipe} for execution by a matching registered Composition.
+ * Applying either form retains the supplied Model when connected work is
+ * resolved. Reuse the unapplied Step when each invocation should start from
+ * its current Model.
  * A Composition rejects a connected combination whose registered Binding
  * policy can emit an OutMessage from update or init, including combinations
  * extracted through `Definition.makeStep` and combinations returned by a
@@ -923,7 +926,7 @@ type CombinedStepRecipe<
  * `{ model }`.
  *
  * ```ts
- * SucceededUpdateNote: ({ note }) =>
+ * SucceededUpdateNote: (model, { note }) =>
  *   combineSteps(model, [
  *     replaceNoteInCaches(note),
  *     refreshNote(note.id),
@@ -1097,6 +1100,7 @@ export const combineSteps: {
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
 } = ((modelOrSteps: unknown, maybeSteps?: ReadonlyArray<AnyStep>) => {
   const continueRun = <Model, Message, R>(
+    initialModel: Model,
     current: Return<Model, Message, R>,
     steps: ReadonlyArray<AnyStep>,
     startIndex: number,
@@ -1116,11 +1120,18 @@ export const combineSteps: {
       const output = step(current.model)
       if (isResultRecipe(output) && !resolvePending) {
         return makeResultRecipe<Model, Return<Model, Message, R>>(
-          (model, environment) =>
+          (_model, environment) =>
             /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
             resolveOperationOutput(
-              continueRun({ model }, steps, 0, true, environment),
-              model,
+              continueRun(
+                initialModel,
+                { model: initialModel },
+                steps,
+                0,
+                true,
+                environment,
+              ),
+              initialModel,
               environment,
             ) as Return<Model, Message, R>,
         )
@@ -1152,7 +1163,7 @@ export const combineSteps: {
     | Return<Model, Message, R>
     | ResultRecipeFor<Model, Return<Model, Message, R>> => {
     const seed: Return<Model, Message, R> = { model }
-    return continueRun(seed, steps, 0)
+    return continueRun(model, seed, steps, 0)
   }
 
   if (maybeSteps === undefined) {

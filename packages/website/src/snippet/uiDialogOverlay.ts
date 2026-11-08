@@ -37,7 +37,6 @@ export const FilterDialogKey = Symbol('FilterDialog')
 export const FilterDialogBlock = Block.make('FilterDialog', {
   key: FilterDialogKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

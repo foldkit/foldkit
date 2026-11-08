@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-11-07T22:47:16.427Z",
+  "artifactReceiptSha256": "f74a81f29c7300b80f29df85965ab3752a7407c2d70fd6686c10e40edf3ba1d5",
+  "harnessRoot": "/private/tmp/foldkit-direct-attributes-20261107-06UygU/harness",
+  "driver": "/private/tmp/foldkit-direct-attributes-20261107-06UygU/driver/verify.mjs",
+  "driverSha256": "8b85d2c9a8695bfcc6d3cb2de4a89cee332550bb08f63381d62d1276528d4cd9",
+  "port": 8597,
+  "timingStarted": false,
+  "results": [
+    {
+      "slot": "attribute-baseline-naive-a",
+      "startedAt": "2026-11-07T22:47:10.580Z",
+      "completedAt": "2026-11-07T22:47:11.698Z",
+      "exitCode": 0,
+      "log": "attribute-baseline-naive-a.log",
+      "logSha256": "c257a5b5e0726ffedd664f60836d625dfc00ea281ea680dfaefc177068fd9aa1"
+    },
+    {
+      "slot": "attribute-candidate-naive",
+      "startedAt": "2026-11-07T22:47:11.699Z",
+      "completedAt": "2026-11-07T22:47:12.536Z",
+      "exitCode": 0,
+      "log": "attribute-candidate-naive.log",
+      "logSha256": "414d910b0accd8bd4c417096ab2bc17f04e828cff3ce4858cb964ec93c8d391a"
+    },
+    {
+      "slot": "attribute-baseline-optimised-a",
+      "startedAt": "2026-11-07T22:47:12.536Z",
+      "completedAt": "2026-11-07T22:47:13.368Z",
+      "exitCode": 0,
+      "log": "attribute-baseline-optimised-a.log",
+      "logSha256": "1cd2b03e8c5631055c20930d9fb571b1e12b71fc651f35ef640bd11e47996aa5"
+    },
+    {
+      "slot": "attribute-candidate-optimised",
+      "startedAt": "2026-11-07T22:47:13.368Z",
+      "completedAt": "2026-11-07T22:47:14.197Z",
+      "exitCode": 0,
+      "log": "attribute-candidate-optimised.log",
+      "logSha256": "5ae9656da7c97f6cf4bdfb196514d662166197735d3cd29f422b29109f152261"
+    },
+    {
+      "slot": "attribute-baseline-naive-b",
+      "startedAt": "2026-11-07T22:47:14.197Z",
+      "completedAt": "2026-11-07T22:47:15.027Z",
+      "exitCode": 0,
+      "log": "attribute-baseline-naive-b.log",
+      "logSha256": "5f43775b0f965a36c7128ec2a2263b87adca52e101f4cb6c1bd46f9b3b4e502e"
+    },
+    {
+      "slot": "attribute-baseline-optimised-b",
+      "startedAt": "2026-11-07T22:47:15.027Z",
+      "completedAt": "2026-11-07T22:47:15.855Z",
+      "exitCode": 0,
+      "log": "attribute-baseline-optimised-b.log",
+      "logSha256": "0e76479234a62cc4524d3f13e244754186656720b24e294d5f035a27435ea93a"
+    }
+  ],
+  "cleanup": {
+    "portAvailableOnIpv4": true,
+    "portAvailableOnIpv6": true,
+    "browserProcessesBefore": [],
+    "browserProcessesAfter": []
+  }
+}

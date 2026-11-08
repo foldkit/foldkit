@@ -1,0 +1,81 @@
+{
+  "baselineCommit": "7cc7d90e68dc5a55b4765bbd7f0469b55cdd928f",
+  "node": "v26.13.0",
+  "typescript7": "7.1.0-beta",
+  "typescript6": "6.0.3 (@typescript/typescript6 package alias 6.0.2)",
+  "sourceHashes": {
+    "packages/foldkit/src/experimental/contracted/contract.ts": "d28eba6a8eb714c74e1764fb03eabeebdcf511634cb6e75765b387a825412183",
+    "packages/foldkit/src/experimental/contracted/runtime.ts": "f992ce5d9316dc0b7e83fd811d5f41867e44eae10b32abf71f9efb56d875d005",
+    "packages/foldkit/src/experimental/contracted/unified.ts": "2409184de1e4efb8bfe55badf4be269f937b0195d8eff4578e8f3f2efd191cc9",
+    "packages/foldkit/src/experimental/contracted/family.ts": "2bc858ad952ad258dc9c3703d90e1e28eed699b4c51a069fa33e0006996327ad",
+    "packages/foldkit/src/experimental/contracted/familyLayer.ts": "9b8e2e199ac0decbe17ff0e7474e97cc16fcae0e248238a0004d887c42395291",
+    "packages/foldkit/src/experimental/contracted/configSnapshot.test.ts": "2bc441e5064eb29a624cebff4e5544bb3dfb1c9af56018a0505ae582330089c4",
+    "packages/foldkit/src/experimental/contracted/viewDefault.test.ts": "f13a5d59df9fa1f837655e7d052d7d663bf3c92a4be0f239825f652cf688b6cd",
+    "packages/foldkit/src/experimental/query/queryDefinition.ts": "76e292f7d7bb7f27c1bb32b8395b3339b92c51329b868e3f83e76190e01ee83e",
+    "packages/foldkit/src/experimental/query/keyedQueryDefinition.ts": "7ec5ba9426fb89fd5413a7778b8dcd32a53357e689deaf91b57d3da6cde01694",
+    "packages/foldkit/src/test/apps/childInstances/familyFields.ts": "9064e133cb338e4006d3b30db40735b40b5d3fc30fb3c4fde8923175e162b66d",
+    "packages/foldkit/src/test/apps/childInstances/pairedFields.ts": "e6bae04d2d3f041a0bcdc8cbe3c552b7ff8386ecf2853639ede6c8d85417b155",
+    "packages/foldkit/declaration-tests/update-composition/metadata.accepted.ts": "22dbf93dcc3efe06ee348f288fa17af090367d9b4e4d585a3d4ec88b3ddc33dc"
+  },
+  "proofHashes": {
+    "REPORT.md": "11f7a5db6bca36eef88092f9bb45f8d872fc5f8bbb570054bd81ec2b251a3d88",
+    "source.accepted.ts": "95974a25e7f5cfd405ce623a5c157e494f2f1d245b9e52d7b3002846bdb77723",
+    "source.rejected.ts": "d7f11ebe4eca48594bb586112108ffa114902cab2906c9ccb69cf72bb3a59563",
+    "relocated/source.accepted.ts": "95974a25e7f5cfd405ce623a5c157e494f2f1d245b9e52d7b3002846bdb77723",
+    "relocated/source.rejected.ts": "3d10be748336dc179746543d68fccc808c3c426c028af975075690b21dd17328",
+    "relocated/consume.ts": "77f3787239a0155348d7ae8071f9d48102bdf434093a69dc62e57288a7fbc379",
+    "tsconfig.source.json": "d201c97172b505fe4b4ded86acd679f47249724de3aaed7b8723cc73b5e18c97",
+    "relocated/emitted/source.accepted.d.ts": "d75020eb5556e6bd82a1b652acafa0df474064ac031b60e24eda50e232c5ba34",
+    "relocated/tsconfig.emit.json": "06c50edf5ec1ad73232d90fddb9909c76bba65c0b113b42f174ab0eaa48f4661",
+    "relocated/tsconfig.consume.json": "fa17068b38202243e4bc02ae7974cb80e4fa08f1be4b0d859a4a8fb6294b5ac9",
+    "inventory.cjs": "62274c172a16bed7332858e30a9b4995e776c0274d1feed2d2fc43ced83335a7"
+  },
+  "builtHashes": {
+    "packages/foldkit/dist/experimental/contracted/contract.d.ts": "31d64d0dfe0554abafa5c447c48fd4b4050adb45e8523254b73e0b334f29eec5",
+    "packages/foldkit/dist/experimental/contracted/runtime.js": "6ce57c7f1bdc2b033b29f3529c2311c5c907dfb474eec97a18edd2777e9f9ba4",
+    "packages/foldkit/dist/experimental/query/queryDefinition.js": "04844bb77f65a9fffaca6d7eeb84a5261637f53d0c116a40217ae83a7de76bf8",
+    "packages/foldkit/dist/experimental/query/keyedQueryDefinition.js": "54af9312588a36b3ba84f4578c2ec138b6f10381b78f07d486189d8636102995"
+  },
+  "results": {
+    "focusedTypeScript7Source": "passed, including static view choice and union completion controls",
+    "focusedRuntime": "2 files, 11 tests passed",
+    "packageLocalTypeScript7Build": "passed",
+    "distOnlyTypeScript7Emission": "passed",
+    "sourceFreeTypeScript7Relocation": "passed",
+    "sourceFreeTypeScript6Relocation": "passed with compiler 6.0.3 from @typescript/typescript6 package alias 6.0.2",
+    "fullEmittedDeclarationGate": "passed before the final type-only projection factoring; combined root normal hook pending",
+    "childInstanceDeclarationGate": "passed before the final type-only projection factoring; combined root normal hook pending",
+    "baselineFamilyAwareOmissions": 387,
+    "currentFamilyAwareOmissions": 322,
+    "unchangedCompilerFixtures": {
+      "status": "8 of 9 passed original budgets; layered-composition-6 failed only its Type ceiling by 55",
+      "deep-composition-8": [668964, 53994],
+      "wide-composition-100": [1399751, 81456],
+      "command-requirements-200": [344552, 64133],
+      "wide-subscriptions-100": [548135, 23590],
+      "workspace-composition-4": [1608926, 117754],
+      "workspace-composition-8": [2786734, 160771],
+      "machine-search": [69291, 12994],
+      "attribute-bundles-200": [114226, 29369],
+      "layered-composition-6": [2706693, 336346],
+      "layered-composition-6-original-budget": [2707124, 336291],
+      "layered-composition-6-proposed-exact-budget": [2707124, 336346]
+    },
+    "finalCompilerEvidence": {
+      "path": "internal/view-default-proof/measurements/final-compiler-gate",
+      "manifestSha256": "5f84d69b9165171534d374fcbefaddf441a5abd1471254b1c648c0de1b0dd99a",
+      "oldBudgetRunSha256": "0ae433ca44fb935a38a6bc4fbf6b493d363025c4ac62f70e26f9d727b86590cf",
+      "ownedSourceManifestSha256": "98f34da861604bc1dc03798ce615ba6cf82895525733f030be164448b9f5de7d",
+      "declarationTreeManifestSha256": "c73987569708f749620104178a319e707e2a933670883d656954462691741b81",
+      "typePerformanceManifestSha256": "342f616e70ec3bcae917d1480c7aa4f8c8aa08d65a2c6a7700978c1fb17d2c5a",
+      "proposedBudgetPatchSha256": "a94a466df63b1e237a25f5f960cc5be8c0f5702bca024cdd62fefbc2fdc57fe1"
+    },
+    "copiedDistTree": "byte-identical to the isolated candidate build",
+    "pnpmLaunch": "blocked before build by network-unavailable package-manager identity verification; no pin or verification changed",
+    "integratedEffectLintCheckpoint": {
+      "path": "internal/view-default-proof/measurements/effect-lint-checkpoint/manifest.json",
+      "sha256": "0803f879e9f89f988274bcc53b79153a305943a9478848792f27a075b665329e",
+      "status": "normal hook failed; focused, folder and full-scope lint controls passed without suppressions; complete normal hook retry pending"
+    }
+  }
+}

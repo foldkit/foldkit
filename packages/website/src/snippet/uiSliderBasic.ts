@@ -20,7 +20,6 @@ export const VolumeSliderKey = Symbol('VolumeSlider')
 export const VolumeSliderBlock = Block.make('VolumeSlider', {
   key: VolumeSliderKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

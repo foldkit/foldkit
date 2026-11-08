@@ -10,7 +10,6 @@ export const LoggedInKey = Symbol('LoggedIn')
 export const LoggedInBlock = Block.make('LoggedIn', {
   key: LoggedInKey,
   InitArgs: Schema.Tuple([LoggedInRoute, Session]),
-  view: { kind: 'Element' },
   Model,
   Message,
   OutMessage,

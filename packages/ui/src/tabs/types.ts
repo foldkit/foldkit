@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 import { type ChildAttribute, type Html } from 'foldkit/html'
-import { type MessageUnion, defineMessageUnion } from 'foldkit/message'
+import { defineMessageUnion } from 'foldkit/message'
 
 /** Controls the tab list layout direction and which arrow keys navigate between Tabs. */
 export const Orientation = Schema.Literals(['Horizontal', 'Vertical'])
@@ -24,16 +24,34 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Union of all messages the tabs component can produce. */
-export const Message = defineMessageUnion({
-  SelectedTab: {
-    index: Schema.Number,
-    value: Schema.String,
-  },
-  FocusedTab: { index: Schema.Number },
-  CompletedFocusTab: {},
-})
+/** Self-contained selected-value Codec; serialization executes synchronously. */
+export type ValueSchema<
+  Value extends string,
+  ValueEncoded = Value,
+> = Schema.Codec<Value, ValueEncoded, never, never> &
+  Readonly<{ '~type.make': Value }>
+
+/** Builds local Messages from the selected value's runtime contract. */
+export const makeMessage = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) =>
+  defineMessageUnion({
+    SelectedTab: {
+      index: Schema.Number,
+      value: Value,
+    },
+    FocusedTab: { index: Schema.Number },
+    CompletedFocusTab: {},
+  })
+
+/** Local Messages for unrestricted string values. */
+export const Message = makeMessage(Schema.String)
 export type Message = typeof Message.Type
+/** Local Messages retaining the exact selected-value Codec. */
+export type MessageSchema<
+  Value extends string,
+  ValueEncoded = Value,
+> = ReturnType<typeof makeMessage<Value, ValueEncoded>>
 
 export type SelectedTab = typeof Message.SelectedTab.Type
 export type FocusedTab = typeof Message.FocusedTab.Type
@@ -46,35 +64,19 @@ export type Selected<Value extends string = string> = Readonly<{
   readonly index: number
 }>
 
-/** Union of OutMessages the tabs component can produce. The parent's
- *  parent bindings handle them through their OutMessage policy. */
-export const OutMessage = defineMessageUnion({
-  Selected: {
-    value: Schema.String,
-    index: Schema.Number,
-  },
-})
+/** Builds selection OutMessages from the selected value's runtime contract. */
+export const makeOutMessage = <Value extends string, ValueEncoded>(
+  Value: ValueSchema<Value, ValueEncoded>,
+) => defineMessageUnion({ Selected: { value: Value, index: Schema.Number } })
 
-/** The OutMessage union interface on completed Tabs, refined to its Value
- * type. */
-export type OutMessageSchema<Value extends string = string> =
-  typeof OutMessage extends MessageUnion<infer Cases>
-    ? MessageUnion<
-        Omit<Cases, 'Selected'> &
-          Readonly<{
-            Selected: Omit<Cases['Selected'], 'value'> &
-              Readonly<{
-                value: Schema.Codec<Value, Value> &
-                  Readonly<{ '~type.make': Value }>
-              }>
-          }>
-      >
-    : never
-
-/** Generic over `Value extends string` so consumers using
- *  `Tabs.makeBlock<MyUnion>()` receive `value: MyUnion` in the
- *  `Selected` OutMessage. Defaults to `string`. */
+/** Selection OutMessages for unrestricted string values. */
+export const OutMessage = makeOutMessage(Schema.String)
 export type OutMessage<Value extends string = string> = Selected<Value>
+/** Selection OutMessages retaining decoded and encoded value contracts. */
+export type OutMessageSchema<
+  Value extends string = string,
+  ValueEncoded = Value,
+> = ReturnType<typeof makeOutMessage<Value, ValueEncoded>>
 
 /** Startup configuration shared by every Tabs occurrence. */
 export const InitConfig = Schema.Struct({
@@ -84,7 +86,7 @@ export const InitConfig = Schema.Struct({
 export type InitConfig = typeof InitConfig.Type
 
 /** Per-tab render info passed to the consumer's `toView`. Generic over
- *  `Value extends string`: when `Tabs.makeBlock<MyUnion>()` is declared,
+ *  `Value extends string`: when `Tabs.makeBlock(Value)` is declared,
  *  `tab.value` is typed `MyUnion` so the consumer can switch on it without
  *  casting. */
 export type TabInfo<Value extends string = string> = Readonly<{
@@ -120,7 +122,7 @@ export type PanelMount = typeof PanelMount.Type
 
 /** Per-render view inputs passed to `view` via `h.block`'s `viewInputs` field.
  *  Generic over `Value extends string` so consumers using
- *  `Tabs.makeBlock<MyUnion>()` receive `tab.value: MyUnion` in `toView`
+ *  `Tabs.makeBlock(Value)` receive `tab.value: MyUnion` in `toView`
  *  and `(value: MyUnion, index) => boolean` in `isTabDisabled`, without
  *  casting.
  *

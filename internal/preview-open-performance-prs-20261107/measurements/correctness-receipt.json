@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "nodeSha256": "533bd644c5ae0e0ea3a80e433aad16b817447ccba1e1eea701875eac80cb75d4",
+  "candidateHtmlSourceSha256": "4ac1d2c011fe79cba71a92663496e2d4035b4990cb848c1b2e9a08d4b8bc3749",
+  "contractTestSha256": "f47c302e9fddeecce2c66b18897d6517738700f2abb77cece7174a38b748eb17",
+  "checks": [
+    {
+      "name": "focused direct Attribute contracts",
+      "filesPassed": 1,
+      "testsPassed": 16,
+      "status": "passed"
+    },
+    {
+      "name": "field-order mutation control",
+      "testsPassed": 15,
+      "testsFailed": 1,
+      "expectedFailure": "Class own keys changed from [value, _tag] to [_tag, value]",
+      "mutationRetained": false,
+      "status": "passed"
+    },
+    {
+      "name": "HTML and CustomElement regression tests",
+      "filesPassed": 26,
+      "testsPassed": 263,
+      "status": "passed"
+    },
+    {
+      "name": "Foldkit source typecheck",
+      "status": "passed"
+    },
+    {
+      "name": "baseline and candidate package declaration builds",
+      "status": "passed"
+    },
+    {
+      "name": "oxfmt check",
+      "status": "passed"
+    }
+  ],
+  "declarations": {
+    "fileCountPerBuild": 388,
+    "differingFiles": [
+      "dist/html/index.d.ts"
+    ],
+    "baselineHtmlDeclarationSha256": "a0a9c395a8e1228a33dcb38c6844d3672690f088078eda2f6484b6a08c26335d",
+    "candidateHtmlDeclarationSha256": "bc4e64d169e78b5affc1b896e56d8c8ed0c8806553fed8ff401403660cdd6004",
+    "difference": "One non-exported declare const helper shrinks from the complete Data tagged-constructor destructure to { Prop, OnCustomEvent }. Exported declarations and public type signatures are unchanged, but the full emitted declaration file is not byte-identical."
+  }
+}

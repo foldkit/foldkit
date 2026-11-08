@@ -16,7 +16,6 @@ export const CounterKey = Symbol('Counter')
 export const CounterBlock = Block.make('Counter', {
   key: CounterKey,
   InitArgs: Schema.Tuple([Schema.Number]),
-  view: { kind: 'Element' },
   InMessage,
 
   Model,

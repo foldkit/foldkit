@@ -37,7 +37,6 @@ export const SettingsKey = Symbol('Settings')
 export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   effects: { services: [SettingsStore] },
   inMessageOutputs: {
     RequestedThemeChange: { outMessage: OutMessage },

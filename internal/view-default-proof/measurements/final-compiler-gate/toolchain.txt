@@ -1,0 +1,4 @@
+v26.13.0
+Version 7.1.0-beta
+/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/packages/foldkit/node_modules/.bin/tsc
+ff473492cba54339d2a8ba5f959aabb85d6369d0981009d072f6ec1f72c8c570  packages/foldkit/node_modules/.bin/tsc

@@ -1,0 +1,10 @@
+$ /Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node /private/tmp/foldkit-html-definition-twins-20261107/candidate/packages/foldkit/node_modules/typescript/bin/tsc -p packages/foldkit/tsconfig.json --noEmit --pretty false
+exit=2
+expectedRestoredSha256=1fcaf6f3e02cc9bf8c5d3a15ec6f274286e85a64adca912444d88345c51014ef
+
+stdout:
+packages/foldkit/src/html/index.ts(1106,7): error TS6133: 'setData' is declared but its value is never read.
+packages/foldkit/src/html/index.ts(1488,7): error TS2741: Property 'Key' is missing in type '{ Class: [<Tag extends ValueAttribute['_tag']>(tag: Tag) => (value: (Extract<...> | Extract<...> | ... 240 more ... | Extract<...>)["value"]) => ..., ...]; ... 312 more ...; OnUnmount: ...; }' but required in type 'AttributeDefinitions'.
+
+
+stderr:

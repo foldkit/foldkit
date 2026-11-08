@@ -1,0 +1,8 @@
+$ /Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node /private/tmp/foldkit-html-definition-twins-20261107/candidate/packages/foldkit/node_modules/typescript/bin/tsc -p packages/foldkit/tsconfig.json --noEmit --pretty false
+exit=2
+
+stdout:
+packages/foldkit/src/html/index.ts(4551,3): error TS2741: Property 'a' is missing in type '{ abbr: false; address: false; area: true; article: false; aside: false; audio: false; b: false; base: true; bdi: false; bdo: false; blockquote: false; body: false; br: true; button: false; canvas: false; caption: false; ... 195 more ...; semantics: false; }' but required in type 'ElementDefinitions'.
+
+
+stderr:

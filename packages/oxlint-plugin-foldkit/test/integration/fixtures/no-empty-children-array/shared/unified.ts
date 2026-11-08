@@ -9,7 +9,6 @@ export const ParentBlock = Block.make('UnifiedParent', {
   Model: Schema.Struct({}),
   Message,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
 })
 export const { makeStep, makeCommandsStep } = ParentBlock
 export const ParentComposition = ParentBlock.makeComposition()

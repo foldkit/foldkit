@@ -15,7 +15,6 @@ export const CanvasAppKey = Symbol('CanvasApp')
 const CanvasAppBlock = Block.make('CanvasApp', {
   key: CanvasAppKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

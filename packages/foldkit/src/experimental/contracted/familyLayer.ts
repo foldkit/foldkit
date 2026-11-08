@@ -47,6 +47,7 @@ import type {
   NativeBody,
   NominalId,
   PublishedMountValidation,
+  StaticContractConfiguration,
   ValidateConstructorBody,
   ValidateFamilyHandlers,
   WithoutPendingHandlers,
@@ -389,6 +390,7 @@ export function makeFamilyDeclaration<
   id: Id | NamespaceIdentity<Id>,
   config: Config &
     Readonly<{ key: Key }> &
+    StaticContractConfiguration &
     (symbol extends Key ? never : true extends IsUnion<Key> ? never : unknown),
   ..._validation: readonly [
     ...MessageFreeValidation<NoInfer<Config & Readonly<{ key: Key }>>>,

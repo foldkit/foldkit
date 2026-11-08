@@ -1,9 +1,11 @@
-import { Effect } from 'effect'
 import { Story } from 'foldkit'
+import { expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { Message, OrderFeedBlock, layer, subscriptions } from './orderFeed'
 
-await Effect.runPromise(
+it.effect('records the latest order-feed entry', () =>
   Story.story(
     { block: OrderFeedBlock, layer },
     Story.init(),

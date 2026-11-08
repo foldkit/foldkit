@@ -1,0 +1,214 @@
+{
+  "metadata": {
+    "formatVersion": 7,
+    "measuredAt": "2026-11-07T23:18:14.052Z",
+    "sourceCommit": "dc2bf3175f280a32a654fdf0a4128595251bc820",
+    "sourceWorkloadDirty": false,
+    "workloadSha256": "12195981ff78c79117e43cb64b43858dbbafaf4aaf80b0c1c42b71db6c9b4818",
+    "lockfileSha256": "3659249b317572543f8f9e01f4997a099f4fa32ee6285825694fe4b83ebd582f",
+    "benchmarkScriptSha256": "e1bdc2e28460cd38253fa20ef3a2df3d1d98fbd558af76b2e8720700bac968a2",
+    "measuredHarnessSnapshotSha256": "14f5cba79e287995a032217ea63b601b3653d4105cf76031efe951637328d2d8",
+    "compilerPackageVersion": "7.1.0-beta",
+    "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+    "nativeCompilerExecutable": {
+      "path": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/@typescript+typescript-darwin-arm64@7.1.0-beta/node_modules/@typescript/typescript-darwin-arm64/lib/tsc",
+      "sha256": "29f5eb8daa5c8cf6ef1c0cb79fbcf47c0cfdf26edabdf148bb779d0b2d56cebc"
+    },
+    "server": {
+      "name": "typescript",
+      "version": "7.1.0-beta"
+    },
+    "nodeVersion": "v26.13.0",
+    "nodeExecutable": {
+      "path": "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node",
+      "sha256": "533bd644c5ae0e0ea3a80e433aad16b817447ccba1e1eea701875eac80cb75d4"
+    },
+    "platform": "darwin",
+    "architecture": "arm64",
+    "runs": 1,
+    "scenario": "layer-profile",
+    "timeoutMs": 60000,
+    "completionSnippetSupport": true,
+    "documentChangeMode": "Five fresh request-scoped CPU profiles; controls are in-memory documents at the real Layer URI"
+  },
+  "workload": {
+    "layerProfile": {
+      "source": "packages/website/src/layer.ts",
+      "outputDirectory": "/tmp/foldkit-layer-profile-20261107.OXTyfI/profiles",
+      "controls": {
+        "minimal": "Same URI and project with only passive ApplicationBlock access",
+        "imports": "Every real import used in a plain exported record; no makeLayer",
+        "unprovided": "Real makeLayer record plus every child Layer used outside provider composition",
+        "full": "Unmodified real Layer source",
+        "postOpen": "Unmodified real Layer source opened before the profiling barrier"
+      },
+      "mode": "custom/startCPUProfile immediately before the selected window and custom/stopCPUProfile immediately after exact clean pull diagnostics"
+    }
+  },
+  "summary": [
+    {
+      "label": "layerProfile.minimal.diagnostic",
+      "samplesMs": [
+        553.348
+      ],
+      "medianMs": 553.348,
+      "minimumMs": 553.348,
+      "maximumMs": 553.348
+    },
+    {
+      "label": "layerProfile.imports.diagnostic",
+      "samplesMs": [
+        4945.24
+      ],
+      "medianMs": 4945.24,
+      "minimumMs": 4945.24,
+      "maximumMs": 4945.24
+    },
+    {
+      "label": "layerProfile.unprovided.diagnostic",
+      "samplesMs": [
+        5390.761
+      ],
+      "medianMs": 5390.761,
+      "minimumMs": 5390.761,
+      "maximumMs": 5390.761
+    },
+    {
+      "label": "layerProfile.full.diagnostic",
+      "samplesMs": [
+        5142.57
+      ],
+      "medianMs": 5142.57,
+      "minimumMs": 5142.57,
+      "maximumMs": 5142.57
+    },
+    {
+      "label": "layerProfile.post-open.diagnostic",
+      "samplesMs": [
+        4944.419
+      ],
+      "medianMs": 4944.419,
+      "minimumMs": 4944.419,
+      "maximumMs": 4944.419
+    }
+  ],
+  "runs": [
+    {
+      "run": 1,
+      "measurements": [
+        {
+          "label": "layerProfile.minimal.diagnostic",
+          "latencyMs": 553.348,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "5aa60f4a1a133625b286cb02160780073cf30b0d9ae888cb80af47b290398760",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layerProfile.imports.diagnostic",
+          "latencyMs": 4945.24,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "ae8b21033ef8b885fb761e51e2f159446ea4529241ffedc4c319f8e7a7153c73",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layerProfile.unprovided.diagnostic",
+          "latencyMs": 5390.761,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "ca27d712f0a323eaecaf45fc9a3d27c7c04f6f08fd0ca35aadb854f5824c61a1",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layerProfile.full.diagnostic",
+          "latencyMs": 5142.57,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "42d2ec07aa26331e176919fefd1f8f7710fa34944784350b0220e354c2c4d85c",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layerProfile.post-open.diagnostic",
+          "latencyMs": 4944.419,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "42d2ec07aa26331e176919fefd1f8f7710fa34944784350b0220e354c2c4d85c",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "cpuProfiles": [
+        {
+          "kind": "minimal",
+          "profilePath": "/private/tmp/foldkit-layer-profile-20261107.OXTyfI/profiles/minimal/72491-1794093471508-cpuprofile.pb.gz",
+          "profileBytes": 24453,
+          "profileSha256": "61f2765d6e301719aae4ba71eb85e92ade59c87090addd82082beba51fde4ea5",
+          "startProfileLatencyMs": 4.031,
+          "stopProfileLatencyMs": 169.721,
+          "didOpenBeforeProfile": false
+        },
+        {
+          "kind": "imports",
+          "profilePath": "/private/tmp/foldkit-layer-profile-20261107.OXTyfI/profiles/imports/72494-1794093472255-cpuprofile.pb.gz",
+          "profileBytes": 47719,
+          "profileSha256": "993cc47388f86250b5d138d7df649d6989e2e6f5a55423bccde48536db503ec7",
+          "startProfileLatencyMs": 0.872,
+          "stopProfileLatencyMs": 111.056,
+          "didOpenBeforeProfile": false
+        },
+        {
+          "kind": "unprovided",
+          "profilePath": "/private/tmp/foldkit-layer-profile-20261107.OXTyfI/profiles/unprovided/72508-1794093477337-cpuprofile.pb.gz",
+          "profileBytes": 46629,
+          "profileSha256": "6f2e47d1db3afa0ee0e216cc94daf058146f56dcf855f80e2a0f682104a371cc",
+          "startProfileLatencyMs": 1.1,
+          "stopProfileLatencyMs": 184.604,
+          "didOpenBeforeProfile": false
+        },
+        {
+          "kind": "full",
+          "profilePath": "/private/tmp/foldkit-layer-profile-20261107.OXTyfI/profiles/full/72509-1794093482941-cpuprofile.pb.gz",
+          "profileBytes": 48954,
+          "profileSha256": "f54544d3d6e43f89d62d06ba13f7e71c8f20a23d9552d00660da024a4ccd5891",
+          "startProfileLatencyMs": 0.852,
+          "stopProfileLatencyMs": 111.972,
+          "didOpenBeforeProfile": false
+        },
+        {
+          "kind": "post-open",
+          "profilePath": "/private/tmp/foldkit-layer-profile-20261107.OXTyfI/profiles/post-open/72582-1794093488473-cpuprofile.pb.gz",
+          "profileBytes": 34680,
+          "profileSha256": "19da09797242ecac9b0703829f450ccd9b1b8af121abf93b68e50287dfcf6137",
+          "startProfileLatencyMs": 253.211,
+          "stopProfileLatencyMs": 108.836,
+          "didOpenBeforeProfile": true
+        }
+      ]
+    }
+  ]
+}

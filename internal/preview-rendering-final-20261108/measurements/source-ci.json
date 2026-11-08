@@ -1,0 +1,26 @@
+{
+  "sourceCommit": "6f1c988e1096b7285066892e8eabac74cda131ea",
+  "verifiedAt": "2026-11-08T09:18:53Z",
+  "workflow_runs": [
+    {
+      "id": 42463322082,
+      "name": "Examples E2E",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 4095,
+      "jobs_url": "https://api.github.com/repos/foldkit/foldkit/actions/runs/42463322082/jobs",
+      "logs_url": "https://api.github.com/repos/foldkit/foldkit/actions/runs/42463322082/logs",
+      "workflow_id": 277103838
+    },
+    {
+      "id": 42463322048,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 5021,
+      "jobs_url": "https://api.github.com/repos/foldkit/foldkit/actions/runs/42463322048/jobs",
+      "logs_url": "https://api.github.com/repos/foldkit/foldkit/actions/runs/42463322048/logs",
+      "workflow_id": 246345512
+    }
+  ]
+}

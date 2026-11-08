@@ -10,7 +10,6 @@ export const SearchKey = Symbol('Search')
 export const SearchBlock = Block.make('Search', {
   key: SearchKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   effects: { services: [PagefindService] },
   Model,
   Message,

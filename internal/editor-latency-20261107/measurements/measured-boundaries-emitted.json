@@ -1,0 +1,300 @@
+{
+  "metadata": {
+    "formatVersion": 6,
+    "measuredAt": "2026-11-07T22:38:45.189Z",
+    "sourceCommit": "54f8bcd443b4fd18952403a3d02e212abf872d58",
+    "sourceWorkloadDirty": true,
+    "workloadSha256": "9349e65b5b88f6b3f3aaf9e97828b456d8f2ca0548ac95bf6530f9c0a30a732c",
+    "lockfileSha256": "3659249b317572543f8f9e01f4997a099f4fa32ee6285825694fe4b83ebd582f",
+    "benchmarkScriptSha256": "14f5cba79e287995a032217ea63b601b3653d4105cf76031efe951637328d2d8",
+    "compilerPackageVersion": "7.1.0-beta",
+    "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+    "server": {
+      "name": "typescript",
+      "version": "7.1.0-beta"
+    },
+    "nodeVersion": "v26.13.0",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "runs": 5,
+    "scenario": "message-constructors",
+    "timeoutMs": 60000,
+    "completionSnippetSupport": true,
+    "documentChangeMode": "One fresh document per cold constructor scenario; no edits"
+  },
+  "workload": {
+    "messageAccessDiagnostics": {
+      "source": {
+        "messageAccess": "packages/website/src/entry.ts",
+        "layerCompletion": "packages/website/src/layer.ts"
+      },
+      "local": "import { ApplicationBlock } from './block'\nimport { Message } from './message'\nvoid ApplicationBlock\nvoid Message\nexport const onUrlChange = Message.ChangedUrl\n",
+      "block": "import { ApplicationBlock } from './block'\nimport { Message } from './message'\nvoid ApplicationBlock\nvoid Message\nexport const onUrlChange = ApplicationBlock.Message.ChangedUrl\n",
+      "layer": "Current ApplicationBlock.makeLayer record completion",
+      "mode": "One cold full pull diagnostic request per fresh server"
+    }
+  },
+  "summary": [
+    {
+      "label": "messageConstructor.local.cold",
+      "samplesMs": [
+        414.251,
+        418.864,
+        409.963,
+        412.144,
+        382.905
+      ],
+      "medianMs": 412.144,
+      "minimumMs": 382.905,
+      "maximumMs": 418.864
+    },
+    {
+      "label": "messageConstructor.block.cold",
+      "samplesMs": [
+        430.288,
+        391.712,
+        389.675,
+        389.329,
+        399.916
+      ],
+      "medianMs": 391.712,
+      "minimumMs": 389.329,
+      "maximumMs": 430.288
+    },
+    {
+      "label": "layer.cold",
+      "samplesMs": [
+        4622.365,
+        4697.219,
+        4634.267,
+        4639.384,
+        4719.943
+      ],
+      "medianMs": 4639.384,
+      "minimumMs": 4622.365,
+      "maximumMs": 4719.943
+    }
+  ],
+  "runs": [
+    {
+      "run": 1,
+      "measurements": [
+        {
+          "label": "messageConstructor.local.cold",
+          "latencyMs": 414.251,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "086348b57dad755bb1f8cb553841bcf7e6ecc4b22f55ee8000297d74353b8090",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "messageConstructor.block.cold",
+          "latencyMs": 430.288,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "e2477c30b764d50cf1c6dd7b80d60510a3f7d7f84c888b28954de5912b4df8fe",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layer.cold",
+          "latencyMs": 4622.365,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "42d2ec07aa26331e176919fefd1f8f7710fa34944784350b0220e354c2c4d85c",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "measurements": [
+        {
+          "label": "messageConstructor.local.cold",
+          "latencyMs": 418.864,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "086348b57dad755bb1f8cb553841bcf7e6ecc4b22f55ee8000297d74353b8090",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "messageConstructor.block.cold",
+          "latencyMs": 391.712,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "e2477c30b764d50cf1c6dd7b80d60510a3f7d7f84c888b28954de5912b4df8fe",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layer.cold",
+          "latencyMs": 4697.219,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "42d2ec07aa26331e176919fefd1f8f7710fa34944784350b0220e354c2c4d85c",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ]
+    },
+    {
+      "run": 3,
+      "measurements": [
+        {
+          "label": "messageConstructor.local.cold",
+          "latencyMs": 409.963,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "086348b57dad755bb1f8cb553841bcf7e6ecc4b22f55ee8000297d74353b8090",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "messageConstructor.block.cold",
+          "latencyMs": 389.675,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "e2477c30b764d50cf1c6dd7b80d60510a3f7d7f84c888b28954de5912b4df8fe",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layer.cold",
+          "latencyMs": 4634.267,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "42d2ec07aa26331e176919fefd1f8f7710fa34944784350b0220e354c2c4d85c",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ]
+    },
+    {
+      "run": 4,
+      "measurements": [
+        {
+          "label": "messageConstructor.local.cold",
+          "latencyMs": 412.144,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "086348b57dad755bb1f8cb553841bcf7e6ecc4b22f55ee8000297d74353b8090",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "messageConstructor.block.cold",
+          "latencyMs": 389.329,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "e2477c30b764d50cf1c6dd7b80d60510a3f7d7f84c888b28954de5912b4df8fe",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layer.cold",
+          "latencyMs": 4639.384,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "42d2ec07aa26331e176919fefd1f8f7710fa34944784350b0220e354c2c4d85c",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ]
+    },
+    {
+      "run": 5,
+      "measurements": [
+        {
+          "label": "messageConstructor.local.cold",
+          "latencyMs": 382.905,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "086348b57dad755bb1f8cb553841bcf7e6ecc4b22f55ee8000297d74353b8090",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "messageConstructor.block.cold",
+          "latencyMs": 399.916,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "e2477c30b764d50cf1c6dd7b80d60510a3f7d7f84c888b28954de5912b4df8fe",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "layer.cold",
+          "latencyMs": 4719.943,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "42d2ec07aa26331e176919fefd1f8f7710fa34944784350b0220e354c2c4d85c",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ]
+    }
+  ]
+}

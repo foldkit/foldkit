@@ -1,44 +1,51 @@
-import { Array, Effect } from 'effect'
+import { Array, Tuple } from 'effect'
 import { Story } from 'foldkit'
+import { expect } from 'vitest'
+
+import { it } from '@effect/vitest'
 
 import { ApplicationBlock, layer } from './block'
 
 // Set the initial Model.
-Story.given(Story.model)
+Story.given(initialModel)
 
 // Send a Message. Commands stay pending.
-Story.message(ClickedSubmit())
+Story.message(Message.ClickedSubmit())
 
 // Group a reusable sequence without erasing its step types.
-Story.steps(Story.given(initialModel), Story.message(ClickedSubmit()))
+Story.steps(Story.given(initialModel), Story.message(Message.ClickedSubmit()))
 
 // Resolve one Command with its result. A Definition matches its source identity;
 // an instance also selects its bound path and exact args.
-Story.Command.resolve(FetchWeather, SucceededFetchWeather({ data }))
+Story.Command.resolve(FetchWeather, Message.SucceededFetchWeather({ data }))
 Story.Command.resolve(
   FetchWeather({ zipCode: '90210' }),
-  SucceededFetchWeather({ data }),
+  Message.SucceededFetchWeather({ data }),
 )
 
-// Resolve many Commands at once. Each entry resolves exactly one matching
-// dispatch in declaration order.
+// Resolve matching current pending Commands at this point. Each entry resolves
+// exactly one matching dispatch in declaration order. Unused entries are
+// discarded when this step ends; unrelated Commands remain pending.
 Story.Command.resolveAll(
-  [FocusInput, CompletedFocusInput()],
-  [ScrollToTop, CompletedScrollToTop()],
+  [FocusInput, Message.CompletedFocusInput()],
+  [ScrollToTop, Message.CompletedScrollToTop()],
 )
 
 // Resolve and assert a batch. Every listed resolver must match in this call,
 // and no actual Command may remain unresolved.
-Story.message(ClickedSubmit())
+Story.message(Message.ClickedSubmit())
 Story.Command.resolveAllExact(
-  [FocusInput, CompletedFocusInput()],
-  [ScrollToTop, CompletedScrollToTop()],
+  [FocusInput, Message.CompletedFocusInput()],
+  [ScrollToTop, Message.CompletedScrollToTop()],
 )
 
 // For N identical responses, compose with Array.makeBy.
 Story.Command.resolveAll(
-  ...Array.makeBy(3, () => [AnimationTick, CompletedTick()] as const),
+  ...Array.makeBy(3, () => Tuple.make(AnimationTick, Message.CompletedTick())),
 )
+
+// Deliver a declared Subscription output through the selected Block graph.
+Story.Subscription.emit(subscriptions.ticks, Message.Ticked())
 
 // Assert on the Model.
 Story.model(model => {
@@ -61,16 +68,16 @@ Story.Command.expectExactInOrder(FetchWeather({ zipCode: '90210' }), SaveBoard)
 Story.Command.expectNone()
 
 // Assert on the OutMessage.
-Story.expectOutMessage(SucceededLogin({ session }))
+Story.expectOutMessage(OutMessage.SucceededLogin({ session }))
 
 // Run the scoped Story. Every pending Command must be resolved.
-await Effect.runPromise(
+it.effect('loads the submitted data', () =>
   Story.story(
     { block: ApplicationBlock, layer },
-    Story.given(Story.model),
-    Story.message(ClickedSubmit()),
+    Story.given(initialModel),
+    Story.message(Message.ClickedSubmit()),
     Story.Command.expectHas(FetchData),
-    Story.Command.resolve(FetchData, SucceededFetch({ data })),
+    Story.Command.resolve(FetchData, Message.SucceededFetch({ data })),
     Story.model(model => {
       expect(model.status).toBe('loaded')
     }),

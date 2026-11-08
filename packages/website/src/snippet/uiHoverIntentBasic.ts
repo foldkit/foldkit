@@ -18,7 +18,6 @@ export const HoverIntentExampleKey = Symbol('HoverIntentExample')
 export const HoverIntentExampleBlock = Block.make('HoverIntentExample', {
   key: HoverIntentExampleKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

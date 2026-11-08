@@ -18,7 +18,6 @@ export const TooltipExampleKey = Symbol('TooltipExample')
 export const TooltipExampleBlock = Block.make('TooltipExample', {
   key: TooltipExampleKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

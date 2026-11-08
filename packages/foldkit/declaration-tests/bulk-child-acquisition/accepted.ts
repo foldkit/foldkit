@@ -24,6 +24,7 @@ export const First = Block.make('BulkChildAcquisitionFirst', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const FirstComposition = First.makeComposition()
 export const firstInit = FirstComposition.makeInit(() => ({
@@ -48,6 +49,7 @@ export const Second = Block.make('BulkChildAcquisitionSecond', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const SecondComposition = Second.makeComposition()
 export const secondInit = SecondComposition.makeInit(() => ({
@@ -72,6 +74,7 @@ export const Parent = Block.make('BulkChildAcquisitionParent', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 export const FirstBinding = Parent.makeRequiredFieldBinding(First, {
   field: 'first',
@@ -137,6 +140,7 @@ export const Childless = Block.make('BulkChildAcquisitionChildless', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 export const ChildlessComposition = Childless.makeComposition()
 export const childlessLayer = Childless.makeLayer(

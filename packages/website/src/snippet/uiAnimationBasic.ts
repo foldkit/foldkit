@@ -21,7 +21,6 @@ export const AnimationExampleKey = Symbol('AnimationExample')
 export const AnimationExampleBlock = Block.make('AnimationExample', {
   key: AnimationExampleKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

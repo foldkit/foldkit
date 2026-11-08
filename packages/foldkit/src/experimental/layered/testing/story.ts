@@ -10,6 +10,7 @@ import { resolveStorySteps } from './messageIn.js'
 import type {
   DirectSubject,
   SelectedTestConfig,
+  SubjectBlock,
   TestConfig,
   TestInMessage,
   TestInit,
@@ -23,7 +24,12 @@ import {
   subjectInMessageUpdate,
   subjectUpdate,
 } from './subject.js'
-import { type BlockSubject, type TestEffect, withBlock } from './withBlock.js'
+import {
+  type BlockSubject,
+  type TestBlock,
+  type TestEffect,
+  withBlock,
+} from './withBlock.js'
 
 export * from '../../../test/story.js'
 export { type InitStep, init } from './initialState.js'
@@ -34,12 +40,27 @@ type InitialState<Block extends BlockSubject> =
   | TestInit<Block>
   | CoreStory.GivenStep<TestModel<Block>>
 
-type Step<Block extends BlockSubject> = CoreStory.StoryStep<
+type ResolvedStep<Block extends BlockSubject> = CoreStory.StoryStep<
   TestModel<Block>,
   TestMessage<Block>,
   TestOutMessage<Block>,
-  TestInMessage<Block>
+  TestInMessage<Block>,
+  CoreStory.BlockSubscriptionStepFor<
+    TestBlock<Block>['subscriptions'],
+    TestMessage<Block>
+  >
 >
+
+/**
+ * One reusable Story step for a Block-aware subject. Pass the same Block
+ * or `{ block, layer, ... }` subject used by `story`; a selected Layer retains
+ * its exact Message, OutMessage, InMessage and Subscription graph.
+ */
+export type Step<Subject> = [SubjectBlock<Subject>] extends [never]
+  ? never
+  : SubjectBlock<Subject> extends infer Block extends BlockSubject
+    ? ResolvedStep<Block>
+    : never
 
 /**
  * Acquires one Block graph and runs ordinary synchronous Story steps. Default
@@ -54,7 +75,7 @@ type Step<Block extends BlockSubject> = CoreStory.StoryStep<
 export function story<const Block extends BlockSubject>(
   block: DirectSubject<Block>,
   initial: InitialState<NoInfer<Block>>,
-  ...steps: ReadonlyArray<Step<NoInfer<Block>>>
+  ...steps: ReadonlyArray<ResolvedStep<NoInfer<Block>>>
 ): Effect.Effect<
   TestModel<Block>,
   Effect.Error<TestEffect<Block, TestModel<Block>>>,
@@ -66,7 +87,7 @@ export function story<
 >(
   config: SelectedTestConfig<Block, LayerValue>,
   initial: InitialState<SelectedLayeredRoot<Block, LayerValue>>,
-  ...steps: ReadonlyArray<Step<SelectedLayeredRoot<Block, LayerValue>>>
+  ...steps: ReadonlyArray<ResolvedStep<SelectedLayeredRoot<Block, LayerValue>>>
 ): Effect.Effect<
   TestModel<SelectedLayeredRoot<Block, LayerValue>>,
   Effect.Error<
@@ -85,7 +106,7 @@ export function story<
 export function story<const Block extends BlockSubject>(
   config: TestConfig<Block>,
   initial: InitialState<NoInfer<Block>>,
-  ...steps: ReadonlyArray<Step<NoInfer<Block>>>
+  ...steps: ReadonlyArray<ResolvedStep<NoInfer<Block>>>
 ): Effect.Effect<
   TestModel<Block>,
   Effect.Error<TestEffect<Block, TestModel<Block>>>,

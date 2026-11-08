@@ -11,6 +11,7 @@ export const Definition = makeFamilyDeclaration('FamilyMembers', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const Composition = Definition.makeComposition()
 const init = Composition.makeInit(() => ({ model: 0 }))

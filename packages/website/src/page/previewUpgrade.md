@@ -12,7 +12,7 @@ This guide covers upgrades from the Block previews listed below to the candidate
 | `1fbeaffe6563`                                    | [Upgrade from 1fbeaffe6563](#upgrade-from-1fbeaffe6563).                                                                                                                            |
 | `c701daa80af1`, `396b19976386`, or `bfd880b1e6ca` | Follow the complete guide, including the application boundary, Step composition, and UI call-site changes. These three snapshots share the same application API for this migration. |
 
-Every path also applies the shared changes before the snapshot-specific sections: notification names, InMessage declarations, serialization, Listbox factories, keyed folds, Layer-based construction, and testing. A section may require no edit when the application does not use that API.
+Every path also applies the shared changes before the snapshot-specific sections: notification names, InMessage declarations, serialization, selection factories, keyed folds, Layer-based construction, and testing. A section may require no edit when the application does not use that API.
 
 The older-preview baseline was checked at Coverchart checkpoint `084f1c94f38137837e9609c63ef08176ad607c9a`, with `foldkit@0.168.0-canary.bfd880b1e6ca` and its installed Foldkit packages aligned to that snapshot.
 
@@ -52,7 +52,17 @@ Inspect the physical Effect installations too:
 
 The result lists installed Effect copies and their locations. Check that the application and its Foldkit packages resolve the same installation. A workspace can contain other copies used by separate applications or tools; inspect the dependency tree to establish which copies enter the application graph. Choose matching Effect and platform versions as described in [Effect compatibility](#effect-compatibility), then repeat both checks.
 
-After updating manifests and the lockfile, run `npm ci` to verify that the lockfile reproduces the intended graph. Preserve the existing lockfile while diagnosing an upgrade; an older workspace constraint can explain a retained version without a corrupt lockfile. If a prerelease lockfile still cannot resolve the declared target, retain the npm version, manifests, lockfile and error for a reproduction before attempting a wider lockfile regeneration.
+Reconcile every sharing workspace manifest and stable third-party constraint before editing lockfile package records. An older workspace or dependency constraint can retain Effect 4.0 without making the lockfile corrupt. After updating the manifests and lockfile, run `npm ci` to verify that the lockfile reproduces the intended graph. Preserve the original lockfile and install error while diagnosing the upgrade.
+
+One reported migration still encountered stale Effect 4.0 or earlier-preview peer records after those manifest constraints were reconciled. The reporter used the targeted recovery below. Foldkit has not reproduced this lockfile repair locally, so do not treat it as the default remediation:
+
+1. Keep the failed lockfile and error as reproduction evidence.
+2. Confirm again that every sharing workspace manifest and stable third-party dependency accepts the new Foldkit snapshot and compatible Effect set.
+3. Remove only the affected `effect`, `@effect/*`, `foldkit`, and `@foldkit/*` records from the lockfile. Leave every unrelated package record intact.
+4. Run `npm install --package-lock-only` from the workspace root, followed by `npm ci` against the resulting lockfile.
+5. Repeat both inspections above. Confirm that the application resolves one Foldkit snapshot and one compatible Effect runtime.
+
+If choosing that fallback, keep the npm version, manifests, before-and-after lockfiles, command, and result together. If it still fails, retain those artifacts before attempting a wider regeneration.
 
 ## Rename child notification methods
 
@@ -94,6 +104,16 @@ Listbox Single and Multi no longer accept a generic-only narrow value contract. 
 ::Snippet{name="uiListboxFactoryForms" label="Schema-backed Listbox factories"}
 
 The Value Codec validates selection Messages, the `Selected` OutMessage, and selection inside a generated parent envelope while preserving its encoded type. It must be service-free and complete synchronously when Foldkit serializes it. The Item Schema supplies view typing only and adds no serialization or Service requirement. Pass `itemToValue` when an Item is not itself a Value, and provide `Listbox.layer` or `Listbox.Multi.layer` to the parent construction Layer.
+
+## Supply Menu, Tabs, and RadioGroup Value Codecs
+
+Menu, Tabs and RadioGroup use runtime Value Codecs in this preview. Earlier published previews used generic-only forms. The Listbox migration is covered separately above.
+
+Replace `Menu.makeBlock<Action>()`, `Tabs.makeBlock<Section>()`, and `RadioGroup.makeBlock<Plan>()` with the corresponding synchronous, service-free string Codec:
+
+::Snippet{name="previewSelectionValueCodecs" label="Schema-backed Menu, Tabs, and RadioGroup factories"}
+
+The no-argument factory remains for unrestricted strings. The Codec validates local selection Messages, `Selected` OutMessages, and generated parent envelopes while preserving its encoded type in `Completed<Value, ValueEncoded>`. Menu's local `RequestedSelectItem` and `SelectedItem` Messages report `{ item, index }`; its public `Selected` OutMessage reports `{ value, index }`, like Tabs and RadioGroup. The parent owns the committed selection or action. These factories do not accept arbitrary non-string selection values.
 
 ## Simplify keyed OutMessage folds
 
@@ -169,6 +189,24 @@ Nested `Story.messageIn` takes a nonempty Binding path, with `{ binding, key }` 
 
 Replace ordinary callbacks inspecting `simulation.commands` with `Command.expectExact` or `Command.expectExactInOrder`. The latter checks dispatch order in addition to exact identity, args, occurrence and count. Preserve an existing ordering assertion when migrating; `expectExact` remains order-independent.
 
+### Deliver Subscription Messages through the selected graph
+
+Block-aware Stories use `Story.Subscription.emit(entry, message)` for root registrations. Select child sources with `Story.Subscription.at(Binding, source)`, `at(Binding, key, source)`, or a nonempty Binding path. The runner resolves the source against the acquired graph and preserves its decoded Message contract, delivery mappings, and OutMessage folds without starting a Stream.
+
+::Snippet{name="testingStoryChildSubscription" label="Select a nested Subscription source"}
+
+Child implementation Layers can encapsulate their registries. A Binding selection checks the owning Block and occurrence path; exact source registration is checked at runtime. Keep `Story.Subscription.from(registry).emit` for low-level update-only Stories. `Scene.Subscription.at` retains its existing keyed-occurrence form.
+
+### Keep Command resolvers local
+
+`Story.Command.resolveAll` and `Scene.Command.resolveAll` use only the resolvers supplied to that call. They resolve matching current pending Commands and cascades from their result Messages. Each resolver is consumed at most once; unused resolvers are discarded when the call ends, while unrelated Commands remain pending.
+
+If an earlier test relied on an unused resolver reaching a later dispatch, extract the local step and use it explicitly at each intended completion point:
+
+::Snippet{name="previewLocalCommandResolvers" label="Reusing a local Command resolver"}
+
+`resolveAllExact` is also local, but additionally requires every supplied resolver to match and no actual Command to remain. `resolve` is unchanged. Definition identity, instance arguments, and Binding occurrence matching are unchanged; dispatch order does not imply effect or completion order.
+
 ## Upgrade from 90746b32d2ca
 
 The source snapshot is `90746b32d2ca8bc0476de7a051ace396ca590ae0`. It includes the earlier Block construction API and the Machine, Query, and UI factory changes. Adopt the Block declaration and ordinary construction Layer described above, and upgrade Effect and its platform packages to the supported 4.1 minor together. Follow [Effect compatibility](#effect-compatibility), including the UUID service migration and dependency-graph checks.
@@ -187,11 +225,11 @@ Run [the upgrade checks](#verify-the-upgrade), including public declaration outp
 
 ### Effect compatibility
 
-This candidate requires Effect 4.1. Published peers accept patch updates through `~4.1.0` for `effect` and `@effect/platform-browser`. Repository and generated-app dependencies remain exactly pinned to 4.1.0 for reproducible verification. Effect minor releases can change APIs, so each minor upgrade is reviewed before Foldkit widens its supported range. The 4.0.0 and 4.0.6 pairs supported by earlier previews are outside this candidate's range.
+This candidate requires Effect 4.1. Published peers accept compatible patches through `~4.1.0` for `effect` and `@effect/platform-browser`. Repository and generated-app dependencies remain exactly pinned to 4.1.0; those exact pins are the reproducibly verified package set. The peer range is a support contract, not a claim that every later 4.1.x patch was run locally. Effect minor releases can change APIs, so each minor upgrade is reviewed before Foldkit widens its supported range. The 4.0.0 and 4.0.6 pairs supported by earlier previews are outside this candidate's range.
 
 The Node adapter, Vite plugin, and DevTools MCP require Node.js 22.19.0 or newer. Keep the scaffolder's separate engine requirement when generating an app.
 
-Upgrade Effect and every declared platform package together within the supported minor. Pin an already declared `@effect/platform-browser` dependency to the same tested version as Effect, preserving its dependency placement. Keep one resolved Effect runtime: a successful install can still leave nested copies in a workspace.
+Upgrade Effect and every declared platform package together within the supported minor. For the repository-verified set, pin an already declared `@effect/platform-browser` dependency to 4.1.0 with Effect 4.1.0, preserving its dependency placement. If the application deliberately selects a later compatible patch, align every declared Effect package to a mutually compatible 4.1.x set and run the application's complete checks. Keep one resolved Effect runtime: a successful install can still leave nested copies in a workspace.
 
 Effect 4.1 replaces `Crypto.Crypto` with the services under `effect/crypto`. For UUID generation, import `SecureRandom`, capture `SecureRandom.SecureRandom` in the handler constructor, and call its `uuidV4()` method inside the invocation Effect. Supply `BrowserCrypto.layerSecureRandom` at the application root. UUID generation has no typed error channel, so it no longer needs `Effect.orDie`, a catch, or a paired failure Message. See [deferred execution boundaries](/tooling/linting#deferred-execution-boundaries).
 
@@ -207,6 +245,12 @@ Inline Model-aware `makeStep` producers now infer the exact Message from their h
 
 Contextual update records now accept compatible Steps and Binding operations directly, including records that mix them with callback handlers. Remove an adapter such as `model => close(model)` when it only forwards to the Step. Keep callbacks that map payloads, derive arguments or supply context.
 
+An explicit adapter to an existing local Message remains supported. Put the Message constructor directly under the Block declaration's `operations` record when the public operation takes that constructor's payload unchanged:
+
+::Snippet{name="previewLocalMessageOperation" label="Declaring a local Message operation"}
+
+The acquired Block exposes `block.operations.rename(model, { name })`; a registered parent Binding exposes `ProfileBinding.rename({ name })`. Use a tuple producer for argument mapping or update context. Use InMessage for parent requests and notifications that are not existing local Messages. See [explicit operation arguments](/core/block#adapt-explicit-operation-arguments) for the complete boundary.
+
 Extracting registration evidence from returned Commands now avoids TS2589 in the reported large Root composition, while retaining registration checks. This does not establish a general limit on the number of Blocks or remove all compiler costs in large graphs.
 
 Scene follows renderer element identity and, for Block-aware subjects, the acquiring occurrence. A retained element keeps its Mount when `OnMount` is omitted; a marker for a different occurrence starts a replacement acquisition. Removing and recreating a child under the same key creates a different occurrence. Retained results follow the currently rendered boundary while the acquiring occurrence remains active. Acknowledge element removal, replacement and occurrence retirement with `Mount.expectEnded`. Review tests that resolved a Mount which never starts in the browser. Runtime teardown also releases the original Mount when its element is removed after dropping `OnMount`.
@@ -219,7 +263,7 @@ SSR development reloads recreate Block declarations with their implementation La
 
 ### UI Block factories
 
-Rename `create` to `makeBlock` on Combobox, Menu, RadioGroup, Tabs, and VirtualList, including the Combobox Multi variant. Rename `Toast.make` to `Toast.makeBlock` too. Those factory renames retain their existing type parameters or Schema arguments. Listbox and Listbox Multi also rename `create` to `makeBlock`, but they require the [runtime Value Schema forms above](#supply-listbox-value-schemas). The old factory names have no compatibility aliases.
+Rename `create` to `makeBlock` on Combobox, Menu, RadioGroup, Tabs, and VirtualList, including the Combobox Multi variant. Rename `Toast.make` to `Toast.makeBlock` too. Combobox retains its Item Schema. Menu, Tabs, and RadioGroup use the [Value Codec forms above](#supply-menu-tabs-and-radiogroup-value-codecs), while Listbox and Listbox Multi use the [runtime Value Schema forms above](#supply-listbox-value-schemas). The old factory names have no compatibility aliases.
 
 Each factory returns a passive public Block contract. Declare it once at module scope, bind that value in the parent, and provide the component's implementation Layer to the parent's construction Layer. Calling the factory does not initialize an occurrence or start effects. After graph acquisition, parent init calls the child's initializer and retains its Model and Commands. See [Selection Blocks](/ui/selection-blocks#make-block-factory), [Toast](/ui/toast), and [VirtualList](/ui/virtual-list) for current usage.
 
@@ -314,6 +358,8 @@ Declare the root's unique key, InitArgs, Model, Message, and view contract in `A
 ::Snippet{name="blockFeatureExports" label="Independent contract and checked implementation"}
 
 Use a Document view for `Program.make` and an Element view for `Program.makeElement`. Importing the Block declaration or Layer does not construct its graph or run init.
+
+For contracted Blocks, remove a redundant `view: { kind: 'Element' }`: omission now declares an Element view with no inputs. Keep only `view: { Inputs }` for Element inputs. Keep `view: { kind: 'Document' }` explicit, and change a completed viewless contracted Block to `view: false` so its intent remains visible. Legacy Schema-only `makeDefinition` assembly keeps its existing view semantics.
 
 ### Create the browser Program
 

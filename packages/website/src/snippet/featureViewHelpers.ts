@@ -15,7 +15,6 @@ export const ArticlesKey = Symbol('Articles')
 const ArticlesBlock = Block.make('Articles', {
   key: ArticlesKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

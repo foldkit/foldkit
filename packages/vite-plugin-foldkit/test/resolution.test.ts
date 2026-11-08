@@ -36,6 +36,7 @@ import {
 import { crawlFoldkitPackages } from '../src/foldkitPackages.ts'
 import { foldkit } from '../src/index.ts'
 import { readForcedEffectEntries } from './forcedEffectEntries.ts'
+import { createServerCache } from './serverCache.ts'
 
 type Files = Readonly<globalThis.Record<string, string>>
 type DependencyFields = Readonly<
@@ -358,6 +359,7 @@ const startDevServer = async (
   const root = await realpath(await makeRoot(files))
   const server = await createServer({
     root,
+    cacheDir: join(await createServerCache(), 'node_modules/.vite'),
     configFile: false,
     logLevel: 'silent',
     server: { middlewareMode: true, hmr: false, ws: false },

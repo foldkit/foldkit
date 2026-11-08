@@ -120,6 +120,16 @@ describe('real-oxlint rule fixtures', () => {
     })
   }
 
+  it('recognizes RadioGroup Schema factories through root and subpath aliases', () => {
+    const rule = 'selection-block-factory-at-module-scope'
+    const diagnostics = diagnosticsFor(rule, 'invalid').filter(diagnostic =>
+      diagnostic.filename.endsWith('/radio-group-aliases.ts'),
+    )
+
+    expect(diagnostics).toHaveLength(2)
+    expect(diagnosticsFor(rule, 'valid')).toEqual([])
+  })
+
   it.each([
     ['block-name-matches-variable', 6],
     ['no-binding-write-coordination', 3],

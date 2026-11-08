@@ -32,7 +32,7 @@ export const StatsData = AsyncData.Schema(FetchedStats, Schema.String)
 export const Tab = Schema.Literals(['Posts', 'Stats'])
 export type Tab = typeof Tab.Type
 
-export const ApplicationTabsBlock = Tabs.makeBlock<Tab>()
+export const ApplicationTabsBlock = Tabs.makeBlock(Tab)
 
 export const Model = Schema.Struct({
   tabs: ApplicationTabsBlock.Model,

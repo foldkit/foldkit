@@ -8,7 +8,7 @@ For example: a Listbox of plans, a Combobox of cities, Tabs for view modes, a Me
 
 ### Typed Block Contracts {#typed-completed-blocks}
 
-Each factory declares a passive Block contract with view inputs and a `Selected` OutMessage typed for the values your application uses. Listbox and Menu also type their `requestSelectItem` Binding operations. Listbox and Combobox take Schemas so their public contracts also carry exact Message and OutMessage Schemas. The other selection factories take type parameters.
+Each factory declares a passive Block contract with view inputs and a `Selected` OutMessage typed for the values your application uses. Listbox and Menu also type their `requestSelectItem` Binding operations. Every selection factory accepts a synchronous, service-free string Codec, so its public Message and OutMessage Schemas retain the decoded and encoded selection types.
 
 A Listbox over a literal-union `Plan` type:
 
@@ -22,11 +22,11 @@ There is no inbound inform operation for the selection: the parent owns it outri
 
 ## Naming What a Factory Returns {#completed-type}
 
-The root `@foldkit/ui` namespace exposes a `Completed` type under each component namespace for the passive contract its factory returns. The name does not mean an acquired executable: `Listbox.Completed<Plan>` describes `Listbox.makeBlock(Plan)`. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup namespaces expose their corresponding `Completed` types.
+The root `@foldkit/ui` namespace exposes a `Completed` type under each component namespace for the passive contract its factory returns. The name does not mean an acquired executable: `Tabs.Completed<Section, SectionEncoded>` names the result of `Tabs.makeBlock(Section)`. Its two parameters describe the decoded value and encoded representation. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup namespaces expose their corresponding `Completed` types.
 
 ### When to Name the Returned Contract {#when-to-name-the-completed-block}
 
-Declaring the factory at module scope and using it directly needs no annotation, since inference covers it. Reach for a namespaced `Completed` type when a returned contract needs a type name. For example, a config object may hold a `Combobox.Completed<City>` from `@foldkit/ui`, or an authoring helper may accept `Listbox.Completed<Plan>` instead of calling the factory itself.
+Declaring the factory at module scope and using it directly needs no annotation, since inference covers it. Reach for a namespaced `Completed` type when a returned contract needs a type name. For example, a config object may hold a `Combobox.Completed<City, CityEncoded>` from `@foldkit/ui`, or an authoring helper may accept `Listbox.Completed<Plan, Plan, PlanEncoded>` instead of calling the factory itself.
 
 ### Declaration Output
 
@@ -52,11 +52,11 @@ The two-Schema form separates view data from the serialized selection boundary. 
 
 ### The Schema Boundary
 
-Listbox and Combobox build their Message and OutMessage Schemas from the supplied Value or Item Schema. Decoding with those Schemas validates selection payloads at runtime. Their view inputs, selection operations and OutMessage constructors retain the corresponding types.
+Every selection factory builds its Message and OutMessage Schemas from the supplied string Codec. Decoding validates selection payloads at runtime, including those inside generated parent envelopes. Those Codecs retain the decoded and encoded types. View inputs and selection operations use the decoded type.
 
-### Type-parameter factories
+### Selection Codec requirements
 
-Menu, Tabs and RadioGroup type their view inputs and OutMessages through type parameters. Their runtime selection Codecs accept strings; a type argument supplies no runtime validator for a narrower domain. Validate external selection payloads with the application's value Schema at the boundary. Menu's `requestSelectItem` operation checks its Item type in TypeScript.
+Pass the Codec value itself rather than a generic-only call. `Menu.makeBlock<Action>()`, `Tabs.makeBlock<ViewMode>()`, and `RadioGroup.makeBlock<Plan>()` are removed. Each Codec's decoded type must extend `string`; these components do not support arbitrary non-string selections. Omit the argument only for unrestricted strings.
 
 ## The Factories {#factories}
 
@@ -70,7 +70,7 @@ Listbox has three factory forms:
 - `Listbox.makeBlock(ValueSchema)` uses the supplied string Schema for both Item and Value.
 - `Listbox.makeBlock(ItemSchema, ValueSchema)` accepts richer view items and uses the Value Schema for selected Messages and OutMessages.
 
-:::Snippet{name="uiListboxFactoryForms" label="Listbox factory forms"}
+::Snippet{name="uiListboxFactoryForms" label="Listbox factory forms"}
 
 `Listbox.Multi.makeBlock` has the same three forms. Its `Selected` OutMessage carries only the activated Value, and the parent toggles that value in and out of the selection it owns.
 
@@ -82,8 +82,12 @@ Listbox has three factory forms:
 
 ### Tabs
 
-`Tabs.makeBlock<Value>()` takes one type parameter, `Value extends string`. The view accepts `ReadonlyArray<Value>` as its tab list (a literal union `Value` is assignable to `string`), and the OutMessage carries both the picked `value: Value` and its `index: number`. The single parameter is enough because Tabs values are always inline strings; there is no object form.
+`Tabs.makeBlock()` accepts unrestricted strings. `Tabs.makeBlock(Value)` accepts a synchronous, service-free string Codec. The view accepts `ReadonlyArray<Value>` as its tab list, and the OutMessage carries the picked `value: Value` and its `index: number`. The Codec validates local selection Messages, the OutMessage, and selection in generated parent envelopes while preserving `ValueEncoded`.
 
 ### Menu
 
-`Menu.makeBlock<Item>()` takes one type parameter, `Item extends string`. The view accepts `ReadonlyArray<Item>` as its menu items, and the OutMessage carries both the picked `value: Item` and its `index: number`. The picked value arrives directly in the OutMessage, so consumers no longer need to look it up from their own items array.
+`Menu.makeBlock()` accepts unrestricted strings. `Menu.makeBlock(Value)` accepts a synchronous, service-free string Codec. The view accepts `ReadonlyArray<Value>` as its menu items. Its local `RequestedSelectItem` and `SelectedItem` Messages carry `item: Value` and `index: number`; its public OutMessage carries the picked `value: Value` and its `index: number`. The Codec validates both boundaries and generated parent envelopes while preserving `ValueEncoded`.
+
+### RadioGroup
+
+`RadioGroup.makeBlock()` accepts unrestricted strings. `RadioGroup.makeBlock(Value)` accepts a synchronous, service-free string Codec. The view accepts `ReadonlyArray<Value>` as its options, and the OutMessage carries the picked `value: Value` and its `index: number`. The Codec validates local selection Messages, the OutMessage, and selection in generated parent envelopes while preserving `ValueEncoded`.

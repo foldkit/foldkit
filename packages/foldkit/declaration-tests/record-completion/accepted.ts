@@ -40,6 +40,7 @@ export const First = Block.make('RecordCompletionFirst', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const firstComposition = First.makeComposition()
 export const firstInit = firstComposition.makeInit(() => ({
@@ -64,6 +65,7 @@ export const Second = Block.make('RecordCompletionSecond', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const secondComposition = Second.makeComposition()
 export const secondInit = secondComposition.makeInit(() => ({
@@ -88,6 +90,7 @@ export const Parent = Block.make('RecordCompletionParent', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 export const FirstBinding = Parent.makeRequiredFieldBinding(First, {
   field: 'first',
@@ -234,6 +237,7 @@ export const ContextBlock = Block.make('RecordCompletionContext', {
     Block.makeInputContract<
       readonly [seed?: number, ...labels: ReadonlyArray<string>]
     >(),
+  view: false,
   Context:
     Block.makeInputContract<
       readonly [increment?: number, ...labels: ReadonlyArray<string>]
@@ -300,6 +304,7 @@ export const HostedBlock = Block.make('RecordCompletionHosted', {
   InMessage: HostedInMessage,
   OutMessage: HostedOutMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
   inMessageOutputs: {
     RequestedReport: { outMessage: HostedOutMessage.ChangedCount },
   },
@@ -404,6 +409,7 @@ export const FamilyDefinition = makeFamilyDeclaration(
     Message: Schema.Never,
     isMessageFree: true,
     InitArgs: Schema.Tuple([]),
+    view: false,
   },
 )
 const familyComposition = FamilyDefinition.makeComposition()

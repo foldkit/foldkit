@@ -54,7 +54,7 @@ export const EncodedPicker = Combobox.makeBlock(EncodedItem)
 export const MultiPicker = Combobox.Multi.makeBlock(Item)
 export const ListPicker = Listbox.makeBlock(Item)
 export const MultiListPicker = Listbox.Multi.makeBlock(Item)
-export const MenuPicker = Menu.makeBlock<'Apple' | 'Pear'>()
+export const MenuPicker = Menu.makeBlock(Item)
 const MenuFoldModel = Schema.Struct({ selected: Item })
 export const MenuFoldFixtureBlock = Block.make('MenuFoldFixture', {
   key: MenuFoldFixtureKey,
@@ -732,6 +732,7 @@ const WithOutMessageOnlyBlock = Block.make('WithOutMessageOnly', {
   Message: ShapeMessage,
   OutMessage: ShapeOutMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const WithOutMessageOnlyComposition = WithOutMessageOnlyBlock.makeComposition()
 export const WithOutMessageOnly = WithOutMessageOnlyBlock
@@ -780,6 +781,7 @@ const WithoutViewOrOutMessageBlock = Block.make('WithoutViewOrOutMessage', {
   Model: ShapeModel,
   Message: ShapeMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const WithoutViewOrOutMessageComposition =
   WithoutViewOrOutMessageBlock.makeComposition()

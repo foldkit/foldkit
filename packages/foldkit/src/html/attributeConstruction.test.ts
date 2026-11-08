@@ -1,0 +1,333 @@
+import { Data, Option, Schema, Stream } from 'effect'
+import { describe, expect, it } from 'vitest'
+
+import * as CustomElement from '../customElement/index.js'
+import { defineMessageUnion } from '../message/index.js'
+import type { MountAction } from '../mount/index.js'
+import {
+  type ClickOptions,
+  OnCustomEvent,
+  Prop,
+  type TaggedAttribute,
+  __htmlBuilder,
+  mountOccurrencePath,
+} from './index.js'
+
+const Message = defineMessageUnion({
+  Clicked: {},
+})
+type Message = typeof Message.Type
+
+const h = __htmlBuilder<Message>()
+const AttributeConstructor = Data.taggedEnum<TaggedAttribute<Message>>()
+const message = Message.Clicked()
+const onInput = (_value: string): Message => message
+const options: ClickOptions = {
+  defaultAction: 'Prevent',
+  propagation: 'Stop',
+  focusSelector: '#target',
+}
+const mountAction: MountAction<Message> = {
+  name: 'ObserveTarget',
+  f: () => Stream.empty,
+}
+
+const propertyDescriptors = (value: object) =>
+  Reflect.ownKeys(value).map(key => [
+    key,
+    Object.getOwnPropertyDescriptor(value, key),
+  ])
+
+type AttributeCase = Readonly<{
+  name: string
+  build: () => TaggedAttribute<Message>
+  expected: () => TaggedAttribute<Message>
+}>
+
+const attributeCases: ReadonlyArray<AttributeCase> = [
+  {
+    name: 'no fields',
+    build: () => h.AllowDrop(),
+    expected: () => AttributeConstructor.AllowDrop(),
+  },
+  {
+    name: 'value field',
+    build: () => h.Class('card'),
+    expected: () => AttributeConstructor.Class({ value: 'card' }),
+  },
+  {
+    name: 'message field',
+    build: () => h.OnSubmit(message),
+    expected: () => AttributeConstructor.OnSubmit({ message }),
+  },
+  {
+    name: 'function field',
+    build: () => h.OnInput(onInput),
+    expected: () => AttributeConstructor.OnInput({ f: onInput }),
+  },
+  {
+    name: 'text field',
+    build: () => h.OnCopyText('copied'),
+    expected: () => AttributeConstructor.OnCopyText({ text: 'copied' }),
+  },
+  {
+    name: 'key and value fields',
+    build: () => h.DataAttribute('state', 'draft'),
+    expected: () =>
+      AttributeConstructor.DataAttribute({ key: 'state', value: 'draft' }),
+  },
+  {
+    name: 'text and message fields',
+    build: () => h.OnCutText('cut', message),
+    expected: () => AttributeConstructor.OnCutText({ text: 'cut', message }),
+  },
+  {
+    name: 'message and options fields',
+    build: () => h.OnClick(message, options),
+    expected: () => AttributeConstructor.OnClick({ message, options }),
+  },
+  {
+    name: 'OnClick without options',
+    build: () => h.OnClick(message),
+    expected: () => AttributeConstructor.OnClick({ message }),
+  },
+  {
+    name: 'OnCancelPreventDefault Option payload',
+    build: () => h.OnCancelPreventDefault(message),
+    expected: () =>
+      AttributeConstructor.OnCancelPreventDefault({
+        maybeCustomEventMessage: Option.some(message),
+      }),
+  },
+  {
+    name: 'OnCancelPreventDefault empty Option payload',
+    build: () => h.OnCancelPreventDefault(),
+    expected: () =>
+      AttributeConstructor.OnCancelPreventDefault({
+        maybeCustomEventMessage: Option.none(),
+      }),
+  },
+]
+
+describe('HtmlBuilder attributes', () => {
+  it.each([
+    { name: 'Class', constructor: h.Class, length: 1 },
+    { name: 'OnSubmit', constructor: h.OnSubmit, length: 1 },
+    { name: 'OnInput', constructor: h.OnInput, length: 1 },
+    { name: 'OnCopyText', constructor: h.OnCopyText, length: 1 },
+    { name: 'OnMount', constructor: h.OnMount, length: 1 },
+    { name: 'DataAttribute', constructor: h.DataAttribute, length: 2 },
+    { name: 'OnCutText', constructor: h.OnCutText, length: 2 },
+    { name: 'OnClick', constructor: h.OnClick, length: 2 },
+    {
+      name: 'OnCancelPreventDefault',
+      constructor: h.OnCancelPreventDefault,
+      length: 1,
+    },
+    { name: 'AllowDrop', constructor: h.AllowDrop, length: 0 },
+  ])('keeps $name callable metadata', ({ name, constructor, length }) => {
+    expect(constructor.name).toBe(name)
+    expect(constructor.length).toBe(length)
+    expect(Reflect.ownKeys(constructor)).toEqual(['length', 'name'])
+    expect(Object.getOwnPropertyDescriptor(constructor, 'name')).toEqual({
+      value: name,
+      writable: false,
+      enumerable: false,
+      configurable: true,
+    })
+    expect(Object.getOwnPropertyDescriptor(constructor, 'length')).toEqual({
+      value: length,
+      writable: false,
+      enumerable: false,
+      configurable: true,
+    })
+    expect(Object.getOwnPropertyDescriptor(h, name)).toEqual({
+      value: constructor,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    })
+    expect(Object.getPrototypeOf(h)).toBe(Object.prototype)
+    expect(__htmlBuilder<Message>()).toBe(h)
+  })
+
+  it.each(attributeCases)(
+    '$name matches Effect constructor output',
+    testCase => {
+      const actual = testCase.build()
+      const expected = testCase.expected()
+
+      expect(Reflect.ownKeys(actual)).toEqual(Reflect.ownKeys(expected))
+      expect(Object.getPrototypeOf(actual)).toBe(
+        Object.getPrototypeOf(expected),
+      )
+      expect(propertyDescriptors(actual)).toEqual(propertyDescriptors(expected))
+      expect(actual).toEqual(expected)
+      expect(actual).not.toBe(testCase.build())
+    },
+  )
+
+  it('keeps payload value identities', () => {
+    const toMessage = (_value: string): Message => message
+    const attribute = h.OnInput(toMessage)
+
+    expect(attribute.f).toBe(toMessage)
+    expect(h.OnSubmit(message).message).toBe(message)
+  })
+
+  it('captures OnMount without mutating the source action', () => {
+    const attribute = h.OnMount(mountAction)
+
+    expect(Reflect.ownKeys(attribute)).toEqual(['_tag', 'action'])
+    expect(Object.getPrototypeOf(attribute)).toBe(Object.prototype)
+    expect(propertyDescriptors(attribute)).toEqual([
+      [
+        '_tag',
+        {
+          value: 'OnMount',
+          writable: true,
+          enumerable: true,
+          configurable: true,
+        },
+      ],
+      [
+        'action',
+        {
+          value: attribute.action,
+          writable: true,
+          enumerable: true,
+          configurable: true,
+        },
+      ],
+    ])
+    expect(attribute).not.toBe(h.OnMount(mountAction))
+    expect(attribute.action).not.toBe(mountAction)
+    expect(attribute.action.name).toBe(mountAction.name)
+    expect(attribute.action.f).toBe(mountAction.f)
+    expect(mountOccurrencePath(attribute.action)).toEqual([])
+    expect(mountOccurrencePath(mountAction)).toEqual([])
+  })
+
+  it('defines an own tag without invoking an inherited setter', () => {
+    const originalDescriptor = Object.getOwnPropertyDescriptor(
+      Object.prototype,
+      '_tag',
+    )
+    let setterCalls = 0
+
+    Object.defineProperty(Object.prototype, '_tag', {
+      configurable: true,
+      set: () => {
+        setterCalls += 1
+      },
+    })
+
+    try {
+      const attribute = h.Class('card')
+
+      expect(setterCalls).toBe(0)
+      expect(Object.getOwnPropertyDescriptor(attribute, '_tag')).toEqual({
+        value: 'Class',
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      })
+    } finally {
+      if (originalDescriptor === undefined) {
+        Reflect.deleteProperty(Object.prototype, '_tag')
+      } else {
+        Object.defineProperty(Object.prototype, '_tag', originalDescriptor)
+      }
+    }
+  })
+})
+
+const makeProxyPayload = <Payload extends object>(payload: Payload) => {
+  const access = { ownKeys: 0, getter: 0 }
+  const extra = Symbol('extra')
+  const record = Object.assign(payload, { [extra]: 'symbol' })
+  Object.defineProperty(record, 'extra', {
+    enumerable: true,
+    configurable: true,
+    get: () => {
+      access.getter += 1
+      return 'extra'
+    },
+  })
+
+  return {
+    access,
+    extra,
+    payload: new Proxy(record, {
+      ownKeys: target => {
+        access.ownKeys += 1
+        return Reflect.ownKeys(target)
+      },
+    }),
+  }
+}
+
+describe('raw Attribute constructors', () => {
+  it('copies Prop payloads without mutating their getters, symbols, or proxy behavior', () => {
+    const { access, extra, payload } = makeProxyPayload({
+      key: 'value',
+      value: 'draft',
+    })
+    const attribute = Prop(payload)
+    const accessAfterConstruction = { ...access }
+
+    expect(attribute).not.toBe(payload)
+    expect(Reflect.ownKeys(payload)).toEqual(['key', 'value', 'extra', extra])
+    expect(Reflect.ownKeys(attribute)).toEqual([
+      'key',
+      'value',
+      'extra',
+      '_tag',
+      extra,
+    ])
+    expect(accessAfterConstruction).toEqual({ ownKeys: 1, getter: 1 })
+    expect(Object.getOwnPropertyDescriptor(payload, '_tag')).toBeUndefined()
+  })
+
+  it('copies OnCustomEvent payloads without mutating their getters, symbols, or proxy behavior', () => {
+    const { access, extra, payload } = makeProxyPayload({
+      name: 'changed',
+      f: () => Option.some(message),
+    })
+    const attribute = OnCustomEvent(payload)
+    const accessAfterConstruction = { ...access }
+
+    expect(attribute).not.toBe(payload)
+    expect(Reflect.ownKeys(payload)).toEqual(['name', 'f', 'extra', extra])
+    expect(Reflect.ownKeys(attribute)).toEqual([
+      'name',
+      'f',
+      'extra',
+      '_tag',
+      extra,
+    ])
+    expect(accessAfterConstruction).toEqual({ ownKeys: 1, getter: 1 })
+    expect(Object.getOwnPropertyDescriptor(payload, '_tag')).toBeUndefined()
+  })
+
+  it('keeps custom-element property and event factories on raw constructors', () => {
+    const element = CustomElement.define({
+      tag: 'attribute-construction-test',
+      properties: { value: Schema.String },
+      events: { changed: Schema.String },
+    }).withMessage(h)
+    const toMessage = (_value: string): Message => message
+
+    const property = element.Value('draft')
+    const event = element.OnChanged(toMessage)
+
+    expect(property).toEqual(
+      AttributeConstructor.Prop({ key: 'value', value: 'draft' }),
+    )
+    expect('_tag' in event && event._tag).toBe('OnCustomEvent')
+    if ('_tag' in event && event._tag === 'OnCustomEvent') {
+      expect(event.name).toBe('changed')
+      expect(event.f).toBeTypeOf('function')
+    }
+  })
+})

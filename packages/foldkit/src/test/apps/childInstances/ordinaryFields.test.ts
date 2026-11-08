@@ -29,6 +29,7 @@ const ApplicationDefinition = makeDefinition('OccurrenceDataBoundary', {
   Model,
   Message,
   InitArgs: Schema.Tuple([]),
+  view: false,
   effects: { services: [CounterSource] },
 })
 const { makeFieldsStep } = ApplicationDefinition

@@ -180,6 +180,7 @@ export const DeclaredStoreChildBlock = Block.make('KeyedProbeChild', {
   Model: Schema.Struct({}),
   Message: defineMessageUnion({ CompletedRead: {} }),
   InitArgs: Schema.Tuple([]),
+  view: false,
   effects: { services: [Store] },
 })
 const Read = DeclaredStoreChildBlock.makeCommand('Read', {
@@ -255,6 +256,7 @@ const ClosedChildBlock = Block.make('ClosedChild', {
   Model: Schema.Struct({}),
   Message: defineMessageUnion({ CompletedRead: {} }),
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const ReadClosed = ClosedChildBlock.makeCommand('Read', {
   messages: [ClosedChildBlock.Message.CompletedRead],

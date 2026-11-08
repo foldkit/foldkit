@@ -21,6 +21,7 @@ const Definition = makeDefinition('ContractImplementationSubscriptions', {
   Model,
   Message,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const Composition = Definition.makeComposition()
 const init = Composition.makeInit(() => ({ model: { value: '' } }))

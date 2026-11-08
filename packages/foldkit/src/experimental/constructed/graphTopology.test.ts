@@ -12,6 +12,7 @@ const makeLeaf = () => {
     Message: Schema.Never,
     isMessageFree: true,
     InitArgs: Schema.Tuple([]),
+    view: false,
   })
   const Composition = Definition.makeComposition()
   const descriptor = Definition.makeBlock(
@@ -34,6 +35,7 @@ const makeParent = (child: ReturnType<typeof makeLeaf>) => {
     Message: Schema.Never,
     isMessageFree: true,
     InitArgs: Schema.Tuple([]),
+    view: false,
   })
   const binding = Definition.makeRequiredFieldBinding(
     child.Definition.contract,
@@ -125,6 +127,7 @@ describe('construction graph Layer topology', () => {
       Message: Schema.Never,
       isMessageFree: true,
       InitArgs: Schema.Tuple([]),
+      view: false,
     })
     const ChildBinding = Definition.makeRequiredFieldBinding(
       child.Definition.contract,

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "status": "pass",
+  "interpretation": "Repository variant source provenance. The redundant whole-repository archive is intentionally omitted; the exact Git object is canonical and reproducible.",
+  "git": {
+    "commit": "6f1c988e1096b7285066892e8eabac74cda131ea",
+    "tree": "34036283c1913ceb5a3b5a202ca2ac541f95e5d3",
+    "expectedStatus": "clean"
+  },
+  "originalPrivatePacket": {
+    "root": "/private/tmp/foldkit-final-rendering-outcome-20261108",
+    "manifestSha256": "e69d69597ca2fbedc76eea87dac2387009bdd3da6d80c088087a98e8ab5b1018",
+    "archive": {
+      "path": "archives/current-source-6f1c988.tar.gz",
+      "stored": {
+        "bytes": 37989038,
+        "sha256": "0a74e468a7797f090b91cee16032851cd03a307ba971dd3d9c19f0899382b021"
+      },
+      "decompressedTar": {
+        "bytes": 118958080,
+        "sha256": "7e67654416008c7d9e1ebbdf52060ff5ede70158869ab7eced93b79905f2573d"
+      }
+    }
+  },
+  "reproduction": {
+    "command": "git -C <foldkit-checkout> archive --format=tar 6f1c988e1096b7285066892e8eabac74cda131ea | gzip -n > current-source-6f1c988.tar.gz",
+    "verifyCommit": "git -C <foldkit-checkout> rev-parse 6f1c988e1096b7285066892e8eabac74cda131ea^{commit}",
+    "verifyTree": "git -C <foldkit-checkout> rev-parse 6f1c988e1096b7285066892e8eabac74cda131ea^{tree}",
+    "note": "The compressed hash assumes the same deterministic git archive bytes and gzip -n format. Verify the decompressed tar hash independently if a gzip implementation emits different container bytes."
+  }
+}

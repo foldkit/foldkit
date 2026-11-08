@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "status": "complete",
+  "exitCode": 0,
+  "startedAt": "2026-11-07T22:47:52.696Z",
+  "completedAt": "2026-11-07T23:04:05.260Z",
+  "env": {
+    "IMPLS": "attribute-baseline-naive-a,attribute-candidate-naive,attribute-baseline-optimised-a,attribute-candidate-optimised,attribute-baseline-naive-b,attribute-baseline-optimised-b",
+    "RUNS": "12",
+    "HARNESS_DIR": "/private/tmp/foldkit-direct-attributes-20261107-06UygU/harness",
+    "PORT": "8598"
+  },
+  "driver": "/private/tmp/foldkit-direct-attributes-20261107-06UygU/driver/run.mjs",
+  "driverSha256": "a93c12e6fe411eb5fa8abc342e32974d94496622ba8a475b81f7d6dc9bbc26f0",
+  "log": "timing.log",
+  "logSha256": "790e47ebbf7e7e170bf64dd3fb69f4894b73f7f5c2230bb08aa6aa0ef36931d2",
+  "artifactReceiptSha256": "f74a81f29c7300b80f29df85965ab3752a7407c2d70fd6686c10e40edf3ba1d5",
+  "preflightResultsSha256": "30d2be33e64a067b05beb9bd4010dfbc5c55c4c42489cc48de77c1d390f4a267",
+  "hostBefore": {
+    "file": "timing-host-before.json",
+    "sha256": "62b863c538aca3f44ec6f682145513a7970eb8ae63ba6cf41b9deccbbc348280"
+  },
+  "hostAfter": {
+    "file": "timing-host-after.json",
+    "sha256": "f6905398912879081803d3e329bfe42f83aa28a7c3c1257a64eb7cd8d07a4666"
+  },
+  "timingIsolation": {
+    "buildsAndTestsQuiet": true,
+    "otherBrowserChecksQuiet": true,
+    "confirmedByLead": true
+  },
+  "cleanup": {
+    "portAvailableOnIpv4": true,
+    "portAvailableOnIpv6": true,
+    "browserProcessesBefore": [],
+    "browserProcessesAfter": []
+  },
+  "retainedSamples": 72,
+  "discardedSamples": 0,
+  "cyclicOrdinalVisitsPerSlot": 2
+}

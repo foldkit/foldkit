@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "publishedCommit": "54f8bcd443b4fd18952403a3d02e212abf872d58",
+  "acceptedControl": {
+    "root": "/private/tmp/foldkit-bundle-invocation-controls-20261107/d_retargeted",
+    "invocation": [
+      "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node",
+      "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/vite@8.3.5_@types+node@26.4.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/bin/vite.js",
+      "build",
+      "--mode",
+      "production"
+    ],
+    "environment": {
+      "NODE_ENV": null,
+      "VITE_USER_NODE_ENV": null,
+      "MODE": null,
+      "BUILD_VARIANT": null,
+      "CI": "1",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "NO_COLOR": "1"
+    },
+    "inputs": {
+      "nodeSha256": "533bd644c5ae0e0ea3a80e433aad16b817447ccba1e1eea701875eac80cb75d4",
+      "viteVersion": "8.3.5",
+      "vitePackageSha256": "c9586ac07b42763a8a7f6aac6b4a805d70f057bd8c67c43da81c0cc4e5da8293",
+      "rolldownVersion": "1.2.15",
+      "rolldownPackageSha256": "c7e56b94afb72aaffe463718e98a76330140a2737b4c79b19232b9a55a17b585",
+      "rolldownBindingSha256": "9d4c0a2b9bb218fe7d335528a6e46afcba641596cde17921be7c0ae2f76c78db",
+      "lockfileSha256": "3659249b317572543f8f9e01f4997a099f4fa32ee6285825694fe4b83ebd582f",
+      "noMapConfigSha256": "e0cfb247448dd13a1ac804c5a99077d847d3dc0361b2df171cb748e0766b7038",
+      "hiddenMapConfigSha256": "24145615fd440ad3cd7fb53f4af8b47080e764ef44e20ab4ef0a7f8e88f555fa"
+    },
+    "localLinks": [
+      {
+        "link": "node_modules/foldkit",
+        "target": "packages/foldkit"
+      },
+      {
+        "link": "internal/lustre-benchmark/node_modules/@foldkit/vite-plugin",
+        "target": "packages/vite-plugin-foldkit"
+      },
+      {
+        "link": "internal/lustre-benchmark/node_modules/foldkit",
+        "target": "packages/foldkit"
+      },
+      {
+        "link": "packages/vite-plugin-foldkit/node_modules/foldkit",
+        "target": "packages/foldkit"
+      }
+    ],
+    "javascript": {
+      "bytes": 475519,
+      "gzipBytes": 147123,
+      "sha256": "445b31212df9efe25ce6e81fe60cb7a5dfc583c46fc098dd84de40e234e9d146",
+      "retainedMeasuredEqualsNoMap": true,
+      "noMapEqualsHiddenMap": true,
+      "retainedMeasuredEqualsHiddenMap": true
+    },
+    "sourceMap": {
+      "bytes": 6156639,
+      "gzipBytes": 1257289,
+      "sha256": "4ded625981064248a1f3ac38e980d563d3dcc1b94da34770cc06afc25dd41616"
+    }
+  },
+  "attribution": {
+    "file": "bundle-source-attribution-20261107.json",
+    "bytes": 44844,
+    "sha256": "59e5bd0660466a208fa1f7d26665c9df2547b9ec7f3d1d02709423a94c77ca94",
+    "analysisScript": "analyse-bundle-sourcemap.mjs",
+    "analysisScriptSha256": "3ed03632afe6200c22a0eb39ea0b18870d6e88b6813cf2d45354ab92bb55aace",
+    "disjointSpanCount": 108102,
+    "attributedBytes": 475519,
+    "exactRawByteSum": true
+  },
+  "subpathControl": {
+    "modules": 477,
+    "bytes": 475523,
+    "gzipBytes": 147043,
+    "sha256": "fe22a43c8ae6f33e4271ed4abd5d2f17ed5cd96fe260a3739f7137883b12652a",
+    "rawDelta": 4,
+    "gzipDelta": -80
+  },
+  "rejectedCopiedTopology": {
+    "reason": "Absolute local workspace links still targeted the original snapshot while Foldkit source aliases targeted the copy. foldkitViewIdentity therefore classified copied Foldkit core as application code and branded it.",
+    "javascript": {
+      "bytes": 652893,
+      "gzipBytes": 167591,
+      "sha256": "e8f72f5a789d87322ee90047e6f43f3a4c7f73fa0ec3134555d77679ec223ad5"
+    },
+    "usedForAttribution": false
+  }
+}

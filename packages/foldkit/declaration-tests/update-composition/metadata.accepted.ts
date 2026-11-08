@@ -16,6 +16,7 @@ export const MessageFreeBlock = Block.make('MessageFreeComposition', {
   Model: Schema.Struct({ count: Schema.Number }),
   Message: Schema.Never,
   InitArgs: Schema.Tuple([]),
+  view: false,
   isMessageFree: true,
 })
 const MessageFreeComposition = MessageFreeBlock.makeComposition()
@@ -36,6 +37,7 @@ export const RoutedBlock = Block.make('RoutedComposition', {
   Model: Schema.Struct({ editor: Editor.EditorBlock.Model }),
   Message: Schema.Never,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const RoutedEditorBinding = RoutedBlock.makeRequiredFieldBinding(
   Editor.EditorBlock,
@@ -75,6 +77,7 @@ export const makeGenericUpdate = <Value, Encoded>(
     Model: Schema.Struct({ value }),
     Message: FamilyMessage,
     InitArgs: Schema.Tuple([value]),
+    view: false,
   })
   const Composition = Definition.makeComposition()
   const update = Composition.makeUpdate({

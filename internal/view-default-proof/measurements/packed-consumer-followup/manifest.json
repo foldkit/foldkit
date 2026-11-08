@@ -1,0 +1,59 @@
+{
+  "sourceParent": "4ed89f750c75d568d3c8ac4594d4f111e124edc1",
+  "ci": {
+    "run": 42459930578,
+    "job": 128666834191,
+    "failedStep": "Check packed SSR consumer",
+    "diagnostic": "workspaces/application/consumer.ts33: invalidContract view; old viewless fixture omitted view:false",
+    "kind": "Candidate migration omission, not a published runtime regression"
+  },
+  "correctedCommand": "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node scripts/check-packed-ssr-consumer.ts --skip-build --critical-browser-matrix --keep-consumer",
+  "cwd": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+  "node": "v26.13.0",
+  "exitCode": 0,
+  "fixtureSha256": {
+    "scripts/fixtures/packed-ssr-consumer/workspaces/application/consumer.ts": "c482afb07bec64b65ff7a022c545fc839246b801385558db4f361542fda73942",
+    "scripts/fixtures/packed-ssr-consumer/src/effect-types.ts": "2169d7695e63862ff8b7ecfaed9ca592aaed360720ce96a19ed759449641e759"
+  },
+  "unchangedProductionSourceSha256": {
+    "packages/foldkit/src/experimental/contracted/contract.ts": "d28eba6a8eb714c74e1764fb03eabeebdcf511634cb6e75765b387a825412183",
+    "packages/foldkit/src/runtime/renderer.ts": "0cb8fe1490802e526d37be68107b0ea94f3c6636b2785aa2d0273e32aa4b718f",
+    "packages/foldkit/src/runtime/messageQueue.ts": "b3ac94962865b0478220232e482bcc3e22cb87ec96631553919e2f439a67e433",
+    "packages/foldkit/src/html/index.ts": "e6e05295d8736d75dce894fad99a509954c44b61ac51dbb2a4ea0ca5d480d1de",
+    "packages/foldkit/src/html/lazy.ts": "8ff8ea6144e5b5e6f4f41e51673b78710c13c1c51f0cc7affda56cfd4ea3926d"
+  },
+  "result": {
+    "consumerTypesAndWorkspaceExecution": "pass",
+    "oneEffectRuntime": "Effect/platform packages4.1.0; npm ls valid",
+    "chromium": "pass",
+    "firefox": "pass",
+    "webkit": "pass"
+  },
+  "limits": "Tarball staging was cleaned by the existing gate; no retained tarball bytes are claimed. The retained consumer lockfile records installation identities. This local correction is not a completed new CI run.",
+  "files": {
+    "ci-failure.log.gz": {
+      "originalBytes": 870717,
+      "originalSha256": "fbd15d4131afdffd7d47efaa88152f183f000e8b29f14f6b511fc525ef1c6e19",
+      "storedBytes": 121860,
+      "storedSha256": "250fce42b26b9e81f9dc239beb521d75f65173b99570983f715aec93050312e3"
+    },
+    "packed-critical-pass.log.gz": {
+      "originalBytes": 8080,
+      "originalSha256": "64246e4dca12bd676a4be5a627e2da90bf49ee4740863420f611081e6d84988a",
+      "storedBytes": 1980,
+      "storedSha256": "8781e40d07d2865a256a35364b0a96c1c9d8c56853fd91f3dca5ec436af88ab5"
+    },
+    "consumer-package.json.gz": {
+      "originalBytes": 1594,
+      "originalSha256": "a25396d4492315764c4494ddb407026d6031addbf941dda65aa7e8182de56564",
+      "storedBytes": 451,
+      "storedSha256": "4240e945e7761f3916e1354ffdd4ce7a6524a1c0fb562692b50ddff0aceec8fb"
+    },
+    "consumer-package-lock.json.gz": {
+      "originalBytes": 136842,
+      "originalSha256": "618fc69ebdbbbaa020c4f45021caa7a730b640a5f50947dc2cbcac7f3d7af99e",
+      "storedBytes": 29015,
+      "storedSha256": "693f8feeb7713078456c0ba9d488eae5e7b615aa07830ff91de40f18d6802305"
+    }
+  }
+}

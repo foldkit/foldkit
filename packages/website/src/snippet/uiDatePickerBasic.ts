@@ -35,7 +35,6 @@ export const DatePickerExampleKey = Symbol('DatePickerExample')
 export const DatePickerExampleBlock = Block.make('DatePickerExample', {
   key: DatePickerExampleKey,
   InitArgs: Schema.Tuple([Flags]),
-  view: { kind: 'Element' },
   Model,
   Message,
   ChildInitContext: Flags,

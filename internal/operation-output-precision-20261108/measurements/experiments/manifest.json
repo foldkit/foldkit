@@ -1,0 +1,123 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-11-08T05:44:17Z",
+  "label": "Connected-operation immediate-output precision rejected experiment packet",
+  "status": "unadopted-open-research",
+  "baseCommit": "7cc7d90e68dc5a55b4765bbd7f0469b55cdd928f",
+  "archiveFileCountIncludingManifest": 12,
+  "sourceSnapshots": [
+    {
+      "candidate": "immediate-output-precision",
+      "originalRoot": "/private/tmp/foldkit-operation-output-precision-20261108",
+      "head": "7cc7d90e68dc5a55b4765bbd7f0469b55cdd928f",
+      "changedTrackedFiles": 11,
+      "untrackedEvidence": ["RESULTS.md"],
+      "sourceHashes": {
+        "packages/foldkit/src/block/binding.ts": "62cfe9fdfdc1571e4cb395390aadd7f7d2e778562b74c272d9be6afeaf2f41e4",
+        "packages/foldkit/src/block/deferredPolicy.ts": "dd79bdd41d59bdc229e527ce9a1ebc826484a419a1cf6c0c2f8c600da7f8f64d",
+        "packages/foldkit/src/block/operationEmission.ts": "8000526aacf514e03b469659a8eb45df8143b31771177187c1e7fbf6d76bf795",
+        "packages/foldkit/src/block/parentOwnedBinding.test.ts": "0318243d6ea8ebbec5e9b02fad456899944ed31af96ecb20cfe303056ddde577",
+        "packages/foldkit/src/experimental/constructed/contract.ts": "1232014204a6905d36d95599fd24738d57c9ce6450b5b107b777f0aecb534c0d",
+        "packages/foldkit/src/experimental/contracted/inMessageUpdateComposition.test.ts": "efaa2fb43f0cc7071acd60e9064e9cd006c7a854a8efe5ad2d1fe9c64d1ea9e8",
+        "packages/ui/declaration-tests/popover-close-without-restoring-focus.accepted.ts": "bba00957dd3d67867eeeda45a8f87a3db400a9ff6dc046cddca5c87947846f41",
+        "packages/ui/declaration-tests/popover-close-without-restoring-focus.rejected.ts": "52a2cb09e2cc17d1c2d0c2a8131e83e3f4dfc6414cafe186dfecb2453f517f23",
+        "packages/ui/scripts/check-emitted-declarations.ts": "448a77a9d5ec8498676b71a1d70185d36ccb468998b1a1b7c3978bd16f148c97",
+        "packages/ui/src/popover/bindingClose.story.test.ts": "759dcc6db59810627da02e38d19c25eca78059338bab46dce9bc41be05d31107",
+        "packages/ui/src/popover/block.ts": "7e8de3ccb00b46a968e2db9d4c6296d21d9f9854fa76604d729bf42f27bef1b2"
+      }
+    },
+    {
+      "candidate": "common-path-visitation",
+      "originalRoot": "/private/tmp/foldkit-operation-output-precision-common-path-20261108",
+      "head": "7cc7d90e68dc5a55b4765bbd7f0469b55cdd928f",
+      "changedTrackedFiles": 11,
+      "untrackedEvidence": ["RESULTS.md", "REJECTED-BASE-RESULTS.md"],
+      "sourceHashes": {
+        "packages/foldkit/src/block/binding.ts": "62cfe9fdfdc1571e4cb395390aadd7f7d2e778562b74c272d9be6afeaf2f41e4",
+        "packages/foldkit/src/block/deferredPolicy.ts": "9172bbe406546399507c139ef47e1d10938736595dfcd896a1655f8f98f54181",
+        "packages/foldkit/src/block/operationEmission.ts": "8000526aacf514e03b469659a8eb45df8143b31771177187c1e7fbf6d76bf795",
+        "packages/foldkit/src/block/parentOwnedBinding.test.ts": "0318243d6ea8ebbec5e9b02fad456899944ed31af96ecb20cfe303056ddde577",
+        "packages/foldkit/src/experimental/constructed/contract.ts": "1232014204a6905d36d95599fd24738d57c9ce6450b5b107b777f0aecb534c0d",
+        "packages/foldkit/src/experimental/contracted/inMessageUpdateComposition.test.ts": "efaa2fb43f0cc7071acd60e9064e9cd006c7a854a8efe5ad2d1fe9c64d1ea9e8",
+        "packages/ui/declaration-tests/popover-close-without-restoring-focus.accepted.ts": "bba00957dd3d67867eeeda45a8f87a3db400a9ff6dc046cddca5c87947846f41",
+        "packages/ui/declaration-tests/popover-close-without-restoring-focus.rejected.ts": "52a2cb09e2cc17d1c2d0c2a8131e83e3f4dfc6414cafe186dfecb2453f517f23",
+        "packages/ui/scripts/check-emitted-declarations.ts": "448a77a9d5ec8498676b71a1d70185d36ccb468998b1a1b7c3978bd16f148c97",
+        "packages/ui/src/popover/bindingClose.story.test.ts": "759dcc6db59810627da02e38d19c25eca78059338bab46dce9bc41be05d31107",
+        "packages/ui/src/popover/block.ts": "7e8de3ccb00b46a968e2db9d4c6296d21d9f9854fa76604d729bf42f27bef1b2"
+      }
+    }
+  ],
+  "patches": [
+    {
+      "candidate": "immediate-output-precision",
+      "path": "patches/immediate-output-precision.patch.gz",
+      "compression": "gzip -n",
+      "changedFiles": 11,
+      "insertions": 714,
+      "deletions": 47,
+      "stored": {
+        "bytes": 9139,
+        "sha256": "0db19674a5b807db5d511b3a583bd0784c05a62950d15c0db011818810155601"
+      },
+      "decompressed": {
+        "bytes": 43000,
+        "sha256": "a04212b92a8aed28ac29ff8095344c8749208adf1cf46d491b040c2cc51adc14"
+      },
+      "gzipIntegrity": "pass",
+      "reverseApplyCheckAgainstFrozenCandidate": "pass"
+    },
+    {
+      "candidate": "common-path-visitation",
+      "path": "patches/common-path.patch.gz",
+      "compression": "gzip -n",
+      "changedFiles": 11,
+      "insertions": 711,
+      "deletions": 47,
+      "stored": {
+        "bytes": 9128,
+        "sha256": "cd8d47f3151ed1583b560bbf7476d4a78db5eec00811ec5345008ad816726a6b"
+      },
+      "decompressed": {
+        "bytes": 43008,
+        "sha256": "4ead50c091b62df1fc8a0a62be19858a8779506fa69d71b9410886e8acecab2c"
+      },
+      "gzipIntegrity": "pass",
+      "reverseApplyCheckAgainstFrozenCandidate": "pass"
+    }
+  ],
+  "compilerEvidence": {
+    "explicitlyRecordedTypeScriptVersions": ["7.1.0-beta"],
+    "typescript6Claim": false,
+    "fixtureAndCeilingInputsIdenticalBetweenCandidates": true,
+    "inputHashList": {
+      "path": "inputs/type-performance-files.sha256",
+      "entries": 31,
+      "bytes": 3720,
+      "sha256": "cf7de0ce19db5c889a5b3f9b4a0cdd293e8b1241e12839c5a1135d2f2edab929"
+    },
+    "scopedTypeScriptPackageMetadataSha256": "29955061fde038b8154a844f4d99837343143d057ef8feb2a588bbf5c7d2cbd1",
+    "ceilingOutcome": {
+      "immediate-output-precision": { "passed": 6, "failed": 3 },
+      "common-path-visitation": { "passed": 6, "failed": 3 }
+    }
+  },
+  "artifactFiles": [
+    { "path": "README.md", "bytes": 5589, "sha256": "6215618064311bb1a87f580fdb3b2506bd4175a67ff24bc6833eda68f31efb49" },
+    { "path": "inputs/operation-output-precision-plan.md", "bytes": 9340, "sha256": "fa288506207b3d1834d1d05ad18f1742c742e0f62a29e2757a394295e08acf37" },
+    { "path": "inputs/predecessor-emitted-config.json", "bytes": 534, "sha256": "c97bfd5027babe28e043a83cfc088f70cea02ad8a6bd9ce10e2ba9b2ec6c075b" },
+    { "path": "inputs/type-performance-files.sha256", "bytes": 3720, "sha256": "cf7de0ce19db5c889a5b3f9b4a0cdd293e8b1241e12839c5a1135d2f2edab929" },
+    { "path": "patches/common-path.patch.gz", "bytes": 9128, "sha256": "cd8d47f3151ed1583b560bbf7476d4a78db5eec00811ec5345008ad816726a6b" },
+    { "path": "patches/immediate-output-precision.patch.gz", "bytes": 9139, "sha256": "0db19674a5b807db5d511b3a583bd0784c05a62950d15c0db011818810155601" },
+    { "path": "receipts/common-path.json", "bytes": 3741, "sha256": "fd077aa9b513c370bdad28b15db6e3628fd22d76ccbf2ca4b25b7516d6713446" },
+    { "path": "receipts/immediate-output-precision.json", "bytes": 3180, "sha256": "67578a518f6be63ac09aac95a08294133a6c397bce409d140fd66fb13c311303" },
+    { "path": "results/common-path.REJECTED-BASE-RESULTS.md", "bytes": 4591, "sha256": "ddb2dc2be8ab920e1c61a5e80711d80967b2c289e22ba3b31715e9217c13e3d4" },
+    { "path": "results/common-path.RESULTS.md", "bytes": 4394, "sha256": "934034c6d0a059fa786abeb639de18a88aaa9f20faf688c47644aaa9ee3e0efc" },
+    { "path": "results/immediate-output-precision.RESULTS.md", "bytes": 4591, "sha256": "ddb2dc2be8ab920e1c61a5e80711d80967b2c289e22ba3b31715e9217c13e3d4" }
+  ],
+  "recordingLimits": {
+    "rawCommandLogsRetained": false,
+    "fullSourceTreeIncluded": false,
+    "dependenciesIncluded": false,
+    "note": "Contemporaneous result reports and normalized receipts are retained. Unknown command lines and unrecorded compiler versions are not reconstructed."
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "6f1c988e1096b7285066892e8eabac74cda131ea",
+  "archive": "readiness-evidence.tar.gz",
+  "stored": {
+    "bytes": 4282464,
+    "sha256": "6182372225c9c843d69359f01c9e53c544e26e9c8132d603d47a3380b3e1f100"
+  },
+  "decompressedTar": {
+    "bytes": 5253120,
+    "sha256": "9adbda9bf3d517a76f3e50053464e993bcc35e8942ecc422c4224efe8a1ab9de"
+  },
+  "payloadManifest": "manifest.json",
+  "interpretation": "The original manifest and four original payloads are inside the archive, byte-exact. The manifest beside the archive is an identical direct-access copy. Paths in that original manifest are relative to the extracted archive root."
+}

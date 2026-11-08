@@ -42,6 +42,7 @@ const EditorBlock = Block.make('CodecContractEditor', {
   Model: ChildModel,
   Message: ChildMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const childComposition = EditorBlock.makeComposition()
 const editorLayer = EditorBlock.makeLayer(

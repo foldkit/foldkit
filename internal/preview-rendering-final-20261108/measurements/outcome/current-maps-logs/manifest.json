@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "status": "pass",
+  "interpretation": "Gzip storage copies of fresh current assets, hidden-map twins, source maps, and build/map logs. Raw sources remain unchanged in the fresh-v5 evidence archive.",
+  "entries": [
+    {
+      "relativePath": "assets/current-naive/assets/index-BlUajzT5.js",
+      "raw": {
+        "bytes": 463530,
+        "sha256": "b36b9e981dd31a2207ef702e839c6f3a9283a7870216be757330ddf26907ad5a"
+      },
+      "stored": {
+        "path": "assets__current-naive__assets__index-BlUajzT5.js.gz",
+        "bytes": 142737,
+        "sha256": "7c9eb5075c7339ee72b21668de3de14b36e03e5f04c0f8f796930545a5d94b8f"
+      },
+      "decompressedSha256": "b36b9e981dd31a2207ef702e839c6f3a9283a7870216be757330ddf26907ad5a"
+    },
+    {
+      "relativePath": "assets/current-optimised/assets/index.optimised-DAdeicfF.js",
+      "raw": {
+        "bytes": 470123,
+        "sha256": "95d6e5ba18b4839af1687438ad40d576f55f0d1d3cabd84ab4e30ce4be99fbe9"
+      },
+      "stored": {
+        "path": "assets__current-optimised__assets__index.optimised-DAdeicfF.js.gz",
+        "bytes": 144111,
+        "sha256": "710ad466c570d6a9fcea246c951f9925ab7f43f2abc72da5def0840d74929008"
+      },
+      "decompressedSha256": "95d6e5ba18b4839af1687438ad40d576f55f0d1d3cabd84ab4e30ce4be99fbe9"
+    },
+    {
+      "relativePath": "maps/current-naive/assets/index-BlUajzT5.js",
+      "raw": {
+        "bytes": 463530,
+        "sha256": "b36b9e981dd31a2207ef702e839c6f3a9283a7870216be757330ddf26907ad5a"
+      },
+      "stored": {
+        "path": "maps__current-naive__assets__index-BlUajzT5.js.gz",
+        "bytes": 142737,
+        "sha256": "7c9eb5075c7339ee72b21668de3de14b36e03e5f04c0f8f796930545a5d94b8f"
+      },
+      "decompressedSha256": "b36b9e981dd31a2207ef702e839c6f3a9283a7870216be757330ddf26907ad5a"
+    },
+    {
+      "relativePath": "maps/current-naive/assets/index-BlUajzT5.js.map",
+      "raw": {
+        "bytes": 6132871,
+        "sha256": "75ea897d46671ae1822148ce6765ffd57742b923f45acaea4071e25507ef5974"
+      },
+      "stored": {
+        "path": "maps__current-naive__assets__index-BlUajzT5.js.map.gz",
+        "bytes": 1241236,
+        "sha256": "bebad34ed40ba4ac846a759755238851604ec4d7b2c05003ceb87c5655439844"
+      },
+      "decompressedSha256": "75ea897d46671ae1822148ce6765ffd57742b923f45acaea4071e25507ef5974"
+    },
+    {
+      "relativePath": "maps/current-optimised/assets/index.optimised-DAdeicfF.js",
+      "raw": {
+        "bytes": 470123,
+        "sha256": "95d6e5ba18b4839af1687438ad40d576f55f0d1d3cabd84ab4e30ce4be99fbe9"
+      },
+      "stored": {
+        "path": "maps__current-optimised__assets__index.optimised-DAdeicfF.js.gz",
+        "bytes": 144111,
+        "sha256": "710ad466c570d6a9fcea246c951f9925ab7f43f2abc72da5def0840d74929008"
+      },
+      "decompressedSha256": "95d6e5ba18b4839af1687438ad40d576f55f0d1d3cabd84ab4e30ce4be99fbe9"
+    },
+    {
+      "relativePath": "maps/current-optimised/assets/index.optimised-DAdeicfF.js.map",
+      "raw": {
+        "bytes": 6161914,
+        "sha256": "7a40b4c01b442a32c3a946f0a0b264dcbb33792b4010412709a7c232878b7d9d"
+      },
+      "stored": {
+        "path": "maps__current-optimised__assets__index.optimised-DAdeicfF.js.map.gz",
+        "bytes": 1247556,
+        "sha256": "f4080a92110f9d499d40dd949a72815c879462028b19e3b98e024c8643d833e8"
+      },
+      "decompressedSha256": "7a40b4c01b442a32c3a946f0a0b264dcbb33792b4010412709a7c232878b7d9d"
+    },
+    {
+      "relativePath": "assets/logs/build-current-naive.log",
+      "raw": {
+        "bytes": 1604,
+        "sha256": "9ffea4b61a3d1cf386baa9821a69765e790736b8c856ecb1fd2a0239d2b35b19"
+      },
+      "stored": {
+        "path": "assets__logs__build-current-naive.log.gz",
+        "bytes": 858,
+        "sha256": "443718c335eecd7c6aa43fcc02d362e7352e33c657b1dc1dcdbc788de359b4ac"
+      },
+      "decompressedSha256": "9ffea4b61a3d1cf386baa9821a69765e790736b8c856ecb1fd2a0239d2b35b19"
+    },
+    {
+      "relativePath": "assets/logs/build-current-optimised.log",
+      "raw": {
+        "bytes": 1650,
+        "sha256": "1b42537be7d176ab6fe9e6f704599bc56933f78a471b094cbbc1348f512d0b4d"
+      },
+      "stored": {
+        "path": "assets__logs__build-current-optimised.log.gz",
+        "bytes": 863,
+        "sha256": "9a034a0dc90f726a3c4bbff5e144d34048e63dc024cbd17b9a045336a8996467"
+      },
+      "decompressedSha256": "1b42537be7d176ab6fe9e6f704599bc56933f78a471b094cbbc1348f512d0b4d"
+    },
+    {
+      "relativePath": "assets/logs/build-plugin.log",
+      "raw": {
+        "bytes": 301,
+        "sha256": "4bad0dca33d83127fa0c5df574e7abe99c48821b952192f7af868302f0d60172"
+      },
+      "stored": {
+        "path": "assets__logs__build-plugin.log.gz",
+        "bytes": 190,
+        "sha256": "9960891b482980e017a5702bc1fbb896dcf9cb3dea9dd1ad6b21503d7ceb2dfd"
+      },
+      "decompressedSha256": "4bad0dca33d83127fa0c5df574e7abe99c48821b952192f7af868302f0d60172"
+    },
+    {
+      "relativePath": "assets/logs/clean-plugin.log",
+      "raw": {
+        "bytes": 368,
+        "sha256": "06859cb27863b3d436da39e8bb8001b517a252ddee9a9e2a1a8e3dea1e62d86f"
+      },
+      "stored": {
+        "path": "assets__logs__clean-plugin.log.gz",
+        "bytes": 256,
+        "sha256": "1fdf6dc0770babe0cbdec4822612c19beeb1b2cb7bdf06f227a52af145d1faa7"
+      },
+      "decompressedSha256": "06859cb27863b3d436da39e8bb8001b517a252ddee9a9e2a1a8e3dea1e62d86f"
+    },
+    {
+      "relativePath": "assets/logs/map-current-naive.log",
+      "raw": {
+        "bytes": 1636,
+        "sha256": "ab11cab3c82ba9223d9a860e0c7f63256bc9b27250b3c44f90bf18b5afc55d60"
+      },
+      "stored": {
+        "path": "assets__logs__map-current-naive.log.gz",
+        "bytes": 882,
+        "sha256": "07ec24d287fd42de5a72f2f9f77b369ecd2c5f06021be57a8186e293d747cffc"
+      },
+      "decompressedSha256": "ab11cab3c82ba9223d9a860e0c7f63256bc9b27250b3c44f90bf18b5afc55d60"
+    },
+    {
+      "relativePath": "assets/logs/map-current-optimised.log",
+      "raw": {
+        "bytes": 1682,
+        "sha256": "3458c986e013a4b67ae9114c1e1affb623d5202fb969bf402f65e540199056e0"
+      },
+      "stored": {
+        "path": "assets__logs__map-current-optimised.log.gz",
+        "bytes": 888,
+        "sha256": "6e31fb727a1c680a40c297261922f1901ee48d645769625ddbb3303a57ae97cb"
+      },
+      "decompressedSha256": "3458c986e013a4b67ae9114c1e1affb623d5202fb969bf402f65e540199056e0"
+    }
+  ]
+}

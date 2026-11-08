@@ -1,0 +1,159 @@
+{
+  "formatVersion": 1,
+  "originalCaptureRoot": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz",
+  "entries": [
+    {
+      "path": "capture.json",
+      "bytes": 10490,
+      "sha256": "e42abf853ad5fad6661e4bb51e1f9bf6f77ba22d0ed3feea0f1f901ddb9ba060",
+      "originalPath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/capture.json"
+    },
+    {
+      "path": "stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originalPath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/stderr.log"
+    },
+    {
+      "path": "tools/profile-block-language-service.ts",
+      "bytes": 68673,
+      "sha256": "c91413f96bf2525aebfcedfa951f2a33d129c17f7bd926dd6941257375db4c9c",
+      "originalPath": "packages/foldkit/scripts/profile-block-language-service.ts"
+    },
+    {
+      "path": "tools/summarize-go-pprof.ts",
+      "bytes": 12108,
+      "sha256": "9485a41f1623c3ee707d4adb7bf8a584ef089f5e5617a75c2df1756168637516",
+      "originalPath": "packages/foldkit/scripts/summarize-go-pprof.ts"
+    },
+    {
+      "path": "sources/website-layer.ts",
+      "bytes": 919,
+      "sha256": "42d2ec07aa26331e176919fefd1f8f7710fa34944784350b0220e354c2c4d85c",
+      "originalPath": "packages/website/src/layer.ts"
+    },
+    {
+      "path": "sources/cadence-source.patch.gz",
+      "bytes": 3764,
+      "sha256": "e3897707d41b0482eb27df58386668ed1855b30709206876a7134d10d6f57b79",
+      "originalPath": "git diff 7cc7d90e68..5c96e577cc -- packages/foldkit/src",
+      "encoding": "gzip",
+      "uncompressedBytes": 13575,
+      "uncompressedSha256": "9b17085bca9455d3d407dcb470ccab921e045cc4d3dbfc50de0037bf053189e0"
+    },
+    {
+      "path": "profiles/minimal.pb.gz",
+      "bytes": 21856,
+      "sha256": "9da38b6ec902fcf6d7b64b7808ed84ad666a0349e0be0d06c3b31dcefdfc4d45",
+      "originalPath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/minimal/5374-1794112518419-cpuprofile.pb.gz"
+    },
+    {
+      "path": "sources/minimal.ts",
+      "bytes": 82,
+      "sha256": "5aa60f4a1a133625b286cb02160780073cf30b0d9ae888cb80af47b290398760",
+      "originalPath": "in-memory:minimal"
+    },
+    {
+      "path": "profiles/root-inputs.pb.gz",
+      "bytes": 25357,
+      "sha256": "5424df8e967fec3bd6d75fd5339c063cecdaa4890823531aa6417ce3fa978b59",
+      "originalPath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/root-inputs/5375-1794112518969-cpuprofile.pb.gz"
+    },
+    {
+      "path": "sources/root-inputs.ts",
+      "bytes": 582,
+      "sha256": "1b5e443b0f0626eb6c5e97dbb304430f44384d0fe24e688571e7ce6875bc8b3e",
+      "originalPath": "in-memory:root-inputs"
+    },
+    {
+      "path": "profiles/child-layers.pb.gz",
+      "bytes": 42070,
+      "sha256": "0ac83fab7ea17e8e65320339a76e9d497301de7b20bc927a6ccda7bca4069109",
+      "originalPath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/child-layers/5381-1794112520026-cpuprofile.pb.gz"
+    },
+    {
+      "path": "sources/child-layers.ts",
+      "bytes": 875,
+      "sha256": "b1e6a2312b668edee80d61795222a3b47109eec828de1c9610721fbcca8e63b7",
+      "originalPath": "in-memory:child-layers"
+    },
+    {
+      "path": "profiles/imports.pb.gz",
+      "bytes": 44652,
+      "sha256": "1f800754d7bc148252cb1abd8db1bdc5eefa14fdd1b245ea8d090be7fcb54a96",
+      "originalPath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/imports/5392-1794112524150-cpuprofile.pb.gz"
+    },
+    {
+      "path": "sources/imports.ts",
+      "bytes": 985,
+      "sha256": "ae8b21033ef8b885fb761e51e2f159446ea4529241ffedc4c319f8e7a7153c73",
+      "originalPath": "in-memory:imports"
+    },
+    {
+      "path": "profiles/unprovided.pb.gz",
+      "bytes": 43751,
+      "sha256": "27e79c79ed6158d9c03f8911d462cfe035277e85ff27874a29b78dadfc60f166",
+      "originalPath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/unprovided/5394-1794112528752-cpuprofile.pb.gz"
+    },
+    {
+      "path": "sources/unprovided.ts",
+      "bytes": 988,
+      "sha256": "ca27d712f0a323eaecaf45fc9a3d27c7c04f6f08fd0ca35aadb854f5824c61a1",
+      "originalPath": "in-memory:unprovided"
+    },
+    {
+      "path": "profiles/full.pb.gz",
+      "bytes": 42180,
+      "sha256": "67896abd099baa5b9916a8ecce4409d112083a5772e5e2210e1278bbb94cc4bd",
+      "originalPath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/full/5397-1794112533494-cpuprofile.pb.gz"
+    },
+    {
+      "path": "sources/full.ts",
+      "bytes": 919,
+      "sha256": "42d2ec07aa26331e176919fefd1f8f7710fa34944784350b0220e354c2c4d85c",
+      "originalPath": "in-memory:full"
+    },
+    {
+      "path": "profiles/post-open.pb.gz",
+      "bytes": 36788,
+      "sha256": "d35210a0b73812e7f6fc26c6192d7f572f9d84c9c5bff513a319a641e4192297",
+      "originalPath": "/private/tmp/foldkit-editor-input-controls-20261108.o1yEZz/profiles/post-open/5402-1794112538497-cpuprofile.pb.gz"
+    },
+    {
+      "path": "sources/post-open.ts",
+      "bytes": 919,
+      "sha256": "42d2ec07aa26331e176919fefd1f8f7710fa34944784350b0220e354c2c4d85c",
+      "originalPath": "in-memory:post-open"
+    },
+    {
+      "path": "decoded.json",
+      "bytes": 131093,
+      "sha256": "c96128b938100a7f1e1a928f176d0197547cb33c25a2b3eeaf4fcced145db8da",
+      "originalPath": "retained decoder"
+    },
+    {
+      "path": "guard-tests.test.mjs",
+      "bytes": 15005,
+      "sha256": "9e5851f85fd965f9446e27f4c625138e2fbf11dfce9f3d92991b17f8d904136e",
+      "originalPath": "scripts/block-language-service.test.mjs"
+    },
+    {
+      "path": "guard-tests.log.gz",
+      "bytes": 545,
+      "sha256": "037946abbbfae0a2e97c70ffe98478569c9af81f0b68b7f4dcc6bb37a154bab3",
+      "originalPath": "/private/tmp/foldkit-editor-control-split-tests-20261108.log",
+      "encoding": "gzip",
+      "uncompressedBytes": 980,
+      "uncompressedSha256": "288a66598ea160613eadd619e181dca1355cfe872ba4898ea4bc613291e30a28"
+    },
+    {
+      "path": "guard-mutation.log.gz",
+      "bytes": 1318,
+      "sha256": "a0c7cdc5380a02199a94de17798c5a1a49fb63c51882433f0bc62a93ad7f848e",
+      "originalPath": "/private/tmp/foldkit-editor-control-split-mutation-20261108.log",
+      "encoding": "gzip",
+      "uncompressedBytes": 3517,
+      "uncompressedSha256": "8c27b7ad30a2f3f4e4c41ba25be32e80cef60a520e25d26a5b57dc0a0ee2c846"
+    }
+  ]
+}

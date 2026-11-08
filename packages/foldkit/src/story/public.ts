@@ -1,5 +1,6 @@
 export * from '../test/story.js'
 export { story } from './story.js'
+export type { Step } from '../experimental/layered/testing/story.js'
 export {
   type InMessageStep,
   inMessage,

@@ -1,0 +1,41 @@
+{
+  "formatVersion": 1,
+  "verifiedAt": "2026-11-08",
+  "scope": "Git-object provenance for the Renderer and animation-frame Stream source authenticated by the retained browser captures",
+  "captures": {
+    "baseline-authenticated": {
+      "commit": "7cc7d90e68dc5a55b4765bbd7f0469b55cdd928f",
+      "tree": "d8e896ea1054d93bdaad3cdef1de8daddf22ceba",
+      "renderer": {
+        "path": "packages/foldkit/src/runtime/renderer.ts",
+        "blob": "5929e7a6cc0af92beba6feb322973e5cb157deeb",
+        "sha256": "f6cfca5de37e6a8fea745d600d3d7bea07ccd4df0afab68c99d683714329e805"
+      },
+      "stream": {
+        "path": "packages/foldkit/src/dom/animationFrameTicks.ts",
+        "blob": "485b658f7347fccd2e0f02ef42fe5f9a1cefba86",
+        "sha256": "b6056947ef840c2ac907d0d5b40942a7a5130f663081c971dd660ed6abc43cd1"
+      }
+    },
+    "candidate-authenticated": {
+      "commit": "5c96e577ccbbceb160f500dc958ae542b29395d3",
+      "parent": "7cc7d90e68dc5a55b4765bbd7f0469b55cdd928f",
+      "tree": "f1201400c5f078d0449bea9f8d541a50f00959ec",
+      "renderer": {
+        "path": "packages/foldkit/src/runtime/renderer.ts",
+        "blob": "2821eae6cafbea1d0484648a523615337586d8a6",
+        "sha256": "0cb8fe1490802e526d37be68107b0ea94f3c6636b2785aa2d0273e32aa4b718f"
+      },
+      "stream": {
+        "path": "packages/foldkit/src/dom/animationFrameTicks.ts",
+        "blob": "485b658f7347fccd2e0f02ef42fe5f9a1cefba86",
+        "sha256": "b6056947ef840c2ac907d0d5b40942a7a5130f663081c971dd660ed6abc43cd1"
+      }
+    }
+  },
+  "verification": {
+    "method": "Each Git blob was read from its exact commit and SHA-256 hashed. The values equal rendererSha256 and streamSha256 in the corresponding capture, whose served modules map back to those exact source hashes through retained inline source maps.",
+    "candidateRendererCommitIsAncestorOfCurrentHead": true,
+    "foldkitPackageSourceChangesAfterCandidateCommitAtVerification": []
+  }
+}

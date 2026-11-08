@@ -440,9 +440,8 @@ const RecordAfterReplay = PendingParent.makeCommand('RecordAfterReplay', {
   messages: [ParentMessage.CompletedRecordAfterReplay],
 })
 
-it('replays a deferred combined operation from the active Model without restoring removed keys', () => {
+it('applies a reusable combined Step to the active Model without restoring removed keys', () => {
   const pending = Reflect.apply(Update.combineSteps, undefined, [
-    capturedPendingModel,
     [
       (model: PendingParentModel) => ({
         model: modifyFields(model, { status: status => `${status}/Before` }),
@@ -457,10 +456,10 @@ it('replays a deferred combined operation from the active Model without restorin
   ])
   const replay = Reflect.apply(PendingParentComposition.makeUpdate, undefined, [
     {
-      Advanced: () => pending,
-      CompletedRecordBeforeReplay: () => pending,
-      CompletedRecordAfterReplay: () => pending,
-      RequestedInitChild: () => pending,
+      Advanced: pending,
+      CompletedRecordBeforeReplay: pending,
+      CompletedRecordAfterReplay: pending,
+      RequestedInitChild: pending,
     },
   ])
   const modelWithoutKey = modifyFields(capturedPendingModel, {

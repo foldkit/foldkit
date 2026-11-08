@@ -19,7 +19,6 @@ export const PinsKey = Symbol('Pins')
 export const PinsBlock = Block.make('Pins', {
   key: PinsKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
 
   Model: PinsModel,
   Message: PinsMessage,

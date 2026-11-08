@@ -30,7 +30,6 @@ const definePicker = <Value extends string>(Value: ValueSchema<Value>) => {
     OutMessage,
     InitArgs: Schema.Tuple([]),
     view: {
-      kind: 'Element',
       Inputs: Block.makeInputContract<ViewInputs<Value>>(),
     },
     operations: {

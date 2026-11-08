@@ -992,6 +992,12 @@ const checks: ReadonlyArray<
     consumers: ['story-message-in-path/consume.ts'],
   },
   {
+    name: 'testing-step-types',
+    accepted: ['testing-step-types/accepted.ts'],
+    rejected: ['testing-step-types/rejected.ts'],
+    consumers: ['testing-step-types/consume.ts'],
+  },
+  {
     name: 'command-args',
     accepted: ['command-args.accepted.ts', 'command-args.helper.ts'],
     rejected: ['command-args.rejected.ts'],
@@ -1260,6 +1266,7 @@ const main = async (): Promise<void> => {
     'bulk-child-acquisition',
     'record-completion',
     'story-message-in-path',
+    'testing-step-types',
     'codec-contract',
     'managed-resource-contract',
     'managed-resource-registry',

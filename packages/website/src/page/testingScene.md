@@ -18,7 +18,23 @@ Use `withBlock` for an advanced fixture that needs initialized state or a custom
 
 Scene operates on VNodes directly. It needs no DOM, jsdom, or browser.
 
+A view may return `h.empty`, including as a Document's body. The empty render
+has no element, role, text, or multi-match Locator results. Later steps can
+render an element, interact with it, and return to empty; Scene still tracks
+root Mount disposal and reports a normal missing-target failure for an
+interaction attempted while empty.
+
 Import the `Scene` namespace from `foldkit` and qualify every step through it. This keeps the testing DSL visible at call sites such as `Scene.given`, `Scene.click`, and `Scene.expect`.
+
+### Reusable typed steps
+
+Annotate an extracted Block-aware helper as `Scene.Step<typeof subject>`, where
+`subject` is the same Block or `{ block, layer, ... }` config passed to
+`Scene.scene`. The type retains the selected Layer's Messages, OutMessages,
+InMessages and keyed Subscription graph. It also retains routing: a helper that
+contains `Scene.Navigation.changedUrl(...)` requires a subject with routing.
+Keep a helper tied to its owning subject instead of widening it to the
+low-level `SceneStep` type.
 
 ## Locators
 
@@ -205,7 +221,7 @@ When update returns Commands, Scene keeps them pending until the test supplies t
 
 - Pending Commands accumulate in the order `update` returns them, across as many steps as the test takes.
 - Resolving a Command feeds its result Message through `update`; new Commands produced by that update join the pending list.
-- `Command.resolveAll` walks cascades within the batch. If resolving Command A produces Command B and B’s resolver is in the same call, B resolves without a separate step.
+- `Command.resolveAll` walks cascades within its call. If resolving Command A produces Command B and B’s resolver is in that same call, B resolves without a separate step. Unused resolvers are discarded at the end of the call; unrelated Commands remain pending.
 - `Command.resolveAllExact` walks the same cascades while requiring every listed resolver to match within that call and every actual Command to be resolved.
 - Interactions throw if there are unresolved Commands when they try to dispatch a Message.
 - `scene` throws at the end if any Command remains unresolved.
@@ -220,17 +236,17 @@ The kept Command remains visible to `expectHas`, `expectExact`, and every resolv
 
 ::Snippet{name="sceneCommandAssertions" label="Command assertions"}
 
-| Step                                                 | Effect                                                                                                                                                                                                                                          |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Command.argsOf(Def)(pending)`                       | Projects the exact captured args when `pending` has the Definition's source identity. It returns `Option`, leaves the pending value unchanged, and does not select among matching occurrences.                                                  |
-| `Command.resolve(Def, ResultMessage)`                | Resolves the first pending Command from the given Definition by feeding `ResultMessage` through update. For a child Block Command, pass the child’s raw result Message; resolve replays the Command’s own `mapMessages` wrapping automatically. |
-| `Command.resolveAll([Def, ResultMessage], ...)`      | Resolves a batch of pending Commands, walking cascades. Each entry resolves exactly one matching dispatch in declaration order and unmatched entries carry forward; compose with Array.makeBy for N identical responses.                        |
-| `Command.resolveAllExact([Def, ResultMessage], ...)` | Resolves a batch and throws unless every listed resolver matches within the call and no actual Commands remain unresolved. Repeated Definition entries consume repeated dispatches in declaration order.                                        |
-| `Command.expectExact(A, B)`                          | The pending Commands are exactly A and B (order-independent).                                                                                                                                                                                   |
-| `Command.expectExactInOrder(A, B)`                   | The pending Commands are exactly A then B in dispatch order, with the same identity, args and occurrence matching.                                                                                                                              |
-| `Command.expectHas(A)`                               | A is among the pending Commands (subset check).                                                                                                                                                                                                 |
-| `Command.expectNone()`                               | There are no pending Commands.                                                                                                                                                                                                                  |
-| `Command.keepPending(A)`                             | Lets later Scene Messages arrive while the one exact matching invocation remains pending. Assertions, resolvers, `resolveAllExact`, and final completeness still include it.                                                                    |
+| Step                                                 | Effect                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Command.argsOf(Def)(pending)`                       | Projects the exact captured args when `pending` has the Definition's source identity. It returns `Option`, leaves the pending value unchanged, and does not select among matching occurrences.                                                                                           |
+| `Command.resolve(Def, ResultMessage)`                | Resolves the first pending Command from the given Definition by feeding `ResultMessage` through update. For a child Block Command, pass the child’s raw result Message; resolve replays the Command’s own `mapMessages` wrapping automatically.                                          |
+| `Command.resolveAll([Def, ResultMessage], ...)`      | Resolves matching current pending Commands, walking cascades. Each entry resolves exactly one matching dispatch in declaration order. Unused entries are discarded at the end of the call, while unrelated Commands remain pending; compose with Array.makeBy for N identical responses. |
+| `Command.resolveAllExact([Def, ResultMessage], ...)` | Resolves a batch and throws unless every listed resolver matches within the call and no actual Commands remain unresolved. Repeated Definition entries consume repeated dispatches in declaration order.                                                                                 |
+| `Command.expectExact(A, B)`                          | The pending Commands are exactly A and B (order-independent).                                                                                                                                                                                                                            |
+| `Command.expectExactInOrder(A, B)`                   | The pending Commands are exactly A then B in dispatch order, with the same identity, args and occurrence matching.                                                                                                                                                                       |
+| `Command.expectHas(A)`                               | A is among the pending Commands (subset check).                                                                                                                                                                                                                                          |
+| `Command.expectNone()`                               | There are no pending Commands.                                                                                                                                                                                                                                                           |
+| `Command.keepPending(A)`                             | Lets later Scene Messages arrive while the one exact matching invocation remains pending. Assertions, resolvers, `resolveAllExact`, and final completeness still include it.                                                                                                             |
 
 ### Match Command Names and Arguments
 

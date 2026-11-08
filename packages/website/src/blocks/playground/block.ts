@@ -65,7 +65,7 @@ export const PlaygroundBlock = Block.make('Playground', {
     Schema.String,
     Schema.optional(Schema.Option(Schema.Boolean)),
   ]),
-  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  view: { Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,
   InMessage,

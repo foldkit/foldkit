@@ -7,7 +7,7 @@ import { RadioGroup } from '@foldkit/ui'
 const Plan = Schema.Literals(['Startup', 'Business', 'Enterprise'])
 type Plan = typeof Plan.Type
 
-const PlanRadioGroup = RadioGroup.makeBlock<Plan>()
+const PlanRadioGroup = RadioGroup.makeBlock(Plan)
 
 // Add fields to your Model for the RadioGroup Block and the selected
 // value. The Block keeps private keyboard-focus state; the parent owns
@@ -26,7 +26,6 @@ export const PlanPickerKey = Symbol('PlanPicker')
 export const PlanPickerBlock = Block.make('PlanPicker', {
   key: PlanPickerKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

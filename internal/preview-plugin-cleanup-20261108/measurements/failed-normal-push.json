@@ -1,0 +1,15 @@
+{
+  "sourceCommit": "c3ffef0cedd9401359105076038b867502960ea4",
+  "originalLog": "/private/tmp/foldkit-final-rendering-evidence-push-20261108.log",
+  "result": "failed before upload",
+  "failure": "Vite-plugin test teardown: ENOTEMPTY removing a temporary node_modules directory after the test body; Website E2E was not reached.",
+  "stored": {
+    "file": "failed-normal-push.log.gz",
+    "bytes": 44370,
+    "sha256": "4413fed61a895da9e952279cf36007ad634e024817ebf0d6a9c333174e907c15"
+  },
+  "raw": {
+    "bytes": 432058,
+    "sha256": "4876d5de835570048b35e9f58cdb4af9e67aa0f65991bcf95e872c6a4b05d4aa"
+  }
+}

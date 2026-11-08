@@ -25,6 +25,7 @@ import {
   NotePlayerDemoBinding,
   PlaygroundMenuBinding,
 } from './blocks/home/composition'
+import { PlaygroundMenuBlock } from './blocks/home/playgroundMenu'
 import { FocusSearchInput } from './blocks/search/command'
 import {
   CopySnippet,
@@ -49,7 +50,6 @@ import { ApplicationBlock, layer } from './index'
 import { Message } from './message'
 import type { Model } from './model'
 import { ApplyTheme } from './theme'
-import { ThemeMenuBlock } from './view/themeMenu'
 
 const application = { block: ApplicationBlock, layer }
 
@@ -630,7 +630,7 @@ describe('application', () => {
       completeStartup(homeUrl),
       Story.messageIn(
         [MaybeHomeBinding, PlaygroundMenuBinding],
-        ThemeMenuBlock.Message.SelectedItem({
+        PlaygroundMenuBlock.Message.SelectedItem({
           index: 0,
           item: 'counter',
         }),

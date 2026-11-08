@@ -16,9 +16,9 @@ type Fruit = typeof Fruit.Type
 
 const FruitListbox = Listbox.makeBlock(Fruit)
 const FruitMultiListbox = MultiListbox.makeBlock(Fruit)
-const FruitMenu = Menu.makeBlock<Fruit>()
-const FruitRadioGroup = RadioGroup.makeBlock<Fruit>()
-const FruitTabs = Tabs.makeBlock<Fruit>()
+const FruitMenu = Menu.makeBlock(Fruit)
+const FruitRadioGroup = RadioGroup.makeBlock(Fruit)
+const FruitTabs = Tabs.makeBlock(Fruit)
 
 it.effect(
   'preserves refined OutMessage constructors and matchers on acquired factories',

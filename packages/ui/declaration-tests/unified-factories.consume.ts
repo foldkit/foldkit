@@ -4,11 +4,18 @@ import {
   type Construction,
   type ConstructionError,
   EncodedListbox,
+  EncodedMenu,
   EncodedMultiListbox,
+  EncodedRadioGroup,
+  EncodedTabs,
   type Fruit,
   FruitListbox,
   FruitListboxBinding,
+  FruitMenu,
+  FruitMenuBinding,
   FruitMultiListbox,
+  FruitRadioGroup,
+  FruitTabs,
   type MemberId,
   MemberListbox,
   ordinaryPicker,
@@ -29,6 +36,41 @@ type Equal<Left, Right> =
     : false
 type Assert<Value extends true> = Value
 export type Checks = readonly [
+  Assert<
+    Equal<
+      Parameters<typeof FruitMenuBinding.requestSelectItem>,
+      [item: Fruit, index: number]
+    >
+  >,
+  Assert<Equal<(typeof FruitMenu.Message.SelectedItem.Type)['item'], Fruit>>,
+  Assert<
+    Equal<(typeof FruitRadioGroup.Message.SelectedOption.Type)['value'], Fruit>
+  >,
+  Assert<Equal<(typeof FruitTabs.Message.SelectedTab.Type)['value'], Fruit>>,
+  Assert<
+    Equal<(typeof EncodedMenu.Message.SelectedItem.Encoded)['item'], number>
+  >,
+  Assert<
+    Equal<
+      (typeof EncodedRadioGroup.Message.SelectedOption.Encoded)['value'],
+      number
+    >
+  >,
+  Assert<
+    Equal<(typeof EncodedTabs.Message.SelectedTab.Encoded)['value'], number>
+  >,
+  Assert<
+    Equal<(typeof EncodedMenu.OutMessage.Selected.Encoded)['value'], number>
+  >,
+  Assert<
+    Equal<
+      (typeof EncodedRadioGroup.OutMessage.Selected.Encoded)['value'],
+      number
+    >
+  >,
+  Assert<
+    Equal<(typeof EncodedTabs.OutMessage.Selected.Encoded)['value'], number>
+  >,
   Assert<Equal<Effect.Services<typeof ordinaryPicker>, never>>,
   Assert<Equal<Effect.Services<typeof pairedFruitListbox>, never>>,
   Assert<

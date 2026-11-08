@@ -15,6 +15,7 @@ export const RoomKey = Symbol('Room')
 export const RoomBlock = Block.make('Room', {
   key: RoomKey,
   InitArgs: Schema.Tuple([Schema.String]),
+  view: false,
   InMessage: RoomInMessage,
   isMessageFree: true,
 

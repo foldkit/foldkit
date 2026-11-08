@@ -39,6 +39,7 @@ const UiUnifiedFactoryTestBlock = Block.make('UiUnifiedFactoryTest', {
   Model: Schema.Struct({ picker: Picker.Model }),
   Message: Schema.Never,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const PickerBinding = UiUnifiedFactoryTestBlock.makeRequiredFieldBinding(
   Picker,

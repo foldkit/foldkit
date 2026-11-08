@@ -67,28 +67,38 @@ describe('test operation source identity', () => {
     ).toThrow('Expected to find Commands')
   })
 
-  it('retains separate cached resolvers for same-named definitions', () => {
+  it('resolves same-named definitions by their separate source identities', () => {
     const initial: BaseInternal<Model, Message> = {
       model: { value: 0 },
       message: undefined,
-      // eslint-disable-next-line foldkit/no-empty-commands-array
-      commands: [],
+      commands: [FirstCommand(), SecondCommand()],
       outMessage: undefined,
       updateFn: update,
-      resolvers: [],
     }
-    const first = resolveAllInternal(initial, [
+    const resolved = resolveAllInternal(initial, [
       [FirstCommand, Message.CompletedRead({ value: 1 })],
-    ])
-    const both = resolveAllInternal(first, [
       [SecondCommand, Message.CompletedRead({ value: 2 })],
     ])
-    const resolved = resolveAllInternal(
-      { ...both, commands: [FirstCommand(), SecondCommand()] },
-      [],
-    )
-    expect(resolved.commands).toEqual([])
+
     expect(resolved.model.value).toBe(2)
+    expect(resolved.commands).toEqual([])
+  })
+
+  it('does not resolve a same-named Command from another source', () => {
+    const pending = FirstCommand()
+    const initial: BaseInternal<Model, Message> = {
+      model: { value: 0 },
+      message: undefined,
+      commands: [pending],
+      outMessage: undefined,
+      updateFn: update,
+    }
+    const resolved = resolveAllInternal(initial, [
+      [SecondCommand, Message.CompletedRead({ value: 2 })],
+    ])
+
+    expect(resolved.model.value).toBe(0)
+    expect(resolved.commands).toEqual([pending])
   })
 
   it('distinguishes same-named Mount definitions', () => {

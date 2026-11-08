@@ -15,7 +15,7 @@ the parent, and where the child renders.
 
 The Block declaration establishes the public contract and typed helpers. The Composition supplies static relationship information for portable typed builders. Ordinary record completion acquires the implementations registered by init's Composition.
 
-Declare an independent public contract before its implementation. `Block.make` binds a stable module-level unique `key`, Model, local Message, optional OutMessage, and an `InitArgs` tuple. Add a `Context` tuple for dispatch context, `ChildInitContext` for deferred child startup, and a `view` descriptor when the Block renders. A serializable tuple uses `Schema.Tuple`; callbacks or other deliberately nonserialized inputs use `Block.makeInputContract<...>()`.
+Declare an independent public contract before its implementation. `Block.make` binds a stable module-level unique `key`, Model, local Message, optional OutMessage, and an `InitArgs` tuple. Add a `Context` tuple for dispatch context and `ChildInitContext` for deferred child startup. An omitted `view` defaults to an Element view with no inputs. Use `view: { Inputs }` when that Element view accepts inputs, `view: { kind: 'Document' }` for a Document view, and `view: false` for an intentionally viewless Block. A serializable tuple uses `Schema.Tuple`; callbacks or other deliberately nonserialized inputs use `Block.makeInputContract<...>()`.
 
 Complete ordinary implementations with
 `FeatureBlock.makeLayer({ init, update, view, ... })`. Init selects the exact
@@ -50,7 +50,6 @@ export const SettingsBlock = Block.make('Settings', {
   Model,
   Message,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
 })
 const SettingsComposition = SettingsBlock.makeComposition()
 const init = SettingsComposition.makeInit(() => ({
@@ -66,7 +65,7 @@ const view = SettingsComposition.makeView((model, h) => h.p([], [model.theme]))
 export const layer = SettingsBlock.makeLayer({ init, update, view })
 ```
 
-A graphless Block still uses a Composition and passes its portable plans directly to `makeLayer`. Use `makeUpdate({})` for an empty local Message union. A leaf with an empty complete dispatch contract declares `isMessageFree: true`; a routed-only parent omits that flag because child delivery is nonempty. An InMessage does not make the local dispatch contract nonempty. A viewless Block omits the view descriptor and implementation view. For a Document root, declare `view: { kind: 'Document' }` and return a Document from the canonical view. Do not pass an operations record to completion.
+A graphless Block still uses a Composition and passes its portable plans directly to `makeLayer`. Use `makeUpdate({})` for an empty local Message union. A leaf with an empty complete dispatch contract declares `isMessageFree: true`; a routed-only parent omits that flag because child delivery is nonempty. An InMessage does not make the local dispatch contract nonempty. A viewless Block declares `view: false` and omits the implementation view. For a Document root, declare `view: { kind: 'Document' }` and return a Document from the canonical view. Do not pass an operations record to completion.
 
 ## Composing updates
 
@@ -423,6 +422,8 @@ Use `it.effect` from a compatible `@effect/vitest` release for Effect-returning 
 
 A direct child fact in a Block-aware Story uses `Story.messageIn(binding, rawChildMessage)`, with the decoded occurrence key before the Message for a keyed Binding. The runner resolves the relationship against its acquired graph, including grouped `Story.steps`. Never fabricate generated envelopes. Production parents still use Binding operations.
 
+Use `Story.Subscription.emit(entry, message)` in Block-aware Stories for root registrations. Select child sources with `Story.Subscription.at(Binding, source)`, `at(Binding, key, source)`, or a nonempty Binding path with keyed `{ binding, key }` segments. The selected graph validates the exact source identity and decoded Message before applying delivery mappings. A private child registry need not appear on the public Block contract; its source is selected through the Binding. A same-owner unregistered source is rejected at runtime. These steps do not build handlers, start Streams, or simulate activity and generation admission. Update-only Stories use `Story.Subscription.from(registry).emit(entry, message)`.
+
 Nested delivery accepts a nonempty Binding path, such as `Story.messageIn([AttachmentsBinding, ResumeDropBinding], message)`. A keyed segment is `{ binding: EntriesBinding, key: entryId }`. Every next Binding must belong to the previous child and the Message must belong to the leaf. Use the direct DSL spelling instead of a forwarding-only wrapper; name concrete steps when their names clarify the scenario. Prefer ordinary `it.effect` and explicit immutable fixture Effects over a custom test function that injects a Model bundle.
 
 `Story.message` may send another fact while Commands are pending. Pending work keeps its captured identity and must be resolved before the Story ends. This does not change Scene's pending-Command or Mount checks.
@@ -622,8 +623,12 @@ its Item Schema. Use `Listbox.makeBlock()` for plain strings,
 Messages and OutMessages at runtime. The Item Schema only witnesses view
 inputs and adds no serialization or Service requirements. Omit `itemToValue`
 only when the actual items satisfy Value; otherwise extract Value explicitly.
-There is no type-argument-only Listbox form. Menu, RadioGroup, Tabs, and other
-generic factories retain their own type-parameter APIs.
+There is no type-argument-only selection factory form. Menu, RadioGroup, and
+Tabs take zero arguments for unrestricted strings or one synchronous,
+service-free string Value Codec for narrowed selections. That Codec validates
+local selection Messages, OutMessages, and generated parent envelopes while
+preserving its encoded type. These factories do not accept arbitrary non-string
+selection values.
 
 When a feature's rendering is subdivided, `view/view.ts` composes the feature's
 render fragments and `view/index.ts` explicitly exports the intended view

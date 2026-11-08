@@ -14,7 +14,9 @@ The deployment URL and manifest belong together. Do not copy a guide from one pr
 
 For an agent-assisted migration, give the agent this guide's full deployment URL and the `/preview-release.json` URL from that same deployment. The ready announcement includes prompts with the source commit and package versions already pinned. Ask the agent to preserve the application's existing behavior, run its real checks, and fix type errors at the ownership boundary instead of adding broad casts.
 
-Update every installed Foldkit package named by the manifest as one snapshot. Keep `effect` and `@effect/platform-browser` on the exact peer versions declared by those packages. Commit the resulting lockfile only after the application compiles and its tests pass.
+Update every installed Foldkit package named by the manifest as one snapshot. The repository and generated app pin `effect` and `@effect/platform-browser` to 4.1.0 for reproducible verification. Published Foldkit peers support compatible patches through `~4.1.0`; that range is a compatibility contract, not a claim that every 4.1.x patch was exercised by the repository. Prefer the verified 4.1.0 pins for a reproducible migration. If the application deliberately selects a later compatible patch, update every declared Effect package together, keep one Effect runtime in the application graph, and run the application's complete checks. Commit the resulting lockfile only after the application compiles and its tests pass.
+
+For an npm workspace, update every sharing workspace manifest and reconcile stable third-party constraints before regenerating the affected lockfile graph. Do not begin by deleting the whole lockfile. Preserve the original lockfile and any install error, regenerate the graph from the workspace root, then run `npm ci`. Inspect the resolved Foldkit versions and physical Effect installations, and confirm that the application resolves one compatible Effect runtime. One reported migration recovered from retained Effect 4.0 records by removing only the affected Effect and Foldkit records before regenerating the lockfile; Foldkit has not reproduced that recovery locally, so it is documented as a bounded fallback rather than the default procedure. See [Verify an npm workspace upgrade](/preview-upgrade#verify-an-npm-workspace-upgrade) for its scope, commands, and evidence requirements.
 
 The stable package lane was checked against the published `foldkit@0.169.0` and `@foldkit/ui@0.169.0` APIs with `effect@4.0.0` and `@effect/platform-browser@4.0.0`. Those packages were released from Foldkit commit `7ee214268c602967937b80f6f20d1e831f2e8ab6`.
 
@@ -57,9 +59,17 @@ The candidate keeps typed Block and Composition builders and completes ordinary 
 
 Declare each feature once as `FooBlock = Block.make(...)`, with a module-level unique `key` and an `InitArgs` tuple. Export that same Block and its implementation `layer`. Parents bind the Block and provide child implementation Layers through ordinary `Layer.provide`.
 
+An omitted `view` on this contracted Block declares an Element view with no inputs. Use `view: { Inputs }` when the Element view accepts inputs, keep `view: { kind: 'Document' }` explicit for a page-owning root, and use `view: false` for an intentionally viewless completed Block. Do not change legacy Schema-only `makeDefinition` assembly solely to adopt this spelling.
+
 ::Snippet{name="blockFeatureExports" label="Public contract and implementation Layer"}
 
 `FeatureBlock.makeLayer` checks the implementation without running it. Its ordinary record form acquires the Binding inventory selected by init's Composition when the host builds the Layer under its Scope. Construction does not initialize a Model, evaluate deferred child arguments, construct handler Layers, or start lifecycle work. Acquired init, update, and operations remain pure and synchronous.
+
+Keep an explicit local-Message operation when its public arguments intentionally enter the Block's ordinary update. Put the local Message constructor directly in the declaration's `operations` record:
+
+::Snippet{name="previewLocalMessageOperation" label="Declaring a local Message operation"}
+
+After acquisition, `block.operations.rename(model, { name })` returns the readable update result. A registered parent Binding exposes `ProfileBinding.rename({ name })`, with the occurrence key first for a keyed Binding. Use InMessage instead when the input is a parent request or notification rather than an adapter to an existing local Message. See [explicit operation arguments](/core/block#adapt-explicit-operation-arguments) for mapped tuples, context, and output contracts.
 
 Complete builder expressions retain inference inline, in implementation-local values, and in extracted modules. Remove private `prepare` functions and application assembly annotations after moving to the declared contract. Keep the existing child storage, policies, operations, and lifecycle ownership. See [Block](/core/block) for the full authoring flow.
 
@@ -287,6 +297,16 @@ Replace stable `Listbox.create<Item, Value>()` and `Listbox.Multi.create<Item, V
 
 The Value Codec validates selection Messages, the `Selected` OutMessage, and selection inside a generated parent envelope while preserving its encoded type. It must be service-free and complete synchronously at an actual serialization boundary. The Item Schema supplies view typing only and adds no serialization or Service requirement. Pass `itemToValue` when an Item is not itself a Value, and provide `Listbox.layer` or `Listbox.Multi.layer` with the parent construction Layer.
 
+### Migrate Menu, Tabs, and RadioGroup Factories
+
+Menu, Tabs and RadioGroup use runtime Value Codecs, like Listbox and Combobox. Earlier previews accepted type parameters without the corresponding runtime contract.
+
+Replace generic-only calls with the value Codec itself:
+
+::Snippet{name="previewSelectionValueCodecs" label="Schema-backed Menu, Tabs, and RadioGroup factories"}
+
+Use `Menu.makeBlock()`, `Tabs.makeBlock()`, or `RadioGroup.makeBlock()` only for unrestricted strings. The Codec must decode to a string and complete synchronously without Services. It validates each local selection Message, `Selected` OutMessage, and generated parent envelope while preserving the encoded type in `Completed<Value, ValueEncoded>`. Menu's local `RequestedSelectItem` and `SelectedItem` Messages carry `{ item, index }`, but its public `Selected` OutMessage carries `{ value, index }` like Tabs and RadioGroup. The parent still owns the committed selection or action. These factories do not accept arbitrary non-string selections.
+
 ## 4. Build the Root Block and Host Program
 
 Stable `Runtime.makeApplication` combines the application state machine, lifecycle declarations, browser container, and startup configuration:
@@ -370,6 +390,24 @@ Block-aware Story returns its final Model after checking that every Command was 
 
 ::Snippet{name="testingModelComparison" label="Comparing Models without a mutable capture"}
 
+### Deliver Subscription Messages through the selected graph
+
+Block-aware Stories use `Story.Subscription.emit(entry, message)` for root registrations. Select child sources with `Story.Subscription.at(Binding, source)`, `at(Binding, key, source)`, or a nonempty Binding path. The runner resolves the source against the acquired graph and preserves its decoded Message contract, delivery mappings, and OutMessage folds without starting a Stream.
+
+::Snippet{name="testingStoryChildSubscription" label="Select a nested Subscription source"}
+
+Child implementation Layers can encapsulate their registries. A Binding selection checks the owning Block and occurrence path; exact source registration is checked at runtime. Keep `Story.Subscription.from(registry).emit` for low-level update-only Stories. `Scene.Subscription.at` retains its existing keyed-occurrence form.
+
+### Keep Command resolvers local
+
+`Story.Command.resolveAll` and `Scene.Command.resolveAll` now use only the resolvers supplied to that call. They resolve matching current pending Commands and cascades produced by their result Messages. Each resolver is consumed at most once; unused resolvers are discarded when the call ends, and unrelated Commands remain pending.
+
+Most tests already place responses beside the Commands they resolve. If a test intentionally repeats the same response after later dispatches, extract the local step and use it again explicitly:
+
+::Snippet{name="previewLocalCommandResolvers" label="Reusing a local Command resolver"}
+
+`resolveAllExact` is also local, but requires every supplied resolver to match and no actual Command to remain. `resolve` is unchanged. Matching retains original Definition identity, instance arguments, and Binding occurrence selection. Dispatch order does not imply effect or completion order.
+
 For a keyed child Subscription or ManagedResource in Scene, select the occurrence with `Scene.Subscription.at(Binding, key, entry)` or `Scene.ManagedResource.at(Binding, key, entry)`. The selected templates are passive. A raw child entry is ambiguous in a keyed parent, and declaring an emission or lifecycle result for an absent key throws.
 
 The testing migration examples show the before and after forms for Command resolution, Subscription emission, and UI Block contracts:
@@ -386,7 +424,7 @@ For a generic UI factory, the concrete public Block contract owns the result Mes
 
 Enable the current Foldkit Oxlint preset before treating the migration as finished. Its Block rules catch manual child routing, direct child Model updates, child Message construction in a parent, empty OutMessage forwarding, unstable component factories, and naming mismatches. Fix the reported ownership problem; do not disable the rule around migrated code.
 
-After typecheck and lint pass, run the application's full Story, Scene, unit, integration, browser, SSR or SSG, and production build checks that were green in the baseline. Verify the lockfile contains only the exact preview snapshot from the deployment manifest and the exact compatible Effect peers.
+After typecheck and lint pass, run the application's full Story, Scene, unit, integration, browser, SSR or SSG, and production build checks that were green in the baseline. Verify the lockfile contains only the exact preview snapshot from the deployment manifest and one compatible Effect runtime graph. A deliberate Effect patch newer than the repository's verified 4.1.0 pins remains within the published `~4.1.0` peer range, but requires the application's own complete verification.
 
 ### Linked Packages and Duplicate Foldkit Copies
 
@@ -408,7 +446,7 @@ Finish the required column before broadening the migration.
 | Move effect implementations into Block-owned handler Layers.                | Rename unrelated domain helpers for consistency.                                      |
 | Export every consumed feature's passive named Block and construction Layer. | Extract a local `EffectsLayer` from `layer.ts` when it becomes substantial or reused. |
 | Keep Foldkit-managed Model and Message Codecs synchronous and service-free. | Retain full Effect Schema capabilities in explicitly effectful APIs.                  |
-| Give each narrowed Listbox specialization its runtime string Value Schema.  | Keep the no-argument factory for unrestricted strings.                                |
+| Give each narrowed selection factory its runtime string Value Codec.        | Keep no-argument factories for unrestricted strings.                                  |
 | Register parent-owned Bindings and remove authored child delivery wrappers. | Extract a substantial one-way Binding policy into `composition/`.                     |
 | Replace parent rewrites of a child Model with Message-backed operations.    | Add more focused Story or Scene coverage beyond the migration baseline.               |
 | Move child startup into Binding and Composition init policy.                | Reorganize domain modules that do not participate in Block assembly.                  |
@@ -458,7 +496,7 @@ The migration is complete when all of these statements are true:
 - Every effect and lifecycle implementation is present in the completed handler graph, and every remaining ordinary Service is supplied by `ApplicationLayer`.
 - Every Foldkit-managed Model and Message Codec is service-free and completes synchronously when serialization runs.
 - Ordinary InMessage case records use `defineInMessageUnion`; custom Schema forms retain their existing Block validation.
-- Every narrowed Listbox specialization supplies its runtime string Value Schema; unrestricted strings use the no-argument factory. The parent construction Layer provides the Listbox family Layer.
+- Every narrowed Listbox, Menu, Tabs, and RadioGroup specialization supplies its runtime string Value Codec; unrestricted strings use the no-argument factory. The parent construction Layer provides each selected family Layer.
 - The root is `ApplicationBlock`; browser hosting is a Program; SSR selects the same root Block and construction Layer.
 - Typecheck, lint, Story, Scene, integration, browser, server-rendering, and production build checks pass to the extent they belong to the application.
 - No broad cast or disabled lint rule hides a graph, Layer, Message, or OutMessage error.

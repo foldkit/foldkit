@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "status": "pass",
+  "interpretation": "Stored gzip and decompressed tar identities for repository-retained evidence and protocol archives. The reproducible whole-repository source archive is intentionally omitted and recorded by ../source-provenance.json.",
+  "entries": [
+    {
+      "path": "failed-v3-evidence.tar.gz",
+      "stored": {
+        "bytes": 6022111,
+        "sha256": "a314c0facbda9fab42a17e7776c219a1aca13824546c716c135bcd63709e853c"
+      },
+      "decompressedTar": {
+        "bytes": 29112320,
+        "sha256": "37fa6830492c6fb9cb6c31d976e33f978a0af4059a26d07bf5ad088ad2e78834"
+      }
+    },
+    {
+      "path": "failed-v4-evidence.tar.gz",
+      "stored": {
+        "bytes": 6381592,
+        "sha256": "ae41744e64c3a1546d5b4451924ddc80125cd24400f502b0d9ff49908af47a7d"
+      },
+      "decompressedTar": {
+        "bytes": 33208320,
+        "sha256": "433d62a91ded0cba4469299ba00069741211780813300ec55d4c1fa20b2a1afc"
+      }
+    },
+    {
+      "path": "fresh-v5-evidence.tar.gz",
+      "stored": {
+        "bytes": 6497579,
+        "sha256": "76002e306696246ad6b41d801d6854256562e3f7a55b77ec6f1addb4349edfbb"
+      },
+      "decompressedTar": {
+        "bytes": 33720320,
+        "sha256": "044542092f1570f69e1ee02510194da088c7d23409d0725e42448ef014dee51e"
+      }
+    },
+    {
+      "path": "frozen-protocol-lineage.tar.gz",
+      "stored": {
+        "bytes": 8810538,
+        "sha256": "efb79c69db6605c93705d435edc4a328c43856e420ee816ff235947c65cacd50"
+      },
+      "decompressedTar": {
+        "bytes": 56975360,
+        "sha256": "4aa6199044e2a480b64e9b312df31d805392c9062b2ec5a81c2b9c96847a83ae"
+      }
+    },
+    {
+      "path": "v5-status-review.tar.gz",
+      "stored": {
+        "bytes": 67132,
+        "sha256": "2b9e84c106b155770dd7399ea6df4efe680f02a182bda2193b11af3df880b12e"
+      },
+      "decompressedTar": {
+        "bytes": 296960,
+        "sha256": "d3edef765f98ee890fe0c08490ba66b9ee8b78bd73435602c05a0b82f50f079c"
+      }
+    }
+  ],
+  "sourceProvenance": {
+    "path": "../source-provenance.json",
+    "omittedArchive": "current-source-6f1c988.tar.gz",
+    "reason": "Exact Git commit and tree are canonical; retaining another 37,989,038-byte archive would be redundant."
+  }
+}

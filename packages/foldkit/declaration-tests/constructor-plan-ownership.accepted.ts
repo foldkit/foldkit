@@ -119,6 +119,7 @@ export const HeadlessDefinition = Block.makeDefinition(
     Model,
     Message,
     InitArgs: Schema.Tuple([]),
+    view: false,
   },
 )
 export const headlessComposition = HeadlessDefinition.makeComposition()

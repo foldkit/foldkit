@@ -10,7 +10,6 @@ export const PeopleKey = Symbol('People')
 export const PeopleBlock = Block.make('People', {
   key: PeopleKey,
   InitArgs: Schema.Tuple([ApplicationRoute.People]),
-  view: { kind: 'Element' },
   Model,
   Message,
   InMessage,

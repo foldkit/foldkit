@@ -4,7 +4,9 @@
 
 An anchored floating panel with natural Tab navigation. Unlike Dialog (which is modal and traps focus) or Menu (which uses aria-activedescendant for item navigation), Popover holds arbitrary content and uses the disclosure ARIA pattern. Focus flows naturally through the panel content.
 
-Bind `PopoverBlock` in the parent. For programmatic control in a parent update, call the Binding’s `requestOpen()` and `requestClose()` operations. Both return connected parent Steps, so apply them to the contextual `makeUpdate` Model directly or through `Update.combineSteps`.
+Bind `PopoverBlock` in the parent. Use the Binding’s `requestOpen()` and `requestClose()` operations for programmatic control in a parent update. `requestClose()` restores focus to the trigger. When another interaction already chose the next focus target, such as Tab leaving an owner picker, use `requestCloseWithoutRestoringFocus()`. When an open modal Popover closes, both operations unlock scrolling and restore inert content.
+
+These operations return connected parent Steps. Pass one directly to the contextual `makeUpdate` handler record, or compose non-emitting operations through `Update.combineSteps`.
 
 :::Info{label="See it in an app"}
 Check out how Popover is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/blocks/ui/view/popover.ts).

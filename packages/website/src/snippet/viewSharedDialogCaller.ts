@@ -16,7 +16,6 @@ export const DeleteIssueKey = Symbol('DeleteIssue')
 const DeleteIssueBlock = Block.make('DeleteIssue', {
   key: DeleteIssueKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

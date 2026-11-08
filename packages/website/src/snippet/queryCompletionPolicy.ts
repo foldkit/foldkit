@@ -14,6 +14,7 @@ export const ApplicationKey = Symbol('Application')
 export const ApplicationBlock = Block.make('Application', {
   key: ApplicationKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
 
   Model,
   Message: Schema.Never,

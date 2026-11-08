@@ -19,6 +19,7 @@ const ChildBlock = Block.make('ProducedInitializationLayerChild', {
   Message: Schema.Never,
   isMessageFree: true,
   InitArgs: Schema.Tuple([Schema.Number]),
+  view: false,
 })
 const ChildComposition = ChildBlock.makeComposition()
 const defaultInitialized = vi.fn<(count: number) => void>()
@@ -53,6 +54,7 @@ const ParentBlock = Block.make('ProducedInitializationLayerParent', {
   Model: ParentModel,
   Message: ParentMessage,
   InitArgs: Schema.Tuple([Schema.String, Schema.Number]),
+  view: false,
 })
 const ChildrenBinding = ParentBlock.makeRecordBinding(ChildBlock, {
   field: 'children',

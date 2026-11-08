@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "status": "complete",
+  "exitCode": 0,
+  "startedAt": "2026-11-07T22:03:27.359Z",
+  "completedAt": "2026-11-07T22:19:39.934Z",
+  "env": {
+    "IMPLS": "mount-baseline-naive-a,mount-experiment-naive,mount-baseline-optimised-a,mount-experiment-optimised,mount-baseline-naive-b,mount-baseline-optimised-b",
+    "RUNS": "12",
+    "HARNESS_DIR": "/private/tmp/foldkit-mount-iterative-20261107-32wcjI/harness",
+    "PORT": "8588"
+  },
+  "driver": "/private/tmp/foldkit-mount-iterative-20261107-32wcjI/driver/run.mjs",
+  "driverSha256": "a93c12e6fe411eb5fa8abc342e32974d94496622ba8a475b81f7d6dc9bbc26f0",
+  "log": "timing.log",
+  "logSha256": "1b568f5bb262e42212975e24658513c301b6847222673e6be3b7704b1daa4f07",
+  "artifactReceiptSha256": "60a0f32a15d37f158592cdfdd19b653bcd6144a54539de62ad1524f20ee21b06",
+  "preflightResultsSha256": "3125d293b6677a9f75e2f72733e6e94b38f924877d23f2dfcbc377b0eb193876",
+  "hostBefore": {
+    "file": "timing-host-before.json",
+    "sha256": "12387d31dd803d965b59a7f95f21659fb84b786efbc5476f3eafda0763da77ca"
+  },
+  "hostAfter": {
+    "file": "timing-host-after.json",
+    "sha256": "64cb2470c3e2b8f2bf0eed7884a155223506bc80216934359b778bed1bf7f65d"
+  },
+  "timingIsolation": {
+    "buildsAndTestsQuiet": true,
+    "otherBrowserChecksQuiet": true,
+    "confirmedByLead": true
+  },
+  "retainedSamples": 72,
+  "discardedSamples": 0,
+  "cyclicOrdinalVisitsPerSlot": 2,
+  "benchmarkPortClosedAfterRun": true
+}

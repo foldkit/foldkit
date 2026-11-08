@@ -9,7 +9,7 @@ export const TABS_ID = 'api-cache-query-tabs'
 export const Tab = Schema.Literals(['Posts', 'Stats'])
 export type Tab = typeof Tab.Type
 
-export const AppTabsBlock = Tabs.makeBlock<Tab>()
+export const AppTabsBlock = Tabs.makeBlock(Tab)
 
 export const Model = Schema.Struct({
   tabs: AppTabsBlock.Model,

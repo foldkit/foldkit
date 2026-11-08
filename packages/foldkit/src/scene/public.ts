@@ -1,5 +1,6 @@
 export * from '../test/scene.js'
 export { scene } from './scene.js'
+export type { Step } from '../experimental/layered/testing/scene.js'
 export {
   type InMessageStep,
   inMessage,

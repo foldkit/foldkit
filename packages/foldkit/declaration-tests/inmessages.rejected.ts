@@ -211,6 +211,7 @@ const SilentDefinition = Block.makeDefinition('InMessagesSilentBound', {
   InMessage,
   OutMessage,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const SilentComposition = SilentDefinition.makeComposition()
 const undeclaredEmission = SilentComposition.makeInMessageUpdate({

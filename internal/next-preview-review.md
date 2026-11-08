@@ -1,5 +1,181 @@
 # Next preview review
 
+## November 8 new feedback review
+
+- [x] Observe the supplied-Model regression fail before the correction and
+      inspect the same deferred branch in published preview source.
+- [x] Independently review the distinction between applied results and
+      reusable Steps. Keep stale-key membership and Command-order coverage.
+- [x] Verify the ordinary record regression with a named EffectsLayer and
+      no added annotations, type arguments, casts or validator changes.
+- [ ] Resolve the inline merged-Layer inference limitation. Do not move
+      descendant handlers to the parent or weaken validation.
+- [ ] Verify source, emitted consumers and unchanged compiler ceilings.
+- [ ] Independently review the exact committed fix and migration guidance,
+      then complete the ordinary push gate and remote checks.
+
+See the [new feedback disposition](preview-feedback-20261108.md). A current
+comment is not classified as resolved merely because an earlier report covered
+a similar subject. Publication and new Daybreak transfer remain held.
+
+## November 8 final evidence review
+
+- [x] Independently approve exact packed-consumer commit `6f1c988e10` and
+      complete its normal push gate, CI and Examples E2E.
+- [x] Verify the frozen final source, main assets, six functional slots,
+      positioned work counts and all 45 mutation controls before timing.
+- [x] Retain one unchanged 12-round batch with all 72 samples; independently
+      audit cyclic order, controls, arithmetic, source lineage and cleanup.
+- [x] Distinguish driver medians from rounded retained samples. Keep the naive
+      result secondary and inconclusive, and preserve failed v3/v4 receipts.
+- [x] Independently approve exact archival commit `c3ffef0ced`, preserving its
+      later failed pre-upload gate separately from green source CI.
+- [x] Independently approve cache-isolation commit `d186f30880`; verify all 37
+      resolution cases without changing plugin behavior or assertions.
+- [x] Preserve the valid 22/22 readiness non-reproduction and prior setup
+      failures without claiming the intermittent timeout is fixed.
+- [x] Reject the record-validation candidate after negligible compiler-count
+      savings; distinguish source-alias checks from unrun emitted/LSP proof.
+- [ ] Resolve rendering, child-Layer editor latency, immediate operation
+      output precision and the intermittent Website readiness timeout.
+
+The [final rendering report](preview-rendering-final-20261108/README.md)
+records a material optimized callback/event-work gap against main. It does
+not attribute the gap to a phase or accept the cost for a main merge.
+Publication and new Daybreak source transfer remain held.
+
+The [readiness outcome](preview-readiness-diagnostic-20261108/README.md) and
+[typing screening](record-validation-screening-20261108/README.md) provide the
+focused evidence. Each pushed commit follows the repository's independent
+exact-commit review and normal push gate; its remote checks are tracked on
+[#1922](https://github.com/foldkit/foldkit/pull/1922).
+
+## November 8 overnight review
+
+- [x] Review and push exact HTML and diagnostic commits through the ordinary
+      hook. CI and Examples E2E pass for `7cc7d90e68`.
+- [x] Observe frame-cadence and deferred-drain controls fail before accepting
+      focused Runtime results. Preserve occurrence checks and receipts.
+- [x] Independently review exact cadence commit `5c96e577cc` and editor-control
+      commit `befaa93b15`.
+- [x] Run the combined cadence verification and independently review its
+      browser packet, provenance and original callback-guard failure.
+- [x] Reject both operation-precision encodings after three compiler ceilings
+      fail. Preserve successful proofs and their limits, including the emitted
+      gate run only on the common-path candidate.
+- [x] Independently audit and reject the paired construction prototype as a
+      production optimization. Preserve the failed outer timing receipt and
+      secondary readback without claiming a reliable speedup.
+- [x] Independently review the full isolated view-default migration, including
+      generic forwarders, optional input and Mount rejection, mixed-contract
+      completion controls and source-free consumers.
+- [x] Reject the stale isolated compiler table after the normal push fails.
+      Authenticate the corrected source and declaration hashes against all
+      nine original budgets, retaining the sole 55-Type layered overrun and
+      every original failed receipt. Review the exact Type-only revision;
+      no latency improvement or user acceptance is inferred.
+- [x] Review exact integrated view-default commit `4ed89f750c` and pass the
+      complete normal push gate, preserving the Website readiness retry.
+- [x] Verify the packed-fixture migration correction through the unchanged
+      installed-consumer critical SSR matrix in all three browsers.
+- [x] Independently review the exact packed follow-up commit and pass its
+      normal push and CI gates.
+- [x] Complete current-source ordinary timings after diagnosing the cadence
+      callback-count change; use duplicate baselines and unchanged workloads.
+- [x] Keep main-targeted crash cleanup separate and flag cross-runtime resource
+      ownership for review. No external review or comment has been posted.
+
+The [cadence checkpoint](preview-frame-cadence-20261108.md) records the focused
+results and their limits. Publication and new Daybreak source transfer remain
+held.
+
+## November 8 diagnostic review
+
+- [x] Preserve exact assets, maps, all CPU and coverage captures and the failed
+      pre-browser launch with original and stored hashes.
+- [x] Verify equal descendant-view and lazy work counts rather than assuming
+      a root HtmlBuilder identity regression.
+- [x] Distinguish instrumented single observations from ordinary cyclic timing
+      medians; retain raw fields and every material protocol difference.
+- [x] Independently review the exact diagnostic commit and complete push checks.
+- [ ] Verify a current-source optimization with unchanged ordinary workloads
+      and identical-code controls before claiming runtime improvement.
+
+The [diagnostic report](preview-final-20261107/rendering/measurements/official-workcount-cpu-20261108/README.md)
+records reached work without allocating the ordinary timing gap.
+
+## November 8 HTML bundle review
+
+- [x] Preserve the earlier research and distinguish the shared-definition
+      bundle result from the unresolved rendering and editor costs.
+- [x] Independently audit every Attribute handler, constructor and element,
+      including raw constructors, Mount capture and voidness.
+- [x] Observe malformed-table and callable-metadata controls fail, then restore
+      them and pass current source, emitted, runtime and compiler checks.
+- [x] Reproduce exact baseline and candidate assets on the current source.
+      Preserve all timing samples and state the duplicate-control limitation.
+- [x] Independently approve exact commit `977b57321f` before push.
+- [ ] Complete the normal push gate and current CI; publication remains held.
+
+The [HTML checkpoint](preview-html-definitions-20261108.md) owns this evidence.
+
+## November 7 stabilization review
+
+- [x] Independently review and push `dc2bf3175f` and `311a7bef9b`; pass the
+      full normal push gate, CI and Examples E2E for #1922.
+- [x] Read the new pilot report and distinguish reproducible behavior gaps
+      from API proposals and existing explicit-exhaustiveness decisions.
+- [x] Verify current Block/Layer and connected-Step compiler coverage without
+      changing the eight existing fixture workloads or ceilings.
+- [x] Verify Popover focus control, empty Scene rendering and extracted public
+      test-step types through runtime, source and relocated declarations.
+- [ ] Prototype the view-default refinement before consumer migration.
+- [ ] Attempt reductions in demonstrated renderer, bundle and editor costs.
+      Preserve baseline controls and functional behavior; do not count a
+      smaller artifact as a rendering speedup or checker counts as latency.
+- [ ] Refresh preview-related feedback at verification checkpoints and before
+      freezing a new candidate. No new publication is authorized here.
+
+The [stabilization checkpoint](preview-stabilization-20261107/README.md) owns
+the focused verification. The performance prototypes remain isolated and have
+not been adopted as rendering or editor improvements.
+
+## November 7 post-publication follow-ups
+
+The preview at `54f8bcd443b4fd18952403a3d02e212abf872d58` is published.
+The dated unchecked boxes below describe earlier checkpoints. This follow-up
+starts on `codex/preview-followups-20261107`; another publication needs approval.
+
+- [x] Make Menu, Tabs and RadioGroup use actual selection Codecs while
+      preserving parent-owned values, focus, Commands and lifecycle behavior.
+- [x] Reject invalid and Service-dependent values in source and relocated
+      declarations, including all four TypeScript 6/7 emitter-consumer pairs.
+- [x] Verify generated parent envelopes and observe Codec/lint mutations fail.
+- [x] Resolve Story Subscription emissions through the selected graph, with
+      static, keyed and nested Binding selection for private child sources.
+- [x] Preserve exact source identity, payloads and folds; verify erased foreign
+      sources fail. Fix extracted declaration nameability without annotations.
+- [x] Make Command resolvers local in Story and Scene, with explicit local-step
+      reuse and separate tolerant/exact semantics. Observe carryover controls fail.
+- [x] Verify the Pixel Art import-cycle repair through existing Story/Scene
+      cases, typechecking and a temporary Model-first Codec probe. Restoring
+      the cycle loses the narrow contract; the ordinary app tests alone do
+      not detect that loss.
+- [ ] Finish combined emitted-package, consumer, formatting, lint and build gates.
+- [ ] Independently review each exact commit and pass the normal push hook.
+- [x] Independently approve API/testing commit `dc2bf3175f`, after fixing the
+      grouped-step type hole, Pixel Art import cycle and evidence whitespace.
+- [x] Retain controlled renderer timing, exact source-map attribution and current
+      editor-latency/profile evidence. Reject unsupported runtime speed claims.
+- [x] Catch the profile-control plumbing failure through actual source hashes,
+      observe the new gate reject that invalid capture, and repeat all controls.
+- [ ] Review and push the tooling/evidence commit after the normal hook. Runtime
+      and editor optimization remain open before the main merge.
+
+The Schema, resolver and Story Subscription reports own their focused evidence.
+The renderer experiment and editor-probe repair remain separate from the API
+changes until their verification is complete. No release is dispatched here.
+
 ## November 4 review follow-ups
 
 - [x] Preserve the user's helper imports, inlined browser-environment loader,

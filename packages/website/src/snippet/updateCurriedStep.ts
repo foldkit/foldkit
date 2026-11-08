@@ -18,6 +18,7 @@ export const RouteAwareKey = Symbol('RouteAware')
 export const RouteAwareBlock = Block.make('RouteAware', {
   key: RouteAwareKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
 
   Model,
   Message,

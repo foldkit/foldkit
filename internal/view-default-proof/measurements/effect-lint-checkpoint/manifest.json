@@ -1,0 +1,165 @@
+{
+  "failedCommit": "179c801bc746cc96b6f7a5e18fe0151bdf41dc50",
+  "failedStage": "Full-directory Effect lint; no remote update",
+  "failedCommand": "effect-tsgo patch --no-typescript --oxlint && oxlint --config .oxlintrc.effect.json --disable-nested-config --deny-warnings packages examples scripts",
+  "controls": {
+    "focusedLint": {
+      "command": "./node_modules/.bin/oxlint --config .oxlintrc.effect.json --disable-nested-config --deny-warnings packages/foldkit/declaration-tests/update-composition/consume.ts",
+      "cwd": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+      "sourceCommit": "179c801bc746cc96b6f7a5e18fe0151bdf41dc50",
+      "log": "focused-lint-control.log.gz",
+      "exitCode": 0
+    },
+    "folderLint": {
+      "command": "./node_modules/.bin/oxlint --config .oxlintrc.effect.json --disable-nested-config --deny-warnings packages/foldkit/declaration-tests/update-composition",
+      "cwd": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+      "sourceCommit": "179c801bc746cc96b6f7a5e18fe0151bdf41dc50",
+      "log": "folder-lint-control.log.gz",
+      "exitCode": 0
+    },
+    "strictSource": {
+      "command": "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node packages/foldkit/node_modules/typescript/bin/tsc -p packages/foldkit/declaration-tests/tsconfig.update-composition.source.json --noEmit",
+      "cwd": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+      "sourceCommit": "179c801bc746cc96b6f7a5e18fe0151bdf41dc50",
+      "log": "strict-source-control.log.gz",
+      "exitCode": 0
+    },
+    "strictDist": {
+      "command": "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node packages/foldkit/node_modules/typescript/bin/tsc -p /private/tmp/foldkit-update-composition-built-source-20261108.json",
+      "cwd": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+      "sourceCommit": "179c801bc746cc96b6f7a5e18fe0151bdf41dc50",
+      "log": "strict-dist-control.log.gz",
+      "exitCode": 0,
+      "configuration": "strict-dist-control.tsconfig.json.gz",
+      "resolution": "Root strict base; no paths mapping; explicit consume.ts root; imported foldkit APIs resolve against built dist"
+    },
+    "fullScopeLint": {
+      "command": "./node_modules/.bin/oxlint --config .oxlintrc.effect.json --disable-nested-config --deny-warnings packages examples scripts",
+      "cwd": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+      "sourceCommit": "5523129ff792f2b62111c6cc4fe5cb17d9587085",
+      "log": "full-lint-control.log.gz",
+      "exitCode": 0,
+      "sourceState": "Run before this commit existed; its production/fixture source bytes match this commit. Report/receipt files were still being packaged."
+    },
+    "strictSourceAfterViewless": {
+      "command": "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node packages/foldkit/node_modules/typescript/bin/tsc -p packages/foldkit/declaration-tests/tsconfig.update-composition.source.json --noEmit",
+      "cwd": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+      "sourceCommit": "5523129ff792f2b62111c6cc4fe5cb17d9587085",
+      "log": "strict-source-after-viewless.log.gz",
+      "exitCode": 0,
+      "sourceState": "Run before this commit existed; its production/fixture source bytes match this commit."
+    }
+  },
+  "diagnosticOrigin": "Parsed from unchanged text log; no structured tool output was captured",
+  "diagnostics": [
+    {
+      "file": "packages/foldkit/declaration-tests/update-composition/consume.ts",
+      "line": 13,
+      "column": 30,
+      "category": "effecttsgo",
+      "rule": "any-unknown-in-error-context",
+      "message": "This has any in the requirements channel and any in the error channel which is not recommended. Only service identifiers should appear in the requirements channel. Having an unknown or any error type is not useful. Consider instead using specific error types baked by Data.TaggedError for example."
+    },
+    {
+      "file": "packages/foldkit/declaration-tests/update-composition/consume.ts",
+      "line": 13,
+      "column": 14,
+      "category": "effecttsgo",
+      "rule": "any-unknown-in-error-context",
+      "message": "This has any in the requirements channel and any in the error channel which is not recommended. Only service identifiers should appear in the requirements channel. Having an unknown or any error type is not useful. Consider instead using specific error types baked by Data.TaggedError for example."
+    }
+  ],
+  "facts": {
+    "strictSourceAndDist": "acquiredCalls preserves Effect.Effect<string, never, never>",
+    "fullScopeControl": "passed after a separate metadata view:false correction; no causal relationship established",
+    "ruleSuppressed": false,
+    "sourceOrTypeWorkaround": false,
+    "threadCount": "tool default",
+    "cliDirectoryOrder": [
+      "packages",
+      "examples",
+      "scripts"
+    ]
+  },
+  "consumeSourceSha256": "012c8031834f96fffd3737d7ef139f7d182322140736292c22769479239a6c6e",
+  "nodeVersion": "v26.13.0",
+  "oxlintVersion": "Version: 1.85.0",
+  "toolWrappers": {
+    "node_modules/.bin/oxlint": {
+      "resolvedPath": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.bin/oxlint",
+      "sha256": "5be0403ba8ed67c8d33bda91e8c8a503299aeb37fe2bdfc20a266b82d4a0a996"
+    },
+    "node_modules/.bin/effect-tsgo": {
+      "resolvedPath": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.bin/effect-tsgo",
+      "sha256": "81dc3a396a413bfd79108a074b588a47a9f7cfa501048c3578d368e20666296f"
+    },
+    "packages/foldkit/node_modules/typescript/bin/tsc": {
+      "resolvedPath": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/typescript@7.1.0-beta/node_modules/typescript/bin/tsc",
+      "sha256": "2219f428a7e55aaf1f7ad85b9b0f0cf5078aeb76ccc9a7c6036c92d48f492ffd"
+    }
+  },
+  "builtDeclarationSha256": {
+    "experimental/layered/testing/withBlock.d.ts": "4333d3c81c55cc0d360bd5fca76427cb1bd788d91f2484820368632088214c84",
+    "story/public.d.ts": "48f48f0400cff8cd8d6eff2b3b6d5f10ccb2a143b4473b7d860a40a95df7944c",
+    "runtime/rootBlock.d.ts": "b8a32c597a0f2f214ccf2ee8a3fd074c2d306ac8c056eb007dc9be8903793fea",
+    "experimental/constructed/contract.d.ts": "7ec40d11bbaca57002d3863028b86cf9ddecf4e17ea7ebc75a433ae5023bbe3a",
+    "experimental/contracted/contract.d.ts": "31d64d0dfe0554abafa5c447c48fd4b4050adb45e8523254b73e0b334f29eec5"
+  },
+  "files": {
+    "failed-normal-push.log.gz": {
+      "originalBytes": 6246,
+      "originalSha256": "e31c87ed1dfbd146b095d3477394fbb95f338652893b4bf4b6b1c0f486cf9e0f",
+      "storedBytes": 1692,
+      "storedSha256": "e4e6ca351fbf5cba8acfa94abb5d3f8a4e4598a8cb4c3ee93cfae01a295bf240"
+    },
+    "full-lint-control.log.gz": {
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedSha256": "abfbb86f9f5ddfbd9fc1a72c43ab384702ce8bae86b60f3324748485e235e61e"
+    },
+    "focused-lint-control.log.gz": {
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedSha256": "abfbb86f9f5ddfbd9fc1a72c43ab384702ce8bae86b60f3324748485e235e61e"
+    },
+    "folder-lint-control.log.gz": {
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedSha256": "abfbb86f9f5ddfbd9fc1a72c43ab384702ce8bae86b60f3324748485e235e61e"
+    },
+    "strict-source-control.log.gz": {
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedSha256": "abfbb86f9f5ddfbd9fc1a72c43ab384702ce8bae86b60f3324748485e235e61e"
+    },
+    "strict-dist-control.log.gz": {
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedSha256": "abfbb86f9f5ddfbd9fc1a72c43ab384702ce8bae86b60f3324748485e235e61e"
+    },
+    "prior-investigation.md.gz": {
+      "originalBytes": 6432,
+      "originalSha256": "de4d1f00002a913587dc7dcb619da04fb5e839fdf2b785dce74f0554d45c3d30",
+      "storedBytes": 2891,
+      "storedSha256": "596d6328f73267629e2b75cb3ce13296ab2e68e2154aa300ce00187cb52e2677"
+    },
+    "strict-dist-control.tsconfig.json.gz": {
+      "originalBytes": 555,
+      "originalSha256": "c9a6b55a3b41e1b2a313574331ccfda462f308cfe3a234ae0bcaa036d8112d85",
+      "storedBytes": 261,
+      "storedSha256": "4772ac13a9be967e1ac2fc4548718a24ca77a7ed84d97dcacc1adf1c4fd5c4aa"
+    },
+    "strict-source-after-viewless.log.gz": {
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedSha256": "abfbb86f9f5ddfbd9fc1a72c43ab384702ce8bae86b60f3324748485e235e61e"
+    }
+  },
+  "exactDiscoveredFileList": "Not captured by failed invocation; exact CLI arguments and directory order are retained"
+}

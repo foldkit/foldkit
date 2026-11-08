@@ -31,6 +31,10 @@
     {
       "name": "attribute-bundles-200",
       "file": "attribute-bundles-200.ts"
+    },
+    {
+      "name": "layered-composition-6",
+      "file": "layered-composition-6.ts"
     }
   ]
 }

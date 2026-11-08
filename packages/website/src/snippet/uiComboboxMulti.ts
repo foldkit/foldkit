@@ -23,7 +23,6 @@ export const CitiesPickerKey = Symbol('CitiesPicker')
 export const CitiesPickerBlock = Block.make('CitiesPicker', {
   key: CitiesPickerKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

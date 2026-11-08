@@ -21,7 +21,6 @@ export const ArticlePreviewKey = Symbol('ArticlePreview')
 export const ArticlePreviewBlock = Block.make('ArticlePreview', {
   key: ArticlePreviewKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

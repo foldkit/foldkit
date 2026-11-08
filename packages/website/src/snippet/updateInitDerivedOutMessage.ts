@@ -34,6 +34,7 @@ export const DateRangeBlock = Block.make('DateRange', {
   Message,
   OutMessage,
   InitArgs: Schema.Tuple([Calendar.CalendarDate]),
+  view: false,
   ChildInitContext: Calendar.CalendarDate,
 })
 const {

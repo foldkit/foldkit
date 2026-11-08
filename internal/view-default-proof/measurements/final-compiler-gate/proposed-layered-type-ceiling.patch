@@ -1,0 +1,12 @@
+diff --git a/packages/foldkit/type-performance/budgets.json b/packages/foldkit/type-performance/budgets.json
+--- a/packages/foldkit/type-performance/budgets.json
++++ b/packages/foldkit/type-performance/budgets.json
+@@ -43,7 +43,7 @@
+     },
+     "layered-composition-6": {
+       "maxInstantiationsDelta": 2707124,
+-      "maxTypesDelta": 336291
++      "maxTypesDelta": 336346
+     }
+   }
+ }

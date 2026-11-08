@@ -12,7 +12,7 @@ export const CreateIssueKey = Symbol('CreateIssue')
 export const CreateIssueBlock = Block.make('CreateIssue', {
   key: CreateIssueKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element', Inputs: ViewInputs },
+  view: { Inputs: ViewInputs },
   effects: { services: [WorkspaceRepository] },
   Model,
   Message,

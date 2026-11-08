@@ -7,6 +7,7 @@ import * as Block from '../../../block/public.js'
 import { defineMessageUnion } from '../../../message/index.js'
 import * as Scene from '../../../scene/public.js'
 import { modifyFields } from '../../../struct/index.js'
+import * as Story from './story.js'
 
 const ChildModel = Schema.Struct({
   label: Schema.String,
@@ -312,5 +313,49 @@ describe('canonical keyed child Scene lifecycles', () => {
         ),
       ),
     ).rejects.toThrow('selected a Subscription not registered in the Scene')
+  })
+})
+
+describe('canonical keyed child Story Subscription delivery', () => {
+  it.effect('selects one keyed occurrence without executing its handler', () =>
+    Effect.gen(function* () {
+      yield* Story.story(
+        { block: ParentBlock, layer: parentLayer },
+        Story.init(),
+        Story.steps(
+          Story.Subscription.emit(
+            Story.Subscription.at(
+              ChildrenBinding,
+              'first',
+              subscriptions.ticks,
+            ),
+            ChildMessage.ObservedTick(),
+          ),
+        ),
+        Story.model(model => {
+          expect(model.children['first']?.count).toBe(1)
+          expect(model.children['second']?.count).toBe(10)
+        }),
+      )
+
+      expect(subscriptionHandlerConstructed).not.toHaveBeenCalled()
+    }),
+  )
+
+  it('requires a keyed occurrence for an erased raw keyed source', async () => {
+    const raw = Reflect.apply(Story.Subscription.emit, undefined, [
+      subscriptions.ticks,
+      ChildMessage.ObservedTick(),
+    ])
+
+    await expect(
+      Effect.runPromise(
+        Reflect.apply(Story.story, undefined, [
+          { block: ParentBlock, layer: parentLayer },
+          Story.init(),
+          raw,
+        ]),
+      ),
+    ).rejects.toThrow('Story.Subscription.at')
   })
 })

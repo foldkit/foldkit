@@ -290,7 +290,7 @@ The parent configures integration policy in its child Binding. That policy execu
 
 ## Complete the Application
 
-Create the root's `ApplicationBlock` with its unique `key`, Model, Message, `InitArgs` tuple, and view contract. Author init, update, and the primary view through `ApplicationComposition`, then export `layer = ApplicationBlock.makeLayer(...)`. In `entry.ts`, pass `{ block: ApplicationBlock, layer }` and browser inputs to `Program.make` or `Program.makeElement`.
+Create the root's `ApplicationBlock` with its unique `key`, Model, Message, `InitArgs` tuple, and view contract. Omit `view` for the ordinary Element default, use `view: { Inputs }` for Element inputs, keep `view: { kind: 'Document' }` explicit for a page root, and use `view: false` only when the Block intentionally has no canonical view. Author init, update, and the primary view through `ApplicationComposition`, then export `layer = ApplicationBlock.makeLayer(...)`. In `entry.ts`, pass `{ block: ApplicationBlock, layer }` and browser inputs to `Program.make` or `Program.makeElement`.
 
 Root `services.ts` supplies the shared store required by the child handler:
 

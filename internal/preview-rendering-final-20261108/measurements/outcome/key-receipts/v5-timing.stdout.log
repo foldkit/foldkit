@@ -1,0 +1,89 @@
+harness revision: unknown
+chromium version: 153.0.8010.12
+[round 1/12] main-optimised-a: 315.1ms
+[round 1/12] current-optimised: 345.9ms
+[round 1/12] main-optimised-b: 233.5ms
+[round 1/12] main-naive-a: 754.5ms
+[round 1/12] current-naive: 757.9ms
+[round 1/12] main-naive-b: 661.8ms
+[round 2/12] current-optimised: 392.4ms
+[round 2/12] main-optimised-b: 307.5ms
+[round 2/12] main-naive-a: 771.2ms
+[round 2/12] current-naive: 641.7ms
+[round 2/12] main-naive-b: 722.9ms
+[round 2/12] main-optimised-a: 275.9ms
+[round 3/12] main-optimised-b: 298.7ms
+[round 3/12] main-naive-a: 596.4ms
+[round 3/12] current-naive: 635.5ms
+[round 3/12] main-naive-b: 712.5ms
+[round 3/12] main-optimised-a: 257.1ms
+[round 3/12] current-optimised: 354.1ms
+[round 4/12] main-naive-a: 660.3ms
+[round 4/12] current-naive: 788.3ms
+[round 4/12] main-naive-b: 730.6ms
+[round 4/12] main-optimised-a: 286.1ms
+[round 4/12] current-optimised: 307.7ms
+[round 4/12] main-optimised-b: 249.4ms
+[round 5/12] current-naive: 707.1ms
+[round 5/12] main-naive-b: 719.0ms
+[round 5/12] main-optimised-a: 263.7ms
+[round 5/12] current-optimised: 338.9ms
+[round 5/12] main-optimised-b: 270.5ms
+[round 5/12] main-naive-a: 689.4ms
+[round 6/12] main-naive-b: 700.7ms
+[round 6/12] main-optimised-a: 293.9ms
+[round 6/12] current-optimised: 364.4ms
+[round 6/12] main-optimised-b: 212.8ms
+[round 6/12] main-naive-a: 758.0ms
+[round 6/12] current-naive: 693.2ms
+[round 7/12] main-optimised-a: 274.0ms
+[round 7/12] current-optimised: 334.1ms
+[round 7/12] main-optimised-b: 250.2ms
+[round 7/12] main-naive-a: 759.0ms
+[round 7/12] current-naive: 638.5ms
+[round 7/12] main-naive-b: 673.5ms
+[round 8/12] current-optimised: 331.9ms
+[round 8/12] main-optimised-b: 303.8ms
+[round 8/12] main-naive-a: 732.5ms
+[round 8/12] current-naive: 748.7ms
+[round 8/12] main-naive-b: 720.9ms
+[round 8/12] main-optimised-a: 246.7ms
+[round 9/12] main-optimised-b: 277.0ms
+[round 9/12] main-naive-a: 742.1ms
+[round 9/12] current-naive: 779.9ms
+[round 9/12] main-naive-b: 768.9ms
+[round 9/12] main-optimised-a: 246.1ms
+[round 9/12] current-optimised: 331.1ms
+[round 10/12] main-naive-a: 705.8ms
+[round 10/12] current-naive: 786.3ms
+[round 10/12] main-naive-b: 692.5ms
+[round 10/12] main-optimised-a: 296.9ms
+[round 10/12] current-optimised: 313.0ms
+[round 10/12] main-optimised-b: 248.2ms
+[round 11/12] current-naive: 802.6ms
+[round 11/12] main-naive-b: 741.7ms
+[round 11/12] main-optimised-a: 257.8ms
+[round 11/12] current-optimised: 324.6ms
+[round 11/12] main-optimised-b: 263.1ms
+[round 11/12] main-naive-a: 710.0ms
+[round 12/12] main-naive-b: 699.8ms
+[round 12/12] main-optimised-a: 300.8ms
+[round 12/12] current-optimised: 383.1ms
+[round 12/12] main-optimised-b: 253.9ms
+[round 12/12] main-naive-a: 708.7ms
+[round 12/12] current-naive: 753.7ms
+main-optimised-a {"crossOriginIsolated":true,"total":274.9,"sync":62.5,"timeout":0,"animationFrame":212.5,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1.06}
+current-optimised {"crossOriginIsolated":true,"total":336.5,"sync":80.1,"timeout":0,"animationFrame":256.1,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":600,"microtask":0,"promise":0},"relativeToFastest":1.3}
+main-optimised-b {"crossOriginIsolated":true,"total":258.5,"sync":58.5,"timeout":0,"animationFrame":201.9,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":1}
+main-naive-a {"crossOriginIsolated":true,"total":721.2,"sync":59.2,"timeout":0,"animationFrame":664.7,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":2.79}
+current-naive {"crossOriginIsolated":true,"total":751.2,"sync":77.3,"timeout":0,"animationFrame":673.6,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":601,"microtask":0,"promise":0},"relativeToFastest":2.91}
+main-naive-b {"crossOriginIsolated":true,"total":715.7,"sync":56.7,"timeout":0,"animationFrame":658.4,"microtask":0,"promise":0,"boot":0,"counts":{"sync":400,"timeout":0,"animation_frame":400,"microtask":0,"promise":0},"relativeToFastest":2.77}
+
+=== medians (ms) ===
+implementation                            total   relative       sync    timeout animationFrame  microtask    promise
+main-optimised-a                          274.9      1.06x       62.5          0      212.5          0          0
+current-optimised                         336.5      1.30x       80.1          0      256.1          0          0
+main-optimised-b                          258.5      1.00x       58.5          0      201.9          0          0
+main-naive-a                              721.2      2.79x       59.2          0      664.7          0          0
+current-naive                             751.2      2.91x       77.3          0      673.6          0          0
+main-naive-b                              715.7      2.77x       56.7          0      658.4          0          0

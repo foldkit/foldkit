@@ -43,7 +43,7 @@ export const EducationEntryKey = Symbol('EducationEntry')
 export const EducationEntryBlock = Block.make('EducationEntry', {
   key: EducationEntryKey,
   InitArgs: Schema.Tuple([Schema.String]),
-  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  view: { Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,
   InMessage,

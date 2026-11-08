@@ -149,6 +149,7 @@ export const defineGenericInputRequest = <Name extends string, Value, Encoded>(
     Message: LocalMessage,
     InMessage,
     InitArgs: Schema.Tuple([]),
+    view: false,
   })
   const Fetch = Definition.makeCommand('Fetch', {
     messages: [LocalMessage.CompletedFetch],

@@ -227,6 +227,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 ## Application wiring
 
 - [ ] Every concrete typed Block declaration has the `Block` suffix while preserving its runtime ID: `ChildBlock = Block.make('Child', ...)` and `ApplicationBlock = Block.make('Application', ...)`. Compositions use `ChildComposition` and `ApplicationComposition`. A child exports `ChildBlock = Block.make(...)` and its construction `layer`; a root exports its `ApplicationBlock` and its construction `layer`. A generic factory returns an exact passive contract named locally.
+- [ ] Each contracted Block uses the view spelling that matches its contract: omit `view` for an Element view with no inputs, use `view: { Inputs }` for Element inputs, keep `view: { kind: 'Document' }` explicit for a Document, and use `view: false` for an intentionally viewless Block. Do not apply these defaults to legacy Schema-only definitions.
 
 - [ ] Every root declares its unique key, Model, local Message, InitArgs tuple and actual view kind once, creates a named Composition, and completes `ApplicationBlock.makeLayer({ init, update, view, ... })`. Init selects the Composition's registered Binding inventory and Foldkit acquires it automatically; a graphless root uses an empty Composition without `children`. The Program root has no unhandled OutMessage.
 - [ ] An explicit `makeLayer(Effect.gen(...))` constructor exists only for genuine graph-construction dependencies, scoped resources, or code that uses acquired handles. It returns the complete explicit `children` inventory and never mixes that result with automatic acquisition; it may use `Composition.acquireChildren()` for the complete inventory or yield individual Bindings. Neither completion form initializes Models, evaluates init arguments, builds handlers, or starts lifecycles.
@@ -511,6 +512,7 @@ For Tier 3+ apps (routing, async Commands, forms), missing `scene.test.ts` is a 
 - [ ] Scoped queries with `within` or `inside` when a parent container contains multiple similar elements
 - [ ] A Scene that uses `Subscription.emit` passes the owning Composition and the registered `subscriptions` in its config, then calls `Subscription.emit(entry, message)` with the exact entry that declares the raw Message. Generated child delivery is derived from that registered source and occurrence. Select a bound entry for an ambiguous child source. Silent entries with `messages: []` are not emitted from.
 - [ ] Deliberate concurrent Scene interactions use `Command.keepPending` for one exact ordinary invocation. Assertions and resolvers retain that Command, and the Scene resolves it before completion.
+- [ ] `Command.resolveAll` resolvers are supplied beside the current pending Commands they resolve. Unused resolvers are not expected to carry into later steps; reuse an extracted local step explicitly. Use local, strict `resolveAllExact` only when every resolver must match and no actual Command may remain.
 
 ---
 

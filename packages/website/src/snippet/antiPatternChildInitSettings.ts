@@ -28,6 +28,7 @@ export const SettingsKey = Symbol('Settings')
 export const SettingsBlock = Block.make('Settings', {
   key: SettingsKey,
   InitArgs: Schema.Tuple([]),
+  view: false,
   inMessageOutputs: {
     RequestedRestore: { outMessage: OutMessage.RestoredTheme },
   },

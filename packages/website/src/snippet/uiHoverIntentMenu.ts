@@ -19,7 +19,6 @@ export const HoverMenuKey = Symbol('HoverMenu')
 export const HoverMenuBlock = Block.make('HoverMenu', {
   key: HoverMenuKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

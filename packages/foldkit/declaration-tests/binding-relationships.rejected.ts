@@ -220,6 +220,7 @@ const MissingEffectsParentBlock = Block.make(
     Model: MissingEffectsParentModel,
     Message: Schema.Never,
     InitArgs: Schema.Tuple([]),
+    view: false,
   },
 )
 const MissingEffectsChildBinding =

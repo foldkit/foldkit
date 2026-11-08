@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "archive": "inline-effects-layer-inference.tar.gz",
+  "bytes": 57785,
+  "sha256": "6decaab2eaaeea796e0aeb357ace1fa743d29ef22b87e1f7da15fffc51fa7e9c",
+  "payloadManifest": "final-files.sha256",
+  "payloadManifestSha256": "205bfaf3ff8faa4b686b03f05e50e50b509a21b6652e832e1835dcc33da8ceff",
+  "interpretation": "Two exact TypeScript7 fixtures; inline Layer.merge rejected, named EffectsLayer accepted. Rejected signature experiments and two setup failures remain classified separately. No framework signature change adopted; no compiler performance or editor latency claim."
+}

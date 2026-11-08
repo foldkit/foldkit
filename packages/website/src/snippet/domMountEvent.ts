@@ -14,7 +14,6 @@ export const PanelKey = Symbol('Panel')
 const PanelBlock = Block.make('Panel', {
   key: PanelKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

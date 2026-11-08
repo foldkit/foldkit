@@ -36,7 +36,6 @@ export const EditorBlock = Block.make('Editor', {
   Model,
   Message,
   InitArgs: Schema.Tuple([EditorStartup]),
-  view: { kind: 'Element' },
   effects: { services: [EditorStorage] },
 })
 

@@ -1,5 +1,281 @@
 # Next preview tasks
 
+## November 8 new feedback
+
+- [x] Refresh preview discussions, relevant issues and PRs. Record Filip's new
+      [pilot report](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6721308446)
+      and keep the general RadioGroup contribution #1924 outside this scope.
+- [x] Reproduce connected `combineSteps` losing an explicitly supplied Model
+      in both calling forms, then correct the shared deferred restart.
+- [x] Preserve removed-key protection using a reusable Step rather than
+      expecting an already-applied result to rebase onto a different Model.
+- [x] Verify the realistic parent/child regression with the ordinary record
+      and a named EffectsLayer. Core source checks and all 4,369 tests pass.
+- [ ] Resolve the narrower inline merged-Layer inference limitation without
+      weakening validation. No tested signature change has been adopted.
+- [x] Clarify verified Effect pins, supported peer ranges, reported npm-lock
+      recovery and explicit local-Message operations in active migration docs.
+- [ ] Review the exact committed feedback changes and pass the normal push
+      gate and remote checks before considering them integrated.
+
+The [feedback disposition](preview-feedback-20261108.md) distinguishes the
+reproduced bug, the narrower typing limitation and unconfirmed reports. The
+performance queue below remains active. Publication, new Daybreak transfer and
+a main merge remain held.
+
+## November 8 verified checkpoint
+
+The follow-up source at `6f1c988e1096b7285066892e8eabac74cda131ea` is pushed
+in [#1922](https://github.com/foldkit/foldkit/pull/1922). Independent exact-commit
+review, the complete normal push gate, CI and Examples E2E pass. The packed
+viewless-consumer correction passes the installed-consumer SSR matrix in
+Chromium, Firefox and WebKit. The source includes the Element view default,
+the repository migration and the animation-frame cadence fix.
+
+- [x] Complete combined cadence checks, including the extra idle callbacks,
+      source-matched work counts and the original failed guard.
+- [x] Complete one frozen ordinary rendering campaign with duplicate main
+      controls, all 72 samples and 45 observed positive/negative controls.
+- [x] Independently audit the readback and preserve failed protocol attempts.
+- [x] Isolate Vite optimizer caches under the existing worker-owned test cache
+      after the archival push encounters a teardown-only `ENOTEMPTY`. The
+      corrected resolution fixture passes all 37 cases.
+- [x] Run one fresh five-worker Website diagnostic with unchanged readiness
+      assertions. All 22 tests pass first attempt, so the intermittent timeout
+      remains unresolved and no source or timeout change is adopted.
+- [x] Screen and reject a record-validation optimization: all nine ceilings
+      pass, but only 0.064% instantiations and four Types are saved. No emitted
+      or editor-latency improvement is claimed.
+- [x] Refresh relevant feedback through November 8 at 10:00 UTC. No new
+      preview issue or #1655 reply was found; #1916 remains a general task.
+- [ ] Reduce the demonstrated optimized rendering cost before main. The new
+      campaign measures a 26.2% higher callback/event-work sum than main;
+      current is slower in all twelve rounds. The naive result is inconclusive.
+- [ ] Reduce the multi-second child-Layer editor cost.
+- [ ] Resolve immediate child-operation output precision without losing
+      registered policy channels or graph evidence.
+- [ ] Diagnose the five-second Website runtime-readiness timeout, observed
+      before assertions in two full local runs; each retry passed.
+
+The [final rendering report](preview-rendering-final-20261108/README.md)
+records the measurement boundary and reproducible evidence. It does not claim
+a per-render slowdown, a cross-campaign improvement or a known cause. The
+readiness timeout is unresolved and is not classified as an accessibility
+regression. Publication, new Daybreak transfer and a main merge remain held.
+The older dated sections retain their checkpoint scope.
+
+The [cache cleanup](preview-plugin-cleanup-20261108/README.md),
+[readiness diagnostic](preview-readiness-diagnostic-20261108/README.md) and
+[typing screening](record-validation-screening-20261108/README.md) retain the
+subsequent bounded outcomes. Exact-commit review and the normal push and CI
+gates are tracked on #1922; focused results do not replace those gates.
+
+## November 8 overnight follow-ups
+
+- [x] Preserve the reviewed HTML and diagnostic commits on #1922 through the
+      normal push gate. CI and Examples E2E pass for `7cc7d90e68`.
+- [x] Reproduce #1921's frame-cadence failure on current preview source and
+      verify the adaptation through the Runtime suite and negative controls.
+- [x] Independently review cadence commit `5c96e577cc`. Verify the same-frame
+      behavior in a browser against the authenticated unchanged Renderer.
+- [x] Complete the combined cadence checks and account for the extra idle
+      callbacks before current-source ordinary timing. Preserve the failed
+      original 400-callback guard.
+- [x] Prove and measure the isolated paired R11/R19 construction prototype
+      with unchanged ordinary workloads and identical-code controls. Reject
+      adoption because the primary result is smaller than control variation.
+- [x] Preserve both bounded operation-precision prototypes and their exact
+      compiler costs. Three of nine ceilings fail; no implementation is adopted.
+- [ ] Prove immediate child-operation output precision without losing emitting
+      policy channels, graph registrations or later Command delivery.
+- [x] Prove the view-default refinement with source, relocated declarations
+      and focused runtime controls. The authenticated final compiler run passes
+      eight original ceilings; layered Types exceed the original by 55.
+- [x] Integrate the independently reviewed repository-wide view migration,
+      preserving literal and generic authoring, precise view inputs and Mounts,
+      wrong-host rejection and the existing Schema-only assembly behavior.
+- [x] Review and push exact integrated view commit `4ed89f750c` through the
+      complete normal gate. The Website suite includes one readiness retry;
+      a fresh-server single-worker run without retries also passes.
+- [x] Correct the two packed viewless consumers after CI rejects the npm
+      workspace fixture. The existing packed critical SSR matrix passes in
+      Chromium, Firefox and WebKit without a production source change.
+- [x] Review and push packed follow-up `6f1c988e10`, then pass new CI and
+      Examples E2E. Retain the second local readiness retry separately.
+- [x] Isolate child-Layer editor cost in authenticated controls. Commit
+      `befaa93b15` is independently reviewed; it demonstrates no latency fix.
+- [x] Refresh preview feedback. Assess the new main-targeted crash-cleanup
+      proposal #1923 separately from preview regressions.
+
+The [cadence checkpoint](preview-frame-cadence-20261108.md) distinguishes the
+reproduced frame-rate bug from rendering time and records the scope question in
+the new crash-cleanup proposal. The rejected [rendering pair](preview-render-construction-20261108/README.md)
+and [operation-precision prototypes](operation-output-precision-20261108/README.md)
+retain their source and evidence. The November 8 feedback refresh found no
+newer #1655 replies or new issues. Publication and a new Daybreak
+transfer remain held. These checks do not approve a main merge, accept the
+measured rendering and editor costs, or defer the open precision limitation.
+
+The [view-default proof](view-default-proof/REPORT.md) records the migration,
+source-free TypeScript 6/7 consumers and measured compiler counts. The first
+normal push caught a stale isolated passing report. Its original evidence and
+failed push log are retained. The corrected formulation uses fewer
+instantiations and adds 55 Types to the layered fixture. The lead selected an
+explicit Type-only ceiling revision from 336,291 to 336,346 under the overnight
+work authorization; this is not a user-approved performance tradeoff. All
+workload bodies and other ceilings remain unchanged. Omission declares an
+Element view; it does not make the implementation's view optional.
+
+The [packed follow-up](preview-packed-viewless-consumers-20261108.md) records
+the subsequent CI-only migration omission and successful installed-consumer
+matrix. The frozen earlier census and proof retain their recorded scope.
+
+## November 8 rendering diagnostics
+
+- [x] Capture ordinary CPU profiles and separate precise coverage for exact
+      main and published-preview assets, with optimized as the primary pair.
+- [x] Verify source maps, executed assets, callback and DOM guards, cleanup,
+      descendant views and lazy-cache counts. Preserve failed launches separately.
+- [x] Reconcile the raw timing fields and protocol differences. Instrumented
+      single invocations cannot allocate the ordinary median regression.
+- [x] Prototype the retained combined R11/R19 construction changes against
+      current source, preserving ownership and lifecycle contracts. The
+      ordinary timing result does not justify adoption; retain the rejection
+      and all samples in the overnight section above.
+- [x] Independently review and push the diagnostic evidence. Rendering parity
+      and editor performance remain open before main.
+
+The [diagnostic report](preview-final-20261107/rendering/measurements/official-workcount-cpu-20261108/README.md)
+retains exact counts and explicit limits. It does not establish a dominant
+cause for the ordinary timing gap or justify repeating rejected cache/ownership
+experiments. New publication still requires approval.
+
+## November 8 HTML bundle checkpoint
+
+- [x] Reconcile the retained rendering research before adapting overlapping
+      optimizations. Preserve the measured #1576 pair and rejected experiments.
+- [x] Audit and adopt the shared HTML definitions for their bundle reduction,
+      preserving public signatures, callable metadata and lifecycle behavior.
+- [x] Verify current source, emitted consumers, 546 focused tests and all nine
+      unchanged compiler ceilings. Retain the negative controls and exact assets.
+- [x] Independently approve exact HTML commit `977b57321f`.
+- [x] Pass its normal push gate. CI is pending. The prior stabilization commit
+      `3f0a41b927` is already pushed.
+- [x] Analyze the separate optimized-first CPU and work-count captures before
+      choosing the next runtime experiment. Bundle size is not rendering time.
+
+The [HTML checkpoint](preview-html-definitions-20261108.md) records a 12,779-byte
+raw and about 4.3 KB gzip reduction. The ordinary timing batch establishes
+neither a regression nor a speedup. Rendering, editor performance, view-default
+refinement and connected-operation precision remain open; publication is held.
+
+## November 7 stabilization and new pilot feedback
+
+The first post-publication batch is pushed in [#1922](https://github.com/foldkit/foldkit/pull/1922)
+at `311a7bef9b12028071a701272861a5aad2fdeb6b`. Independent review, the full
+local push gate, CI and Examples E2E pass. It has not been merged or published.
+
+The [new pilot report](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6714254069)
+adds the work below. Recheck preview-related issues, PRs and replies at each
+verification checkpoint and before freezing a candidate. Preserve explicit
+exhaustive OutMessage folds, including deliberately ignored variants.
+
+- [x] Add a split-file compiler workload for the current `Block.make`, record
+      `makeLayer`, InMessage and Binding APIs, including ordinary and connected
+      `combineSteps`. Keep the existing historical fixtures and ceilings.
+- [x] Expose parent-requested Popover closing without restoring trigger focus,
+      preserving animation, modal cleanup and existing close behavior.
+- [x] Let Scene render `h.empty` and transition between empty and visible views.
+      Export precise Block-aware Story/Scene step types for extracted helpers.
+- [ ] Investigate whether child-operation output precision can avoid the
+      reported close/focus workaround without changing `combineSteps` emission
+      semantics. The pilot's placement asymmetry is not a current regression.
+- [x] Refine the view contract: prototype Element as the ordinary default,
+      optional explicit view inputs, explicit Document kind and explicit
+      viewless Blocks. Preserve passive contracts, portable builders and exact
+      completion checks before selecting a spelling or migrating consumers.
+- [ ] Reduce demonstrated rendering and bundle overhead, and continue editor
+      latency work, before the main merge. Compiler ceilings are not evidence
+      of acceptable rendering or editor performance. Compare unchanged
+      workloads and require an explicit decision on any remaining material
+      cost; documentation alone does not approve it.
+- [x] Investigate [#1921](https://github.com/foldkit/foldkit/pull/1921)'s animation-frame
+      cadence fix against the current preview queue and lifecycle implementation.
+      Treat cadence separately from time per workload. Do not transplant its
+      older Runtime code.
+- [ ] Reassess relevant open performance PRs against the current baseline.
+      #1918 conflicts with the preview's identity-preserving `modifyFields`;
+      #1919 and #1920 are general optimization candidates requiring separate
+      evidence. #1917 is closed in favor of the split PRs.
+
+Optional `InitArgs`, handler records and Model-derived Bindings remain API
+proposals, not accepted fixes. Another preview publication requires approval.
+
+The [stabilization checkpoint](preview-stabilization-20261107/README.md) records
+the source/emitted proofs and the new compiler ceiling. Exact-commit review,
+the normal push gate and protected integration remain separate checks.
+
+## November 7 post-publication follow-ups
+
+The preview at `54f8bcd443b4fd18952403a3d02e212abf872d58` is published. Its
+package manifest, immutable Website and migration entry points are verified in
+#1655. Earlier dated publication holds and unchecked release-gate boxes below
+describe those historical checkpoints, not unfinished gates for this release.
+New implementation work starts from that snapshot on
+`codex/preview-followups-20261107`. Publishing another preview requires approval.
+
+- [x] Prototype Schema-backed Menu, Tabs and RadioGroup selection contracts for
+      #1809. Preserve string defaults, exact decoded/encoded values, parent-owned
+      selection, passive construction, original effects and child lifecycles.
+- [x] Verify source, external emission and relocated consumers; reject invalid
+      values and Service-dependent Codecs. The eight unchanged compiler workloads
+      pass. Runtime controls reject broad-string selection Codecs, including
+      generated parent envelopes.
+- [x] Finish consumer, documentation, scaffold, skill and lint adoption. Focused
+      checks and exact-commit review passed for `dc2bf3175f`; the normal push
+      gate remains below.
+- [x] Implement graph-aware Story Subscription emission (#1910), retaining an
+      explicit registry path for update-only Stories and checked Binding paths
+      for encapsulated child sources. Source identity is verified at delivery.
+- [x] Make Story/Scene Command resolvers local to each call (#1911), preserving
+      tolerant and exact resolution separately. Reuse extracted local steps
+      explicitly when the test needs the same response after another dispatch.
+- [x] Measure and reject the iterative Mount walk and the adapted #1575 Attribute
+      experiment as fixes for the optimized benchmark gap. Retain duplicate
+      controls, every sample and the separate deterministic gzip observation.
+- [x] Recover byte-exact bundle attribution after correcting copied workspace
+      links. Block authoring/completion occupies 128,187 raw bytes; subpath
+      imports do not materially reduce the emitted asset.
+- [x] Repair current editor probes and collect five-run latency samples plus
+      request-scoped profiles with actual-source hash controls. The slow imported
+      graph includes both root inputs and child Layers; no individual alias has
+      been identified as the cause.
+- [ ] Investigate the rendering and bundle costs and reduce demonstrated
+      overhead before the main merge. Preserve unchanged benchmark workloads.
+      Assess existing performance PRs #1575, #1576, #1581 and #1585 before
+      introducing overlapping work. #1859 changes benchmark coverage rather
+      than the renderer implementation.
+- [ ] Continue measured TypeScript editor-performance investigation (#1709).
+- [ ] Review the exact tooling/evidence commit and pass the normal push gate
+      before pushing the follow-up branch. No new preview is authorized here.
+- [ ] Refresh preview feedback and support the code/documentation review before
+      the next release; prepare stable documentation before merging to main.
+
+The focused reports are [selection contracts](selection-contracts-20261107/README.md),
+[Story Subscription delivery](story-subscription-20261107.md),
+[resolver lifetimes](resolver-lifetimes-20261107.md),
+[open performance PRs](preview-open-performance-prs-20261107.md) and
+[editor latency](editor-latency-20261107.md). The November 7 feedback refresh found
+no newer #1655 replies. #1916 is a general docs-packaging investigation outside
+this preview-fix pass; it remains open.
+
+Bookmarked naming/design work: `Query.define` to `Query.makeBlock`, clearer
+`pendingArgs` naming, and alternatives to explicit Symbol declarations that
+preserve nominal identities. Query-owned freshness Clock work (#1906), cancel-all
+(#1907) and cross-key debounce (#1908) remain proposals to evaluate. They are not
+implemented features or promised next-release scope. The user's explicit
+post-main deferral for #1662 and #1663 is unchanged.
+
 ## November 7 observed broken-pipe recovery
 
 The improved diagnostic identified `EPIPE` in the next pre-upload lookup failure. The [follow-up checkpoint](preview-final-20261107/registry-recovery.md#observed-broken-pipe-follow-up) records why it joins the two existing socket codes, with the original single retry and timeout unchanged. All nine versions from the failed run remain absent; publication remains authorized.

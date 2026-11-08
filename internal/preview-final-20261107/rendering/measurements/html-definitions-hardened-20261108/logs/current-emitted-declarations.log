@@ -1,0 +1,336 @@
+startedAt=2026-11-08T02:54:48.499Z
+endedAt=2026-11-08T02:58:07.232Z
+cwd=/private/tmp/foldkit-html-current-twins-20261108/candidate/packages/foldkit
+command=["/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node","scripts/check-emitted-declarations.ts"]
+exit=0
+
+stdout:
+[emitted-declarations] Reading the package TypeScript version
+[emitted-declarations] Checking Program diagnostic order
+[emitted-declarations] Program diagnostic order: parsing the source config
+[emitted-declarations] Program diagnostic order: creating the single-checker program
+[emitted-declarations] Program diagnostic order: checking Program and Mount diagnostics
+[emitted-declarations] Program diagnostic order: closing the native API
+[emitted-declarations] Checking Program diagnostic order: passed
+[emitted-declarations] Checking direct source canonical-keyed-scene contracts
+[emitted-declarations] Checking direct source constructor-plan-ownership contracts
+[emitted-declarations] Checking direct source program contracts
+[emitted-declarations] Checking direct source command-args contracts
+[emitted-declarations] Checking direct source keyed-map-field contracts
+[emitted-declarations] Checking direct source map-binding-method contracts
+[emitted-declarations] Checking direct source variant-binding contracts
+[emitted-declarations] Checking direct source binding-relationships contracts
+[emitted-declarations] Checking direct source bulk-child-acquisition contracts
+[emitted-declarations] Checking direct source record-completion contracts
+[emitted-declarations] Checking direct source story-message-in-path contracts
+[emitted-declarations] Checking direct source testing-step-types contracts
+[emitted-declarations] Checking direct source codec-contract contracts
+[emitted-declarations] Checking direct source managed-resource-contract contracts
+[emitted-declarations] Checking direct source managed-resource-registry contracts
+[emitted-declarations] Checking direct source policy-graph contracts
+[emitted-declarations] Checking direct source story-concurrency contracts
+[emitted-declarations] Checking direct source test-parent-message contracts
+[emitted-declarations] Checking direct source extracted-connected-step contracts
+[emitted-declarations] Checking direct source message-steps contracts
+[emitted-declarations] Checking direct source machine contracts
+[emitted-declarations] Checking direct source scene-routing contracts
+[emitted-declarations] Checking direct source scene-family-construction contracts
+[emitted-declarations] Checking direct source scene-mount-stream contracts
+[emitted-declarations] Checking direct source append-initialization contracts
+[emitted-declarations] Checking direct source set-initialization contracts
+[emitted-declarations] Checking direct source set-optional-initialization contracts
+[emitted-declarations] Checking direct source insert-initialization contracts
+[emitted-declarations] Checking direct source keyed-outmessage-fold contracts
+[emitted-declarations] Checking direct source generic-service-factory contracts
+[emitted-declarations] Checking direct source testing-event-delivery contracts
+[emitted-declarations] Checking direct source inmessage-union contracts
+[emitted-declarations] Checking direct source unified-inmessages contracts
+[emitted-declarations] Checking direct source query-modes contracts
+[emitted-declarations] Checking direct source family-layer-members contracts
+[emitted-declarations] Checking direct source unified-root-selection contracts
+[emitted-declarations] Checking direct source attribute-alias contracts
+[emitted-declarations] Emitting external constructor-plan-ownership declarations
+[emitted-declarations] Rejecting invalid external constructor-plan-ownership wiring
+[emitted-declarations] Consuming relocated constructor-plan-ownership declarations
+[emitted-declarations] Emitting external constructor-host-handlers declarations
+[emitted-declarations] Rejecting invalid external constructor-host-handlers wiring
+[emitted-declarations] Consuming relocated constructor-host-handlers declarations
+[emitted-declarations] Emitting external update-composition declarations
+[emitted-declarations] Rejecting invalid external update-composition wiring
+[emitted-declarations] Consuming relocated update-composition declarations
+[emitted-declarations] Emitting external view-plans declarations
+[emitted-declarations] Rejecting invalid external view-plans wiring
+[emitted-declarations] Consuming relocated view-plans declarations
+[emitted-declarations] Emitting external mandatory-completion declarations
+[emitted-declarations] Rejecting invalid external mandatory-completion wiring
+[emitted-declarations] Consuming relocated mandatory-completion declarations
+[emitted-declarations] Emitting external from-assembly declarations
+[emitted-declarations] Rejecting invalid external from-assembly wiring
+[emitted-declarations] Consuming relocated from-assembly declarations
+[emitted-declarations] Emitting external generic-handler-contracts declarations
+[emitted-declarations] Rejecting invalid external generic-handler-contracts wiring
+[emitted-declarations] Consuming relocated generic-handler-contracts declarations
+[emitted-declarations] Emitting external testing-event-delivery declarations
+[emitted-declarations] Rejecting invalid external testing-event-delivery wiring
+[emitted-declarations] Consuming relocated testing-event-delivery declarations
+[emitted-declarations] Emitting external generic-service-factory declarations
+[emitted-declarations] Rejecting invalid external generic-service-factory wiring
+[emitted-declarations] Consuming relocated generic-service-factory declarations
+[emitted-declarations] Emitting external generic-outmessage-policy declarations
+[emitted-declarations] Rejecting invalid external generic-outmessage-policy wiring
+[emitted-declarations] Consuming relocated generic-outmessage-policy declarations
+[emitted-declarations] Emitting external named-assembly-header declarations
+[emitted-declarations] Rejecting invalid external named-assembly-header wiring
+[emitted-declarations] Consuming relocated named-assembly-header declarations
+[emitted-declarations] Emitting external combined-outmessage declarations
+[emitted-declarations] Rejecting invalid external combined-outmessage wiring
+[emitted-declarations] Consuming relocated combined-outmessage declarations
+[emitted-declarations] Emitting external callback-guard declarations
+[emitted-declarations] Rejecting invalid external callback-guard wiring
+[emitted-declarations] Consuming relocated callback-guard declarations
+[emitted-declarations] Emitting external record-update declarations
+[emitted-declarations] Rejecting invalid external record-update wiring
+[emitted-declarations] Consuming relocated record-update declarations
+[emitted-declarations] Emitting external outmessage-policy-selection declarations
+[emitted-declarations] Rejecting invalid external outmessage-policy-selection wiring
+[emitted-declarations] Consuming relocated outmessage-policy-selection declarations
+[emitted-declarations] Emitting external outmessage-forward declarations
+[emitted-declarations] Rejecting invalid external outmessage-forward wiring
+[emitted-declarations] Consuming relocated outmessage-forward declarations
+[emitted-declarations] Emitting external outmessage-fold declarations
+[emitted-declarations] Rejecting invalid external outmessage-fold wiring
+[emitted-declarations] Consuming relocated outmessage-fold declarations
+[emitted-declarations] Emitting external keyed-outmessage-fold declarations
+[emitted-declarations] Rejecting invalid external keyed-outmessage-fold wiring
+[emitted-declarations] Consuming relocated keyed-outmessage-fold declarations
+[emitted-declarations] Emitting external descriptor-fold declarations
+[emitted-declarations] Rejecting invalid external descriptor-fold wiring
+[emitted-declarations] Consuming relocated descriptor-fold declarations
+[emitted-declarations] Emitting external program-server declarations
+[emitted-declarations] Rejecting invalid external program-server wiring
+[emitted-declarations] Consuming relocated program-server declarations
+[emitted-declarations] Emitting external program declarations
+[emitted-declarations] Rejecting invalid external program wiring
+[emitted-declarations] Consuming relocated program declarations
+[emitted-declarations] Emitting external optional-wrapped-keyed declarations
+[emitted-declarations] Rejecting invalid external optional-wrapped-keyed wiring
+[emitted-declarations] Consuming relocated optional-wrapped-keyed declarations
+[emitted-declarations] Emitting external append-initialization declarations
+[emitted-declarations] Rejecting invalid external append-initialization wiring
+[emitted-declarations] Consuming relocated append-initialization declarations
+[emitted-declarations] Emitting external set-initialization declarations
+[emitted-declarations] Rejecting invalid external set-initialization wiring
+[emitted-declarations] Consuming relocated set-initialization declarations
+[emitted-declarations] Emitting external set-optional-initialization declarations
+[emitted-declarations] Rejecting invalid external set-optional-initialization wiring
+[emitted-declarations] Consuming relocated set-optional-initialization declarations
+[emitted-declarations] Emitting external insert-initialization declarations
+[emitted-declarations] Rejecting invalid external insert-initialization wiring
+[emitted-declarations] Consuming relocated insert-initialization declarations
+[emitted-declarations] Emitting external view-inputs declarations
+[emitted-declarations] Rejecting invalid external view-inputs wiring
+[emitted-declarations] Consuming relocated view-inputs declarations
+[emitted-declarations] Emitting external assembly-view declarations
+[emitted-declarations] Rejecting invalid external assembly-view wiring
+[emitted-declarations] Consuming relocated assembly-view declarations
+[emitted-declarations] Emitting external composed-init declarations
+[emitted-declarations] Rejecting invalid external composed-init wiring
+[emitted-declarations] Consuming relocated composed-init declarations
+[emitted-declarations] Emitting external field-steps declarations
+[emitted-declarations] Rejecting invalid external field-steps wiring
+[emitted-declarations] Consuming relocated field-steps declarations
+[emitted-declarations] Emitting external commands-steps declarations
+[emitted-declarations] Rejecting invalid external commands-steps wiring
+[emitted-declarations] Consuming relocated commands-steps declarations
+[emitted-declarations] Emitting external scene-routing declarations
+[emitted-declarations] Rejecting invalid external scene-routing wiring
+[emitted-declarations] Consuming relocated scene-routing declarations
+[emitted-declarations] Emitting external scene-mount-stream declarations
+[emitted-declarations] Rejecting invalid external scene-mount-stream wiring
+[emitted-declarations] Consuming relocated scene-mount-stream declarations
+[emitted-declarations] Emitting external machine declarations
+[emitted-declarations] Rejecting invalid external machine wiring
+[emitted-declarations] Consuming relocated machine declarations
+[emitted-declarations] Emitting external helper-inputs declarations
+[emitted-declarations] Rejecting invalid external helper-inputs wiring
+[emitted-declarations] Consuming relocated helper-inputs declarations
+[emitted-declarations] Emitting external inmessage-union declarations
+[emitted-declarations] Rejecting invalid external inmessage-union wiring
+[emitted-declarations] Consuming relocated inmessage-union declarations
+[emitted-declarations] Emitting external inmessage-update-composition declarations
+[emitted-declarations] Rejecting invalid external inmessage-update-composition wiring
+[emitted-declarations] Consuming relocated inmessage-update-composition declarations
+[emitted-declarations] Emitting external inmessages declarations
+[emitted-declarations] Rejecting invalid external inmessages wiring
+[emitted-declarations] Consuming relocated inmessages declarations
+[emitted-declarations] Emitting external constructor-union-ownership declarations
+[emitted-declarations] Rejecting invalid external constructor-union-ownership wiring
+[emitted-declarations] Consuming relocated constructor-union-ownership declarations
+[emitted-declarations] Emitting external unified-inmessages declarations
+[emitted-declarations] Rejecting invalid external unified-inmessages wiring
+[emitted-declarations] Consuming relocated unified-inmessages declarations
+[emitted-declarations] Emitting external unified-root-selection declarations
+[emitted-declarations] Rejecting invalid external unified-root-selection wiring
+[emitted-declarations] Consuming relocated unified-root-selection declarations
+[emitted-declarations] Emitting external message-steps declarations
+[emitted-declarations] Rejecting invalid external message-steps wiring
+[emitted-declarations] Consuming relocated message-steps declarations
+[emitted-declarations] Emitting external codec-contract declarations
+[emitted-declarations] Rejecting invalid external codec-contract wiring
+[emitted-declarations] Consuming relocated codec-contract declarations
+[emitted-declarations] Emitting external managed-resource-contract declarations
+[emitted-declarations] Rejecting invalid external managed-resource-contract wiring
+[emitted-declarations] Consuming relocated managed-resource-contract declarations
+[emitted-declarations] Emitting external managed-resource-registry declarations
+[emitted-declarations] Rejecting invalid external managed-resource-registry wiring
+[emitted-declarations] Consuming relocated managed-resource-registry declarations
+[emitted-declarations] Emitting external policy-graph declarations
+[emitted-declarations] Rejecting invalid external policy-graph wiring
+[emitted-declarations] Consuming relocated policy-graph declarations
+[emitted-declarations] Emitting external keyed-map-field declarations
+[emitted-declarations] Rejecting invalid external keyed-map-field wiring
+[emitted-declarations] Consuming relocated keyed-map-field declarations
+[emitted-declarations] Emitting external map-binding-method declarations
+[emitted-declarations] Rejecting invalid external map-binding-method wiring
+[emitted-declarations] Consuming relocated map-binding-method declarations
+[emitted-declarations] Emitting external variant-binding declarations
+[emitted-declarations] Rejecting invalid external variant-binding wiring
+[emitted-declarations] Consuming relocated variant-binding declarations
+[emitted-declarations] Emitting external binding-relationships declarations
+[emitted-declarations] Rejecting invalid external binding-relationships wiring
+[emitted-declarations] Consuming relocated binding-relationships declarations
+[emitted-declarations] Emitting external bulk-child-acquisition declarations
+[emitted-declarations] Rejecting invalid external bulk-child-acquisition wiring
+[emitted-declarations] Consuming relocated bulk-child-acquisition declarations
+[emitted-declarations] Emitting external record-completion declarations
+[emitted-declarations] Rejecting invalid external record-completion wiring
+[emitted-declarations] Consuming relocated record-completion declarations
+[emitted-declarations] Emitting external story-message-in-path declarations
+[emitted-declarations] Rejecting invalid external story-message-in-path wiring
+[emitted-declarations] Consuming relocated story-message-in-path declarations
+[emitted-declarations] Emitting external testing-step-types declarations
+[emitted-declarations] Rejecting invalid external testing-step-types wiring
+[emitted-declarations] Consuming relocated testing-step-types declarations
+[emitted-declarations] Emitting external command-args declarations
+[emitted-declarations] Rejecting invalid external command-args wiring
+[emitted-declarations] Consuming relocated command-args declarations
+[emitted-declarations] Emitting external story-concurrency declarations
+[emitted-declarations] Rejecting invalid external story-concurrency wiring
+[emitted-declarations] Consuming relocated story-concurrency declarations
+[emitted-declarations] Emitting external test-parent-message declarations
+[emitted-declarations] Rejecting invalid external test-parent-message wiring
+[emitted-declarations] Consuming relocated test-parent-message declarations
+[emitted-declarations] Emitting external extracted-connected-step declarations
+[emitted-declarations] Rejecting invalid external extracted-connected-step wiring
+[emitted-declarations] Consuming relocated extracted-connected-step declarations
+[emitted-declarations] Emitting external outmessage-steps declarations
+[emitted-declarations] Rejecting invalid external outmessage-steps wiring
+[emitted-declarations] Consuming relocated outmessage-steps declarations
+[emitted-declarations] Emitting external generated-dispatch declarations
+[emitted-declarations] Rejecting invalid external generated-dispatch wiring
+[emitted-declarations] Consuming relocated generated-dispatch declarations
+[emitted-declarations] Emitting external generated-bindings declarations
+[emitted-declarations] Rejecting invalid external generated-bindings wiring
+[emitted-declarations] Consuming relocated generated-bindings declarations
+[emitted-declarations] Emitting external subscription-registry declarations
+[emitted-declarations] Rejecting invalid external subscription-registry wiring
+[emitted-declarations] Consuming relocated subscription-registry declarations
+[emitted-declarations] Emitting external operation-constructor declarations
+[emitted-declarations] Rejecting invalid external operation-constructor wiring
+[emitted-declarations] Consuming relocated operation-constructor declarations
+[emitted-declarations] Emitting external exposed-rest declarations
+[emitted-declarations] Rejecting invalid external exposed-rest wiring
+[emitted-declarations] Consuming relocated exposed-rest declarations
+[emitted-declarations] Emitting external exposed-message declarations
+[emitted-declarations] Rejecting invalid external exposed-message wiring
+[emitted-declarations] Consuming relocated exposed-message declarations
+[emitted-declarations] Emitting external binding-message-policy declarations
+[emitted-declarations] Rejecting invalid external binding-message-policy wiring
+[emitted-declarations] Consuming relocated binding-message-policy declarations
+[emitted-declarations] Emitting external strict-routing declarations
+[emitted-declarations] Rejecting invalid external strict-routing wiring
+[emitted-declarations] Consuming relocated strict-routing declarations
+[emitted-declarations] Emitting external route-path declarations
+[emitted-declarations] Rejecting invalid external route-path wiring
+[emitted-declarations] Consuming relocated route-path declarations
+[emitted-declarations] Emitting external route-step-program declarations
+[emitted-declarations] Rejecting invalid external route-step-program wiring
+[emitted-declarations] Consuming relocated route-step-program declarations
+[emitted-declarations] Emitting external message-free-keyed declarations
+[emitted-declarations] Rejecting invalid external message-free-keyed wiring
+[emitted-declarations] Consuming relocated message-free-keyed declarations
+[emitted-declarations] Emitting external dual-update declarations
+[emitted-declarations] Rejecting invalid external dual-update wiring
+[emitted-declarations] Consuming relocated dual-update declarations
+[emitted-declarations] Emitting external base declarations
+[emitted-declarations] Rejecting invalid external base wiring
+[emitted-declarations] Consuming relocated base declarations
+[emitted-declarations] Emitting external family-layer-members declarations
+[emitted-declarations] Rejecting invalid external family-layer-members wiring
+[emitted-declarations] Consuming relocated family-layer-members declarations
+[emitted-declarations] Emitting external query-factory-modes declarations
+[emitted-declarations] Rejecting invalid external query-factory-modes wiring
+[emitted-declarations] Consuming relocated query-factory-modes declarations
+[emitted-declarations] Emitting external scene-family-construction declarations
+[emitted-declarations] Rejecting invalid external scene-family-construction wiring
+[emitted-declarations] Consuming relocated scene-family-construction declarations
+[emitted-declarations] Emitting external focused declarations
+[emitted-declarations] Rejecting invalid external focused wiring
+[emitted-declarations] Consuming relocated focused declarations
+[emitted-declarations] Emitting external attribute-alias declarations
+[emitted-declarations] Rejecting invalid external attribute-alias wiring
+[emitted-declarations] Consuming relocated attribute-alias declarations
+[emitted-declarations] Emitting external view-helper declarations
+[emitted-declarations] Rejecting invalid external view-helper wiring
+[emitted-declarations] Consuming relocated view-helper declarations
+[emitted-declarations] Emitting external child-placement declarations
+[emitted-declarations] Rejecting invalid external child-placement wiring
+[emitted-declarations] Consuming relocated child-placement declarations
+[emitted-declarations] Emitting external direct-field declarations
+[emitted-declarations] Rejecting invalid external direct-field wiring
+[emitted-declarations] Consuming relocated direct-field declarations
+[emitted-declarations] Emitting external keyed-field declarations
+[emitted-declarations] Rejecting invalid external keyed-field wiring
+[emitted-declarations] Consuming relocated keyed-field declarations
+[emitted-declarations] Emitting external wrapped-keyed-field declarations
+[emitted-declarations] Rejecting invalid external wrapped-keyed-field wiring
+[emitted-declarations] Consuming relocated wrapped-keyed-field declarations
+[emitted-declarations] Emitting external canonical-constructor declarations
+[emitted-declarations] Rejecting invalid external canonical-constructor wiring
+[emitted-declarations] Consuming relocated canonical-constructor declarations
+[emitted-declarations] Emitting external composition-authoring declarations
+[emitted-declarations] Rejecting invalid external composition-authoring wiring
+[emitted-declarations] Consuming relocated composition-authoring declarations
+[emitted-declarations] Emitting external reciprocal-coordination declarations
+[emitted-declarations] Rejecting invalid external reciprocal-coordination wiring
+[emitted-declarations] Consuming relocated reciprocal-coordination declarations
+[emitted-declarations] Emitting external binding-policy declarations
+[emitted-declarations] Rejecting invalid external binding-policy wiring
+[emitted-declarations] Consuming relocated binding-policy declarations
+[emitted-declarations] Emitting external schema-boundary declarations
+[emitted-declarations] Rejecting invalid external schema-boundary wiring
+[emitted-declarations] Consuming relocated schema-boundary declarations
+[emitted-declarations] Emitting external composition-safety declarations
+[emitted-declarations] Rejecting invalid external composition-safety wiring
+[emitted-declarations] Consuming relocated composition-safety declarations
+[emitted-declarations] Emitting external schema-match declarations
+[emitted-declarations] Rejecting invalid external schema-match wiring
+[emitted-declarations] Consuming relocated schema-match declarations
+[emitted-declarations] Emitting external startup-defaults declarations
+[emitted-declarations] Rejecting invalid external startup-defaults wiring
+[emitted-declarations] Consuming relocated startup-defaults declarations
+[emitted-declarations] Checking conservative operation emission metadata
+[emitted-declarations] Checking source and relocated compiler diagnostics
+[compiler-diagnostics] Source and relocated emitted diagnostics passed.
+[emitted-declarations] Checking update authoring documentation
+[emitted-declarations] Checking update authoring documentation: passed
+[emitted-declarations] Checking composable update completions
+[emitted-declarations] Checking composable update completions: passed
+[emitted-declarations] Checking Binding completions
+[emitted-declarations] Checking Binding completions: passed
+[emitted-declarations] Checking Binding configuration documentation
+[emitted-declarations] Checking Binding configuration documentation: passed
+[emitted-declarations] Version 7.1.0-beta; external emission, rejected wiring, relocation, native completion and inferred configuration documentation checks passed.
+
+
+stderr:

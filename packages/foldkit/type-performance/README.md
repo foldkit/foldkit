@@ -1,10 +1,12 @@
 # Block type performance
 
 This harness measures TypeScript allocation counts through Foldkit's published
-declarations. Block-composition fixtures complete their graphs with an
-Application update, `ApplicationComposition.prepareBlock`, `Program.makeElement`,
-and the completed Program's `.provide(...)` method. Other fixtures cover
-Subscription requirements, Machine authoring and shared HTML attributes.
+declarations. The current-authoring workload uses passive `Block.make`
+contracts, split-file builders, record-form `makeLayer` and explicit child
+implementation Layers. Historical composition workloads retain
+`makeDefinition` and `prepareBlock` so their existing ceilings keep the same
+meaning. Other fixtures cover Subscription requirements, Machine authoring
+and shared HTML attributes.
 
 The shared baseline contains the imports and warmup expressions repeated by
 every fixture. Fixture cost is the fixture total minus that baseline for these
@@ -38,6 +40,30 @@ Only update budgets after reviewing an intentional type-level change or a
 coordinated compiler-version or measurement-mode change. The ordinary check
 never changes them and fails when either gated metric exceeds its stored maximum.
 
+## Current Block authoring
+
+`layered-composition-6` composes an editor group with six child placements:
+three required fields, an optional field, Record storage and a standard keyed
+Instance array. The group has independently authored contract, Composition,
+init, update, Steps, view and Layer modules under `layered/`. A routed-only host
+consumes the group's OutMessage and completes `Program.makeElement`.
+
+The workload checks ordinary and connected `combineSteps`, generated InMessage
+methods, an emitting child policy, shared update composition, deferred child
+initialization, dynamic `Binding.create`, view inputs, and runtime handler
+Service requirements. The public Program assertions distinguish construction
+requirements from execution requirements before and after Service provision.
+It measures current authoring in addition to the historical eight workloads;
+it does not replace or recalibrate those workloads.
+
+The fixture's initial ceiling is the exact observed single-checker delta on
+the reviewed preview declarations. It has no additional tolerance. Measure it
+independently with:
+
+```sh
+pnpm check:block-type-performance layered-composition-6
+```
+
 ## Measurement mode
 
 The baseline and every fixture run with TypeScript's `--singleThreaded` option.
@@ -45,8 +71,8 @@ This keeps one checker's type cache for the workload. Parallel workers can each
 check the same dependency, so changing which worker receives a source file can
 increase aggregate counts without increasing its underlying type work.
 
-The TypeScript version and checker mode are part of the metric. All eight
-ceilings were calibrated together against the current candidate and the
+The TypeScript version and checker mode are part of the metric. The eight
+historical ceilings were calibrated together against the current candidate and the
 previously accepted declarations. Each ceiling admits the greater observed
 single-checker count for its metric, without an additional tolerance. The
 fixture sources and their completion contracts are unchanged.
@@ -190,13 +216,23 @@ type-level change is intended to improve authoring latency:
 node packages/foldkit/scripts/profile-block-language-service.ts --runs 5 > /tmp/foldkit-block-language-service.json
 ```
 
+This is an emitted-package workload: the Website and Workspace documents are
+source files, while their workspace-linked `foldkit` imports resolve through
+the package exports to `packages/foldkit/dist/**/*.d.ts`. That is the default
+consumer mode. A repository-only source control must instead use an isolated
+configuration that aliases every used `foldkit` entry point to
+`packages/foldkit/src`; the current harness does not provide that mode. Do not
+label an ordinary run as source-mode or mix the two resolution modes within a
+sample.
+
 The benchmark starts a fresh pinned native TypeScript language server for each
-Website hover, go-to-definition, Route completion, Binding member completion,
-and changed URL workflow scenario. Route completion retains the narrowed
+Website hover, `ApplicationBlock.makeLayer` go-to-definition, Route completion,
+Binding member completion, changed URL workflow, and cold Layer diagnostic
+scenario. Route completion retains the narrowed
 `previousRoute.` query. Binding completion uses valid
 `packages/website/src/update/handleChangedUrl.ts`, placing the cursor after
-`SearchBinding.` in `SearchBinding.informRouteChanged()` and requiring
-`informRouteChanged` and `embedView`. It records first and warm requests before
+`SearchBinding.` in `SearchBinding.informOfRouteChange()` and requiring
+`informOfRouteChange` and `embedView`. It records first and warm requests before
 and after a ranged newline edit.
 
 The changed URL workflow hovers `SearchBinding` at that call, repeats the hover
@@ -223,35 +259,42 @@ also records separate lockfile and benchmark-script hashes and the compiler,
 server, Node, and platform versions. Set `--timeout-ms` when profiling a graph
 that legitimately takes longer than the default 60 seconds. Missing or empty
 hover contents, definitions, server identity, or expected completion labels fail
-the run. The actual-file Binding hover requires `InitializedBinding` and rejects
-a direct `any`, `unknown`, or `never` type. When the Owner is visible, it must be
-`Search`. Checked assembly headers can hide the Owner through hover truncation;
-in that case, the guard requires the recorded Schema header and field fragments.
-Expanded and abbreviated nested TaggedUnion displays are both accepted while the required Binding and Schema field fragments remain checked. This validates the visible Binding shape, not full ownership. Framework source
+the run. The actual-file Binding hover requires the current descriptor Binding
+surface and rejects a direct `any`, `unknown`, or `never` type. When the Owner is
+visible, it must be `Search`. The hover must also expose either the current
+expanded Search Model fields or its named `SearchBlock`/`Model` boundary.
+Expanded and abbreviated nested TaggedUnion displays are both accepted while
+the required Binding and Schema evidence remains checked. This validates the
+visible Binding shape, not full ownership. Framework source
 and emitted-declaration tests enforce ownership. Missing route errors or errors
 remaining after restoration fail instead of recording an artificially fast
 response.
 
-### Message constructor access
+### Passive Block and Layer access
 
-A completed Block forwards its local Message constructors through its composed
-Message Schema. Reading a constructor through that Schema can demand the child
-graph even when reading the original local constructor is inexpensive. Profile
-these two access paths separately:
+The current `ApplicationBlock` is a passive public contract. Its local Message
+constructors should not demand the implementation graph. Profile the local
+Message namespace, the same constructor through the passive Block, and the
+separate `makeLayer` completion boundary:
 
 ```sh
 node packages/foldkit/scripts/profile-block-language-service.ts --scenario message-constructors --runs 3 > /tmp/foldkit-message-constructors.json
 ```
 
-Each case opens a minimal document at the Website's `src/entry.ts` URI. Both
+The two Message cases open a minimal document at the Website's `src/entry.ts`
+URI. Both
 import `ApplicationBlock` and the local `Message`, keep both imports in use, and
-export `onUrlChange`. Only the accessed expression differs:
-`Message.ChangedUrl` or `ApplicationBlock.Message.ChangedUrl`. Each case starts a
-fresh native server and requires a full diagnostic response with no errors.
+export `onUrlChange`. Only the accessed expression differs: `Message.ChangedUrl`
+or `ApplicationBlock.Message.ChangedUrl`. A third fresh server pulls diagnostics
+for the real Website `layer.ts` record passed to `ApplicationBlock.makeLayer`.
+Each response must be a full diagnostic report with no errors.
 These are cold type-checking measurements, not post-edit or application runtime
-measurements. The output records both document texts, their hashes, the selected
-scenario, and compiler and workspace identities. Format version 3 adds this pair
-of cases. The default `all` selection also retains the existing workloads.
+measurements. The output records the document texts, hashes, selected scenario,
+and compiler and workspace identities. Format version 6 distinguishes passive
+Block access from the Layer completion boundary. Historical `completed`
+constructor measurements used the retired assembly API and are not comparable
+to this workload. The default `all` selection also retains the existing
+workflows.
 
 The benchmark has no CI latency threshold. Run baseline and candidate samples
 on the same idle host and compare their metadata before comparing medians.
@@ -259,6 +302,35 @@ Inspect post-edit samples and slow requests alongside medians. Repeat small
 compiler-count differences with identical source and emitted declarations.
 Wall-clock results vary with CPU contention, filesystem cache state, profiling,
 and language-server scheduling. Keep captured JSON outside the source tree.
+
+### Profile a Layer diagnostic
+
+The pinned native compiler supports request-scoped CPU profiles. Run the profile
+scenario on an idle host after builds, tests and browser timing have stopped:
+
+```sh
+NODE_DISABLE_COMPILE_CACHE=1 node packages/foldkit/scripts/profile-block-language-service.ts --scenario layer-profile --runs 1 --profile-dir /tmp/foldkit-layer-profile-new --timeout-ms 60000 > /tmp/foldkit-layer-profile.json
+node packages/foldkit/scripts/summarize-go-pprof.ts --top 40 /tmp/foldkit-layer-profile-new/full/*-cpuprofile.pb.gz
+```
+
+The profile directory must not exist. This mode requires `--runs 1` and starts
+five fresh servers: passive Block only, real imports in plain records, root
+completion without provision, the full Layer, and the full Layer opened before
+the profiling barrier. The imported-graph control includes both root plans and
+child Layer exports; it does not isolate them from one another.
+
+Each window requires clean diagnostics and the exact expected source hash.
+The first four sources must differ, while the full and post-open sources must
+match. Profiles start immediately around the selected request window and stop
+before server cleanup. Returned files must remain in their requested directory.
+The capture records executable, source, harness and profile hashes. Output
+format 7 adds these profiles; historical format 6 timing captures retain their
+original meaning.
+
+The decoder reports flat costs and overlapping cumulative stack presence.
+Cumulative columns must not be added, and sampled CPU across concurrent Go
+work can exceed wall time. Use ordinary unprofiled runs for latency comparisons;
+profiles explain a request rather than replace those measurements.
 
 ### Workspace example
 
@@ -268,16 +340,17 @@ Profile the workspace's issue-list and routed-editor composition with:
 node packages/foldkit/scripts/profile-block-language-service.ts --scenario workspace --runs 3 > /tmp/foldkit-workspace-language-service.json
 ```
 
-The workspace selection starts four fresh native servers per run. It measures
+The Workspace selection starts four fresh native servers per run. It measures
 `IssueDetailsBinding` hover in `examples/workspace/src/composition.ts`, Binding
-member completion at the real initializer call in `src/update.ts`, and completed
-`ApplicationBlock` member completion at its routing callback in `src/entry.ts`.
+member completion at the real `embedView` call in `src/view/workspace.ts`, and
+passive `ApplicationBlock` member completion at its routing callback in
+`src/entry.ts`.
 Each request has first and warm samples, then repeats after an incremental
 newline edit. Completion must include `requestSave`, `embedView` and `init` on
-the Binding, and `Model`, `Message`, `init`, `makeView` and `replaceEffectsLayer`
-on the completed Block.
+the Binding, and `Model`, `Message`, `makeComposition` and `makeLayer` on the
+passive Block.
 
-The fourth server checks `src/issueDetail/update.ts`. It requires clean full
+The fourth server checks `src/blocks/issueDetail/update.ts`. It requires clean full
 diagnostics, changes the production draft writer from `title: () => value` to
 `title: () => value.length`, and requires exactly one TS2322 error at the `title`
 property. Restoring `value` must clear the error. Edits stay in server memory,
@@ -296,8 +369,9 @@ one-second timeout, and samples do not overlap. Sampled RSS can miss peaks
 between samples and does not include the benchmark client or editor. There is
 no RSS threshold, and a bounded run does not establish long-session stability.
 
-Format version 5 records memory sample phases and final workload coverage. The
-`all` selection runs the Website workloads described above. Workspace workload
+Format version 6 retargets the workload to the passive Block and Layer API;
+older assembly-era results remain historical evidence and are not comparable.
+The `all` selection runs the Website workloads described above. Workspace workload
 hashes and Git dirty state include the example's TypeScript files, package
 manifest, and TypeScript configuration. Preserve the compiler budgets when comparing
 editor measurements, use the same idle host, and record the exact app revision

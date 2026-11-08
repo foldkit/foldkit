@@ -9,7 +9,7 @@ export const HomeKey = Symbol('Home')
 export const HomeBlock = Block.make('Home', {
   key: HomeKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  view: { Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,
   OutMessage,

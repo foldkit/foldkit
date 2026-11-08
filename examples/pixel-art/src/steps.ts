@@ -6,7 +6,8 @@ import { makeFieldsStep, makeStep } from './block'
 import { saveCanvas } from './command'
 import { GridSizeConfirmDialogBinding } from './composition'
 import { createEmptyGrid, isGridEmpty } from './grid'
-import { type PaletteIndex, type Tool } from './model'
+import { type PaletteIndex } from './model'
+import { type Tool } from './tool'
 
 export const selectTool = (tool: Tool) =>
   makeFieldsStep(() => ({ tool: () => tool }))

@@ -1,0 +1,21 @@
+{
+  "at": "2026-11-08T02:22:49.897Z",
+  "platform": "darwin",
+  "release": "25.6.0",
+  "cpu": "Apple M1 Max",
+  "logicalCpus": 10,
+  "aggregateCpuTimes": {
+    "user": 401105890,
+    "nice": 0,
+    "sys": 145894120,
+    "idle": 2915203680,
+    "irq": 0
+  },
+  "loadAverage": [
+    2.58203125,
+    2.79541015625,
+    3.07568359375
+  ],
+  "freeMemory": 14905917440,
+  "totalMemory": 68719476736
+}

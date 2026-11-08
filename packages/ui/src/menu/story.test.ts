@@ -36,7 +36,7 @@ import {
   resolveTypeaheadMatch,
 } from './menu.js'
 
-const RefinedMenu = makeBlock<'Edit' | 'Duplicate' | 'Delete'>()
+const RefinedMenu = makeBlock(Schema.Literals(['Edit', 'Duplicate', 'Delete']))
 const button = Scene.selector('#test-button')
 
 const acknowledgeFocusItems = Story.Command.resolve(

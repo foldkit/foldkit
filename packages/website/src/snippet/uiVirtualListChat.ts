@@ -49,7 +49,6 @@ export const MessageListExampleKey = Symbol('MessageListExample')
 export const MessageListExampleBlock = Block.make('MessageListExample', {
   key: MessageListExampleKey,
   InitArgs: Schema.Tuple([Schema.Array(ChatMessage)]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

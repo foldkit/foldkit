@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-11-08T05:37:22.997Z",
+  "captureDriverExitCodes": {
+    "baseline-authenticated": 0,
+    "candidate-authenticated": 0
+  },
+  "driverFinallyChecks": "Both original driver invocations exited after browser.close, server.close and the loopback port availability assertion.",
+  "portReadback": [
+    {
+      "port": 38631,
+      "host": "127.0.0.1",
+      "available": true
+    },
+    {
+      "port": 38631,
+      "host": "::1",
+      "available": true
+    },
+    {
+      "port": 38632,
+      "host": "127.0.0.1",
+      "available": true
+    },
+    {
+      "port": 38632,
+      "host": "::1",
+      "available": true
+    }
+  ]
+}

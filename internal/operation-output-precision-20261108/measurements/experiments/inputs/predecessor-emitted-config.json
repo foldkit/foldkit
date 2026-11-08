@@ -1,0 +1,13 @@
+{
+  "extends": "/private/tmp/foldkit-operation-output-precision-20261108/packages/ui/declaration-tests/tsconfig.popover-close-without-restoring-focus.source.json",
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "outDir": "/private/tmp/foldkit-operation-output-precision-emitted"
+  },
+  "files": [
+    "/private/tmp/foldkit-operation-output-precision-20261108/packages/ui/declaration-tests/popover-close-without-restoring-focus.accepted.ts"
+  ]
+}

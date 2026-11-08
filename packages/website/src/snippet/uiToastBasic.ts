@@ -37,7 +37,6 @@ export const NotificationsKey = Symbol('Notifications')
 export const NotificationsBlock = Block.make('Notifications', {
   key: NotificationsKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

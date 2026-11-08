@@ -1,0 +1,91 @@
+{
+  "formatVersion": 1,
+  "createdAt": "2026-11-08T06:46:08.794Z",
+  "candidateCommit": "cc087ad227a3c8e6d56632ea3c41130e7a8f71b5",
+  "parentCommit": "0211810fd43b5af85bd40fde3bc9aab009020c7a",
+  "status": "failed-final-compiler-ceiling",
+  "pushExitCode": 1,
+  "uploadOccurred": false,
+  "disposition": "The isolated passing counter table does not reproduce its final frozen declaration state. Preserve the original claim and actual normal-hook failure separately; neither is final passing evidence.",
+  "actualLayered6": {
+    "instantiations": 2707114,
+    "maxInstantiations": 2707124,
+    "types": 336422,
+    "maxTypes": 336291,
+    "symbols": 239006
+  },
+  "entries": [
+    {
+      "path": "original-REPORT.md.gz",
+      "origin": "cc087ad227a3c8e6d56632ea3c41130e7a8f71b5:internal/view-default-proof/REPORT.md",
+      "stored": {
+        "bytes": 3062,
+        "sha256": "0790d51b3460a33f5fd3fc37d20d4f3f604040e5ffd28d6dcfc097fabb19a2b1"
+      },
+      "original": {
+        "bytes": 7211,
+        "sha256": "e1a8dd9bb140bdb3e644baf8efce6e4a9843343f54f84f65dbde4820979b1a17"
+      }
+    },
+    {
+      "path": "original-manifest.json.gz",
+      "origin": "cc087ad227a3c8e6d56632ea3c41130e7a8f71b5:internal/view-default-proof/manifest.json",
+      "stored": {
+        "bytes": 2022,
+        "sha256": "bb4a3ae65dfe5471b7a52bf8790e9c86cf0d2d7d25a936ef44be5c353474cad0"
+      },
+      "original": {
+        "bytes": 4592,
+        "sha256": "306070b56cd0a3fa463c41d0e57ebde758c2bd560633db540bd4bf968e9920ca"
+      }
+    },
+    {
+      "path": "original-owned-paths.txt.gz",
+      "origin": "cc087ad227a3c8e6d56632ea3c41130e7a8f71b5:internal/view-default-proof/owned-paths.txt",
+      "stored": {
+        "bytes": 2187,
+        "sha256": "fb8803c1eff61ac52658d587749fe57d300994ce5b5759f17f9c8ea270b30184"
+      },
+      "original": {
+        "bytes": 11962,
+        "sha256": "f5feb9852bc25989c522d733c350b535bd61e66d7dc1a816b417091b430c82b7"
+      }
+    },
+    {
+      "path": "original-owned-sha256.txt.gz",
+      "origin": "cc087ad227a3c8e6d56632ea3c41130e7a8f71b5:internal/view-default-proof/owned-sha256.txt",
+      "stored": {
+        "bytes": 10748,
+        "sha256": "b792c14de67bac05ea40f392dd566fc5419aacf47bcd82febcb5956a72fd96e9"
+      },
+      "original": {
+        "bytes": 26350,
+        "sha256": "c95830b9e8a4abd5fab6bd333b6472f5085949ec56bed42bc85923a816fa2ae8"
+      }
+    },
+    {
+      "path": "original-feature.patch.gz",
+      "origin": "git diff cc087ad227a3c8e6d56632ea3c41130e7a8f71b5^ cc087ad227a3c8e6d56632ea3c41130e7a8f71b5",
+      "stored": {
+        "bytes": 68570,
+        "sha256": "64e7281235fee81d193459b92fc174c3ba20df8b6f4b47f9dc6418ac30e89e29"
+      },
+      "original": {
+        "bytes": 345795,
+        "sha256": "e83cc7913a048927ba0a0d1f59cc7e3a72190da0f207a12874429f05c9e5bdb6"
+      }
+    },
+    {
+      "path": "normal-push.log.gz",
+      "origin": "/private/tmp/foldkit-overnight-push-20261108.log",
+      "stored": {
+        "bytes": 27429,
+        "sha256": "316080420e8d0a6f5d7a0aba5cc3bcd600844676f3f43bfdcfc9b00ffecedfca"
+      },
+      "original": {
+        "bytes": 248133,
+        "sha256": "083732a6372d67ca2639f84236360e2c8c8c340da9ba8e734a105a5bbe650b6d"
+      }
+    }
+  ]
+}

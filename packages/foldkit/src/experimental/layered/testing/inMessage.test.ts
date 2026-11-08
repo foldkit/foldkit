@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Schema, Tuple } from 'effect'
 import { expect, expectTypeOf, test } from 'vitest'
 
 import { it } from '@effect/vitest'
@@ -276,6 +276,43 @@ test('the scoped inMessageUpdate adapter validates schema and uses separate inpu
       view: { kind: 'Element' },
     })
     const block = ContextDefinition.contract
+    const contextSubject = {
+      block,
+      updateContext: Tuple.make(1),
+      inMessageContext: Tuple.make('remote'),
+    }
+    const storyInputStep: Story.Step<typeof contextSubject> = Story.inMessage(
+      InMessage.InformedOfClear(),
+    )
+    const sceneInputStep: Scene.Step<typeof contextSubject> = Scene.inMessage(
+      InMessage.InformedOfClear(),
+    )
+    const routedSubject = {
+      ...contextSubject,
+      routing: {
+        onUrlChange: () => Message.CompletedRecordValue({ value: 1 }),
+      },
+    }
+    const navigationStep: Scene.Step<typeof routedSubject> =
+      Scene.Navigation.changedUrl('/next')
+    void storyInputStep
+    void sceneInputStep
+    void navigationStep
+
+    // @ts-expect-error An extracted Story helper retains the selected InMessage contract.
+    const wrongStoryInput: Story.Step<typeof contextSubject> = Story.inMessage(
+      Message.CompletedRecordValue({ value: 1 }),
+    )
+    // @ts-expect-error An extracted Scene helper retains the selected InMessage contract.
+    const wrongSceneInput: Scene.Step<typeof contextSubject> = Scene.inMessage(
+      Message.CompletedRecordValue({ value: 1 }),
+    )
+    // @ts-expect-error A navigation step retains the subject's routing requirement.
+    const missingRouting: Scene.Step<typeof contextSubject> = navigationStep
+    void wrongStoryInput
+    void wrongSceneInput
+    void missingRouting
+
     expect(
       Effect.isEffect(
         Story.story(

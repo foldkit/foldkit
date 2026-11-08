@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "sourceBase": "a0b182c8191f7cbd40f354b95f73531f1c22083d",
+  "migrationGuidanceCommit": "cb3820b8636945c5bd074460b21e92c6a11752bf",
+  "scope": "Selected final regression and verification receipts, not a complete archive of draft fixture checks. No performance interpretation.",
+  "inputs": [
+    {
+      "path": "packages/foldkit/src/update/update.ts",
+      "bytes": 102979,
+      "sha256": "65f5d8c55d2b653133e3edebf8b2e9afe98b33c1b6b3e44b3e1212a7a08f8cb0"
+    },
+    {
+      "path": "packages/foldkit/src/update/operationOutput.test.ts",
+      "bytes": 3558,
+      "sha256": "833e0d83d1240976dfc3c4f9504caf7a40f12c00e1600264df00516dcab317bd"
+    },
+    {
+      "path": "packages/foldkit/src/update/connectedComposition.test.ts",
+      "bytes": 5380,
+      "sha256": "24afd751791c54970aff5a2ab1a5dae2cc03832aa3d9c5b37431db89f10e222d"
+    },
+    {
+      "path": "packages/foldkit/src/block/operationGraph.test.ts",
+      "bytes": 18726,
+      "sha256": "ed299fe6b0803a866d45ab328db17e299515620c61bdfcb5a6e3877c2b0fc9a0"
+    }
+  ],
+  "files": [
+    {
+      "stored": "seed-loss-mutant.log.gz",
+      "rawBytes": 9113,
+      "rawSha256": "4dac3d6ccbea47a132e6e523ae53e2fe8a0a0ca37d5ca82bff7d9abf4a697fa5",
+      "storedBytes": 1233,
+      "storedSha256": "2ae70083ffe2110d127a9cda8dd6538465807a4f2653aea2ce1f8943e63bc508",
+      "exitCode": 1,
+      "interpretation": "Final five regression cases fail; sixteen existing focused cases pass."
+    },
+    {
+      "stored": "seed-fix-restored.log.gz",
+      "rawBytes": 332,
+      "rawSha256": "cec8e676619277cfc1f4ec081ee6f0bf5dedb2ac27ad7b942da50170cdcc1012",
+      "storedBytes": 241,
+      "storedSha256": "d8954e202f747be227ff38bc3561e213a91e36b8a2fb4c862011ff8a20b31eaf",
+      "exitCode": 0,
+      "interpretation": "All twenty-one focused cases pass after restoration."
+    },
+    {
+      "stored": "first-core-run.log.gz",
+      "rawBytes": 56441,
+      "rawSha256": "a851785f7ed9a36e9b559f6a3f07b2a7b1966d3c8a54a9ed2119ceba8640fbdd",
+      "storedBytes": 5331,
+      "storedSha256": "8b7ed999a2728ae5065718c7c275ee01afe4b41aa96d1ebf76c476222eb0de72",
+      "exitCode": 1,
+      "interpretation": "Initial full run exposes the older cached-result rebasing expectation."
+    },
+    {
+      "stored": "final-core-run.log.gz",
+      "rawBytes": 56243,
+      "rawSha256": "56d02ad5d1fe7c59111b514909919a2265845a3552652a0e8f9021a864450862",
+      "storedBytes": 5257,
+      "storedSha256": "b45981397e3af79144faf70d1e2e8b981f5f2fb97d9963c2d1fc15c0745cb38f",
+      "exitCode": 0,
+      "interpretation": "Final core run: 4369 passed, one skipped."
+    },
+    {
+      "stored": "final-core-types.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedSha256": "abfbb86f9f5ddfbd9fc1a72c43ab384702ce8bae86b60f3324748485e235e61e",
+      "exitCode": 0,
+      "interpretation": "Final TypeScript 7 core source check."
+    },
+    {
+      "stored": "migration-snippet-types.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedSha256": "abfbb86f9f5ddfbd9fc1a72c43ab384702ce8bae86b60f3324748485e235e61e",
+      "exitCode": 0,
+      "interpretation": "Public built-surface migration snippet check."
+    },
+    {
+      "stored": "website-build.log.gz",
+      "rawBytes": 139064,
+      "rawSha256": "e617f4dffcfb2b42d92a36ae8c4dd2c54d73bd742884f67b0718200d8cd1cfa6",
+      "storedBytes": 13894,
+      "storedSha256": "aa8fae70d6a541e27cdb17a8e2c5fd957fa3e4df2e0d150871163f7a3f6779ef",
+      "exitCode": 0,
+      "interpretation": "Website build includes active migration pages and the new snippet."
+    }
+  ]
+}

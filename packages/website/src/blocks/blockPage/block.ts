@@ -9,7 +9,7 @@ export const BlockPageKey = Symbol('BlockPage')
 export const BlockPageBlock = Block.make('BlockPage', {
   key: BlockPageKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  view: { Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,
 })

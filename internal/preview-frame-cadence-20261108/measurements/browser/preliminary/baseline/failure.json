@@ -1,0 +1,12 @@
+{
+  "label": "baseline",
+  "sourceRoot": "/private/tmp/foldkit-r11-r19-prototype-20261108.OnQh5N/baseline",
+  "mode": "Vite source aliases; functional browser cadence only",
+  "appSha256": "a88c866addfd584e5a980e2fce1427d9cdc9435eb4ce4ef20bf2c372e1a95d28",
+  "driverSha256": "e04a45d69b8052e97067ef9e9e15671c18d3958e8990d433c742c8533d19bf90",
+  "rendererSha256": "f6cfca5de37e6a8fea745d600d3d7bea07ccd4df0afab68c99d683714329e805",
+  "streamSha256": "b6056947ef840c2ac907d0d5b40942a7a5130f663081c971dd660ed6abc43cd1",
+  "port": 38631,
+  "error": "TypeError: Cannot read properties of undefined (reading 'launch')",
+  "stack": "TypeError: Cannot read properties of undefined (reading 'launch')\n    at file:///private/tmp/foldkit-frame-cadence-browser-20261108/run.mjs:83:28\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+}

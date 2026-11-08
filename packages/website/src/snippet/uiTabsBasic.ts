@@ -7,7 +7,7 @@ import { Tabs } from '@foldkit/ui'
 const Framework = Schema.Literals(['Foldkit', 'React', 'Elm'])
 type Framework = typeof Framework.Type
 
-const FrameworkTabs = Tabs.makeBlock<Framework>()
+const FrameworkTabs = Tabs.makeBlock(Framework)
 
 // Add fields to your Model for the Tabs Block and the active tab. The
 // Block keeps private keyboard-focus state; the parent owns the active
@@ -26,7 +26,6 @@ export const TabsExampleKey = Symbol('TabsExample')
 export const TabsExampleBlock = Block.make('TabsExample', {
   key: TabsExampleKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

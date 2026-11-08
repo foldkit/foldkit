@@ -8,6 +8,13 @@ import {
   pipe,
 } from 'effect'
 
+import type {
+  AnyBinding,
+  BlockOfBinding,
+  InspectionOfBinding,
+} from '../block/binding.js'
+import type { BindingParent } from '../block/bindingConnection.js'
+import type { PrivateDelivery } from '../experimental/constructed/contract.js'
 import {
   type InMessageStep,
   runInMessageStep,
@@ -16,9 +23,17 @@ import {
   type MessageDeclaration,
   type Registrations,
   type RegistryEntries,
+  type Subscription as RuntimeSubscription,
   __messageDeclarations as subscriptionMessageDeclarations,
 } from '../subscription/subscription.js'
 import { commandArgs } from './bindingMatcher.js'
+import type {
+  BindingPath,
+  ParentOwnerOf,
+  PathBinding,
+  PathLeafBinding,
+  ValidateBindingPath,
+} from './bindingPath.js'
 import type {
   AnyCommand,
   AnyCommandInstance,
@@ -27,7 +42,6 @@ import type {
   ResolvableCommandDefinition,
   ResolvableCommandMatcher,
   Resolver,
-  ResolverEntry,
   SimulationUpdateReturn,
   SubscriptionEmissionSource,
 } from './internal.js'
@@ -45,6 +59,12 @@ import {
   resolveByMatcher,
   resolveSubscriptionMessage,
 } from './internal.js'
+import type {
+  GeneratedBindingConstraint,
+  KeyOfBinding,
+  KeyedBindingConstraint,
+  StaticBindingConstraint,
+} from './toParentMessage.js'
 
 export type { AnyCommand, CommandMatcher, Resolver }
 export { type InitStep, init } from './internal.js'
@@ -92,6 +112,18 @@ export type SubscriptionMessageStep<Message> = Readonly<{
   message: unknown
 }>
 
+/** A passive Subscription Message step resolved by a Block-aware Story. */
+export type BlockSubscriptionMessageStep<DispatchMessage, Entry, Message> =
+  Readonly<{
+    _tag: 'BlockSubscriptionMessageStep'
+    /** @internal Carries the selected root dispatch contract. */
+    _phantomDispatchMessage?: DispatchMessage
+    /** @internal Carries the registered source contract. */
+    _phantomEntry?: Entry
+    entry: Entry
+    message: Message
+  }>
+
 /** A typed OutMessage assertion step produced by {@link expectOutMessage}. */
 export type OutMessageStep<OutMessage> = Readonly<{
   _tag: 'OutMessageStep'
@@ -107,6 +139,7 @@ export interface StoryStepsStep<
   Message,
   OutMessage,
   InMessage = never,
+  BlockSubscriptionStep = never,
 > extends Readonly<{
   _tag: 'StoryStepsStep'
   /** @internal Carries the produced Model type through a reusable step group. */
@@ -119,8 +152,18 @@ export interface StoryStepsStep<
   _phantomOutMessage?: OutMessage
   /** @internal Retains the separate input requirement of grouped steps. */
   _phantomInMessage?: InMessage
+  /** @internal Retains graph-backed Subscription requirements. */
+  _phantomBlockSubscriptionStep?: BlockSubscriptionStep
   [AssertModels]?: (before: any, after: any) => void
-  steps: ReadonlyArray<StoryStep<any, any, any, unknown>>
+  steps: ReadonlyArray<
+    StoryStep<
+      any,
+      any,
+      any,
+      unknown,
+      BlockSubscriptionMessageStep<any, any, any>
+    >
+  >
 }> {}
 
 /** A single step in a story. */
@@ -129,12 +172,14 @@ export type StoryStep<
   Message = unknown,
   OutMessage = unknown,
   InMessage = never,
+  BlockSubscriptionStep = never,
 > =
   | GivenStep<NoInfer<Model>>
   | ModelStep<NoInfer<Model>>
   | MessageStep<NoInfer<Message>>
   | MessageWithStep<NoInfer<Model>, NoInfer<Message>>
   | SubscriptionMessageStep<NoInfer<Message>>
+  | NoInfer<BlockSubscriptionStep>
   | OutMessageStep<NoInfer<OutMessage>>
   | ([InMessage] extends [never] ? never : InMessageStep<NoInfer<InMessage>>)
   | StoryStepsStep<
@@ -142,7 +187,8 @@ export type StoryStep<
       (model: NoInfer<Model>) => void,
       NoInfer<Message>,
       NoInfer<OutMessage>,
-      NoInfer<InMessage>
+      NoInfer<InMessage>,
+      NoInfer<BlockSubscriptionStep>
     >
   | ((
       simulation: StorySimulation<any, any, any>,
@@ -162,7 +208,6 @@ type InternalStorySimulation<
       model: Model,
       message: Message,
     ) => SimulationUpdateReturn<Model, OutMessage>
-    resolvers: ReadonlyArray<ResolverEntry>
   }>
 
 const toInternal = <Model, Message, OutMessage>(
@@ -297,6 +342,188 @@ interface SubscriptionMessages<Messages extends ReadonlyArray<Schema.Top>> {
   readonly messages: Messages
 }
 
+const SubscriptionPathSelectionTypeId = Symbol(
+  'foldkit/Story/SubscriptionPathSelection',
+)
+
+/** A Subscription source selected through one checked Block Binding path. */
+export interface SubscriptionPathSelection<
+  ParentOwner,
+  Source extends SubscriptionMessages<ReadonlyArray<Schema.Top>>,
+> {
+  readonly [SubscriptionPathSelectionTypeId]: Readonly<{
+    path: ReadonlyArray<unknown>
+    source: Source
+  }>
+  readonly messages: Source['messages']
+  /** @internal Carries the root owner selected by the Binding path. */
+  readonly _phantomParentOwner?: ParentOwner
+}
+
+/** @internal Reads a passive Subscription path selection. */
+export const __subscriptionPathSelection = (
+  value: unknown,
+):
+  | Readonly<{
+      path: ReadonlyArray<unknown>
+      source: SubscriptionMessages<ReadonlyArray<Schema.Top>>
+    }>
+  | undefined => {
+  if (!Predicate.isObject(value)) {
+    return undefined
+  }
+
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return Reflect.get(value, SubscriptionPathSelectionTypeId) as
+    | Readonly<{
+        path: ReadonlyArray<unknown>
+        source: SubscriptionMessages<ReadonlyArray<Schema.Top>>
+      }>
+    | undefined
+}
+
+type BindingChildOwnerId<Binding extends AnyBinding> =
+  BlockOfBinding<Binding> extends Readonly<{
+    owner: Readonly<{ id: infer Id extends string }>
+  }>
+    ? Id
+    : never
+
+type BindingSubscriptions<Binding extends AnyBinding> =
+  InspectionOfBinding<Binding> extends Readonly<{
+    subscriptions: infer Subscriptions
+  }>
+    ? Subscriptions
+    : never
+
+type OwnerQualifiedBindingSubscriptionSource<Binding extends AnyBinding> =
+  RuntimeSubscription<any, any, any, any> &
+    SubscriptionMessages<ReadonlyArray<Schema.Top>> &
+    Readonly<{ name: `${BindingChildOwnerId<Binding>}/${string}` }>
+
+type BindingSubscriptionSource<Binding extends AnyBinding> = [
+  keyof RegistryEntries<BindingSubscriptions<Binding>>,
+] extends [never]
+  ? OwnerQualifiedBindingSubscriptionSource<Binding>
+  : EmissionSourceOf<BindingSubscriptions<Binding>> &
+      SubscriptionMessages<ReadonlyArray<Schema.Top>>
+
+/** Selects a registered Subscription source through a checked Binding path. */
+function selectSubscriptionPath<
+  const Path extends BindingPath,
+  const Source extends BindingSubscriptionSource<
+    Extract<PathLeafBinding<Path>, AnyBinding>
+  >,
+>(
+  path: Path & ValidateBindingPath<Path>,
+  source: Source,
+): SubscriptionPathSelection<ParentOwnerOf<PathBinding<Path[0]>>, Source>
+function selectSubscriptionPath<
+  const Binding extends AnyBinding & BindingParent<unknown>,
+  const Source extends BindingSubscriptionSource<Binding>,
+>(
+  binding: Binding &
+    GeneratedBindingConstraint<Binding> &
+    StaticBindingConstraint<Binding>,
+  source: Source,
+): SubscriptionPathSelection<ParentOwnerOf<Binding>, Source>
+function selectSubscriptionPath<
+  const Binding extends AnyBinding & BindingParent<unknown>,
+  const Source extends BindingSubscriptionSource<Binding>,
+>(
+  binding: Binding &
+    GeneratedBindingConstraint<Binding> &
+    KeyedBindingConstraint<Binding>,
+  key: KeyOfBinding<Binding>,
+  source: Source,
+): SubscriptionPathSelection<ParentOwnerOf<Binding>, Source>
+function selectSubscriptionPath(
+  bindingOrPath: object,
+  keyOrSource: unknown,
+  maybeSource?: unknown,
+): unknown {
+  const isPath = globalThis.Array.isArray(bindingOrPath)
+  const isKeyed = maybeSource !== undefined
+  const path = isPath
+    ? bindingOrPath
+    : isKeyed
+      ? [{ binding: bindingOrPath, key: keyOrSource }]
+      : [bindingOrPath]
+  const source = isKeyed ? maybeSource : keyOrSource
+
+  if (path.length === 0 || !Predicate.isObject(source)) {
+    throw new Error(
+      '[foldkit] Story.Subscription.at requires a nonempty Binding path and registered Subscription source.',
+    )
+  }
+
+  return {
+    [SubscriptionPathSelectionTypeId]: { path, source },
+    messages: Reflect.get(source, 'messages'),
+  }
+}
+
+type RawBlockSubscriptionSource = RuntimeSubscription<any, any, any, any> &
+  SubscriptionMessages<ReadonlyArray<Schema.Top>>
+
+type BlockSubscriptionSource =
+  | RawBlockSubscriptionSource
+  | SubscriptionPathSelection<
+      any,
+      SubscriptionMessages<ReadonlyArray<Schema.Top>>
+    >
+
+type DispatchMessageOfSubscriptionSource<Entry> =
+  Entry extends SubscriptionPathSelection<infer ParentOwner, any>
+    ? PrivateDelivery<ParentOwner>
+    : never
+
+const emitBlockSubscriptionMessage = <
+  const Entry extends BlockSubscriptionSource,
+>(
+  entry: Entry,
+  message: NoInfer<Entry['messages'][number]['Type']>,
+): BlockSubscriptionMessageStep<
+  DispatchMessageOfSubscriptionSource<Entry>,
+  Entry,
+  Entry['messages'][number]['Type']
+> => ({
+  _tag: 'BlockSubscriptionMessageStep',
+  entry,
+  message,
+})
+
+type RegisteredBlockSubscriptionStep<Subscriptions, DispatchMessage> =
+  RegistryEntries<Subscriptions> extends Readonly<
+    Record<string, RuntimeSubscription<any, any, any, any>>
+  >
+    ? {
+        readonly [
+          Key in keyof RegistryEntries<Subscriptions>
+        ]: RegistryEntries<Subscriptions>[Key] extends SubscriptionMessages<
+          infer Messages
+        >
+          ? BlockSubscriptionMessageStep<
+              DispatchMessage,
+              SubscriptionEmissionSource<RegistryEntries<Subscriptions>[Key]>,
+              Messages[number]['Type']
+            >
+          : never
+      }[keyof RegistryEntries<Subscriptions>]
+    : never
+
+/** @internal Graph-backed Subscription steps accepted by one Block-aware Story. */
+export type BlockSubscriptionStepFor<Subscriptions, DispatchMessage> =
+  | RegisteredBlockSubscriptionStep<Subscriptions, DispatchMessage>
+  | BlockSubscriptionMessageStep<
+      DispatchMessage,
+      SubscriptionPathSelection<
+        any,
+        SubscriptionMessages<ReadonlyArray<Schema.Top>>
+      >,
+      unknown
+    >
+
 /** Emission steps for one registered Subscription record. Explicit annotations
  *  retain the accepted entry source as the second type argument. */
 export interface SubscriptionEmitter<Message, EmissionSource> {
@@ -348,9 +575,22 @@ const applySubscriptionMessage = <Model, Message, OutMessage>(
 
 /** Steps that model decoded Messages arriving from a Subscription. */
 export const Subscription = {
-  /** Returns an emitter for a completed Block's registered Subscriptions. The
-   *  entry must belong to that record or be the child entry from which a
-   *  registered entry was lifted. */
+  /** Selects a child Subscription through one static, keyed, or nested Binding
+   *  path. Exact registration membership is checked statically when the
+   *  Binding exposes it. A child implementation supplied by a selected Layer
+   *  remains encapsulated, so its source name is checked against the child's
+   *  nominal owner here and against the acquired graph's exact source identity
+   *  at runtime. */
+  at: selectSubscriptionPath,
+  /** Feeds a declared raw Subscription Message through a Block-aware Story's
+   *  selected graph. A root source retained by the selected Block facts may be
+   *  passed directly. Select provider-private child sources with `at`.
+   *  Construction is passive: no handler or Stream is started. */
+  emit: emitBlockSubscriptionMessage,
+  /** Returns an explicit emitter for a completed registry. Use this route for
+   *  low-level update-only Stories without a selected Block graph. The entry
+   *  must belong to that record or be the child entry from which a registered
+   *  entry was lifted. */
   from: fromSubscriptions,
 } as const
 
@@ -404,10 +644,8 @@ const resolveCommand: {
  *  matching dispatch in declaration order, so
  *  `[Def, m1], [Def, m2], [Def, m3]` reads as a sequence of three responses.
  *  For N identical responses, compose with
- *  `Array.makeBy(n, () => [Def, message])`. Resolvers carry across
- *  `resolveAll` calls: unused entries can match later dispatches, and a new
- *  entry replaces any leftover resolvers sharing its Definition or Instance
- *  shape (latest wins). */
+ *  `Array.makeBy(n, () => [Def, message])`. Resolvers apply only to this call:
+ *  unmatched entries are discarded, while unrelated Commands remain pending. */
 const resolveAllCommands =
   <Matchers extends ReadonlyArray<ResolvableCommandMatcher>>(
     ...resolvers: { [K in keyof Matchers]: Resolver<Matchers[K]> }
@@ -444,14 +682,22 @@ export const model = <Model>(f: (model: Model) => void): ModelStep<Model> => ({
 /** Groups Story steps so a reusable setup can remain type-safe without
  *  erasing its Message or OutMessage types through function composition. */
 export const steps = <
-  Steps extends ReadonlyArray<StoryStep<any, any, any, unknown>>,
+  Steps extends ReadonlyArray<
+    StoryStep<
+      any,
+      any,
+      any,
+      unknown,
+      BlockSubscriptionMessageStep<any, any, any>
+    >
+  >,
 >(
   ...storySteps: Steps
 ): StoryStepsStep<
   Steps[number] extends infer Step
     ? Step extends GivenStep<infer Model>
       ? Model
-      : Step extends StoryStepsStep<infer Model, any, any, any, any>
+      : Step extends StoryStepsStep<infer Model, any, any, any, any, any>
         ? Model
         : never
     : never,
@@ -460,7 +706,14 @@ export const steps = <
       ? (model: Model) => void
       : Step extends MessageWithStep<infer Model, any>
         ? (model: Model) => void
-        : Step extends StoryStepsStep<any, infer ModelAssertion, any, any, any>
+        : Step extends StoryStepsStep<
+              any,
+              infer ModelAssertion,
+              any,
+              any,
+              any,
+              any
+            >
           ? ModelAssertion
           : never
     : never,
@@ -471,22 +724,29 @@ export const steps = <
         ? Message
         : Step extends SubscriptionMessageStep<infer Message>
           ? Message
-          : Step extends StoryStepsStep<any, any, infer Message, any, any>
+          : Step extends StoryStepsStep<any, any, infer Message, any, any, any>
             ? Message
             : never
     : never,
   Steps[number] extends infer Step
     ? Step extends OutMessageStep<infer OutMessage>
       ? OutMessage
-      : Step extends StoryStepsStep<any, any, any, infer OutMessage, any>
+      : Step extends StoryStepsStep<any, any, any, infer OutMessage, any, any>
         ? OutMessage
         : never
     : never,
   Steps[number] extends infer Step
     ? Step extends InMessageStep<infer Input>
       ? Input
-      : Step extends StoryStepsStep<any, any, any, any, infer Input>
+      : Step extends StoryStepsStep<any, any, any, any, infer Input, any>
         ? Input
+        : never
+    : never,
+  Steps[number] extends infer Step
+    ? Step extends BlockSubscriptionMessageStep<any, any, any>
+      ? Step
+      : Step extends StoryStepsStep<any, any, any, any, any, infer BlockStep>
+        ? BlockStep
         : never
     : never
 > => ({
@@ -503,13 +763,15 @@ export const models = <
   Message,
   OutMessage,
   InMessage,
+  BlockSubscriptionStep,
 >(
   groupedSteps: StoryStepsStep<
     GivenModel,
     ModelAssertion,
     Message,
     OutMessage,
-    InMessage
+    InMessage,
+    BlockSubscriptionStep
   >,
   assert: (before: Model, after: Model) => void,
 ): StoryStepsStep<
@@ -517,7 +779,8 @@ export const models = <
   ModelAssertion | ((model: Model) => void),
   Message,
   OutMessage,
-  InMessage
+  InMessage,
+  BlockSubscriptionStep
 > => ({
   ...groupedSteps,
   [AssertModels]: assert,
@@ -589,8 +852,8 @@ export const Command = {
   /** Resolves listed Commands with their result Messages, cascading through any
    *  Commands the result produces. Each entry resolves exactly one matching
    *  dispatch in declaration order; compose with `Array.makeBy` for N
-   *  identical responses. Resolvers carry across calls; a new entry replaces
-   *  any leftovers sharing its Definition or Instance shape (latest wins). */
+   *  identical responses. Resolvers apply only to this call; unmatched entries
+   *  are discarded and unrelated Commands remain pending. */
   resolveAll: resolveAllCommands,
   /** Resolves listed Commands and throws unless every resolver matches one
    *  dispatch and no actual Commands remain unresolved. Entries apply only to
@@ -649,9 +912,15 @@ export const expectNoOutMessage =
 
 // STORY
 
-const applyStoryStep = <Model, Message, OutMessage, InMessage>(
+const applyStoryStep = <
+  Model,
+  Message,
+  OutMessage,
+  InMessage,
+  BlockSubscriptionStep,
+>(
   current: StorySimulation<Model, Message, OutMessage>,
-  step: StoryStep<Model, Message, OutMessage, InMessage>,
+  step: StoryStep<Model, Message, OutMessage, InMessage, BlockSubscriptionStep>,
 ): StorySimulation<Model, Message, OutMessage> => {
   if (Predicate.isTagged(step, 'ModelStep')) {
     step.assert(toInternal(current).model)
@@ -672,6 +941,12 @@ const applyStoryStep = <Model, Message, OutMessage, InMessage>(
 
   if (Predicate.isTagged(step, 'SubscriptionMessageStep')) {
     return applySubscriptionMessage(current, step)
+  }
+
+  if (Predicate.isTagged(step, 'BlockSubscriptionMessageStep')) {
+    throw new Error(
+      '[foldkit] Story.Subscription.emit requires a Block-aware Story. Use Story.Subscription.from(registry).emit for an update-only Story.',
+    )
   }
 
   if (Predicate.isTagged(step, 'OutMessageStep')) {
@@ -754,7 +1029,6 @@ export const story: {
     commands: Array.empty(),
     outMessage: undefined,
     updateFn,
-    resolvers: [],
   } as unknown as StorySimulation<Model, Message, OutMessage>
 
   const result = Array.reduce(steps, seed, applyStoryStep)

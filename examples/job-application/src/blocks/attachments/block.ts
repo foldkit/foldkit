@@ -22,7 +22,6 @@ export const AttachmentsKey = Symbol('Attachments')
 export const AttachmentsBlock = Block.make('Attachments', {
   key: AttachmentsKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })

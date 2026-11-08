@@ -144,6 +144,55 @@ export interface OperationDeclaration {
   readonly services?: ReadonlyArray<ServiceKey>
 }
 
+type ElementViewConfiguration = Readonly<{
+  kind?: 'Element'
+  Inputs?: AnySchema | InputContract<unknown>
+  /** Registered Mounts deliberately published in callback attributes. */
+  mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
+}>
+type DocumentViewConfiguration = Readonly<{
+  kind: 'Document'
+  Inputs?: never
+  /** Registered Mounts deliberately published in callback attributes. */
+  mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
+}>
+type ViewConfiguration =
+  | false
+  | ElementViewConfiguration
+  | DocumentViewConfiguration
+type StaticElementViewConfiguration =
+  | Readonly<{
+      kind?: 'Element'
+      Inputs?: never
+      mounts?: never
+    }>
+  | Readonly<{
+      kind?: 'Element'
+      Inputs: AnySchema | InputContract<unknown>
+      mounts?: never
+    }>
+  | Readonly<{
+      kind?: 'Element'
+      Inputs?: never
+      mounts: ReadonlyArray<Mount.LayeredMountDefinition>
+    }>
+  | Readonly<{
+      kind?: 'Element'
+      Inputs: AnySchema | InputContract<unknown>
+      mounts: ReadonlyArray<Mount.LayeredMountDefinition>
+    }>
+type StaticDocumentViewConfiguration =
+  | Readonly<{
+      kind: 'Document'
+      Inputs?: never
+      mounts?: never
+    }>
+  | Readonly<{
+      kind: 'Document'
+      Inputs?: never
+      mounts: ReadonlyArray<Mount.LayeredMountDefinition>
+    }>
+
 /** Inputs and capabilities declared before a Block implementation is available. */
 export interface ContractConfiguration {
   readonly key: symbol
@@ -155,12 +204,8 @@ export interface ContractConfiguration {
   readonly inMessageOutputs?: Readonly<
     Record<string, Omit<OperationDeclaration, 'message'>>
   >
-  readonly view?: Readonly<{
-    kind: 'Element' | 'Document'
-    Inputs?: AnySchema | InputContract<unknown>
-    /** Registered Mounts deliberately published in callback attributes. */
-    mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
-  }>
+  /** Omit for an Element view with void inputs; use false for a viewless Block. */
+  readonly view?: ViewConfiguration
   readonly operations?: Readonly<
     Record<string, OperationSource | OperationDeclaration>
   >
@@ -175,6 +220,13 @@ export interface ContractConfiguration {
         Error?: AnySchema
       }>
 }
+
+/** @internal Requires one statically selected view contract at declaration time. */
+export type StaticContractConfiguration =
+  | Readonly<{ view?: never }>
+  | Readonly<{ view: false }>
+  | Readonly<{ view: StaticElementViewConfiguration }>
+  | Readonly<{ view: StaticDocumentViewConfiguration }>
 
 type Channel<Value, Key extends PropertyKey, Default = never> =
   Value extends Readonly<Record<Key, infer Member>> ? Member : Default
@@ -361,16 +413,27 @@ type OperationFacts<Config, OwnerValue> = {
       >
     }
   : unknown)
-type ViewInputs<View> = [Channel<View, 'Inputs'>] extends [never]
-  ? void
-  : InputOf<Channel<View, 'Inputs'>>
-type DeclaredView<Config> = [Channel<Config, 'view'>] extends [never]
-  ? undefined
-  : Channel<Config, 'view'> extends Readonly<{
-        kind: infer Kind extends 'Element' | 'Document'
-      }>
-    ? ViewContract<ViewInputs<Channel<Config, 'view'>>, Kind>
-    : undefined
+type ViewInputs<View> = View extends unknown
+  ? [Channel<View, 'Inputs'>] extends [never]
+    ? void
+    : InputOf<Channel<View, 'Inputs'>>
+  : never
+type DeclaredView<Config> = Config extends unknown
+  ? Config extends Readonly<{ view: infer View }>
+    ? View extends false
+      ? undefined
+      : View extends DocumentViewConfiguration
+        ? ViewContract<void, 'Document'>
+        : View extends ElementViewConfiguration
+          ? ViewContract<ViewInputs<View>, 'Element'>
+          : never
+    : ViewContract<void, 'Element'>
+  : never
+type DeclaredViewInputs<Config> = Config extends unknown
+  ? Config extends Readonly<{ view: infer View }>
+    ? ViewInputs<View>
+    : void
+  : never
 /** @internal Retains the decoded public OutMessage channel across authoring modules. */
 export type OutValue<SchemaValue> = SchemaValue extends AnySchema
   ? SchemaValue['Type']
@@ -1251,7 +1314,7 @@ export type ContractComposition<
       Effect.Services<BindingAcquisition<Source['bindings'][number]>>
     >
     makeInit: MakeInit<Source, InputOf<Config['InitArgs']>>
-    makeView: MakeView<Source, ViewInputs<Channel<Config, 'view'>>>
+    makeView: MakeView<Source, DeclaredViewInputs<Config>>
     makeUpdate: MakeComposableUpdatePlan<Source, UpdateContext<Config>>
   }> &
   (Config extends Readonly<{ InMessage: infer In extends AnySchema }>
@@ -1269,6 +1332,18 @@ export type ContractComposition<
         >
       }>
     : unknown)
+
+type CompositionConfigurationKey =
+  | 'key'
+  | 'InitArgs'
+  | 'Context'
+  | 'view'
+  | 'InMessage'
+  | 'InMessageContext'
+type CompositionConfiguration<Config extends ContractConfiguration> =
+  Config extends unknown
+    ? Pick<Config, Extract<keyof Config, CompositionConfigurationKey>>
+    : never
 
 /** Static relationship inventory with independently declared startup inference. */
 export interface MakeComposition<
@@ -1293,19 +1368,7 @@ export interface MakeComposition<
       readonly [],
       readonly []
     >,
-    Readonly<{ key: Config['key']; InitArgs: Config['InitArgs'] }> &
-      (Config extends Readonly<{ Context: infer Context }>
-        ? Readonly<{ Context: Context }>
-        : unknown) &
-      (Config extends Readonly<{ view: infer View }>
-        ? Readonly<{ view: View }>
-        : unknown) &
-      (Config extends Readonly<{ InMessage: infer InMessage }>
-        ? Readonly<{ InMessage: InMessage }>
-        : unknown) &
-      (Config extends Readonly<{ InMessageContext: infer InMessageContext }>
-        ? Readonly<{ InMessageContext: InMessageContext }>
-        : unknown)
+    CompositionConfiguration<Config>
   >
   <
     const Mounts extends ReadonlyArray<Mount.LayeredMountDefinition> =
@@ -1337,19 +1400,7 @@ export interface MakeComposition<
       Mounts,
       BindingSpecs<Bindings>
     >,
-    Readonly<{ key: Config['key']; InitArgs: Config['InitArgs'] }> &
-      (Config extends Readonly<{ Context: infer Context }>
-        ? Readonly<{ Context: Context }>
-        : unknown) &
-      (Config extends Readonly<{ view: infer View }>
-        ? Readonly<{ view: View }>
-        : unknown) &
-      (Config extends Readonly<{ InMessage: infer InMessage }>
-        ? Readonly<{ InMessage: InMessage }>
-        : unknown) &
-      (Config extends Readonly<{ InMessageContext: infer InMessageContext }>
-        ? Readonly<{ InMessageContext: InMessageContext }>
-        : unknown)
+    CompositionConfiguration<Config>
   >
 }
 

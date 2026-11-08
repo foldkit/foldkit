@@ -1,0 +1,47 @@
+{
+  "sources": [
+    {
+      "path": "layered-composition-6.ts",
+      "sha256": "914b4e90ac7af627fdbfcf61a1c15b73be61e6496e53df0e291cf461d5692073"
+    },
+    {
+      "path": "layered/block.ts",
+      "sha256": "7202aa482e3dbbb8cc9da2a62a622138484446b791a64fbe90281bc31f830947"
+    },
+    {
+      "path": "layered/composition.ts",
+      "sha256": "4b86c45784d7e6fe48e06223d842402ef202385de568cc446b9203fe43290073"
+    },
+    {
+      "path": "layered/editor.ts",
+      "sha256": "48dc5eecf2c056d27787a3648de6c5cb46a387330f200be000885f613c352bca"
+    },
+    {
+      "path": "layered/init.ts",
+      "sha256": "0581679c4d3f9f50312c1c1d5e6a881c2856e94d691dbe893e06a760e9a4f3fd"
+    },
+    {
+      "path": "layered/layer.ts",
+      "sha256": "d08b8a61a6cb61c210c0fbaddfacd57d1a0060f9c04bb855adb01686fe9c40b6"
+    },
+    {
+      "path": "layered/steps.ts",
+      "sha256": "39570958a47f06615f374e02cd9941ca98ca8d1a52ce06c12e8901f3a9d6547d"
+    },
+    {
+      "path": "layered/update.ts",
+      "sha256": "258372522c11909f7ed3ae3ba6af2a40b9831ad4ccbda8793e84c7f8ca0873bf"
+    },
+    {
+      "path": "layered/view.ts",
+      "sha256": "158a4485c47a50b43429036f27aa2743ec55ce2b62a0789dcdef2f20ed4efaae"
+    }
+  ],
+  "checks": [
+    "TS7 external emission",
+    "source-free TS7 consumption",
+    "source-free TS6 consumption"
+  ],
+  "declarations": 9,
+  "bytes": 534354
+}

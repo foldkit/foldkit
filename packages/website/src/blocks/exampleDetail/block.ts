@@ -14,7 +14,7 @@ export const ExampleDetailBlock = Block.make('ExampleDetail', {
     Schema.optional(Schema.Option(Schema.String)),
     Schema.optional(Schema.Option(ExampleSources)),
   ]),
-  view: { kind: 'Element', Inputs: Block.makeInputContract<ViewInputs>() },
+  view: { Inputs: Block.makeInputContract<ViewInputs>() },
   Model,
   Message,
   InMessage,

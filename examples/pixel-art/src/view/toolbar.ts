@@ -19,8 +19,9 @@ import {
 } from '../composition'
 import { EMPTY_COLOR, GRID_SIZE_STRINGS } from '../constant'
 import { Message } from '../message'
-import { type MirrorMode, type PaletteIndex, type Tool } from '../model'
+import { type MirrorMode, type PaletteIndex } from '../model'
 import { PALETTE_THEMES, type PaletteTheme } from '../palette'
+import { type Tool } from '../tool'
 
 type ThemeListboxModel = typeof ThemeListboxBlock.Model.Type
 type ToolRadioGroupModel = typeof ToolRadioGroupBlock.Model.Type

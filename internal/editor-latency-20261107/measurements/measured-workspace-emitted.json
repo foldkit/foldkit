@@ -1,0 +1,1605 @@
+{
+  "metadata": {
+    "formatVersion": 6,
+    "measuredAt": "2026-11-07T22:40:13.698Z",
+    "sourceCommit": "54f8bcd443b4fd18952403a3d02e212abf872d58",
+    "sourceWorkloadDirty": true,
+    "workloadSha256": "1d1eb1191f67465f90d6c1c2635a9f0ebf9e1e9c24f962535028787671660f2d",
+    "lockfileSha256": "3659249b317572543f8f9e01f4997a099f4fa32ee6285825694fe4b83ebd582f",
+    "benchmarkScriptSha256": "14f5cba79e287995a032217ea63b601b3653d4105cf76031efe951637328d2d8",
+    "compilerPackageVersion": "7.1.0-beta",
+    "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+    "server": {
+      "name": "typescript",
+      "version": "7.1.0-beta"
+    },
+    "nodeVersion": "v26.13.0",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "runs": 5,
+    "scenario": "workspace",
+    "timeoutMs": 60000,
+    "completionSnippetSupport": true,
+    "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+  },
+  "workload": {
+    "workspace": {
+      "bindingHover": "examples/workspace/src/composition.ts#IssueDetailsBinding",
+      "bindingHoverValidation": {
+        "name": "IssueDetailsBinding",
+        "owner": "IssueDetail",
+        "typeNames": [
+          "Block.DescriptorBindingWithPolicyFields",
+          "DescriptorBindingWithPolicyFields",
+          "Block.DescriptorBindingMember",
+          "DescriptorBindingMember",
+          "Block.DescriptorBinding",
+          "DescriptorBinding"
+        ],
+        "requireSchemaHeader": true,
+        "schemaAlternatives": [
+          [
+            "readonly issueId: String;",
+            "readonly baselineRevision: Struct<{",
+            "readonly fields: Struct<{",
+            "readonly title: String;",
+            "readonly status: Literals<"
+          ],
+          [
+            "IssueDetailBlock",
+            "Model"
+          ]
+        ]
+      },
+      "bindingCompletion": "examples/workspace/src/view/workspace.ts#IssueDetailsBinding.|embedView",
+      "expectedBindingMembers": [
+        "requestSave",
+        "embedView",
+        "init"
+      ],
+      "blockCompletion": "examples/workspace/src/entry.ts#ApplicationBlock.|Message.ClickedLink",
+      "expectedBlockMembers": [
+        "Model",
+        "Message",
+        "makeComposition",
+        "makeLayer"
+      ],
+      "titleDiagnostics": {
+        "source": "examples/workspace/src/blocks/issueDetail/update.ts",
+        "edit": "title: () => value becomes title: () => value.length, then restores value",
+        "expectedErrorCode": 2322,
+        "expectedErrorProperty": "title",
+        "mode": "Full pull diagnostics without previousResultId"
+      },
+      "serverMemory": {
+        "method": "ps -o rss= -p <pid>",
+        "unit": "KiB",
+        "samplingIntervalMs": 250,
+        "sampleTimeoutMs": 1000,
+        "supportedPlatforms": [
+          "darwin",
+          "linux"
+        ]
+      }
+    }
+  },
+  "summary": [
+    {
+      "label": "workspace.bindingHover.first",
+      "samplesMs": [
+        301.188,
+        298.154,
+        275.217,
+        284.567,
+        299.472
+      ],
+      "medianMs": 298.154,
+      "minimumMs": 275.217,
+      "maximumMs": 301.188
+    },
+    {
+      "label": "workspace.bindingHover.warm",
+      "samplesMs": [
+        0.765,
+        0.621,
+        0.41,
+        0.464,
+        0.424
+      ],
+      "medianMs": 0.464,
+      "minimumMs": 0.41,
+      "maximumMs": 0.765
+    },
+    {
+      "label": "workspace.bindingHover.postWhitespace",
+      "samplesMs": [
+        187.636,
+        194.402,
+        173.399,
+        168.769,
+        153.388
+      ],
+      "medianMs": 173.399,
+      "minimumMs": 153.388,
+      "maximumMs": 194.402
+    },
+    {
+      "label": "workspace.bindingHover.postWhitespaceWarm",
+      "samplesMs": [
+        0.57,
+        0.44,
+        0.493,
+        0.396,
+        0.456
+      ],
+      "medianMs": 0.456,
+      "minimumMs": 0.396,
+      "maximumMs": 0.57
+    },
+    {
+      "label": "workspace.bindingCompletion.first",
+      "samplesMs": [
+        291.001,
+        279.525,
+        285.249,
+        264.873,
+        267.633
+      ],
+      "medianMs": 279.525,
+      "minimumMs": 264.873,
+      "maximumMs": 291.001
+    },
+    {
+      "label": "workspace.bindingCompletion.warm",
+      "samplesMs": [
+        0.504,
+        0.459,
+        0.445,
+        0.43,
+        0.406
+      ],
+      "medianMs": 0.445,
+      "minimumMs": 0.406,
+      "maximumMs": 0.504
+    },
+    {
+      "label": "workspace.bindingCompletion.postWhitespace",
+      "samplesMs": [
+        174.469,
+        167.632,
+        164.188,
+        145.019,
+        159.953
+      ],
+      "medianMs": 164.188,
+      "minimumMs": 145.019,
+      "maximumMs": 174.469
+    },
+    {
+      "label": "workspace.bindingCompletion.postWhitespaceWarm",
+      "samplesMs": [
+        0.563,
+        0.449,
+        0.491,
+        0.546,
+        0.618
+      ],
+      "medianMs": 0.546,
+      "minimumMs": 0.449,
+      "maximumMs": 0.618
+    },
+    {
+      "label": "workspace.blockCompletion.first",
+      "samplesMs": [
+        216.294,
+        218.743,
+        211.74,
+        215.588,
+        213.047
+      ],
+      "medianMs": 215.588,
+      "minimumMs": 211.74,
+      "maximumMs": 218.743
+    },
+    {
+      "label": "workspace.blockCompletion.warm",
+      "samplesMs": [
+        0.395,
+        0.406,
+        0.393,
+        0.504,
+        0.451
+      ],
+      "medianMs": 0.406,
+      "minimumMs": 0.393,
+      "maximumMs": 0.504
+    },
+    {
+      "label": "workspace.blockCompletion.postWhitespace",
+      "samplesMs": [
+        102.53,
+        80.814,
+        80.62,
+        81.19,
+        81.634
+      ],
+      "medianMs": 81.19,
+      "minimumMs": 80.62,
+      "maximumMs": 102.53
+    },
+    {
+      "label": "workspace.blockCompletion.postWhitespaceWarm",
+      "samplesMs": [
+        0.589,
+        0.46,
+        0.376,
+        0.375,
+        0.421
+      ],
+      "medianMs": 0.421,
+      "minimumMs": 0.375,
+      "maximumMs": 0.589
+    },
+    {
+      "label": "workspace.diagnostics.clean",
+      "samplesMs": [
+        338.414,
+        335.35,
+        315.343,
+        324.752,
+        311.022
+      ],
+      "medianMs": 324.752,
+      "minimumMs": 311.022,
+      "maximumMs": 338.414
+    },
+    {
+      "label": "workspace.diagnostics.badTitle",
+      "samplesMs": [
+        223.096,
+        200.696,
+        205.467,
+        209.843,
+        194.947
+      ],
+      "medianMs": 205.467,
+      "minimumMs": 194.947,
+      "maximumMs": 223.096
+    },
+    {
+      "label": "workspace.diagnostics.restored",
+      "samplesMs": [
+        194.489,
+        214.527,
+        189.164,
+        182.611,
+        215.655
+      ],
+      "medianMs": 194.489,
+      "minimumMs": 182.611,
+      "maximumMs": 215.655
+    }
+  ],
+  "runs": [
+    {
+      "run": 1,
+      "measurements": [
+        {
+          "label": "workspace.bindingHover.first",
+          "latencyMs": 301.188,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 1,
+          "sourceSha256": "12bce6c87dbb5f506d5fb4eb2f8d82f6988a8c07b32196cc1800199b5611dfc4"
+        },
+        {
+          "label": "workspace.bindingHover.warm",
+          "latencyMs": 0.765,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 1,
+          "sourceSha256": "12bce6c87dbb5f506d5fb4eb2f8d82f6988a8c07b32196cc1800199b5611dfc4"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespace",
+          "latencyMs": 187.636,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 2,
+          "sourceSha256": "19b5c01bbfd63942486cbce8027d2f42f9f38376a4de02e545ac751c50215a3d"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespaceWarm",
+          "latencyMs": 0.57,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 2,
+          "sourceSha256": "19b5c01bbfd63942486cbce8027d2f42f9f38376a4de02e545ac751c50215a3d"
+        },
+        {
+          "label": "workspace.bindingCompletion.first",
+          "latencyMs": 291.001,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 1,
+          "sourceSha256": "4bd265bf426f568a3df09e4ab19ad43e1f6b1464d0a1c6b4a879c541b1a451e2"
+        },
+        {
+          "label": "workspace.bindingCompletion.warm",
+          "latencyMs": 0.504,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 1,
+          "sourceSha256": "4bd265bf426f568a3df09e4ab19ad43e1f6b1464d0a1c6b4a879c541b1a451e2"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespace",
+          "latencyMs": 174.469,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 2,
+          "sourceSha256": "0837c654aa320d3df2532fa5b087a4ac817ba06f6b1401ad2012141d3eb53679"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespaceWarm",
+          "latencyMs": 0.563,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 2,
+          "sourceSha256": "0837c654aa320d3df2532fa5b087a4ac817ba06f6b1401ad2012141d3eb53679"
+        },
+        {
+          "label": "workspace.blockCompletion.first",
+          "latencyMs": 216.294,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 1,
+          "sourceSha256": "bdacf53ef0e2a18fd61ab3a941cc9c8812d7d59728b71570b3d17d35a3e15b4c"
+        },
+        {
+          "label": "workspace.blockCompletion.warm",
+          "latencyMs": 0.395,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 1,
+          "sourceSha256": "bdacf53ef0e2a18fd61ab3a941cc9c8812d7d59728b71570b3d17d35a3e15b4c"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespace",
+          "latencyMs": 102.53,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 2,
+          "sourceSha256": "74b0783dc7bd3528195d1cf01ea9dcd7114f34e720c5b47954aeb6d39d19b7cc"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespaceWarm",
+          "latencyMs": 0.589,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 2,
+          "sourceSha256": "74b0783dc7bd3528195d1cf01ea9dcd7114f34e720c5b47954aeb6d39d19b7cc"
+        },
+        {
+          "label": "workspace.diagnostics.clean",
+          "latencyMs": 338.414,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "eb4a365a1500a4bc392d56905f8e4007d6353ad94f719402514f50fbc5e67fe5",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "workspace.diagnostics.badTitle",
+          "latencyMs": 223.096,
+          "resultCount": 1,
+          "resultBytes": 286,
+          "resultSha256": "09654801298f4a5443028af173f805657b92e1de2c23a1325d441ef14868a835",
+          "documentVersion": 3,
+          "sourceSha256": "531e4add1ddcd672752006ed010d6dd74dfc6f3f6c120376c6e2f0ce5a806fa8",
+          "diagnosticEvidence": {
+            "expected": "TitleError",
+            "errorCount": 1,
+            "code": 2322,
+            "range": {
+              "start": {
+                "line": 122,
+                "character": 47
+              },
+              "end": {
+                "line": 122,
+                "character": 52
+              }
+            }
+          }
+        },
+        {
+          "label": "workspace.diagnostics.restored",
+          "latencyMs": 194.489,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 4,
+          "sourceSha256": "eec323933bbd1370fab1ad2276614190053599c0753ae286ebf47db3e04ddab2",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "serverMemory": [
+        {
+          "scenario": "workspace.bindingHover",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 449232,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 4.82,
+              "rssKiB": 4416
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 259.28,
+              "rssKiB": 377248
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 504.967,
+              "rssKiB": 449232
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.bindingCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 479664,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.952,
+              "rssKiB": 3200
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 256.832,
+              "rssKiB": 361872
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 479.603,
+              "rssKiB": 479664
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.blockCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 437984,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.597,
+              "rssKiB": 1984
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 260.011,
+              "rssKiB": 429184
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 332.145,
+              "rssKiB": 437984
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.diagnostics",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 475216,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.858,
+              "rssKiB": 2400
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 256.937,
+              "rssKiB": 359968
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 508.288,
+              "rssKiB": 441392
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 758.854,
+              "rssKiB": 474208
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 769.122,
+              "rssKiB": 475216
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "measurements": [
+        {
+          "label": "workspace.bindingHover.first",
+          "latencyMs": 298.154,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 1,
+          "sourceSha256": "12bce6c87dbb5f506d5fb4eb2f8d82f6988a8c07b32196cc1800199b5611dfc4"
+        },
+        {
+          "label": "workspace.bindingHover.warm",
+          "latencyMs": 0.621,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 1,
+          "sourceSha256": "12bce6c87dbb5f506d5fb4eb2f8d82f6988a8c07b32196cc1800199b5611dfc4"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespace",
+          "latencyMs": 194.402,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 2,
+          "sourceSha256": "19b5c01bbfd63942486cbce8027d2f42f9f38376a4de02e545ac751c50215a3d"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespaceWarm",
+          "latencyMs": 0.44,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 2,
+          "sourceSha256": "19b5c01bbfd63942486cbce8027d2f42f9f38376a4de02e545ac751c50215a3d"
+        },
+        {
+          "label": "workspace.bindingCompletion.first",
+          "latencyMs": 279.525,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 1,
+          "sourceSha256": "4bd265bf426f568a3df09e4ab19ad43e1f6b1464d0a1c6b4a879c541b1a451e2"
+        },
+        {
+          "label": "workspace.bindingCompletion.warm",
+          "latencyMs": 0.459,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 1,
+          "sourceSha256": "4bd265bf426f568a3df09e4ab19ad43e1f6b1464d0a1c6b4a879c541b1a451e2"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespace",
+          "latencyMs": 167.632,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 2,
+          "sourceSha256": "0837c654aa320d3df2532fa5b087a4ac817ba06f6b1401ad2012141d3eb53679"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespaceWarm",
+          "latencyMs": 0.449,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 2,
+          "sourceSha256": "0837c654aa320d3df2532fa5b087a4ac817ba06f6b1401ad2012141d3eb53679"
+        },
+        {
+          "label": "workspace.blockCompletion.first",
+          "latencyMs": 218.743,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 1,
+          "sourceSha256": "bdacf53ef0e2a18fd61ab3a941cc9c8812d7d59728b71570b3d17d35a3e15b4c"
+        },
+        {
+          "label": "workspace.blockCompletion.warm",
+          "latencyMs": 0.406,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 1,
+          "sourceSha256": "bdacf53ef0e2a18fd61ab3a941cc9c8812d7d59728b71570b3d17d35a3e15b4c"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespace",
+          "latencyMs": 80.814,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 2,
+          "sourceSha256": "74b0783dc7bd3528195d1cf01ea9dcd7114f34e720c5b47954aeb6d39d19b7cc"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespaceWarm",
+          "latencyMs": 0.46,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 2,
+          "sourceSha256": "74b0783dc7bd3528195d1cf01ea9dcd7114f34e720c5b47954aeb6d39d19b7cc"
+        },
+        {
+          "label": "workspace.diagnostics.clean",
+          "latencyMs": 335.35,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "eb4a365a1500a4bc392d56905f8e4007d6353ad94f719402514f50fbc5e67fe5",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "workspace.diagnostics.badTitle",
+          "latencyMs": 200.696,
+          "resultCount": 1,
+          "resultBytes": 286,
+          "resultSha256": "09654801298f4a5443028af173f805657b92e1de2c23a1325d441ef14868a835",
+          "documentVersion": 3,
+          "sourceSha256": "531e4add1ddcd672752006ed010d6dd74dfc6f3f6c120376c6e2f0ce5a806fa8",
+          "diagnosticEvidence": {
+            "expected": "TitleError",
+            "errorCount": 1,
+            "code": 2322,
+            "range": {
+              "start": {
+                "line": 122,
+                "character": 47
+              },
+              "end": {
+                "line": 122,
+                "character": 52
+              }
+            }
+          }
+        },
+        {
+          "label": "workspace.diagnostics.restored",
+          "latencyMs": 214.527,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 4,
+          "sourceSha256": "eec323933bbd1370fab1ad2276614190053599c0753ae286ebf47db3e04ddab2",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "serverMemory": [
+        {
+          "scenario": "workspace.bindingHover",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 492736,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.632,
+              "rssKiB": 2336
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 256.938,
+              "rssKiB": 374864
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 505.684,
+              "rssKiB": 492736
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.bindingCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 484896,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.591,
+              "rssKiB": 1984
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 256.639,
+              "rssKiB": 363072
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 460.21,
+              "rssKiB": 484896
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.blockCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 444224,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.666,
+              "rssKiB": 2048
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 256.305,
+              "rssKiB": 410208
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 312.775,
+              "rssKiB": 444224
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.diagnostics",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 489760,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.884,
+              "rssKiB": 2896
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 257.397,
+              "rssKiB": 347712
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 508.269,
+              "rssKiB": 467824
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 759.212,
+              "rssKiB": 489760
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 762.203,
+              "rssKiB": 489760
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 3,
+      "measurements": [
+        {
+          "label": "workspace.bindingHover.first",
+          "latencyMs": 275.217,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 1,
+          "sourceSha256": "12bce6c87dbb5f506d5fb4eb2f8d82f6988a8c07b32196cc1800199b5611dfc4"
+        },
+        {
+          "label": "workspace.bindingHover.warm",
+          "latencyMs": 0.41,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 1,
+          "sourceSha256": "12bce6c87dbb5f506d5fb4eb2f8d82f6988a8c07b32196cc1800199b5611dfc4"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespace",
+          "latencyMs": 173.399,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 2,
+          "sourceSha256": "19b5c01bbfd63942486cbce8027d2f42f9f38376a4de02e545ac751c50215a3d"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespaceWarm",
+          "latencyMs": 0.493,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 2,
+          "sourceSha256": "19b5c01bbfd63942486cbce8027d2f42f9f38376a4de02e545ac751c50215a3d"
+        },
+        {
+          "label": "workspace.bindingCompletion.first",
+          "latencyMs": 285.249,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 1,
+          "sourceSha256": "4bd265bf426f568a3df09e4ab19ad43e1f6b1464d0a1c6b4a879c541b1a451e2"
+        },
+        {
+          "label": "workspace.bindingCompletion.warm",
+          "latencyMs": 0.445,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 1,
+          "sourceSha256": "4bd265bf426f568a3df09e4ab19ad43e1f6b1464d0a1c6b4a879c541b1a451e2"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespace",
+          "latencyMs": 164.188,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 2,
+          "sourceSha256": "0837c654aa320d3df2532fa5b087a4ac817ba06f6b1401ad2012141d3eb53679"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespaceWarm",
+          "latencyMs": 0.491,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 2,
+          "sourceSha256": "0837c654aa320d3df2532fa5b087a4ac817ba06f6b1401ad2012141d3eb53679"
+        },
+        {
+          "label": "workspace.blockCompletion.first",
+          "latencyMs": 211.74,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 1,
+          "sourceSha256": "bdacf53ef0e2a18fd61ab3a941cc9c8812d7d59728b71570b3d17d35a3e15b4c"
+        },
+        {
+          "label": "workspace.blockCompletion.warm",
+          "latencyMs": 0.393,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 1,
+          "sourceSha256": "bdacf53ef0e2a18fd61ab3a941cc9c8812d7d59728b71570b3d17d35a3e15b4c"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespace",
+          "latencyMs": 80.62,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 2,
+          "sourceSha256": "74b0783dc7bd3528195d1cf01ea9dcd7114f34e720c5b47954aeb6d39d19b7cc"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespaceWarm",
+          "latencyMs": 0.376,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 2,
+          "sourceSha256": "74b0783dc7bd3528195d1cf01ea9dcd7114f34e720c5b47954aeb6d39d19b7cc"
+        },
+        {
+          "label": "workspace.diagnostics.clean",
+          "latencyMs": 315.343,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "eb4a365a1500a4bc392d56905f8e4007d6353ad94f719402514f50fbc5e67fe5",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "workspace.diagnostics.badTitle",
+          "latencyMs": 205.467,
+          "resultCount": 1,
+          "resultBytes": 286,
+          "resultSha256": "09654801298f4a5443028af173f805657b92e1de2c23a1325d441ef14868a835",
+          "documentVersion": 3,
+          "sourceSha256": "531e4add1ddcd672752006ed010d6dd74dfc6f3f6c120376c6e2f0ce5a806fa8",
+          "diagnosticEvidence": {
+            "expected": "TitleError",
+            "errorCount": 1,
+            "code": 2322,
+            "range": {
+              "start": {
+                "line": 122,
+                "character": 47
+              },
+              "end": {
+                "line": 122,
+                "character": 52
+              }
+            }
+          }
+        },
+        {
+          "label": "workspace.diagnostics.restored",
+          "latencyMs": 189.164,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 4,
+          "sourceSha256": "eec323933bbd1370fab1ad2276614190053599c0753ae286ebf47db3e04ddab2",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "serverMemory": [
+        {
+          "scenario": "workspace.bindingHover",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 458512,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.682,
+              "rssKiB": 2672
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 257.205,
+              "rssKiB": 376576
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 461.466,
+              "rssKiB": 458512
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.bindingCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 463232,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.836,
+              "rssKiB": 2848
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 256.82,
+              "rssKiB": 366240
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 462.309,
+              "rssKiB": 463232
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.blockCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 439056,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.773,
+              "rssKiB": 2800
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 256.945,
+              "rssKiB": 418864
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 304.659,
+              "rssKiB": 439056
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.diagnostics",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 485392,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.68,
+              "rssKiB": 2768
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 256.713,
+              "rssKiB": 363472
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 515.225,
+              "rssKiB": 482480
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 721.982,
+              "rssKiB": 485392
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 4,
+      "measurements": [
+        {
+          "label": "workspace.bindingHover.first",
+          "latencyMs": 284.567,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 1,
+          "sourceSha256": "12bce6c87dbb5f506d5fb4eb2f8d82f6988a8c07b32196cc1800199b5611dfc4"
+        },
+        {
+          "label": "workspace.bindingHover.warm",
+          "latencyMs": 0.464,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 1,
+          "sourceSha256": "12bce6c87dbb5f506d5fb4eb2f8d82f6988a8c07b32196cc1800199b5611dfc4"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespace",
+          "latencyMs": 168.769,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 2,
+          "sourceSha256": "19b5c01bbfd63942486cbce8027d2f42f9f38376a4de02e545ac751c50215a3d"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespaceWarm",
+          "latencyMs": 0.396,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 2,
+          "sourceSha256": "19b5c01bbfd63942486cbce8027d2f42f9f38376a4de02e545ac751c50215a3d"
+        },
+        {
+          "label": "workspace.bindingCompletion.first",
+          "latencyMs": 264.873,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 1,
+          "sourceSha256": "4bd265bf426f568a3df09e4ab19ad43e1f6b1464d0a1c6b4a879c541b1a451e2"
+        },
+        {
+          "label": "workspace.bindingCompletion.warm",
+          "latencyMs": 0.43,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 1,
+          "sourceSha256": "4bd265bf426f568a3df09e4ab19ad43e1f6b1464d0a1c6b4a879c541b1a451e2"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespace",
+          "latencyMs": 145.019,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 2,
+          "sourceSha256": "0837c654aa320d3df2532fa5b087a4ac817ba06f6b1401ad2012141d3eb53679"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespaceWarm",
+          "latencyMs": 0.546,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 2,
+          "sourceSha256": "0837c654aa320d3df2532fa5b087a4ac817ba06f6b1401ad2012141d3eb53679"
+        },
+        {
+          "label": "workspace.blockCompletion.first",
+          "latencyMs": 215.588,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 1,
+          "sourceSha256": "bdacf53ef0e2a18fd61ab3a941cc9c8812d7d59728b71570b3d17d35a3e15b4c"
+        },
+        {
+          "label": "workspace.blockCompletion.warm",
+          "latencyMs": 0.504,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 1,
+          "sourceSha256": "bdacf53ef0e2a18fd61ab3a941cc9c8812d7d59728b71570b3d17d35a3e15b4c"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespace",
+          "latencyMs": 81.19,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 2,
+          "sourceSha256": "74b0783dc7bd3528195d1cf01ea9dcd7114f34e720c5b47954aeb6d39d19b7cc"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespaceWarm",
+          "latencyMs": 0.375,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 2,
+          "sourceSha256": "74b0783dc7bd3528195d1cf01ea9dcd7114f34e720c5b47954aeb6d39d19b7cc"
+        },
+        {
+          "label": "workspace.diagnostics.clean",
+          "latencyMs": 324.752,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "eb4a365a1500a4bc392d56905f8e4007d6353ad94f719402514f50fbc5e67fe5",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "workspace.diagnostics.badTitle",
+          "latencyMs": 209.843,
+          "resultCount": 1,
+          "resultBytes": 286,
+          "resultSha256": "09654801298f4a5443028af173f805657b92e1de2c23a1325d441ef14868a835",
+          "documentVersion": 3,
+          "sourceSha256": "531e4add1ddcd672752006ed010d6dd74dfc6f3f6c120376c6e2f0ce5a806fa8",
+          "diagnosticEvidence": {
+            "expected": "TitleError",
+            "errorCount": 1,
+            "code": 2322,
+            "range": {
+              "start": {
+                "line": 122,
+                "character": 47
+              },
+              "end": {
+                "line": 122,
+                "character": 52
+              }
+            }
+          }
+        },
+        {
+          "label": "workspace.diagnostics.restored",
+          "latencyMs": 182.611,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 4,
+          "sourceSha256": "eec323933bbd1370fab1ad2276614190053599c0753ae286ebf47db3e04ddab2",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "serverMemory": [
+        {
+          "scenario": "workspace.bindingHover",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 482912,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.682,
+              "rssKiB": 2544
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 257.453,
+              "rssKiB": 362992
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 466.013,
+              "rssKiB": 482912
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.bindingCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 486096,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.483,
+              "rssKiB": 1888
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 256.95,
+              "rssKiB": 369552
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 422.659,
+              "rssKiB": 486096
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.blockCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 448784,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.615,
+              "rssKiB": 2336
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 256.799,
+              "rssKiB": 420608
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 309.235,
+              "rssKiB": 448784
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.diagnostics",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 459456,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.479,
+              "rssKiB": 1920
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 256.541,
+              "rssKiB": 358656
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 506.965,
+              "rssKiB": 445952
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 729.226,
+              "rssKiB": 459456
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 5,
+      "measurements": [
+        {
+          "label": "workspace.bindingHover.first",
+          "latencyMs": 299.472,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 1,
+          "sourceSha256": "12bce6c87dbb5f506d5fb4eb2f8d82f6988a8c07b32196cc1800199b5611dfc4"
+        },
+        {
+          "label": "workspace.bindingHover.warm",
+          "latencyMs": 0.424,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 1,
+          "sourceSha256": "12bce6c87dbb5f506d5fb4eb2f8d82f6988a8c07b32196cc1800199b5611dfc4"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespace",
+          "latencyMs": 153.388,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 2,
+          "sourceSha256": "19b5c01bbfd63942486cbce8027d2f42f9f38376a4de02e545ac751c50215a3d"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespaceWarm",
+          "latencyMs": 0.456,
+          "resultBytes": 1052,
+          "resultSha256": "354ff65f82d5ad688a5e148f332769f89b5ce94403a835a097cca286de073f49",
+          "documentVersion": 2,
+          "sourceSha256": "19b5c01bbfd63942486cbce8027d2f42f9f38376a4de02e545ac751c50215a3d"
+        },
+        {
+          "label": "workspace.bindingCompletion.first",
+          "latencyMs": 267.633,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 1,
+          "sourceSha256": "4bd265bf426f568a3df09e4ab19ad43e1f6b1464d0a1c6b4a879c541b1a451e2"
+        },
+        {
+          "label": "workspace.bindingCompletion.warm",
+          "latencyMs": 0.406,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 1,
+          "sourceSha256": "4bd265bf426f568a3df09e4ab19ad43e1f6b1464d0a1c6b4a879c541b1a451e2"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespace",
+          "latencyMs": 159.953,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 2,
+          "sourceSha256": "0837c654aa320d3df2532fa5b087a4ac817ba06f6b1401ad2012141d3eb53679"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespaceWarm",
+          "latencyMs": 0.618,
+          "resultCount": 8,
+          "resultBytes": 2117,
+          "resultSha256": "476dbe56b06f73bc0fb515e7c6015f97bcb12aa1bb91787e6a1045e22285e121",
+          "documentVersion": 2,
+          "sourceSha256": "0837c654aa320d3df2532fa5b087a4ac817ba06f6b1401ad2012141d3eb53679"
+        },
+        {
+          "label": "workspace.blockCompletion.first",
+          "latencyMs": 213.047,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 1,
+          "sourceSha256": "bdacf53ef0e2a18fd61ab3a941cc9c8812d7d59728b71570b3d17d35a3e15b4c"
+        },
+        {
+          "label": "workspace.blockCompletion.warm",
+          "latencyMs": 0.451,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 1,
+          "sourceSha256": "bdacf53ef0e2a18fd61ab3a941cc9c8812d7d59728b71570b3d17d35a3e15b4c"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespace",
+          "latencyMs": 81.634,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 2,
+          "sourceSha256": "74b0783dc7bd3528195d1cf01ea9dcd7114f34e720c5b47954aeb6d39d19b7cc"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespaceWarm",
+          "latencyMs": 0.421,
+          "resultCount": 31,
+          "resultBytes": 7506,
+          "resultSha256": "aa80ed0e9997f83af4b3c8466b4bba758446ad2164692ef7c9e2b66fabb1ffc7",
+          "documentVersion": 2,
+          "sourceSha256": "74b0783dc7bd3528195d1cf01ea9dcd7114f34e720c5b47954aeb6d39d19b7cc"
+        },
+        {
+          "label": "workspace.diagnostics.clean",
+          "latencyMs": 311.022,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "eb4a365a1500a4bc392d56905f8e4007d6353ad94f719402514f50fbc5e67fe5",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "workspace.diagnostics.badTitle",
+          "latencyMs": 194.947,
+          "resultCount": 1,
+          "resultBytes": 286,
+          "resultSha256": "09654801298f4a5443028af173f805657b92e1de2c23a1325d441ef14868a835",
+          "documentVersion": 3,
+          "sourceSha256": "531e4add1ddcd672752006ed010d6dd74dfc6f3f6c120376c6e2f0ce5a806fa8",
+          "diagnosticEvidence": {
+            "expected": "TitleError",
+            "errorCount": 1,
+            "code": 2322,
+            "range": {
+              "start": {
+                "line": 122,
+                "character": 47
+              },
+              "end": {
+                "line": 122,
+                "character": 52
+              }
+            }
+          }
+        },
+        {
+          "label": "workspace.diagnostics.restored",
+          "latencyMs": 215.655,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 4,
+          "sourceSha256": "eec323933bbd1370fab1ad2276614190053599c0753ae286ebf47db3e04ddab2",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "serverMemory": [
+        {
+          "scenario": "workspace.bindingHover",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 475536,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.959,
+              "rssKiB": 3056
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 257.28,
+              "rssKiB": 357952
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 465.988,
+              "rssKiB": 475536
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.bindingCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 450448,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.812,
+              "rssKiB": 2144
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 257.283,
+              "rssKiB": 373504
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 441.301,
+              "rssKiB": 450448
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.blockCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 443680,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.79,
+              "rssKiB": 2896
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 257.993,
+              "rssKiB": 422992
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 307.72,
+              "rssKiB": 443680
+            }
+          ]
+        },
+        {
+          "scenario": "workspace.diagnostics",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 506912,
+          "samples": [
+            {
+              "phase": "Startup",
+              "elapsedMs": 2.448,
+              "rssKiB": 1712
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 256.906,
+              "rssKiB": 367648
+            },
+            {
+              "phase": "Interval",
+              "elapsedMs": 507.625,
+              "rssKiB": 493696
+            },
+            {
+              "phase": "Final",
+              "elapsedMs": 733.867,
+              "rssKiB": 506912
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

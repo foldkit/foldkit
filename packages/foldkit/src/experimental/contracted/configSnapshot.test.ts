@@ -6,6 +6,7 @@ import {
   defineInMessageUnion,
   defineMessageUnion,
 } from '../../message/index.js'
+import { snapshotDefinitionConfiguration } from './runtime.js'
 
 const Model = Schema.Struct({ value: Schema.Number })
 const Message = defineMessageUnion({ ChangedValue: {} })
@@ -14,6 +15,89 @@ const InMessage = defineInMessageUnion({
 })
 
 describe('Definition declaration snapshots', () => {
+  it('snapshots explicit viewless and default-Element declarations without evaluating implementation work', () => {
+    const inputs = Schema.Struct({ label: Schema.String })
+    const mounts: Array<never> = []
+    const view = { Inputs: inputs, mounts }
+    const defaultSnapshot = snapshotDefinitionConfiguration({
+      key: Symbol('OmittedDefaultElementSnapshot'),
+      Model,
+      Message,
+      InitArgs: Schema.Tuple([]),
+    })
+    const elementSnapshot = snapshotDefinitionConfiguration({
+      key: Symbol('DefaultElementSnapshot'),
+      Model,
+      Message,
+      InitArgs: Schema.Tuple([]),
+      view,
+    })
+    const viewlessSnapshot = snapshotDefinitionConfiguration({
+      key: Symbol('ViewlessSnapshot'),
+      Model,
+      Message,
+      InitArgs: Schema.Tuple([]),
+      view: false,
+    })
+
+    Reflect.set(view, 'Inputs', Schema.Number)
+
+    expect(elementSnapshot.view).not.toBe(view)
+    expect(elementSnapshot.view.Inputs).toBe(inputs)
+    expect(elementSnapshot.view.mounts).not.toBe(mounts)
+    expect(Object.isFrozen(elementSnapshot.view.mounts)).toBe(true)
+    expect(Object.isFrozen(elementSnapshot.view)).toBe(true)
+    expect(Object.isFrozen(elementSnapshot)).toBe(true)
+    expect(Object.hasOwn(defaultSnapshot, 'view')).toBe(false)
+    expect(Object.isFrozen(defaultSnapshot)).toBe(true)
+    expect(viewlessSnapshot.view).toBe(false)
+    expect(Object.isFrozen(viewlessSnapshot)).toBe(true)
+  })
+
+  it('rejects erased invalid view kinds and Document inputs', () => {
+    const base = {
+      Model,
+      Message,
+      InitArgs: Schema.Tuple([]),
+    }
+
+    expect(() =>
+      Reflect.apply(Block.make, undefined, [
+        'InvalidViewKind',
+        { ...base, key: Symbol('InvalidViewKind'), view: { kind: 'Canvas' } },
+      ]),
+    ).toThrow(/view kind must be "Element" or "Document"/i)
+    expect(() =>
+      Reflect.apply(Block.make, undefined, [
+        'InvalidDocumentInputs',
+        {
+          ...base,
+          key: Symbol('InvalidDocumentInputs'),
+          view: { kind: 'Document', Inputs: Schema.String },
+        },
+      ]),
+    ).toThrow(/Document Block view cannot declare Inputs/i)
+  })
+
+  it('rejects an accessor-backed view declaration without running the getter', () => {
+    let reads = 0
+    const config = {
+      key: Symbol('AccessorViewDefinition'),
+      Model,
+      Message,
+      InitArgs: Schema.Tuple([]),
+      get view() {
+        reads += 1
+        return { kind: 'Document' }
+      },
+    }
+
+    expect(() =>
+      Reflect.apply(Block.make, undefined, ['AccessorViewDefinition', config]),
+    ).toThrow(/accessor/i)
+    expect(reads).toBe(0)
+  })
+
   it('snapshots family namespace declarations before creating a native source', () => {
     const Namespace = Block.makeNamespace('AccessorFamilyDefinition')
     let reads = 0

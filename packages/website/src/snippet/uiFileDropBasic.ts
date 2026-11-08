@@ -19,7 +19,6 @@ export const FileDropExampleKey = Symbol('FileDropExample')
 export const FileDropExampleBlock = Block.make('FileDropExample', {
   key: FileDropExampleKey,
   InitArgs: Schema.Tuple([]),
-  view: { kind: 'Element' },
   Model,
   Message,
 })
