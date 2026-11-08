@@ -254,3 +254,30 @@ export const restoreInert = (id: string): Effect.Effect<void> =>
     inertState.requests.delete(id)
     releaseStoredCleanups(id)
   })
+
+/** Restores every element marked inert through this module, whatever id or
+ *  isolation marked it, and discards pending `inertOthers` requests. The
+ *  runtime calls it when the application crashes, after releasing the
+ *  isolations it knows about, so an isolation acquired by a Command with no
+ *  matching `restoreInert` cannot leave the crash view inert.
+ * @internal */
+export const __restoreAllInert = (): void => {
+  inertState.requests.clear()
+
+  for (const id of Array.fromIterable(inertState.cleanups.keys())) {
+    releaseStoredCleanups(id)
+  }
+
+  for (const [element, original] of inertState.originals) {
+    if (Predicate.isNull(original.ariaHidden)) {
+      element.removeAttribute('aria-hidden')
+    } else {
+      element.setAttribute('aria-hidden', original.ariaHidden)
+    }
+
+    element.inert = original.inert
+  }
+
+  inertState.originals.clear()
+  inertState.counts.clear()
+}

@@ -12,8 +12,8 @@ import {
 import { afterCommit, afterPaint } from '../render/render.js'
 import { DialogRuntime } from './dialogRuntime.js'
 import { ElementNotFound } from './error.js'
-import { makeOutsideIsolation } from './inert.js'
-import { unlockScroll } from './scrollLock.js'
+import { __restoreAllInert, makeOutsideIsolation } from './inert.js'
+import { __releaseAllScrollLocks, unlockScroll } from './scrollLock.js'
 
 const BASE_DIALOG_Z_INDEX = 2147483600
 let openDialogCount = 0
@@ -641,6 +641,33 @@ export const releaseDialogResources = (id: string): Effect.Effect<boolean> =>
     }
     return Effect.succeed(false)
   })
+
+/**
+ * Releases every page-level resource the `Dom` helpers hold, whichever
+ * runtime or Command acquired it: each open dialog's hygiene (topmost first),
+ * the modal isolation and its `MutationObserver`, every `inertOthers`
+ * isolation, and every scroll lock. The runtime calls it when the application
+ * crashes, after the application's own finalizers have run, so a resource
+ * acquired by a plain Command with no release still pending cannot leave the
+ * crash view inert or the page unscrollable.
+ *
+ * Page-global by design: a crash is terminal for the page, so this also
+ * releases what a second runtime on the same page holds.
+ * @internal
+ */
+export const __releaseAllDomResources = (): void => {
+  for (const id of Array.reverse(
+    Array.fromIterable(dialogHygieneById.keys()),
+  )) {
+    releaseDialogHygieneById(id)
+  }
+
+  openDialogStack = []
+  openDialogCount = 0
+  synchronizeModalIsolation()
+  __restoreAllInert()
+  __releaseAllScrollLocks()
+}
 
 /**
  * Programmatically clicks an element matching the given selector.

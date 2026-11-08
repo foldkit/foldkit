@@ -1,0 +1,15 @@
+---
+'foldkit': minor
+---
+
+Release everything the running application holds before rendering the crash view, so nothing it started keeps running behind the crash view and nothing it acquired leaves the crash view locked or inert.
+
+A crash used to stop the dispatch loop and patch the crash view in, and nothing else. A modal `Dom.showDialog` keeps a `MutationObserver` that marks every element outside the dialog `inert` and `aria-hidden`, and the Dialog component releases it through a Command. No Command runs after a crash, so the observer stayed installed, marked the crash view's root inert as soon as it was inserted, and the Reload button could not be clicked. The scroll lock and background isolation stayed applied too. Long-running Command, Subscription, and Managed Resource fibers kept running behind the crash view, with their Messages dropped.
+
+On crash the runtime now logs the error, then closes the scope that holds the running application: every Command, Subscription, and Managed Resource fiber is interrupted and every dialog registered through `Dom.showDialog` is released, so their `Effect.acquireRelease` finalizers run with the DOM still on screen. It then patches the live view away, which releases every Mount through its destroy hook while its element is still in the document, releases every remaining dialog, `inertOthers` isolation, and scroll lock the `Dom` helpers hold, calls `crash.report`, and finally renders the crash view. A finalizer that throws is logged and does not stop the crash view. A finalizer that dispatches a Message is dropped, as every dispatch after a crash is. When every finalizer is synchronous the crash view is on screen before the crashing call returns, as before.
+
+`CrashContext` gains `maybeReleaseError`, an `Option<Error>` holding the error raised while the runtime released the application's fibers and dialogs, or `None` when every finalizer completed. `crash.report` and `crash.view` both receive it, so a teardown bug in a Command, Subscription, or Managed Resource reaches the same reporting service as the crash itself. To carry it, `crash.report` runs after the release instead of at the crash point. The Model and Message it receives are the ones captured when the crash happened. Code that reads the context compiles unchanged. Code that constructs a `CrashContext` itself, such as a test of a custom crash view, must add `maybeReleaseError: Option.none()`.
+
+Two things follow from Commands stopping at the crash. A Command parked on `Render.afterCommit` when the runtime crashes is interrupted instead of resumed, so no Command observes the crash view's DOM. And a `crash.report` that called `Dom.releaseDialogResources` for every Dialog the app owns, to make the crash view clickable, can drop that code: the runtime releases those dialogs itself, before `report` runs.
+
+Services from `resources` stay built until the runtime is disposed, as before. Dispose after a crash still tears the crash view down and restores the container.

@@ -20,26 +20,28 @@ import {
 } from './slowPhase.js'
 
 /**
- * Forks one fiber per Subscription into the runtime scope. Each fiber
- * derives the Subscription's dependencies from every Model, restarts its
- * stream when they change under its equivalence, and feeds the Messages
- * the stream emits into the queue. A defect anywhere in that pipeline
- * crashes the runtime instead of dying silently in the fiber.
+ * Forks one fiber per Subscription into the application scope, which a crash and
+ * dispose both close. Each fiber derives the Subscription's dependencies
+ * from every Model, restarts its stream when they change under its
+ * equivalence, and feeds the Messages the stream emits into the queue. A
+ * defect anywhere in that pipeline crashes the runtime instead of dying
+ * silently in the fiber.
  */
 export const forkSubscriptionFibers = <Model, Message, Services>({
   subscriptions,
   initModel,
   modelPubSub,
-  runtimeScope,
+  applicationScope,
   maybeSlowSubscriptionDependencies,
   enqueueMessageEffect,
   provideAllResources,
   crashWith,
+  recordReleaseFailure,
 }: Readonly<{
   subscriptions: Subscriptions<Model, Message, Services>
   initModel: Model
   modelPubSub: PubSub.PubSub<Model>
-  runtimeScope: Scope.Scope
+  applicationScope: Scope.Scope
   maybeSlowSubscriptionDependencies: Option.Option<
     ResolvedSlowPhaseConfig<SlowSubscriptionDependenciesContext<Model>>
   >
@@ -51,6 +53,9 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
     cause: Cause.Cause<never>,
     maybeMessage: Option.Option<Message>,
   ) => Effect.Effect<void>
+  recordReleaseFailure: <A, R>(
+    effect: Effect.Effect<A, never, R>,
+  ) => Effect.Effect<A, never, R>
 }>): Effect.Effect<void> =>
   pipe(
     subscriptions,
@@ -87,7 +92,7 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
 
           const latestDependenciesRef = yield* Ref.make(initDependencies)
           const modelSubscription = yield* PubSub.subscribe(modelPubSub).pipe(
-            Effect.provideService(Scope.Scope, runtimeScope),
+            Effect.provideService(Scope.Scope, applicationScope),
           )
 
           const modelChangesStream = Stream.fromSubscription(
@@ -125,7 +130,7 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
             ),
           )
 
-          yield* Effect.forkIn(runtimeScope)(
+          yield* Effect.forkIn(applicationScope)(
             Stream.concat(
               Stream.make(initDependencies),
               modelChangesStream,
@@ -142,6 +147,7 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
               ),
               provideAllResources,
               Effect.catchCause(cause => crashWith(cause, Option.none())),
+              recordReleaseFailure,
             ),
           )
         }),

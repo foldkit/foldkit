@@ -14,29 +14,34 @@ import type { ManagedResourceConfig } from '../managedResource/index.js'
 import type { ManagedResourceRef } from './resourceProvider.js'
 
 /**
- * Forks one fiber per Managed Resource into the runtime scope. Each fiber
- * derives the resource's requirements from every Model, acquires the
- * resource when they appear or change and releases it when they change
- * again or go away, keeps the shared Ref pointing at the live value, and
- * feeds the acquired, released, and error Messages into the queue.
+ * Forks one fiber per Managed Resource into the application scope, which a crash
+ * and dispose both close. Each fiber derives the resource's requirements
+ * from every Model, acquires the resource when they appear or change and
+ * releases it when they change again or go away, keeps the shared Ref
+ * pointing at the live value, and feeds the acquired, released, and error
+ * Messages into the queue.
  */
 export const forkManagedResourceFibers = <Model, Message>({
   managedResourceRefs,
   initModel,
   modelPubSub,
-  runtimeScope,
+  applicationScope,
   enqueueMessageEffect,
   crashWith,
+  recordReleaseFailure,
 }: Readonly<{
   managedResourceRefs: ReadonlyArray<ManagedResourceRef<Model, Message>>
   initModel: Model
   modelPubSub: PubSub.PubSub<Model>
-  runtimeScope: Scope.Scope
+  applicationScope: Scope.Scope
   enqueueMessageEffect: (message: Message) => Effect.Effect<void>
   crashWith: (
     cause: Cause.Cause<never>,
     maybeMessage: Option.Option<Message>,
   ) => Effect.Effect<void>
+  recordReleaseFailure: <A, R>(
+    effect: Effect.Effect<A, never, R>,
+  ) => Effect.Effect<A, never, R>
 }>): Effect.Effect<void> => {
   const maybeRequirementsToLifecycle =
     (
@@ -90,7 +95,7 @@ export const forkManagedResourceFibers = <Model, Message>({
   }: ManagedResourceRef<Model, Message>) =>
     Effect.gen(function* () {
       const modelSubscription = yield* PubSub.subscribe(modelPubSub).pipe(
-        Effect.provideService(Scope.Scope, runtimeScope),
+        Effect.provideService(Scope.Scope, applicationScope),
       )
       const modelStream = Stream.concat(
         Stream.make(initModel),
@@ -99,7 +104,7 @@ export const forkManagedResourceFibers = <Model, Message>({
 
       const equivalence = Schema.toEquivalence(config.schema)
 
-      yield* Effect.forkIn(runtimeScope)(
+      yield* Effect.forkIn(applicationScope)(
         modelStream.pipe(
           Stream.map(config.modelToMaybeRequirements),
           Stream.changesWith(equivalence),
@@ -111,6 +116,7 @@ export const forkManagedResourceFibers = <Model, Message>({
           // requires `Scope`, which `Stream.scoped` supplies, and `release`
           // requires nothing.
           Effect.catchCause(cause => crashWith(cause, Option.none())),
+          recordReleaseFailure,
         ),
       )
     })
