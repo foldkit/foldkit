@@ -105,6 +105,7 @@ An interaction invokes the matched element's event handler. If the handler produ
 | `pointerDown(target, options?)`        | `OnPointerDown` with optional `{ pointerType, button, screenX, screenY, clientX, clientY, pointerId }` (bubbles to ancestors) |
 | `pointerUp(target, options?)`          | `OnPointerUp` with optional `{ pointerType, screenX, screenY }` (bubbles to ancestors)                                        |
 | `hover(target)`                        | `OnMouseEnter` (falls back to `OnMouseOver`)                                                                                  |
+| `unhover(target)`                      | `OnMouseLeave` (falls back to `OnMouseOut`)                                                                                   |
 | `focus(target)`                        | `OnFocus`                                                                                                                     |
 | `blur(target)`                         | `OnBlur`                                                                                                                      |
 | `focusEnter(target)`                   | `OnFocusEnter`                                                                                                                |
