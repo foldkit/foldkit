@@ -19,6 +19,13 @@ const card = (id: string, title: string, sortKey: string): Card => ({
   sortKey,
 })
 
+const noModifiers = {
+  shiftKey: false,
+  ctrlKey: false,
+  altKey: false,
+  metaKey: false,
+}
+
 const k1 = generateKeyBetween(null, null)
 const k2 = generateKeyBetween(k1, null)
 const k3 = generateKeyBetween(k2, null)
@@ -177,7 +184,9 @@ describe('update', () => {
         ),
         message(
           Message.GotDragAndDropMessage({
-            message: DragAndDrop.Message.ReleasedPointer(),
+            message: DragAndDrop.Message.ReleasedPointer({
+              modifiers: noModifiers,
+            }),
           }),
         ),
         Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
@@ -221,7 +230,9 @@ describe('update', () => {
         ),
         message(
           Message.GotDragAndDropMessage({
-            message: DragAndDrop.Message.ReleasedPointer(),
+            message: DragAndDrop.Message.ReleasedPointer({
+              modifiers: noModifiers,
+            }),
           }),
         ),
         Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
@@ -263,7 +274,9 @@ describe('update', () => {
         DragAndDrop.test.settleFocus({ itemId: firstCardId }),
         message(
           Message.GotDragAndDropMessage({
-            message: DragAndDrop.Message.ConfirmedKeyboardDrop(),
+            message: DragAndDrop.Message.ConfirmedKeyboardDrop({
+              modifiers: noModifiers,
+            }),
           }),
         ),
         DragAndDrop.test.settleFocus({ itemId: firstCardId }),
@@ -301,7 +314,9 @@ describe('update', () => {
         DragAndDrop.test.settleFocus({ itemId: cardId }),
         message(
           Message.GotDragAndDropMessage({
-            message: DragAndDrop.Message.ConfirmedKeyboardDrop(),
+            message: DragAndDrop.Message.ConfirmedKeyboardDrop({
+              modifiers: noModifiers,
+            }),
           }),
         ),
         DragAndDrop.test.settleFocus({ itemId: cardId }),
