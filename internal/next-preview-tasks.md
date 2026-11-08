@@ -14,7 +14,16 @@ the repository migration and the animation-frame cadence fix.
 - [x] Complete one frozen ordinary rendering campaign with duplicate main
       controls, all 72 samples and 45 observed positive/negative controls.
 - [x] Independently audit the readback and preserve failed protocol attempts.
-- [x] Refresh relevant feedback through November 8 at 09:18 UTC. No new
+- [x] Isolate Vite optimizer caches under the existing worker-owned test cache
+      after the archival push encounters a teardown-only `ENOTEMPTY`. The
+      corrected resolution fixture passes all 37 cases.
+- [x] Run one fresh five-worker Website diagnostic with unchanged readiness
+      assertions. All 22 tests pass first attempt, so the intermittent timeout
+      remains unresolved and no source or timeout change is adopted.
+- [x] Screen and reject a record-validation optimization: all nine ceilings
+      pass, but only 0.064% instantiations and four Types are saved. No emitted
+      or editor-latency improvement is claimed.
+- [x] Refresh relevant feedback through November 8 at 10:00 UTC. No new
       preview issue or #1655 reply was found; #1916 remains a general task.
 - [ ] Reduce the demonstrated optimized rendering cost before main. The new
       campaign measures a 26.2% higher callback/event-work sum than main;
@@ -31,6 +40,12 @@ a per-render slowdown, a cross-campaign improvement or a known cause. The
 readiness timeout is unresolved and is not classified as an accessibility
 regression. Publication, new Daybreak transfer and a main merge remain held.
 The older dated sections retain their checkpoint scope.
+
+The [cache cleanup](preview-plugin-cleanup-20261108/README.md),
+[readiness diagnostic](preview-readiness-diagnostic-20261108/README.md) and
+[typing screening](record-validation-screening-20261108/README.md) retain the
+subsequent bounded outcomes. Exact-commit review and the normal push and CI
+gates are tracked on #1922; focused results do not replace those gates.
 
 ## November 8 overnight follow-ups
 

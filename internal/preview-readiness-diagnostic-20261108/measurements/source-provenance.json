@@ -1,0 +1,28 @@
+{
+  "formatVersion": 1,
+  "repository": "foldkit/foldkit",
+  "commit": "c3ffef0cedd9401359105076038b867502960ea4",
+  "tree": "a2d925ca9fe2dfbbc3d509647627aa9f1079c4b1",
+  "sourceArchive": null,
+  "sourceAuthority": "Canonical Git commit and tree; no duplicate checkout archive is stored.",
+  "files": {
+    "packages/website/playwright.config.ts": "3dd0c5146ab04eed4ebc661705f9dce17a3ece7d50d474ea801c4855370fe99d",
+    "packages/website/e2e/accessibility.spec.ts": "addd0408b2576bea04e5863b9ac115ecb8127a00fbc016cb5f0406b1eaaccc67",
+    "packages/website/e2e/globalSetup.ts": "a2c2c6fba9cb1e1dcf822d17e1ceef84408b994b048e72ffaf76a9b4b61d71ab",
+    "scripts/run-website-e2e.sh": "fe5beb6237fd6fe675e487908c40cc0c07c774db61801269ed1c6753b718962f",
+    "packages/website/package.json": "9dee1e29b5ee77673450bbeba5404a51e65c5ba31757cc2fcbbb035d02d88dc6",
+    "pnpm-lock.yaml": "3659249b317572543f8f9e01f4997a099f4fa32ee6285825694fe4b83ebd582f"
+  },
+  "toolFiles": {
+    "packages/website/node_modules/.bin/playwright": "2f8bad42028c5cff0a6db038abe6b00adf1a390de1e951265fefe422f507a32e",
+    "node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/cli.js": "5e79302a6aad7d835d92d5ae6b4244c91cf61b28e94d7917279090e6c231f7a1",
+    "node_modules/.pnpm/playwright@1.63.0/node_modules/playwright/lib/runner/index.js": "7a2e4e1114d3237d61b87723b4d86a37944c9143f3ce2fb0b2e8867e0c612a5e",
+    "packages/website/node_modules/.bin/vite": "c9df6644dbef329ce8296adbaaa08666700b67dc4f2ccb4f1671227134cf5729"
+  },
+  "versions": {
+    "node": "26.13.0",
+    "playwright": "1.63.0",
+    "vite": "8.3.5"
+  },
+  "portableReadback": "Use git show c3ffef0cedd9401359105076038b867502960ea4:<relative-path> and hash the resulting bytes. Tool-file hashes require the lockfile-resolved installation recorded by the raw expected-source manifests."
+}

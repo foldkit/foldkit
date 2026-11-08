@@ -10,9 +10,14 @@
       audit cyclic order, controls, arithmetic, source lineage and cleanup.
 - [x] Distinguish driver medians from rounded retained samples. Keep the naive
       result secondary and inconclusive, and preserve failed v3/v4 receipts.
-- [ ] Independently review the exact archival commit and pass its normal push
-      gate before pushing. Source CI is green; a later evidence commit has
-      its own checks.
+- [x] Independently approve exact archival commit `c3ffef0ced`, preserving its
+      later failed pre-upload gate separately from green source CI.
+- [x] Independently approve cache-isolation commit `d186f30880`; verify all 37
+      resolution cases without changing plugin behavior or assertions.
+- [x] Preserve the valid 22/22 readiness non-reproduction and prior setup
+      failures without claiming the intermittent timeout is fixed.
+- [x] Reject the record-validation candidate after negligible compiler-count
+      savings; distinguish source-alias checks from unrun emitted/LSP proof.
 - [ ] Resolve rendering, child-Layer editor latency, immediate operation
       output precision and the intermittent Website readiness timeout.
 
@@ -20,6 +25,12 @@ The [final rendering report](preview-rendering-final-20261108/README.md)
 records a material optimized callback/event-work gap against main. It does
 not attribute the gap to a phase or accept the cost for a main merge.
 Publication and new Daybreak source transfer remain held.
+
+The [readiness outcome](preview-readiness-diagnostic-20261108/README.md) and
+[typing screening](record-validation-screening-20261108/README.md) provide the
+focused evidence. Each pushed commit follows the repository's independent
+exact-commit review and normal push gate; its remote checks are tracked on
+[#1922](https://github.com/foldkit/foldkit/pull/1922).
 
 ## November 8 overnight review
 

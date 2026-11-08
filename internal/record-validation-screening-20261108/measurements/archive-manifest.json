@@ -1,0 +1,19 @@
+{
+  "sourceCommit": "c3ffef0cedd9401359105076038b867502960ea4",
+  "archive": "packet.tar.gz",
+  "stored": {
+    "bytes": 126260,
+    "sha256": "80a423b0547dc3079aa21fff0bcd958821f56fd71a2e8b44dd282fcea953f457"
+  },
+  "decompressedTar": {
+    "bytes": 215040,
+    "sha256": "7cb4722627e24e174c7beb71bcd633028ee71f48b68833b67ba826d47a5ea4dc"
+  },
+  "payloadFiles": 26,
+  "innerManifest": {
+    "file": "files.sha256",
+    "payloadEntries": 25,
+    "sha256": "c12d78e9fa883fa31cb30cace0e55beb55b2243d9070f771e00c81551f328e43"
+  },
+  "interpretation": "All original packet bytes are inside the archive, including raw trailing whitespace and empty passing logs. Extract into a new directory and verify files.sha256 there. The adjacent human-readable REPORT.md is formatted from the original report.md, whose original bytes remain in this archive."
+}
