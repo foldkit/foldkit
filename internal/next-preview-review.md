@@ -1,5 +1,23 @@
 # Next preview review
 
+## November 8 new feedback review
+
+- [x] Observe the supplied-Model regression fail before the correction and
+      inspect the same deferred branch in published preview source.
+- [x] Independently review the distinction between applied results and
+      reusable Steps. Keep stale-key membership and Command-order coverage.
+- [x] Verify the ordinary record regression with a named EffectsLayer and
+      no added annotations, type arguments, casts or validator changes.
+- [ ] Resolve the inline merged-Layer inference limitation. Do not move
+      descendant handlers to the parent or weaken validation.
+- [ ] Verify source, emitted consumers and unchanged compiler ceilings.
+- [ ] Independently review the exact committed fix and migration guidance,
+      then complete the ordinary push gate and remote checks.
+
+See the [new feedback disposition](preview-feedback-20261108.md). A current
+comment is not classified as resolved merely because an earlier report covered
+a similar subject. Publication and new Daybreak transfer remain held.
+
 ## November 8 final evidence review
 
 - [x] Independently approve exact packed-consumer commit `6f1c988e10` and

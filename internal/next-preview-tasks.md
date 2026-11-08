@@ -1,5 +1,28 @@
 # Next preview tasks
 
+## November 8 new feedback
+
+- [x] Refresh preview discussions, relevant issues and PRs. Record Filip's new
+      [pilot report](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6721308446)
+      and keep the general RadioGroup contribution #1924 outside this scope.
+- [x] Reproduce connected `combineSteps` losing an explicitly supplied Model
+      in both calling forms, then correct the shared deferred restart.
+- [x] Preserve removed-key protection using a reusable Step rather than
+      expecting an already-applied result to rebase onto a different Model.
+- [x] Verify the realistic parent/child regression with the ordinary record
+      and a named EffectsLayer. Core source checks and all 4,369 tests pass.
+- [ ] Resolve the narrower inline merged-Layer inference limitation without
+      weakening validation. No tested signature change has been adopted.
+- [x] Clarify verified Effect pins, supported peer ranges, reported npm-lock
+      recovery and explicit local-Message operations in active migration docs.
+- [ ] Review the exact committed feedback changes and pass the normal push
+      gate and remote checks before considering them integrated.
+
+The [feedback disposition](preview-feedback-20261108.md) distinguishes the
+reproduced bug, the narrower typing limitation and unconfirmed reports. The
+performance queue below remains active. Publication, new Daybreak transfer and
+a main merge remain held.
+
 ## November 8 verified checkpoint
 
 The follow-up source at `6f1c988e1096b7285066892e8eabac74cda131ea` is pushed

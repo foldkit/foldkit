@@ -23,6 +23,29 @@ const invalidNested = () => increment
 const nestedStepError = 'returned another Step instead of its result'
 
 describe('Step output validation', () => {
+  it.each(['data-first', 'data-last'])(
+    'retains the supplied Model when %s composition defers a connected Step',
+    form => {
+      const originalModel = Model.make({ count: 1 })
+      const suppliedModel = modifyFields(originalModel, { count: () => 10 })
+      const deferredIncrement = (_model: Model) =>
+        makeResultRecipe<Model, Update.Return<Model, Message>>(model =>
+          increment(model),
+        )
+      const steps = [increment, deferredIncrement, increment]
+      const combined =
+        form === 'data-first'
+          ? Update.combineSteps(suppliedModel, steps)
+          : Update.combineSteps(steps)(suppliedModel)
+
+      const changed = resolveOperationOutput(combined, originalModel)
+
+      expect(changed.model.count).toBe(13)
+      expect(originalModel.count).toBe(1)
+      expect(suppliedModel.count).toBe(10)
+    },
+  )
+
   it('rejects an unchecked nested Step in data-first composition', () => {
     expect(() =>
       Reflect.apply(Update.combineSteps, undefined, [
