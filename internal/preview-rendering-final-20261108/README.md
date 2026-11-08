@@ -44,6 +44,10 @@ authenticated November 4 build. They were not rebuilt using the current
 plugin. Current ordinary assets and hidden-map twins were built from the
 frozen current source.
 
+The [storage instructions](measurements/outcome/README.md) restore the
+compressed raw receipt JSON before checksum verification. Compression keeps
+the source diff readable and preserves every original measurement byte.
+
 ## Completed source changes
 
 - An omitted contracted Block view declares an Element view with no inputs;

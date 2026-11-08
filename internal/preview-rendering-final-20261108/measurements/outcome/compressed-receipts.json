@@ -1,0 +1,80 @@
+{
+  "archive": "key-receipts-json.tar.gz",
+  "stored": {
+    "bytes": 898284,
+    "sha256": "c8ba0f9b9f0b63ab3f05c1db62f5fb4ac7db57327dbe0f2bea8fa98b4254c1af"
+  },
+  "decompressedTar": {
+    "bytes": 7546880,
+    "sha256": "ba1db7cac062a0a746908ec106388b24272cdc943f06655a9f48322411505d77"
+  },
+  "originalPacketManifestSha256": "cfdde6b2fe0b606ab05a3b355ed2b0ee32fe00c555283699b54c67d4b5e1cdd0",
+  "entries": [
+    {
+      "path": "key-receipts/foldkit-final-rendering-config-4ed89f75.json",
+      "bytes": 1826,
+      "sha256": "1aa2d7c1d6208c5db47148d886143978fc45eba8f3fcd1c709b33b241365b02c"
+    },
+    {
+      "path": "key-receipts/foldkit-final-rendering-config-6f1c988-v4.json",
+      "bytes": 2375,
+      "sha256": "8a1b99fd22dc75d4493a80464e664f6603c821735d23aa006369102283e086a4"
+    },
+    {
+      "path": "key-receipts/foldkit-final-rendering-config-6f1c988-v5.json",
+      "bytes": 2399,
+      "sha256": "6fb29d7eef4c89147edc048c72418227761cf6329fbf06ffe78e4339667ecea1"
+    },
+    {
+      "path": "key-receipts/v5-assets-receipt.json",
+      "bytes": 216531,
+      "sha256": "20261eb55192f3a9c4b5d2f6dabe55cf71c9926772f1386a748cbc5736637f0c"
+    },
+    {
+      "path": "key-receipts/v5-candidate-freeze.json",
+      "bytes": 544291,
+      "sha256": "bafec286c9a44812c8240c9e576a61740c03a4351260711fb737e3cb50223d7f"
+    },
+    {
+      "path": "key-receipts/v5-coverage-analysis.json",
+      "bytes": 1378717,
+      "sha256": "e3faafec6248a65198514fd5b0689d9cbfa95268da4a824b7a0729bce540ab5b"
+    },
+    {
+      "path": "key-receipts/v5-coverage-guard-receipt.json",
+      "bytes": 206608,
+      "sha256": "539689c714e6eb59c2819c36eb45e9b8beb2b79caf078853732af80944f071fb"
+    },
+    {
+      "path": "key-receipts/v5-coverage-receipt.json",
+      "bytes": 210455,
+      "sha256": "8d532dbffbfe8c602b1a8fb9f231007d77c2141753ba688e397f0d2e4b23e004"
+    },
+    {
+      "path": "key-receipts/v5-negative-controls.json",
+      "bytes": 8011,
+      "sha256": "78033afb4368bfa01636e2fd0d114412694989c5d3b5fc2669f555c906cda065"
+    },
+    {
+      "path": "key-receipts/v5-preflight-receipt.json",
+      "bytes": 212582,
+      "sha256": "2ec5c2333000e41f7f89c49fdbf6192a62d63022e37dbae2b8a0dd33bb3931c1"
+    },
+    {
+      "path": "key-receipts/v5-reference-authority.json",
+      "bytes": 4511936,
+      "sha256": "584ba298ffe6ad5378e262d03c99d9041cbf92d9352fa3623b946fce914c0e98"
+    },
+    {
+      "path": "key-receipts/v5-timing-receipt.json",
+      "bytes": 217129,
+      "sha256": "fb2fc28b024158cf9e6bb21b0ee84f72c93d399dd2836dd0f9d6ddbffa9a4c72"
+    },
+    {
+      "path": "key-receipts/v5-validity-analysis.json",
+      "bytes": 21106,
+      "sha256": "3373e8490a11a79d19707998df76cc2d22a32a14f208e03a22d12305e19e1f9a"
+    }
+  ],
+  "interpretation": "Storage-only compression of the original raw JSON receipts. Extract this archive into this directory before verifying final-files.sha256. All original payload bytes and the original 41-entry manifest remain unchanged."
+}
