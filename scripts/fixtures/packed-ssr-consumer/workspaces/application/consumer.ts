@@ -16,6 +16,7 @@ export const WorkspaceConsumerBlock = Block.make('WorkspaceConsumer', {
   Model,
   Message,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 const WorkspaceConsumerComposition = WorkspaceConsumerBlock.makeComposition()
 const { makeFieldsStep } = WorkspaceConsumerBlock

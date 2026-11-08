@@ -24,8 +24,13 @@
 - [x] Integrate the independently reviewed repository-wide view migration,
       preserving literal and generic authoring, precise view inputs and Mounts,
       wrong-host rejection and the existing Schema-only assembly behavior.
-- [ ] Review the exact integrated view commit, then run the combined
-      verification and normal push gate.
+- [x] Review and push exact integrated view commit `4ed89f750c` through the
+      complete normal gate. The Website suite includes one readiness retry;
+      a fresh-server single-worker run without retries also passes.
+- [x] Correct the two packed viewless consumers after CI rejects the npm
+      workspace fixture. The existing packed critical SSR matrix passes in
+      Chromium, Firefox and WebKit without a production source change.
+- [ ] Review and push the packed-fixture follow-up, then require new CI.
 - [x] Isolate child-Layer editor cost in authenticated controls. Commit
       `befaa93b15` is independently reviewed; it demonstrates no latency fix.
 - [x] Refresh preview feedback. Assess the new main-targeted crash-cleanup
@@ -49,6 +54,10 @@ explicit Type-only ceiling revision from 336,291 to 336,346 under the overnight
 work authorization; this is not a user-approved performance tradeoff. All
 workload bodies and other ceilings remain unchanged. Omission declares an
 Element view; it does not make the implementation's view optional.
+
+The [packed follow-up](preview-packed-viewless-consumers-20261108.md) records
+the subsequent CI-only migration omission and successful installed-consumer
+matrix. The frozen earlier census and proof retain their recorded scope.
 
 ## November 8 rendering diagnostics
 

@@ -1,0 +1,103 @@
+{
+  "formatVersion": 1,
+  "sourceCommit": "4ed89f750c75d568d3c8ac4594d4f111e124edc1",
+  "status": "focused-pass-with-original-readiness-timeout-unresolved",
+  "workingDirectory": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+  "toolchain": {
+    "node": "v26.13.0",
+    "playwright": "1.63.0",
+    "vite": "8.3.5",
+    "accessibilitySourceSha256": "addd0408b2576bea04e5863b9ac115ecb8127a00fbc016cb5f0406b1eaaccc67",
+    "repositoryPlaywrightConfigSha256": "3dd0c5146ab04eed4ebc661705f9dce17a3ece7d50d474ea801c4855370fe99d",
+    "playwrightWrapperSha256": "2f8bad42028c5cff0a6db038abe6b00adf1a390de1e951265fefe422f507a32e",
+    "viteWrapperSha256": "c9df6644dbef329ce8296adbaaa08666700b67dc4f2ccb4f1671227134cf5729"
+  },
+  "originalSuite": {
+    "command": "bash scripts/run-website-e2e.sh",
+    "source": "complete normal push hook log",
+    "result": "21 passed, 1 flaky; first attempt failed existing 5-second client-readiness wait on /ui/combobox before table assertions; retry passed",
+    "failedLocation": "packages/website/e2e/accessibility.spec.ts:44 called from line 195",
+    "remoteUpdateAfterHook": true
+  },
+  "focusedRun": {
+    "command": "FOLDKIT_WEBSITE_E2E_PORT=38662 packages/website/node_modules/.bin/playwright test accessibility.spec.ts:191 --config=/private/tmp/foldkit-accessibility-focused.config.ts --workers=1 --retries=0",
+    "cwd": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+    "configuration": "focused-playwright.config.ts",
+    "freshServer": true,
+    "port": 38662,
+    "workers": 1,
+    "retries": 0,
+    "exitCode": 0,
+    "result": "1 passed (42.9s); test body 16.5s",
+    "actualTestExecutions": 1,
+    "predevGeneratorRepeated": false
+  },
+  "setupFailures": {
+    "pnpmIdentityWrapper": {
+      "command": "FOLDKIT_WEBSITE_E2E_PORT=38662 pnpm exec playwright test e2e/accessibility.spec.ts:191 --workers=1 --retries=0",
+      "cwd": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/packages/website",
+      "exitCode": 1,
+      "stage": "before Playwright launch",
+      "result": "ERR_PNPM_PNPM_ENGINE_IDENTITY_UNVERIFIABLE while offline",
+      "log": "wrapper-pnpm-verification-failure.log.gz"
+    },
+    "sandboxDeniedServer": {
+      "command": "FOLDKIT_WEBSITE_E2E_PORT=38662 packages/website/node_modules/.bin/playwright test accessibility.spec.ts:191 --config=/private/tmp/foldkit-accessibility-focused.config.ts --workers=1 --retries=0",
+      "cwd": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103",
+      "exitCode": 1,
+      "stage": "before server listen and before test",
+      "result": "EPERM listening on optional devtools relay 0.0.0.0:9988 and Website ::1:38662",
+      "rawLogRetained": false,
+      "retentionNote": "Observed in the tool transcript; the same tee path was subsequently replaced by the approved successful run. No raw file is claimed."
+    }
+  },
+  "cleanupObservation": {
+    "portCommand": "lsof -nP -iTCP:38662 -sTCP:LISTEN || true",
+    "processCommand": "pgrep -fl 'chromium|Chromium|chrome.*playwright|playwright' || true",
+    "statusCommand": "git status --short",
+    "port38662Listeners": 0,
+    "playwrightOrTestChromiumProcesses": 0,
+    "unrelatedProcessesObserved": "Zoom CEF only",
+    "rootStatus": "clean",
+    "rawLogRetained": false
+  },
+  "interpretation": "The original first attempt is an unresolved client-readiness timeout before assertions, not a proven framework or accessibility regression. Its retry and the one bounded fresh-server no-retry follow-up passed. No rendering-speed claim is made.",
+  "files": {
+    "focused-playwright.config.ts": {
+      "storedBytes": 1097,
+      "storedSha256": "8bcca1c9302e545766d4907732ed326ab533746f9fe6217df16959f070f3b341"
+    },
+    "focused-success.log.gz": {
+      "storedBytes": 2384,
+      "storedSha256": "14b3cc8dc0ac000f8713b830fbeaf683942449633fdcc5230937e6bd87b307cd",
+      "originalBytes": 20830,
+      "originalSha256": "a24fd751ac9cd6f33d0caae205099e7311518001436b432d31e95b8058088991"
+    },
+    "original-full-hook.log.gz": {
+      "storedBytes": 68499,
+      "storedSha256": "236201582110b7e53303e7fe9f4ea8abee3f3b3b250abf7f04a99421730b094d",
+      "originalBytes": 974127,
+      "originalSha256": "c3aebbefd678f95add84c55328d15f24823f0dc150808371c68bede960c383df"
+    },
+    "original-test-results/error-context.md.gz": {
+      "storedBytes": 19196,
+      "storedSha256": "5e1e58d9f46d53b611704356cc61df15a77663357181022f414448c5a48a855f",
+      "originalBytes": 89971,
+      "originalSha256": "814a13d31117acbca7a5d4a2ba71303efd3298bf46b57345ae9ad528d8299645"
+    },
+    "original-test-results/last-run.json": {
+      "storedBytes": 45,
+      "storedSha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    "original-test-results/retry1-trace.zip": {
+      "storedBytes": 1131674,
+      "storedSha256": "eab255d2a8d3d272be55af95b1a661ac25f0a732db6fd85a5a5cc21a239217b3"
+    },
+    "wrapper-pnpm-verification-failure.log.gz": {
+      "storedBytes": 384,
+      "storedSha256": "5d6963f5511127c09506de22dfb052bd3e0226b27cb16740c4d989be3cfa4eba",
+      "originalBytes": 670,
+      "originalSha256": "685979ac3c7959834b6fe548b432bcd378c8a78adaa6fa1f8fd2cb6d9cb648d9"
+    }
+  }
+}

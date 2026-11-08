@@ -36,6 +36,7 @@ const PackedEffectConsumerBlock = Foldkit.Block.make('PackedEffectConsumer', {
   Model,
   Message,
   InitArgs: Schema.Tuple([]),
+  view: false,
 })
 
 const Wait = PackedEffectConsumerBlock.makeCommand('Wait', {

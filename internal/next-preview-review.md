@@ -24,8 +24,12 @@
       nine original budgets, retaining the sole 55-Type layered overrun and
       every original failed receipt. Review the exact Type-only revision;
       no latency improvement or user acceptance is inferred.
-- [ ] Review the exact integrated view-default commit and complete combined
-      checks before push.
+- [x] Review exact integrated view-default commit `4ed89f750c` and pass the
+      complete normal push gate, preserving the Website readiness retry.
+- [x] Verify the packed-fixture migration correction through the unchanged
+      installed-consumer critical SSR matrix in all three browsers.
+- [ ] Independently review the exact packed follow-up commit and pass its
+      normal push and CI gates.
 - [ ] Complete current-source ordinary timings after diagnosing the cadence
       callback-count change; use duplicate baselines and unchanged workloads.
 - [x] Keep main-targeted crash cleanup separate and flag cross-runtime resource
