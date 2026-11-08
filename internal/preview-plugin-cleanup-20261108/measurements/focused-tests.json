@@ -1,0 +1,34 @@
+{
+  "tests": "resolution.test.ts, all 37 cases",
+  "archives": [
+    {
+      "file": "external-cache-rejected.tar.gz",
+      "originalRoot": "/private/tmp/foldkit-resolution-cleanup-final-20261108",
+      "exitCode": 1,
+      "sourceSha256": "e4ea47c52337e4ea4bc43f5a3df4ce6d4fe1611aa9709d0d6f5d3a6a7029e766",
+      "stored": {
+        "bytes": 1675,
+        "sha256": "629bbc324028c82c517a05290f1822989c01f393a76221fb4862ab5669465fdd"
+      },
+      "decompressedTar": {
+        "bytes": 20480,
+        "sha256": "f74e414680b792b7ca9b068056ed1ffc623dfd16bcd5c03a96378791f51a7918"
+      }
+    },
+    {
+      "file": "default-shaped-cache-passed.tar.gz",
+      "originalRoot": "/private/tmp/foldkit-resolution-cleanup-default-shaped-cache-20261108",
+      "exitCode": 0,
+      "sourceSha256": "ea2034891735238a8531b9c5241700c697b8ffeaa347a2699921c6db28a0df37",
+      "stored": {
+        "bytes": 1020,
+        "sha256": "f6b00f64b6bfdb6d7d1ce74b3e3e74f6fb11ca1911ced7a2fc8f4d63e18b841d"
+      },
+      "decompressedTar": {
+        "bytes": 10240,
+        "sha256": "7303c98c5d08c6d802461f03cf2f9b999e6a1c843f5e74b0f3dcbb13b7ed7c47"
+      }
+    }
+  ],
+  "rejectedSourceReproduction": "Replace cacheDir: join(await createServerCache(), 'node_modules/.vite') with cacheDir: await createServerCache() in the final source; the recorded rejected source hash is verified."
+}
