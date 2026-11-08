@@ -60,6 +60,15 @@ upstream stay reviewable.
   so an event that a `destroy` hook causes on an element that still listens
   reaches `update`.
 
+## Structural changes from upstream
+
+- The child pairing loop of `updateChildren` lives in the exported
+  `pairChildren` (`init.ts`), which reports each step to a
+  `ChildPairingSteps` record. `updateChildren` passes steps that patch, move,
+  create, and remove DOM nodes. Scene passes steps that record only which
+  children patch, so it tracks each Mount with the element the renderer keeps.
+  `sameVnode` is exported for the same reason.
+
 ## Removals relative to upstream
 
 Only the surface Foldkit uses is vendored:

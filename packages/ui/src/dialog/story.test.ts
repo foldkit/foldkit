@@ -149,7 +149,6 @@ const renderGroup = (
           }),
         ),
         Scene.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
-        Scene.Mount.expectEnded(AcquireResources),
       )
     } else {
       Scene.scene(
