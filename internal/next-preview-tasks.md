@@ -1,5 +1,37 @@
 # Next preview tasks
 
+## November 8 verified checkpoint
+
+The follow-up source at `6f1c988e1096b7285066892e8eabac74cda131ea` is pushed
+in [#1922](https://github.com/foldkit/foldkit/pull/1922). Independent exact-commit
+review, the complete normal push gate, CI and Examples E2E pass. The packed
+viewless-consumer correction passes the installed-consumer SSR matrix in
+Chromium, Firefox and WebKit. The source includes the Element view default,
+the repository migration and the animation-frame cadence fix.
+
+- [x] Complete combined cadence checks, including the extra idle callbacks,
+      source-matched work counts and the original failed guard.
+- [x] Complete one frozen ordinary rendering campaign with duplicate main
+      controls, all 72 samples and 45 observed positive/negative controls.
+- [x] Independently audit the readback and preserve failed protocol attempts.
+- [x] Refresh relevant feedback through November 8 at 09:18 UTC. No new
+      preview issue or #1655 reply was found; #1916 remains a general task.
+- [ ] Reduce the demonstrated optimized rendering cost before main. The new
+      campaign measures a 26.2% higher callback/event-work sum than main;
+      current is slower in all twelve rounds. The naive result is inconclusive.
+- [ ] Reduce the multi-second child-Layer editor cost.
+- [ ] Resolve immediate child-operation output precision without losing
+      registered policy channels or graph evidence.
+- [ ] Diagnose the five-second Website runtime-readiness timeout, observed
+      before assertions in two full local runs; each retry passed.
+
+The [final rendering report](preview-rendering-final-20261108/README.md)
+records the measurement boundary and reproducible evidence. It does not claim
+a per-render slowdown, a cross-campaign improvement or a known cause. The
+readiness timeout is unresolved and is not classified as an accessibility
+regression. Publication, new Daybreak transfer and a main merge remain held.
+The older dated sections retain their checkpoint scope.
+
 ## November 8 overnight follow-ups
 
 - [x] Preserve the reviewed HTML and diagnostic commits on #1922 through the
@@ -8,7 +40,7 @@
       verify the adaptation through the Runtime suite and negative controls.
 - [x] Independently review cadence commit `5c96e577cc`. Verify the same-frame
       behavior in a browser against the authenticated unchanged Renderer.
-- [ ] Complete the combined cadence checks and account for the extra idle
+- [x] Complete the combined cadence checks and account for the extra idle
       callbacks before current-source ordinary timing. Preserve the failed
       original 400-callback guard.
 - [x] Prove and measure the isolated paired R11/R19 construction prototype
@@ -30,7 +62,8 @@
 - [x] Correct the two packed viewless consumers after CI rejects the npm
       workspace fixture. The existing packed critical SSR matrix passes in
       Chromium, Firefox and WebKit without a production source change.
-- [ ] Review and push the packed-fixture follow-up, then require new CI.
+- [x] Review and push packed follow-up `6f1c988e10`, then pass new CI and
+      Examples E2E. Retain the second local readiness retry separately.
 - [x] Isolate child-Layer editor cost in authenticated controls. Commit
       `befaa93b15` is independently reviewed; it demonstrates no latency fix.
 - [x] Refresh preview feedback. Assess the new main-targeted crash-cleanup

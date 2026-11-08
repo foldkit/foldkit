@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "candidateRoot": "/private/tmp/foldkit-final-candidate-6f1c988",
+  "evidenceRoot": "/private/tmp/foldkit-final-rendering-evidence-6f1c988-v5",
+  "repoEvidenceRoot": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/internal/preview-final-20261107/rendering/measurements/official-workcount-cpu-20261108",
+  "officialHarnessRoot": "/private/tmp/foldkit-record-release-rendering-xpwmm820/harness",
+  "officialDriverRoot": "/private/tmp/foldkit-record-release-rendering-xpwmm820/driver",
+  "officialMainNaiveDist": "/private/tmp/foldkit-record-release-rendering-xpwmm820/harness/priv/implementations/foldkit-main/dist",
+  "officialMainOptimisedDist": "/private/tmp/foldkit-record-release-rendering-xpwmm820/harness/priv/implementations/foldkit-main-optimised/dist",
+  "node": "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node",
+  "chromium": "/Users/devinjameson/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+  "vite": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/vite@8.3.5_@types+node@26.4.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/bin/vite.js",
+  "rimraf": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/rimraf@6.1.3/node_modules/rimraf/dist/esm/bin.mjs",
+  "traceMapping": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/node_modules/.pnpm/@jridgewell+trace-mapping@0.3.31/node_modules/@jridgewell/trace-mapping",
+  "durableOldCapturesRoot": "/private/tmp/foldkit-final-rendering-protocol-20261108/orchestration-v4/reference-inputs/durable-old-captures",
+  "durableOldCapturesReceipt": "/private/tmp/foldkit-final-rendering-protocol-20261108/orchestration-v4/reference-inputs/durable-old-captures-receipt.json",
+  "cadenceGuardRoot": "/private/tmp/foldkit-final-rendering-protocol-20261108/orchestration-v4/reference-inputs/cadence-guard",
+  "durableCadenceReceipt": "/private/tmp/foldkit-final-rendering-protocol-20261108/orchestration-v4/reference-inputs/cadence-guard-receipt.json",
+  "ports": {
+    "preflight": 38690,
+    "coverage": 38700,
+    "timing": 38710
+  },
+  "bootstrap": {
+    "seed": 20261108,
+    "resamples": 10000
+  }
+}

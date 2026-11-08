@@ -1,0 +1,26 @@
+{
+  "sourceCommit": "6f1c988e1096b7285066892e8eabac74cda131ea",
+  "result": "normal hook passed with21passed/1readinessretry; same5sSSRmarkerwait before assertions, different accessibilitycase60; causeunresolved",
+  "files": [
+    {
+      "file": "full-hook.log",
+      "bytes": 979641,
+      "sha256": "8c8ee52b1323603d1b9a63aa817a1a4df5ec5a819c6fdccd094e28ce5c58c1fb"
+    },
+    {
+      "file": "test-results/.last-run.json",
+      "bytes": 45,
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    {
+      "file": "test-results/accessibility-keeps-repres-bc06a-ed-accessibility-violations-chromium/error-context.md",
+      "bytes": 46631,
+      "sha256": "2e43e5a696de7cdc6beb1ea515e1b623f3b2501b60eff1fad857521abd69f25d"
+    },
+    {
+      "file": "test-results/accessibility-keeps-repres-bc06a-ed-accessibility-violations-chromium-retry1/trace.zip",
+      "bytes": 4217410,
+      "sha256": "515cc8818019dff85e0b70381dddcf7b5002970c596d4f81f864121cecf10cbe"
+    }
+  ]
+}

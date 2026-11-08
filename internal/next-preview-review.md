@@ -1,5 +1,26 @@
 # Next preview review
 
+## November 8 final evidence review
+
+- [x] Independently approve exact packed-consumer commit `6f1c988e10` and
+      complete its normal push gate, CI and Examples E2E.
+- [x] Verify the frozen final source, main assets, six functional slots,
+      positioned work counts and all 45 mutation controls before timing.
+- [x] Retain one unchanged 12-round batch with all 72 samples; independently
+      audit cyclic order, controls, arithmetic, source lineage and cleanup.
+- [x] Distinguish driver medians from rounded retained samples. Keep the naive
+      result secondary and inconclusive, and preserve failed v3/v4 receipts.
+- [ ] Independently review the exact archival commit and pass its normal push
+      gate before pushing. Source CI is green; a later evidence commit has
+      its own checks.
+- [ ] Resolve rendering, child-Layer editor latency, immediate operation
+      output precision and the intermittent Website readiness timeout.
+
+The [final rendering report](preview-rendering-final-20261108/README.md)
+records a material optimized callback/event-work gap against main. It does
+not attribute the gap to a phase or accept the cost for a main merge.
+Publication and new Daybreak source transfer remain held.
+
 ## November 8 overnight review
 
 - [x] Review and push exact HTML and diagnostic commits through the ordinary
@@ -8,7 +29,7 @@
       focused Runtime results. Preserve occurrence checks and receipts.
 - [x] Independently review exact cadence commit `5c96e577cc` and editor-control
       commit `befaa93b15`.
-- [ ] Run the combined cadence verification and independently review its
+- [x] Run the combined cadence verification and independently review its
       browser packet, provenance and original callback-guard failure.
 - [x] Reject both operation-precision encodings after three compiler ceilings
       fail. Preserve successful proofs and their limits, including the emitted
@@ -28,9 +49,9 @@
       complete normal push gate, preserving the Website readiness retry.
 - [x] Verify the packed-fixture migration correction through the unchanged
       installed-consumer critical SSR matrix in all three browsers.
-- [ ] Independently review the exact packed follow-up commit and pass its
+- [x] Independently review the exact packed follow-up commit and pass its
       normal push and CI gates.
-- [ ] Complete current-source ordinary timings after diagnosing the cadence
+- [x] Complete current-source ordinary timings after diagnosing the cadence
       callback-count change; use duplicate baselines and unchanged workloads.
 - [x] Keep main-targeted crash cleanup separate and flag cross-runtime resource
       ownership for review. No external review or comment has been posted.
