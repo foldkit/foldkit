@@ -170,6 +170,28 @@ describe('RadioGroup', () => {
       )
     })
 
+    it.each(['Vertical', 'Horizontal'] as const)(
+      'moves the selection with every arrow key in a %s group',
+      orientation => {
+        Scene.scene(
+          { update, view: testView({ orientation }) },
+          Scene.given(modelWith(Option.some('Brush'))),
+          Scene.keydown(option(0), 'ArrowRight'),
+          resolveFocusOption,
+          Scene.expect(option(1)).toHaveAttr('aria-checked', 'true'),
+          Scene.keydown(option(1), 'ArrowDown'),
+          resolveFocusOption,
+          Scene.expect(option(2)).toHaveAttr('aria-checked', 'true'),
+          Scene.keydown(option(2), 'ArrowLeft'),
+          resolveFocusOption,
+          Scene.expect(option(1)).toHaveAttr('aria-checked', 'true'),
+          Scene.keydown(option(1), 'ArrowUp'),
+          resolveFocusOption,
+          Scene.expect(option(0)).toHaveAttr('aria-checked', 'true'),
+        )
+      },
+    )
+
     it('selects the focused option on Space', () => {
       Scene.scene(
         { update, view: testView() },
