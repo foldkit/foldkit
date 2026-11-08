@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "status": "failed-before-browser",
+  "startedAt": "2026-11-08T02:58:46.611Z",
+  "error": {
+    "code": "EPERM",
+    "syscall": "listen",
+    "address": "127.0.0.1",
+    "port": 38472
+  },
+  "browserStarted": false,
+  "capturedSlots": 0,
+  "supersededBy": "../cpu-escalated/receipt.json",
+  "note": "The unchanged capture was rerun only with permission to bind the owned localhost server. This failed launch is not timing or profiling evidence."
+}

@@ -1,0 +1,339 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-08T03:11:16.631Z",
+  "label": "Exact official actual-main / published-preview work-count and ordinary CPU diagnostic preservation",
+  "sourceIdentities": {
+    "actualMainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b",
+    "publishedPreviewCommit": "54f8bcd443b4fd18952403a3d02e212abf872d58",
+    "retainedPreviewSourceHead": "1117a93316ff8111d402bffc995067476ec97983",
+    "officialArtifactReceiptSha256": "9e4713466acc76e4f063e257212f209bf8533828c92c36f6eab8cd49a9c2bbde"
+  },
+  "interpretation": {
+    "cpu": "One ordinary sampled, boot-inclusive profile per slot; reached-work and descriptive source attribution only. Its callback totals are single instrumented observations, not a reproduction of ordinary timing.",
+    "coverage": "One separate boot-inclusive precise-coverage capture per slot; exact reached-work counts only. Coverage timing is invalid.",
+    "failure": "The original localhost EPERM occurred before browser startup and is retained only as invalid launch evidence."
+  },
+  "entries": [
+    {
+      "storedPath": "README.preparation.md",
+      "description": "Original bounded preparation plan",
+      "compression": "none",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/README.md",
+      "sourceBytes": 10410,
+      "sourceSha256": "f4b110c6866d8427c81d944ca2c44facd49a42b7a5210872dadb923573b38cb6",
+      "storedBytes": 10410,
+      "storedSha256": "f4b110c6866d8427c81d944ca2c44facd49a42b7a5210872dadb923573b38cb6"
+    },
+    {
+      "storedPath": "tooling/capture.mjs",
+      "description": "Exact capture tool",
+      "compression": "none",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/capture.mjs",
+      "sourceBytes": 10673,
+      "sourceSha256": "a46845f71fcaddcd2810dee34a28af778b9d85ae0395e280d43d5fe403062fb1",
+      "storedBytes": 10673,
+      "storedSha256": "a46845f71fcaddcd2810dee34a28af778b9d85ae0395e280d43d5fe403062fb1"
+    },
+    {
+      "storedPath": "tooling/prepare-maps.mjs",
+      "description": "Exact hidden-map preparation tool",
+      "compression": "none",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/prepare-maps.mjs",
+      "sourceBytes": 7204,
+      "sourceSha256": "9df066f84604886efd9bf79cbb487863e45a9c10a48e2068320d2b61ba6cdfdc",
+      "storedBytes": 7204,
+      "storedSha256": "9df066f84604886efd9bf79cbb487863e45a9c10a48e2068320d2b61ba6cdfdc"
+    },
+    {
+      "storedPath": "tooling/analyse.cjs",
+      "description": "Source-matched CPU and coverage decoder",
+      "compression": "none",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/analyse.cjs",
+      "sourceBytes": 14574,
+      "sourceSha256": "750d045d217022a6f7f5b8eec8a2ac1a6e862d67940c70bcaaa66778808b1730",
+      "storedBytes": 14574,
+      "storedSha256": "750d045d217022a6f7f5b8eec8a2ac1a6e862d67940c70bcaaa66778808b1730"
+    },
+    {
+      "storedPath": "tooling/summarize-full-profile-buckets.cjs",
+      "description": "Full CPU leaf-bucket decoder",
+      "compression": "none",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/summarize-full-profile-buckets.cjs",
+      "sourceBytes": 7449,
+      "sourceSha256": "795f7abccd14b4a648a7f52c5dac20121a9272c489e7ac93009c5410b2f0b788",
+      "storedBytes": 7449,
+      "storedSha256": "795f7abccd14b4a648a7f52c5dac20121a9272c489e7ac93009c5410b2f0b788"
+    },
+    {
+      "storedPath": "receipts/map-preparation-receipt.json",
+      "description": "Exact-map build and identity receipt",
+      "compression": "none",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/map-preparation-receipt.json",
+      "sourceBytes": 4892,
+      "sourceSha256": "6101787fb58267ec4c46794696f70771b996e72077a77d1303b25aab7b634e4d",
+      "storedBytes": 4892,
+      "storedSha256": "6101787fb58267ec4c46794696f70771b996e72077a77d1303b25aab7b634e4d"
+    },
+    {
+      "storedPath": "receipts/cpu-receipt.json",
+      "description": "Accepted ordinary CPU capture receipt",
+      "compression": "none",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/cpu-escalated/receipt.json",
+      "sourceBytes": 8842,
+      "sourceSha256": "804ce200ee68ee2d341abbba71185890a2f9f0a3d9719c8f84bab9a29b12ac39",
+      "storedBytes": 8842,
+      "storedSha256": "804ce200ee68ee2d341abbba71185890a2f9f0a3d9719c8f84bab9a29b12ac39"
+    },
+    {
+      "storedPath": "receipts/coverage-receipt.json",
+      "description": "Accepted precise-coverage capture receipt",
+      "compression": "none",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/coverage/receipt.json",
+      "sourceBytes": 8699,
+      "sourceSha256": "74324ead17cb32620c6f657f2b0565531eddadbfd28a33ec7a3aa3581fc172ce",
+      "storedBytes": 8699,
+      "storedSha256": "74324ead17cb32620c6f657f2b0565531eddadbfd28a33ec7a3aa3581fc172ce"
+    },
+    {
+      "storedPath": "receipts/failed-cpu-receipt.json",
+      "description": "Original incomplete receipt from the failed pre-browser bind",
+      "compression": "none",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/cpu/receipt.json",
+      "sourceBytes": 1803,
+      "sourceSha256": "1e96648107884fd63f79992c96b07127e79b8fa5605887418ec61176da3ffd93",
+      "storedBytes": 1803,
+      "storedSha256": "1e96648107884fd63f79992c96b07127e79b8fa5605887418ec61176da3ffd93"
+    },
+    {
+      "storedPath": "receipts/failed-cpu-launch.json",
+      "description": "Explicit classification of the original pre-browser bind failure",
+      "compression": "none",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/cpu/launch-failure.json",
+      "sourceBytes": 473,
+      "sourceSha256": "e142a75cb1d419dc68c066c5b23b0e9f1d25684eb106dc236f18a9e3add9fbc5",
+      "storedBytes": 473,
+      "storedSha256": "e142a75cb1d419dc68c066c5b23b0e9f1d25684eb106dc236f18a9e3add9fbc5"
+    },
+    {
+      "storedPath": "receipts/official-final-artifact-receipt.json.gz",
+      "description": "Frozen official asset/source receipt used by both captures",
+      "compression": "gzip",
+      "sourcePath": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/internal/preview-final-20261107/rendering/measurements/final-artifact-receipt.json",
+      "sourceBytes": 709226,
+      "sourceSha256": "9e4713466acc76e4f063e257212f209bf8533828c92c36f6eab8cd49a9c2bbde",
+      "storedBytes": 190838,
+      "storedSha256": "10319080a3084904ec517d0bb93338f27c5ab82651c7d536a976445f2081f581"
+    },
+    {
+      "storedPath": "analysis/official-final-analysis.json.gz",
+      "description": "Existing official timing analysis; not produced by profiling",
+      "compression": "gzip",
+      "sourcePath": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/internal/preview-final-20261107/rendering/measurements/final-analysis.json",
+      "sourceBytes": 759042,
+      "sourceSha256": "b963e35c08b5ec9d837acbb58f7136166f1caf34f0be8819342da21c56dc8d6e",
+      "storedBytes": 195019,
+      "storedSha256": "81e4f36395c686fbd97212d3cdc48bc89a8d29bf7f53dd208b08cef76ea122fe"
+    },
+    {
+      "storedPath": "analysis/source-matched-analysis-final.json.gz",
+      "description": "Full source-matched CPU and precise-coverage analysis",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/source-matched-analysis-final.json",
+      "sourceBytes": 1656943,
+      "sourceSha256": "1df37ef273150eec369066c194e13b631147c2f9fdb49103b8a54c22bb69237b",
+      "storedBytes": 120664,
+      "storedSha256": "72bdf6e191a5d47a490d4f31f76a9761e75bbe2870a779ed7b3ca6c533cd7e05"
+    },
+    {
+      "storedPath": "analysis/full-profile-buckets.json",
+      "description": "Full CPU leaf-sample bucket analysis",
+      "compression": "none",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/full-profile-buckets.json",
+      "sourceBytes": 61784,
+      "sourceSha256": "90576f36c087abbabe86a6a96573b5ee446c59cc3ca355608b7b11e3ef3ae8a1",
+      "storedBytes": 61784,
+      "storedSha256": "90576f36c087abbabe86a6a96573b5ee446c59cc3ca355608b7b11e3ef3ae8a1"
+    },
+    {
+      "storedPath": "captures/cpu/foldkit-main-optimised.cpuprofile.gz",
+      "description": "Raw boot-inclusive CPU profile",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/cpu-escalated/foldkit-main-optimised.cpuprofile",
+      "sourceBytes": 673892,
+      "sourceSha256": "5fe81810f90aaf2b26decd839df81e87f4ad66dd51c2eceb30b9bf8eeff937f8",
+      "storedBytes": 68817,
+      "storedSha256": "a8c499f7d011d4fc5f356ee173f31bbd21fd2d88101efac43ea631694046c9d3"
+    },
+    {
+      "storedPath": "captures/cpu/foldkit-preview-final-optimised.cpuprofile.gz",
+      "description": "Raw boot-inclusive CPU profile",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/cpu-escalated/foldkit-preview-final-optimised.cpuprofile",
+      "sourceBytes": 722756,
+      "sourceSha256": "b47384fb2524389c7ae220a845133754f8c9bb80b265d3d9226a6bcc0e9f285c",
+      "storedBytes": 71081,
+      "storedSha256": "d0c90f254ef9876710c71b0e848847ddd13e23c4a77b4f1a804f174c889b14ad"
+    },
+    {
+      "storedPath": "captures/cpu/foldkit-main.cpuprofile.gz",
+      "description": "Raw boot-inclusive CPU profile",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/cpu-escalated/foldkit-main.cpuprofile",
+      "sourceBytes": 682071,
+      "sourceSha256": "9e43b477bde6aeac45a2e9a5037b716cf3f2904167ce90deb95d7fab248fd79a",
+      "storedBytes": 69388,
+      "storedSha256": "868943461769d79afe73b0ae752898b7968310ff3a5474f3fcac8e20fc413c62"
+    },
+    {
+      "storedPath": "captures/cpu/foldkit-preview-final.cpuprofile.gz",
+      "description": "Raw boot-inclusive CPU profile",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/cpu-escalated/foldkit-preview-final.cpuprofile",
+      "sourceBytes": 734387,
+      "sourceSha256": "e296bc2606d783bd38545b532a95d7b762e03530f1285e8df5cf35892b9c3d3e",
+      "storedBytes": 72410,
+      "storedSha256": "87479d470554f85bd2feda5c20fd5bad3ff594a77839fa61e26b0419d1b815ec"
+    },
+    {
+      "storedPath": "captures/coverage/foldkit-main-optimised.coverage.json.gz",
+      "description": "Raw boot-inclusive precise coverage",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/coverage/foldkit-main-optimised.coverage.json",
+      "sourceBytes": 362379,
+      "sourceSha256": "4e8ba03557f6e47b6e4e0ef34e748ac6a94c883763a3f200c17e10d710997061",
+      "storedBytes": 40110,
+      "storedSha256": "04ffb79c49b0ff0923dfd6e9b0736644e0107fd5261983cdd7bfe920a6299b16"
+    },
+    {
+      "storedPath": "captures/coverage/foldkit-preview-final-optimised.coverage.json.gz",
+      "description": "Raw boot-inclusive precise coverage",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/coverage/foldkit-preview-final-optimised.coverage.json",
+      "sourceBytes": 472081,
+      "sourceSha256": "ab85f853aad72d225934087f0a79147021447b04b386df084d3653a6540a7702",
+      "storedBytes": 52395,
+      "storedSha256": "9023529760e65286f5ce6ea4874060d0de30143b3a64fb095662fcb57b1b21fa"
+    },
+    {
+      "storedPath": "captures/coverage/foldkit-main.coverage.json.gz",
+      "description": "Raw boot-inclusive precise coverage",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/coverage/foldkit-main.coverage.json",
+      "sourceBytes": 358765,
+      "sourceSha256": "46bc40c6ec78220882f2fb19759113ac0b03199cc1d0f0c224a3b1ea339717bd",
+      "storedBytes": 39658,
+      "storedSha256": "6b8554d91ff645443724e9b6cddbe9feb70496a6c05dd991d1550e24a3959b8b"
+    },
+    {
+      "storedPath": "captures/coverage/foldkit-preview-final.coverage.json.gz",
+      "description": "Raw boot-inclusive precise coverage",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/coverage/foldkit-preview-final.coverage.json",
+      "sourceBytes": 467478,
+      "sourceSha256": "411213cbaa1518085d2b080b31c39d548d7b8d80cccaba002d4626614d836f0b",
+      "storedBytes": 51832,
+      "storedSha256": "38a6723dad47b461b3ceb5669e0802165b19307ef0250787570f13bd020f93a8"
+    },
+    {
+      "storedPath": "maps/foldkit-main-optimised.js.gz",
+      "description": "Exact JavaScript twin for the hidden map",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-unified-profile-20261104/maps-main/assets/index.optimised-UkWhNSKN.js",
+      "sourceBytes": 306590,
+      "sourceSha256": "852eddbf31ec2d3274568f1f0d503dfeabc6e181c8d2361489b435b13ce14ded",
+      "storedBytes": 99683,
+      "storedSha256": "8feb0cc6e88bf3822a1a2994de82e9d294fd828b952385289a1cda6609f82d57"
+    },
+    {
+      "storedPath": "maps/foldkit-main-optimised.js.map.gz",
+      "description": "Exact hidden map with sourcesContent",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-unified-profile-20261104/maps-main/assets/index.optimised-UkWhNSKN.js.map",
+      "sourceBytes": 4496443,
+      "sourceSha256": "9d632a69c71bc066080470498aa7eab3bd60388caf1e242dd07542e65bc8710a",
+      "storedBytes": 923637,
+      "storedSha256": "f48fead3cc49c2f8629c52d4abdf2b2e69255f96a76499e572bce8e52f34e42b"
+    },
+    {
+      "storedPath": "maps/foldkit-preview-final-optimised.js.gz",
+      "description": "Exact JavaScript twin for the hidden map",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/maps-preview-optimised/assets/index.optimised-4XrqNWmx.js",
+      "sourceBytes": 482112,
+      "sourceSha256": "c6802c60c7eccbfb7bbd04f760bb0a9e8e7fc3db2f4945edcf880cca340036ce",
+      "storedBytes": 148209,
+      "storedSha256": "c46bfc7e2d24f18ca4b9634bec71870513cd66c56c9b502cfaefc90752d438c0"
+    },
+    {
+      "storedPath": "maps/foldkit-preview-final-optimised.js.map.gz",
+      "description": "Exact hidden map with sourcesContent",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/maps-preview-optimised/assets/index.optimised-4XrqNWmx.js.map",
+      "sourceBytes": 6192492,
+      "sourceSha256": "5db03026d544dc580995f26f1a69f233066f7c659a4f4c5e1bb6e08d3bf144c6",
+      "storedBytes": 1255446,
+      "storedSha256": "7d2ccdfa34ccf0b2d29679ad6f0b0553d3aded77e5905a70061af8078d44a207"
+    },
+    {
+      "storedPath": "maps/foldkit-main.js.gz",
+      "description": "Exact JavaScript twin for the hidden map",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/maps-main-naive/assets/index-DN9U5aN7.js",
+      "sourceBytes": 304187,
+      "sourceSha256": "d3e37e9f695531f98727dadc3ead8bddd4b0bdb93f52b64029880c3d7a78adb4",
+      "storedBytes": 98966,
+      "storedSha256": "39747a2c00875866693e7187f0074d248bc81d7596a672bb6b3eebd392110bd1"
+    },
+    {
+      "storedPath": "maps/foldkit-main.js.map.gz",
+      "description": "Exact hidden map with sourcesContent",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-official-workcount-cpu-20261107/maps-main-naive/assets/index-DN9U5aN7.js.map",
+      "sourceBytes": 4474954,
+      "sourceSha256": "da77296108fbefa88581c14bc2745f1055de0c7e39fa1f93583f7e51ccfd011f",
+      "storedBytes": 918866,
+      "storedSha256": "93598878986940bc72813aa962e808fdfd4e83f2ff237678aa647ea3c5ee983c"
+    },
+    {
+      "storedPath": "maps/foldkit-preview-final.js.gz",
+      "description": "Exact JavaScript twin for the hidden map",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-bundle-invocation-controls-20261107/d_retargeted/internal/lustre-benchmark/dist-map/naive/assets/index-ZmDGH17y.js",
+      "sourceBytes": 475519,
+      "sourceSha256": "445b31212df9efe25ce6e81fe60cb7a5dfc583c46fc098dd84de40e234e9d146",
+      "storedBytes": 146870,
+      "storedSha256": "b5cde5feb3f73ddf3bc55e404474586f9ab94b2265a24bbafe0fb8c176aa9647"
+    },
+    {
+      "storedPath": "maps/foldkit-preview-final.js.map.gz",
+      "description": "Exact hidden map with sourcesContent",
+      "compression": "gzip",
+      "sourcePath": "/private/tmp/foldkit-bundle-invocation-controls-20261107/d_retargeted/internal/lustre-benchmark/dist-map/naive/assets/index-ZmDGH17y.js.map",
+      "sourceBytes": 6156639,
+      "sourceSha256": "4ded625981064248a1f3ac38e980d563d3dcc1b94da34770cc06afc25dd41616",
+      "storedBytes": 1249000,
+      "storedSha256": "7da890dec992baa1937dd05850f583feba5bdf208db50083402cd2eeeb817ce9"
+    },
+    {
+      "storedPath": "README.md",
+      "description": "Concise evidence interpretation and next-step reconciliation",
+      "compression": "none",
+      "sourcePath": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/internal/preview-final-20261107/rendering/measurements/official-workcount-cpu-20261108/README.md",
+      "sourceBytes": 11807,
+      "sourceSha256": "a1064dca6115addfabaaf8b9eb0dfb21b6d4472c2f366a875253d3be21369f63",
+      "storedBytes": 11807,
+      "storedSha256": "a1064dca6115addfabaaf8b9eb0dfb21b6d4472c2f366a875253d3be21369f63"
+    },
+    {
+      "storedPath": "analysis/timing-validity-check.json",
+      "description": "Raw timing-field and protocol comparability validity check",
+      "compression": "none",
+      "sourcePath": "/Users/devinjameson/.codex/worktrees/block-completion-record/foldkit-unified-recovery-20261103/internal/preview-final-20261107/rendering/measurements/official-workcount-cpu-20261108/analysis/timing-validity-check.json",
+      "sourceBytes": 8500,
+      "sourceSha256": "5559437ebe2381744788ed8c3f2f8f772c44ea7eb53445ea90ed7482bc9c1362",
+      "storedBytes": 8500,
+      "storedSha256": "5559437ebe2381744788ed8c3f2f8f772c44ea7eb53445ea90ed7482bc9c1362"
+    }
+  ],
+  "updatedAt": "2026-11-08T03:17:33.150Z"
+}

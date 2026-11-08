@@ -1,0 +1,1966 @@
+{
+  "schemaVersion": 1,
+  "label": "Full leaf-sample buckets for the four retained ordinary CPU profiles",
+  "method": "Every timeDelta is assigned to its sampled leaf; app-bundle leaves are source-mapped through the exact hidden-map twin. Buckets are mutually exclusive.",
+  "limits": [
+    "The CDP span is boot-inclusive and dominated by driver/idle/native waits; these are not callback-time measurements.",
+    "Empty-URL and program frames cannot be authenticated as application source and are not reassigned.",
+    "One profile per slot cannot resolve small bucket differences or native lifecycle causality."
+  ],
+  "results": [
+    {
+      "slot": "foldkit-main-optimised",
+      "captureSha256": "5fe81810f90aaf2b26decd839df81e87f4ad66dd51c2eceb30b9bf8eeff937f8",
+      "sampledDurationMs": 13381.075,
+      "buckets": [
+        {
+          "name": "idle",
+          "selfMs": 12948.499,
+          "percent": 96.767
+        },
+        {
+          "name": "program-native",
+          "selfMs": 321.614,
+          "percent": 2.403
+        },
+        {
+          "name": "html-vnode-construction",
+          "selfMs": 22.962,
+          "percent": 0.172
+        },
+        {
+          "name": "empty-url-native-or-unmapped",
+          "selfMs": 16.669,
+          "percent": 0.125
+        },
+        {
+          "name": "driver",
+          "selfMs": 16.061,
+          "percent": 0.12
+        },
+        {
+          "name": "snabbdom",
+          "selfMs": 11.142,
+          "percent": 0.083
+        },
+        {
+          "name": "foldkit-other",
+          "selfMs": 8.402,
+          "percent": 0.063
+        },
+        {
+          "name": "dependencies",
+          "selfMs": 7.7,
+          "percent": 0.058
+        },
+        {
+          "name": "application",
+          "selfMs": 7.638,
+          "percent": 0.057
+        },
+        {
+          "name": "runtime-other",
+          "selfMs": 4.781,
+          "percent": 0.036
+        },
+        {
+          "name": "garbage-collector",
+          "selfMs": 4.076,
+          "percent": 0.03
+        },
+        {
+          "name": "app-other-source",
+          "selfMs": 3.729,
+          "percent": 0.028
+        },
+        {
+          "name": "app-unmapped",
+          "selfMs": 3.377,
+          "percent": 0.025
+        },
+        {
+          "name": "renderer",
+          "selfMs": 2.465,
+          "percent": 0.018
+        },
+        {
+          "name": "other-url",
+          "selfMs": 1.96,
+          "percent": 0.015
+        }
+      ],
+      "topSources": [
+        {
+          "name": "packages/foldkit/src/html/index.ts",
+          "selfMs": 11.129,
+          "percent": 0.083
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/init.ts",
+          "selfMs": 6.623,
+          "percent": 0.049
+        },
+        {
+          "name": "packages/foldkit/src/html/lazy.ts",
+          "selfMs": 4.871,
+          "percent": 0.036
+        },
+        {
+          "name": "packages/foldkit/src/vdom.ts",
+          "selfMs": 4.202,
+          "percent": 0.031
+        },
+        {
+          "name": "internal/lustre-benchmark/src/view.optimised.ts",
+          "selfMs": 4.097,
+          "percent": 0.031
+        },
+        {
+          "name": "internal/lustre-benchmark/src/todo.ts",
+          "selfMs": 3.541,
+          "percent": 0.026
+        },
+        {
+          "name": "packages/foldkit/src/runtime/renderer.ts",
+          "selfMs": 2.465,
+          "percent": 0.018
+        },
+        {
+          "name": "packages/foldkit/dist/brand/brand.js",
+          "selfMs": 2.325,
+          "percent": 0.017
+        },
+        {
+          "name": "packages/foldkit/src/html/boundary.ts",
+          "selfMs": 2.25,
+          "percent": 0.017
+        },
+        {
+          "name": "packages/foldkit/src/propsModule.ts",
+          "selfMs": 2.14,
+          "percent": 0.016
+        },
+        {
+          "name": "node_modules/effect/dist/Array.js",
+          "selfMs": 1.744,
+          "percent": 0.013
+        },
+        {
+          "name": "packages/foldkit/src/runtime/documentMetadata.ts",
+          "selfMs": 1.732,
+          "percent": 0.013
+        },
+        {
+          "name": "packages/foldkit/src/schema/index.ts",
+          "selfMs": 1.457,
+          "percent": 0.011
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/class.ts",
+          "selfMs": 1.381,
+          "percent": 0.01
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/htmldomapi.ts",
+          "selfMs": 1.306,
+          "percent": 0.01
+        },
+        {
+          "name": "node_modules/effect/dist/Struct.js",
+          "selfMs": 1.271,
+          "percent": 0.009
+        },
+        {
+          "name": "packages/foldkit/src/controlledDomState.ts",
+          "selfMs": 1.214,
+          "percent": 0.009
+        },
+        {
+          "name": "node_modules/effect/dist/SchemaAST.js",
+          "selfMs": 1.212,
+          "percent": 0.009
+        },
+        {
+          "name": "packages/foldkit/src/runtime/runtime.ts",
+          "selfMs": 1.144,
+          "percent": 0.009
+        },
+        {
+          "name": "packages/foldkit/src/runtime/messageQueue.ts",
+          "selfMs": 1.083,
+          "percent": 0.008
+        },
+        {
+          "name": "internal/effect.js",
+          "selfMs": 1.061,
+          "percent": 0.008
+        },
+        {
+          "name": "node_modules/effect/dist/Function.js",
+          "selfMs": 0.828,
+          "percent": 0.006
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/h.ts",
+          "selfMs": 0.656,
+          "percent": 0.005
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/eventlisteners.ts",
+          "selfMs": 0.644,
+          "percent": 0.005
+        },
+        {
+          "name": "internal/option.js",
+          "selfMs": 0.628,
+          "percent": 0.005
+        },
+        {
+          "name": "internal/core.js",
+          "selfMs": 0.617,
+          "percent": 0.005
+        },
+        {
+          "name": "node_modules/effect/dist/PubSub.js",
+          "selfMs": 0.534,
+          "percent": 0.004
+        },
+        {
+          "name": "packages/foldkit/src/html/runtimeSingleton.ts",
+          "selfMs": 0.51,
+          "percent": 0.004
+        },
+        {
+          "name": "packages/foldkit/src/render/commit.ts",
+          "selfMs": 0.495,
+          "percent": 0.004
+        },
+        {
+          "name": "node_modules/effect/dist/Schema.js",
+          "selfMs": 0.481,
+          "percent": 0.004
+        },
+        {
+          "name": "packages/foldkit/src/domReflection.ts",
+          "selfMs": 0.466,
+          "percent": 0.003
+        },
+        {
+          "name": "node_modules/effect/dist/Data.js",
+          "selfMs": 0.461,
+          "percent": 0.003
+        },
+        {
+          "name": "node_modules/effect/dist/Option.js",
+          "selfMs": 0.362,
+          "percent": 0.003
+        },
+        {
+          "name": "internal/schema/compilerRegistry.js",
+          "selfMs": 0.352,
+          "percent": 0.003
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/is.ts",
+          "selfMs": 0.338,
+          "percent": 0.003
+        },
+        {
+          "name": "internal/schema/toCodec.js",
+          "selfMs": 0.312,
+          "percent": 0.002
+        },
+        {
+          "name": "packages/foldkit/src/runtime/slowPhase.ts",
+          "selfMs": 0.308,
+          "percent": 0.002
+        },
+        {
+          "name": "packages/foldkit/src/propertyProvenance.ts",
+          "selfMs": 0.305,
+          "percent": 0.002
+        },
+        {
+          "name": "internal/schema/make.js",
+          "selfMs": 0.304,
+          "percent": 0.002
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/vnode.ts",
+          "selfMs": 0.194,
+          "percent": 0.001
+        }
+      ],
+      "topLeafFrames": [
+        {
+          "name": "idle\t(idle)\t(empty URL)",
+          "selfMs": 12948.499,
+          "percent": 96.767
+        },
+        {
+          "name": "program-native\t(program)\t(empty URL)",
+          "selfMs": 321.614,
+          "percent": 2.403
+        },
+        {
+          "name": "driver\t(anonymous)\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 8.839,
+          "percent": 0.066
+        },
+        {
+          "name": "garbage-collector\t(garbage collector)\t(empty URL)",
+          "selfMs": 4.076,
+          "percent": 0.03
+        },
+        {
+          "name": "dependencies\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 4.025,
+          "percent": 0.03
+        },
+        {
+          "name": "empty-url-native-or-unmapped\trequestAnimationFrame\t(empty URL)",
+          "selfMs": 3.895,
+          "percent": 0.029
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tquerySelector\t(empty URL)",
+          "selfMs": 3.617,
+          "percent": 0.027
+        },
+        {
+          "name": "app-unmapped\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 3.377,
+          "percent": 0.025
+        },
+        {
+          "name": "html-vnode-construction\tND\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 2.897,
+          "percent": 0.022
+        },
+        {
+          "name": "driver\tcheckForElement\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 2.654,
+          "percent": 0.02
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tdispatchEvent\t(empty URL)",
+          "selfMs": 2.424,
+          "percent": 0.018
+        },
+        {
+          "name": "html-vnode-construction\tqD\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 2.42,
+          "percent": 0.018
+        },
+        {
+          "name": "html-vnode-construction\tLP\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 2.243,
+          "percent": 0.017
+        },
+        {
+          "name": "html-vnode-construction\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 2.103,
+          "percent": 0.016
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tremoveChild\t(empty URL)",
+          "selfMs": 1.971,
+          "percent": 0.015
+        },
+        {
+          "name": "other-url\t(anonymous)\thttp://localhost:38472/priv/instrumentation.js",
+          "selfMs": 1.96,
+          "percent": 0.015
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tclick\t(empty URL)",
+          "selfMs": 1.94,
+          "percent": 0.014
+        },
+        {
+          "name": "snabbdom\tie\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.864,
+          "percent": 0.014
+        },
+        {
+          "name": "snabbdom\tp\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.788,
+          "percent": 0.013
+        },
+        {
+          "name": "foldkit-other\twD\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.593,
+          "percent": 0.012
+        },
+        {
+          "name": "html-vnode-construction\t$P\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.52,
+          "percent": 0.011
+        },
+        {
+          "name": "foldkit-other\t_z\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.512,
+          "percent": 0.011
+        },
+        {
+          "name": "html-vnode-construction\tKD\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.462,
+          "percent": 0.011
+        },
+        {
+          "name": "runtime-other\tDR\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.395,
+          "percent": 0.01
+        },
+        {
+          "name": "application\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.309,
+          "percent": 0.01
+        },
+        {
+          "name": "driver\tsetValue\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 1.181,
+          "percent": 0.009
+        },
+        {
+          "name": "driver\twindow.runBenchmark\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 1.176,
+          "percent": 0.009
+        },
+        {
+          "name": "snabbdom\tre\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.171,
+          "percent": 0.009
+        },
+        {
+          "name": "dependencies\tN\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.099,
+          "percent": 0.008
+        },
+        {
+          "name": "snabbdom\t$w\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.068,
+          "percent": 0.008
+        },
+        {
+          "name": "app-other-source\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.065,
+          "percent": 0.008
+        },
+        {
+          "name": "renderer\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 1.028,
+          "percent": 0.008
+        },
+        {
+          "name": "application\tview\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 0.986,
+          "percent": 0.007
+        },
+        {
+          "name": "snabbdom\tPT\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 0.975,
+          "percent": 0.007
+        },
+        {
+          "name": "foldkit-other\tSw\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 0.9,
+          "percent": 0.007
+        },
+        {
+          "name": "snabbdom\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 0.821,
+          "percent": 0.006
+        },
+        {
+          "name": "application\tDz\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 0.815,
+          "percent": 0.006
+        },
+        {
+          "name": "html-vnode-construction\tClass\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 0.813,
+          "percent": 0.006
+        },
+        {
+          "name": "html-vnode-construction\tVP\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 0.785,
+          "percent": 0.006
+        },
+        {
+          "name": "application\tOz\thttp://localhost:38472/priv/implementations/foldkit-main-optimised/dist/assets/index.optimised-UkWhNSKN.js",
+          "selfMs": 0.764,
+          "percent": 0.006
+        }
+      ]
+    },
+    {
+      "slot": "foldkit-preview-final-optimised",
+      "captureSha256": "b47384fb2524389c7ae220a845133754f8c9bb80b265d3d9226a6bcc0e9f285c",
+      "sampledDurationMs": 13396.905,
+      "buckets": [
+        {
+          "name": "idle",
+          "selfMs": 12958.041,
+          "percent": 96.724
+        },
+        {
+          "name": "program-native",
+          "selfMs": 306.833,
+          "percent": 2.29
+        },
+        {
+          "name": "html-vnode-construction",
+          "selfMs": 22.02,
+          "percent": 0.164
+        },
+        {
+          "name": "driver",
+          "selfMs": 18.364,
+          "percent": 0.137
+        },
+        {
+          "name": "empty-url-native-or-unmapped",
+          "selfMs": 14.693,
+          "percent": 0.11
+        },
+        {
+          "name": "snabbdom",
+          "selfMs": 13.445,
+          "percent": 0.1
+        },
+        {
+          "name": "renderer",
+          "selfMs": 9.884,
+          "percent": 0.074
+        },
+        {
+          "name": "block-program-wrappers",
+          "selfMs": 9.079,
+          "percent": 0.068
+        },
+        {
+          "name": "foldkit-other",
+          "selfMs": 8.978,
+          "percent": 0.067
+        },
+        {
+          "name": "dependencies",
+          "selfMs": 8.842,
+          "percent": 0.066
+        },
+        {
+          "name": "runtime-other",
+          "selfMs": 6.666,
+          "percent": 0.05
+        },
+        {
+          "name": "garbage-collector",
+          "selfMs": 5.412,
+          "percent": 0.04
+        },
+        {
+          "name": "application",
+          "selfMs": 4.35,
+          "percent": 0.032
+        },
+        {
+          "name": "app-other-source",
+          "selfMs": 4.2,
+          "percent": 0.031
+        },
+        {
+          "name": "app-unmapped",
+          "selfMs": 4,
+          "percent": 0.03
+        },
+        {
+          "name": "other-url",
+          "selfMs": 2.098,
+          "percent": 0.016
+        }
+      ],
+      "topSources": [
+        {
+          "name": "packages/foldkit/src/runtime/renderer.ts",
+          "selfMs": 9.884,
+          "percent": 0.074
+        },
+        {
+          "name": "packages/foldkit/src/html/index.ts",
+          "selfMs": 9.83,
+          "percent": 0.073
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/init.ts",
+          "selfMs": 6.979,
+          "percent": 0.052
+        },
+        {
+          "name": "packages/foldkit/src/html/lazy.ts",
+          "selfMs": 4.175,
+          "percent": 0.031
+        },
+        {
+          "name": "internal/lustre-benchmark/src/view.optimised.ts",
+          "selfMs": 2.713,
+          "percent": 0.02
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/htmldomapi.ts",
+          "selfMs": 2.464,
+          "percent": 0.018
+        },
+        {
+          "name": "packages/foldkit/src/struct/index.ts",
+          "selfMs": 2.442,
+          "percent": 0.018
+        },
+        {
+          "name": "internal/effect.js",
+          "selfMs": 2.279,
+          "percent": 0.017
+        },
+        {
+          "name": "packages/foldkit/src/html/runtimeSingleton.ts",
+          "selfMs": 2.101,
+          "percent": 0.016
+        },
+        {
+          "name": "packages/foldkit/src/block/viewScope.ts",
+          "selfMs": 2.074,
+          "percent": 0.015
+        },
+        {
+          "name": "packages/foldkit/dist/brand/brand.js",
+          "selfMs": 2.073,
+          "percent": 0.015
+        },
+        {
+          "name": "packages/foldkit/src/vdom.ts",
+          "selfMs": 1.968,
+          "percent": 0.015
+        },
+        {
+          "name": "node_modules/effect/dist/SchemaAST.js",
+          "selfMs": 1.86,
+          "percent": 0.014
+        },
+        {
+          "name": "packages/foldkit/src/propsModule.ts",
+          "selfMs": 1.668,
+          "percent": 0.012
+        },
+        {
+          "name": "internal/lustre-benchmark/src/todo.ts",
+          "selfMs": 1.637,
+          "percent": 0.012
+        },
+        {
+          "name": "node_modules/effect/dist/Function.js",
+          "selfMs": 1.628,
+          "percent": 0.012
+        },
+        {
+          "name": "packages/foldkit/src/runtime/runtime.ts",
+          "selfMs": 1.614,
+          "percent": 0.012
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/class.ts",
+          "selfMs": 1.583,
+          "percent": 0.012
+        },
+        {
+          "name": "packages/foldkit/src/runtime/program.ts",
+          "selfMs": 1.521,
+          "percent": 0.011
+        },
+        {
+          "name": "packages/foldkit/src/html/boundary.ts",
+          "selfMs": 1.504,
+          "percent": 0.011
+        },
+        {
+          "name": "packages/foldkit/src/experimental/hybrid/authoring.ts",
+          "selfMs": 1.5,
+          "percent": 0.011
+        },
+        {
+          "name": "packages/foldkit/src/runtime/messageQueue.ts",
+          "selfMs": 1.462,
+          "percent": 0.011
+        },
+        {
+          "name": "node_modules/effect/dist/Array.js",
+          "selfMs": 1.429,
+          "percent": 0.011
+        },
+        {
+          "name": "packages/foldkit/src/schema/index.ts",
+          "selfMs": 1.301,
+          "percent": 0.01
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/eventlisteners.ts",
+          "selfMs": 1.241,
+          "percent": 0.009
+        },
+        {
+          "name": "packages/foldkit/src/block/delivery.ts",
+          "selfMs": 1.145,
+          "percent": 0.009
+        },
+        {
+          "name": "packages/foldkit/src/block/definition.ts",
+          "selfMs": 1.142,
+          "percent": 0.009
+        },
+        {
+          "name": "packages/foldkit/src/runtime/documentMetadata.ts",
+          "selfMs": 1.088,
+          "percent": 0.008
+        },
+        {
+          "name": "packages/foldkit/src/experimental/constructed/runtime.ts",
+          "selfMs": 0.932,
+          "percent": 0.007
+        },
+        {
+          "name": "packages/foldkit/src/controlledDomState.ts",
+          "selfMs": 0.857,
+          "percent": 0.006
+        },
+        {
+          "name": "packages/foldkit/src/runtime/compositionRuntime.ts",
+          "selfMs": 0.797,
+          "percent": 0.006
+        },
+        {
+          "name": "node_modules/effect/dist/Context.js",
+          "selfMs": 0.71,
+          "percent": 0.005
+        },
+        {
+          "name": "node_modules/effect/dist/PubSub.js",
+          "selfMs": 0.641,
+          "percent": 0.005
+        },
+        {
+          "name": "packages/foldkit/src/runtime/slowPhase.ts",
+          "selfMs": 0.628,
+          "percent": 0.005
+        },
+        {
+          "name": "packages/foldkit/src/experimental/contracted/runtime.ts",
+          "selfMs": 0.618,
+          "percent": 0.005
+        },
+        {
+          "name": "internal/core.js",
+          "selfMs": 0.61,
+          "percent": 0.005
+        },
+        {
+          "name": "node_modules/effect/dist/Predicate.js",
+          "selfMs": 0.53,
+          "percent": 0.004
+        },
+        {
+          "name": "packages/foldkit/src/domReflection.ts",
+          "selfMs": 0.494,
+          "percent": 0.004
+        },
+        {
+          "name": "packages/foldkit/src/block/operationGraph.ts",
+          "selfMs": 0.489,
+          "percent": 0.004
+        },
+        {
+          "name": "node_modules/effect/dist/Data.js",
+          "selfMs": 0.488,
+          "percent": 0.004
+        }
+      ],
+      "topLeafFrames": [
+        {
+          "name": "idle\t(idle)\t(empty URL)",
+          "selfMs": 12958.041,
+          "percent": 96.724
+        },
+        {
+          "name": "program-native\t(program)\t(empty URL)",
+          "selfMs": 306.833,
+          "percent": 2.29
+        },
+        {
+          "name": "driver\t(anonymous)\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 11,
+          "percent": 0.082
+        },
+        {
+          "name": "renderer\tn\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 6.787,
+          "percent": 0.051
+        },
+        {
+          "name": "garbage-collector\t(garbage collector)\t(empty URL)",
+          "selfMs": 5.412,
+          "percent": 0.04
+        },
+        {
+          "name": "html-vnode-construction\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 5,
+          "percent": 0.037
+        },
+        {
+          "name": "dependencies\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 4.514,
+          "percent": 0.034
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tquerySelector\t(empty URL)",
+          "selfMs": 4.347,
+          "percent": 0.032
+        },
+        {
+          "name": "app-unmapped\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 4,
+          "percent": 0.03
+        },
+        {
+          "name": "block-program-wrappers\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 3.366,
+          "percent": 0.025
+        },
+        {
+          "name": "driver\tcheckForElement\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 2.267,
+          "percent": 0.017
+        },
+        {
+          "name": "html-vnode-construction\tWj\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 2.128,
+          "percent": 0.016
+        },
+        {
+          "name": "snabbdom\tS\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 2.125,
+          "percent": 0.016
+        },
+        {
+          "name": "other-url\t(anonymous)\thttp://localhost:38472/priv/instrumentation.js",
+          "selfMs": 2.098,
+          "percent": 0.016
+        },
+        {
+          "name": "html-vnode-construction\tvA\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.815,
+          "percent": 0.014
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tremoveChild\t(empty URL)",
+          "selfMs": 1.653,
+          "percent": 0.012
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tdispatchEvent\t(empty URL)",
+          "selfMs": 1.632,
+          "percent": 0.012
+        },
+        {
+          "name": "empty-url-native-or-unmapped\trequestAnimationFrame\t(empty URL)",
+          "selfMs": 1.601,
+          "percent": 0.012
+        },
+        {
+          "name": "foldkit-other\tvZ\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.55,
+          "percent": 0.012
+        },
+        {
+          "name": "block-program-wrappers\ti\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.5,
+          "percent": 0.011
+        },
+        {
+          "name": "snabbdom\trO\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.433,
+          "percent": 0.011
+        },
+        {
+          "name": "snabbdom\tSD\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.424,
+          "percent": 0.011
+        },
+        {
+          "name": "runtime-other\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.422,
+          "percent": 0.011
+        },
+        {
+          "name": "app-other-source\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.371,
+          "percent": 0.01
+        },
+        {
+          "name": "driver\tclick\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 1.34,
+          "percent": 0.01
+        },
+        {
+          "name": "html-vnode-construction\tuj\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.311,
+          "percent": 0.01
+        },
+        {
+          "name": "renderer\tSe\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.305,
+          "percent": 0.01
+        },
+        {
+          "name": "html-vnode-construction\tZR\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.292,
+          "percent": 0.01
+        },
+        {
+          "name": "block-program-wrappers\to\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.214,
+          "percent": 0.009
+        },
+        {
+          "name": "driver\tsetValue\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 1.19,
+          "percent": 0.009
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tclick\t(empty URL)",
+          "selfMs": 1.171,
+          "percent": 0.009
+        },
+        {
+          "name": "foldkit-other\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.163,
+          "percent": 0.009
+        },
+        {
+          "name": "driver\ttimed\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 1.138,
+          "percent": 0.008
+        },
+        {
+          "name": "dependencies\tEi\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.118,
+          "percent": 0.008
+        },
+        {
+          "name": "html-vnode-construction\tFR\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.092,
+          "percent": 0.008
+        },
+        {
+          "name": "snabbdom\t_O\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 1.032,
+          "percent": 0.008
+        },
+        {
+          "name": "application\ttodos\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 0.967,
+          "percent": 0.007
+        },
+        {
+          "name": "driver\tpressEnter\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 0.874,
+          "percent": 0.007
+        },
+        {
+          "name": "application\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 0.872,
+          "percent": 0.007
+        },
+        {
+          "name": "snabbdom\tte\thttp://localhost:38472/priv/implementations/foldkit-preview-final-optimised/dist/assets/index.optimised-4XrqNWmx.js",
+          "selfMs": 0.847,
+          "percent": 0.006
+        }
+      ]
+    },
+    {
+      "slot": "foldkit-main",
+      "captureSha256": "9e43b477bde6aeac45a2e9a5037b716cf3f2904167ce90deb95d7fab248fd79a",
+      "sampledDurationMs": 13375.94,
+      "buckets": [
+        {
+          "name": "idle",
+          "selfMs": 12897.347,
+          "percent": 96.422
+        },
+        {
+          "name": "program-native",
+          "selfMs": 288.24,
+          "percent": 2.155
+        },
+        {
+          "name": "html-vnode-construction",
+          "selfMs": 51.369,
+          "percent": 0.384
+        },
+        {
+          "name": "snabbdom",
+          "selfMs": 32.46,
+          "percent": 0.243
+        },
+        {
+          "name": "foldkit-other",
+          "selfMs": 24.808,
+          "percent": 0.185
+        },
+        {
+          "name": "garbage-collector",
+          "selfMs": 15.78,
+          "percent": 0.118
+        },
+        {
+          "name": "empty-url-native-or-unmapped",
+          "selfMs": 15.164,
+          "percent": 0.113
+        },
+        {
+          "name": "driver",
+          "selfMs": 14.503,
+          "percent": 0.108
+        },
+        {
+          "name": "dependencies",
+          "selfMs": 11.348,
+          "percent": 0.085
+        },
+        {
+          "name": "application",
+          "selfMs": 8.831,
+          "percent": 0.066
+        },
+        {
+          "name": "runtime-other",
+          "selfMs": 5.521,
+          "percent": 0.041
+        },
+        {
+          "name": "app-unmapped",
+          "selfMs": 3.729,
+          "percent": 0.028
+        },
+        {
+          "name": "renderer",
+          "selfMs": 2.589,
+          "percent": 0.019
+        },
+        {
+          "name": "app-other-source",
+          "selfMs": 2.384,
+          "percent": 0.018
+        },
+        {
+          "name": "other-url",
+          "selfMs": 1.867,
+          "percent": 0.014
+        }
+      ],
+      "topSources": [
+        {
+          "name": "packages/foldkit/src/html/index.ts",
+          "selfMs": 42.476,
+          "percent": 0.318
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/init.ts",
+          "selfMs": 22.01,
+          "percent": 0.165
+        },
+        {
+          "name": "internal/lustre-benchmark/src/todo.ts",
+          "selfMs": 8.831,
+          "percent": 0.066
+        },
+        {
+          "name": "packages/foldkit/src/propsModule.ts",
+          "selfMs": 7.836,
+          "percent": 0.059
+        },
+        {
+          "name": "packages/foldkit/src/vdom.ts",
+          "selfMs": 7.242,
+          "percent": 0.054
+        },
+        {
+          "name": "packages/foldkit/src/schema/index.ts",
+          "selfMs": 6.216,
+          "percent": 0.046
+        },
+        {
+          "name": "packages/foldkit/src/domReflection.ts",
+          "selfMs": 4.244,
+          "percent": 0.032
+        },
+        {
+          "name": "packages/foldkit/src/controlledDomState.ts",
+          "selfMs": 3.578,
+          "percent": 0.027
+        },
+        {
+          "name": "node_modules/effect/dist/Array.js",
+          "selfMs": 3.201,
+          "percent": 0.024
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/class.ts",
+          "selfMs": 2.931,
+          "percent": 0.022
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/eventlisteners.ts",
+          "selfMs": 2.93,
+          "percent": 0.022
+        },
+        {
+          "name": "packages/foldkit/src/runtime/renderer.ts",
+          "selfMs": 2.589,
+          "percent": 0.019
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/htmldomapi.ts",
+          "selfMs": 2.453,
+          "percent": 0.018
+        },
+        {
+          "name": "node_modules/effect/dist/Struct.js",
+          "selfMs": 2.148,
+          "percent": 0.016
+        },
+        {
+          "name": "packages/foldkit/src/runtime/runtime.ts",
+          "selfMs": 2.108,
+          "percent": 0.016
+        },
+        {
+          "name": "node_modules/effect/dist/Data.js",
+          "selfMs": 2.054,
+          "percent": 0.015
+        },
+        {
+          "name": "packages/foldkit/dist/brand/brand.js",
+          "selfMs": 1.376,
+          "percent": 0.01
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/h.ts",
+          "selfMs": 1.325,
+          "percent": 0.01
+        },
+        {
+          "name": "packages/foldkit/src/propertyProvenance.ts",
+          "selfMs": 1.262,
+          "percent": 0.009
+        },
+        {
+          "name": "packages/foldkit/src/runtime/documentMetadata.ts",
+          "selfMs": 1.193,
+          "percent": 0.009
+        },
+        {
+          "name": "packages/foldkit/src/html/boundary.ts",
+          "selfMs": 1.159,
+          "percent": 0.009
+        },
+        {
+          "name": "node_modules/effect/dist/SchemaAST.js",
+          "selfMs": 1.059,
+          "percent": 0.008
+        },
+        {
+          "name": "node_modules/effect/dist/Function.js",
+          "selfMs": 1.001,
+          "percent": 0.007
+        },
+        {
+          "name": "packages/foldkit/src/runtime/slowPhase.ts",
+          "selfMs": 0.943,
+          "percent": 0.007
+        },
+        {
+          "name": "internal/effect.js",
+          "selfMs": 0.773,
+          "percent": 0.006
+        },
+        {
+          "name": "packages/foldkit/src/runtime/messageQueue.ts",
+          "selfMs": 0.669,
+          "percent": 0.005
+        },
+        {
+          "name": "node_modules/effect/dist/Schema.js",
+          "selfMs": 0.624,
+          "percent": 0.005
+        },
+        {
+          "name": "node_modules/effect/dist/Option.js",
+          "selfMs": 0.501,
+          "percent": 0.004
+        },
+        {
+          "name": "internal/option.js",
+          "selfMs": 0.492,
+          "percent": 0.004
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/vnode.ts",
+          "selfMs": 0.487,
+          "percent": 0.004
+        },
+        {
+          "name": "internal/core.js",
+          "selfMs": 0.484,
+          "percent": 0.004
+        },
+        {
+          "name": "packages/foldkit/src/html/childAttribute.ts",
+          "selfMs": 0.333,
+          "percent": 0.002
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/is.ts",
+          "selfMs": 0.324,
+          "percent": 0.002
+        },
+        {
+          "name": "internal/schema/toCodec.js",
+          "selfMs": 0.167,
+          "percent": 0.001
+        },
+        {
+          "name": "internal/record.js",
+          "selfMs": 0.165,
+          "percent": 0.001
+        },
+        {
+          "name": "packages/foldkit/src/html/runtimeSingleton.ts",
+          "selfMs": 0.159,
+          "percent": 0.001
+        },
+        {
+          "name": "node_modules/effect/dist/Runtime.js",
+          "selfMs": 0.157,
+          "percent": 0.001
+        },
+        {
+          "name": "node_modules/effect/dist/PubSub.js",
+          "selfMs": 0.156,
+          "percent": 0.001
+        },
+        {
+          "name": "packages/foldkit/src/runtime/devToolsIntegration.ts",
+          "selfMs": 0.155,
+          "percent": 0.001
+        },
+        {
+          "name": "internal/matcher.js",
+          "selfMs": 0.154,
+          "percent": 0.001
+        }
+      ],
+      "topLeafFrames": [
+        {
+          "name": "idle\t(idle)\t(empty URL)",
+          "selfMs": 12897.347,
+          "percent": 96.422
+        },
+        {
+          "name": "program-native\t(program)\t(empty URL)",
+          "selfMs": 288.24,
+          "percent": 2.155
+        },
+        {
+          "name": "garbage-collector\t(garbage collector)\t(empty URL)",
+          "selfMs": 15.78,
+          "percent": 0.118
+        },
+        {
+          "name": "snabbdom\tie\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 12.549,
+          "percent": 0.094
+        },
+        {
+          "name": "driver\t(anonymous)\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 10.26,
+          "percent": 0.077
+        },
+        {
+          "name": "dependencies\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 7.756,
+          "percent": 0.058
+        },
+        {
+          "name": "html-vnode-construction\tHP\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 7.576,
+          "percent": 0.057
+        },
+        {
+          "name": "html-vnode-construction\tED\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 6.303,
+          "percent": 0.047
+        },
+        {
+          "name": "html-vnode-construction\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 6.004,
+          "percent": 0.045
+        },
+        {
+          "name": "foldkit-other\tSD\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 5.755,
+          "percent": 0.043
+        },
+        {
+          "name": "html-vnode-construction\tVP\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 5.655,
+          "percent": 0.042
+        },
+        {
+          "name": "snabbdom\tre\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 4.881,
+          "percent": 0.036
+        },
+        {
+          "name": "app-unmapped\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 3.729,
+          "percent": 0.028
+        },
+        {
+          "name": "html-vnode-construction\tTP\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 3.407,
+          "percent": 0.025
+        },
+        {
+          "name": "application\tgz\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 3.382,
+          "percent": 0.025
+        },
+        {
+          "name": "foldkit-other\tNC.a\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 2.853,
+          "percent": 0.021
+        },
+        {
+          "name": "snabbdom\t$w\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 2.778,
+          "percent": 0.021
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tquerySelector\t(empty URL)",
+          "selfMs": 2.659,
+          "percent": 0.02
+        },
+        {
+          "name": "foldkit-other\tZC\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 2.532,
+          "percent": 0.019
+        },
+        {
+          "name": "foldkit-other\tkC\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 2.422,
+          "percent": 0.018
+        },
+        {
+          "name": "empty-url-native-or-unmapped\trequestAnimationFrame\t(empty URL)",
+          "selfMs": 2.418,
+          "percent": 0.018
+        },
+        {
+          "name": "html-vnode-construction\tYN\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 2.24,
+          "percent": 0.017
+        },
+        {
+          "name": "snabbdom\tsT\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.998,
+          "percent": 0.015
+        },
+        {
+          "name": "html-vnode-construction\tRP\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.99,
+          "percent": 0.015
+        },
+        {
+          "name": "other-url\t(anonymous)\thttp://localhost:38472/priv/instrumentation.js",
+          "selfMs": 1.867,
+          "percent": 0.014
+        },
+        {
+          "name": "snabbdom\tUT\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.839,
+          "percent": 0.014
+        },
+        {
+          "name": "foldkit-other\t_D\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.752,
+          "percent": 0.013
+        },
+        {
+          "name": "html-vnode-construction\tOnKeyDownPreventDefault\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.657,
+          "percent": 0.012
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tqueueMicrotask\t(empty URL)",
+          "selfMs": 1.651,
+          "percent": 0.012
+        },
+        {
+          "name": "empty-url-native-or-unmapped\thasAttribute\t(empty URL)",
+          "selfMs": 1.65,
+          "percent": 0.012
+        },
+        {
+          "name": "foldkit-other\tSw\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.545,
+          "percent": 0.012
+        },
+        {
+          "name": "foldkit-other\tbw\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.537,
+          "percent": 0.011
+        },
+        {
+          "name": "html-vnode-construction\thP\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.518,
+          "percent": 0.011
+        },
+        {
+          "name": "dependencies\tib\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.5,
+          "percent": 0.011
+        },
+        {
+          "name": "application\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.457,
+          "percent": 0.011
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tclick\t(empty URL)",
+          "selfMs": 1.368,
+          "percent": 0.01
+        },
+        {
+          "name": "html-vnode-construction\tzP\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.33,
+          "percent": 0.01
+        },
+        {
+          "name": "snabbdom\tST\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.325,
+          "percent": 0.01
+        },
+        {
+          "name": "runtime-other\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.246,
+          "percent": 0.009
+        },
+        {
+          "name": "html-vnode-construction\tZN\thttp://localhost:38472/priv/implementations/foldkit-main/dist/assets/index-DN9U5aN7.js",
+          "selfMs": 1.172,
+          "percent": 0.009
+        }
+      ]
+    },
+    {
+      "slot": "foldkit-preview-final",
+      "captureSha256": "e296bc2606d783bd38545b532a95d7b762e03530f1285e8df5cf35892b9c3d3e",
+      "sampledDurationMs": 13419.776,
+      "buckets": [
+        {
+          "name": "idle",
+          "selfMs": 12909.002,
+          "percent": 96.194
+        },
+        {
+          "name": "program-native",
+          "selfMs": 293.855,
+          "percent": 2.19
+        },
+        {
+          "name": "html-vnode-construction",
+          "selfMs": 54.649,
+          "percent": 0.407
+        },
+        {
+          "name": "snabbdom",
+          "selfMs": 33.749,
+          "percent": 0.251
+        },
+        {
+          "name": "foldkit-other",
+          "selfMs": 22.646,
+          "percent": 0.169
+        },
+        {
+          "name": "garbage-collector",
+          "selfMs": 17.947,
+          "percent": 0.134
+        },
+        {
+          "name": "empty-url-native-or-unmapped",
+          "selfMs": 17.368,
+          "percent": 0.129
+        },
+        {
+          "name": "driver",
+          "selfMs": 15.885,
+          "percent": 0.118
+        },
+        {
+          "name": "application",
+          "selfMs": 12.003,
+          "percent": 0.089
+        },
+        {
+          "name": "dependencies",
+          "selfMs": 10.045,
+          "percent": 0.075
+        },
+        {
+          "name": "renderer",
+          "selfMs": 9.184,
+          "percent": 0.068
+        },
+        {
+          "name": "block-program-wrappers",
+          "selfMs": 7.006,
+          "percent": 0.052
+        },
+        {
+          "name": "runtime-other",
+          "selfMs": 6.219,
+          "percent": 0.046
+        },
+        {
+          "name": "app-other-source",
+          "selfMs": 4.623,
+          "percent": 0.034
+        },
+        {
+          "name": "app-unmapped",
+          "selfMs": 3.44,
+          "percent": 0.026
+        },
+        {
+          "name": "other-url",
+          "selfMs": 2.155,
+          "percent": 0.016
+        }
+      ],
+      "topSources": [
+        {
+          "name": "packages/foldkit/src/html/index.ts",
+          "selfMs": 42.999,
+          "percent": 0.32
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/init.ts",
+          "selfMs": 22.251,
+          "percent": 0.166
+        },
+        {
+          "name": "internal/lustre-benchmark/src/todo.ts",
+          "selfMs": 12.003,
+          "percent": 0.089
+        },
+        {
+          "name": "packages/foldkit/src/runtime/renderer.ts",
+          "selfMs": 9.184,
+          "percent": 0.068
+        },
+        {
+          "name": "packages/foldkit/src/vdom.ts",
+          "selfMs": 7.389,
+          "percent": 0.055
+        },
+        {
+          "name": "packages/foldkit/src/propsModule.ts",
+          "selfMs": 6.032,
+          "percent": 0.045
+        },
+        {
+          "name": "packages/foldkit/src/controlledDomState.ts",
+          "selfMs": 4.681,
+          "percent": 0.035
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/eventlisteners.ts",
+          "selfMs": 4.646,
+          "percent": 0.035
+        },
+        {
+          "name": "packages/foldkit/src/schema/index.ts",
+          "selfMs": 4.542,
+          "percent": 0.034
+        },
+        {
+          "name": "packages/foldkit/src/domReflection.ts",
+          "selfMs": 3.628,
+          "percent": 0.027
+        },
+        {
+          "name": "node_modules/effect/dist/Array.js",
+          "selfMs": 3.261,
+          "percent": 0.024
+        },
+        {
+          "name": "internal/effect.js",
+          "selfMs": 2.468,
+          "percent": 0.018
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/class.ts",
+          "selfMs": 2.416,
+          "percent": 0.018
+        },
+        {
+          "name": "packages/foldkit/src/html/runtimeSingleton.ts",
+          "selfMs": 2.364,
+          "percent": 0.018
+        },
+        {
+          "name": "packages/foldkit/src/runtime/runtime.ts",
+          "selfMs": 2.105,
+          "percent": 0.016
+        },
+        {
+          "name": "node_modules/effect/dist/Data.js",
+          "selfMs": 2.04,
+          "percent": 0.015
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/htmldomapi.ts",
+          "selfMs": 1.967,
+          "percent": 0.015
+        },
+        {
+          "name": "packages/foldkit/src/snabbdom/h.ts",
+          "selfMs": 1.862,
+          "percent": 0.014
+        },
+        {
+          "name": "packages/foldkit/src/runtime/program.ts",
+          "selfMs": 1.45,
+          "percent": 0.011
+        },
+        {
+          "name": "node_modules/effect/dist/SchemaAST.js",
+          "selfMs": 1.41,
+          "percent": 0.011
+        },
+        {
+          "name": "packages/foldkit/src/runtime/compositionRuntime.ts",
+          "selfMs": 1.394,
+          "percent": 0.01
+        },
+        {
+          "name": "packages/foldkit/src/struct/index.ts",
+          "selfMs": 1.25,
+          "percent": 0.009
+        },
+        {
+          "name": "packages/foldkit/dist/brand/brand.js",
+          "selfMs": 1.162,
+          "percent": 0.009
+        },
+        {
+          "name": "node_modules/effect/dist/Function.js",
+          "selfMs": 1.143,
+          "percent": 0.009
+        },
+        {
+          "name": "packages/foldkit/src/block/delivery.ts",
+          "selfMs": 0.946,
+          "percent": 0.007
+        },
+        {
+          "name": "packages/foldkit/src/block/definition.ts",
+          "selfMs": 0.937,
+          "percent": 0.007
+        },
+        {
+          "name": "packages/foldkit/src/block/viewScope.ts",
+          "selfMs": 0.834,
+          "percent": 0.006
+        },
+        {
+          "name": "packages/foldkit/src/propertyProvenance.ts",
+          "selfMs": 0.756,
+          "percent": 0.006
+        },
+        {
+          "name": "internal/core.js",
+          "selfMs": 0.687,
+          "percent": 0.005
+        },
+        {
+          "name": "packages/foldkit/src/runtime/messageQueue.ts",
+          "selfMs": 0.672,
+          "percent": 0.005
+        },
+        {
+          "name": "node_modules/effect/dist/Context.js",
+          "selfMs": 0.648,
+          "percent": 0.005
+        },
+        {
+          "name": "packages/foldkit/src/experimental/hybrid/authoring.ts",
+          "selfMs": 0.624,
+          "percent": 0.005
+        },
+        {
+          "name": "packages/foldkit/src/runtime/documentMetadata.ts",
+          "selfMs": 0.619,
+          "percent": 0.005
+        },
+        {
+          "name": "packages/foldkit/src/block/operationGraph.ts",
+          "selfMs": 0.598,
+          "percent": 0.004
+        },
+        {
+          "name": "packages/foldkit/src/block/lowering.ts",
+          "selfMs": 0.508,
+          "percent": 0.004
+        },
+        {
+          "name": "packages/foldkit/src/html/boundary.ts",
+          "selfMs": 0.494,
+          "percent": 0.004
+        },
+        {
+          "name": "packages/foldkit/src/experimental/constructed/runtime.ts",
+          "selfMs": 0.476,
+          "percent": 0.004
+        },
+        {
+          "name": "node_modules/effect/dist/PubSub.js",
+          "selfMs": 0.464,
+          "percent": 0.003
+        },
+        {
+          "name": "packages/foldkit/src/experimental/contracted/runtime.ts",
+          "selfMs": 0.46,
+          "percent": 0.003
+        },
+        {
+          "name": "node_modules/effect/dist/Schema.js",
+          "selfMs": 0.456,
+          "percent": 0.003
+        }
+      ],
+      "topLeafFrames": [
+        {
+          "name": "idle\t(idle)\t(empty URL)",
+          "selfMs": 12909.002,
+          "percent": 96.194
+        },
+        {
+          "name": "program-native\t(program)\t(empty URL)",
+          "selfMs": 293.855,
+          "percent": 2.19
+        },
+        {
+          "name": "garbage-collector\t(garbage collector)\t(empty URL)",
+          "selfMs": 17.947,
+          "percent": 0.134
+        },
+        {
+          "name": "snabbdom\tS\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 9.955,
+          "percent": 0.074
+        },
+        {
+          "name": "driver\t(anonymous)\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 9.765,
+          "percent": 0.073
+        },
+        {
+          "name": "html-vnode-construction\tLR\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 7.388,
+          "percent": 0.055
+        },
+        {
+          "name": "html-vnode-construction\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 7.321,
+          "percent": 0.055
+        },
+        {
+          "name": "dependencies\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 6.941,
+          "percent": 0.052
+        },
+        {
+          "name": "html-vnode-construction\tIR\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 6.321,
+          "percent": 0.047
+        },
+        {
+          "name": "renderer\tn\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 6.003,
+          "percent": 0.045
+        },
+        {
+          "name": "html-vnode-construction\tvA\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 5.824,
+          "percent": 0.043
+        },
+        {
+          "name": "application\tpZ\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 4.435,
+          "percent": 0.033
+        },
+        {
+          "name": "snabbdom\tpatch\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 4.365,
+          "percent": 0.033
+        },
+        {
+          "name": "foldkit-other\tmA\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 3.662,
+          "percent": 0.027
+        },
+        {
+          "name": "snabbdom\tAD\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 3.61,
+          "percent": 0.027
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tquerySelector\t(empty URL)",
+          "selfMs": 3.504,
+          "percent": 0.026
+        },
+        {
+          "name": "html-vnode-construction\tbR\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 3.457,
+          "percent": 0.026
+        },
+        {
+          "name": "app-unmapped\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 3.44,
+          "percent": 0.026
+        },
+        {
+          "name": "foldkit-other\tAE\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 3.007,
+          "percent": 0.022
+        },
+        {
+          "name": "application\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 2.731,
+          "percent": 0.02
+        },
+        {
+          "name": "snabbdom\tte\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 2.437,
+          "percent": 0.018
+        },
+        {
+          "name": "empty-url-native-or-unmapped\trequestAnimationFrame\t(empty URL)",
+          "selfMs": 2.255,
+          "percent": 0.017
+        },
+        {
+          "name": "snabbdom\t_O\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 2.195,
+          "percent": 0.016
+        },
+        {
+          "name": "snabbdom\tfO\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 2.158,
+          "percent": 0.016
+        },
+        {
+          "name": "other-url\t(anonymous)\thttp://localhost:38472/priv/instrumentation.js",
+          "selfMs": 2.155,
+          "percent": 0.016
+        },
+        {
+          "name": "snabbdom\tSD\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 2.125,
+          "percent": 0.016
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tqueueMicrotask\t(empty URL)",
+          "selfMs": 2.122,
+          "percent": 0.016
+        },
+        {
+          "name": "html-vnode-construction\tWL\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 2.025,
+          "percent": 0.015
+        },
+        {
+          "name": "empty-url-native-or-unmapped\tdispatchEvent\t(empty URL)",
+          "selfMs": 2.014,
+          "percent": 0.015
+        },
+        {
+          "name": "html-vnode-construction\tuR\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 1.918,
+          "percent": 0.014
+        },
+        {
+          "name": "snabbdom\tGD\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 1.862,
+          "percent": 0.014
+        },
+        {
+          "name": "foldkit-other\tsE\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 1.809,
+          "percent": 0.013
+        },
+        {
+          "name": "driver\tcheckForElement\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 1.683,
+          "percent": 0.013
+        },
+        {
+          "name": "empty-url-native-or-unmapped\thasAttribute\t(empty URL)",
+          "selfMs": 1.68,
+          "percent": 0.013
+        },
+        {
+          "name": "driver\twindow.runBenchmark\thttp://localhost:38472/__runner/runner.html",
+          "selfMs": 1.631,
+          "percent": 0.012
+        },
+        {
+          "name": "foldkit-other\tME\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 1.513,
+          "percent": 0.011
+        },
+        {
+          "name": "foldkit-other\ttE\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 1.497,
+          "percent": 0.011
+        },
+        {
+          "name": "block-program-wrappers\t(anonymous)\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 1.454,
+          "percent": 0.011
+        },
+        {
+          "name": "foldkit-other\tlA\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 1.421,
+          "percent": 0.011
+        },
+        {
+          "name": "html-vnode-construction\tNR\thttp://localhost:38472/priv/implementations/foldkit-preview-final/dist/assets/index-ZmDGH17y.js",
+          "selfMs": 1.376,
+          "percent": 0.01
+        }
+      ]
+    }
+  ]
+}

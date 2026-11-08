@@ -1,5 +1,23 @@
 # Next preview tasks
 
+## November 8 rendering diagnostics
+
+- [x] Capture ordinary CPU profiles and separate precise coverage for exact
+      main and published-preview assets, with optimized as the primary pair.
+- [x] Verify source maps, executed assets, callback and DOM guards, cleanup,
+      descendant views and lazy-cache counts. Preserve failed launches separately.
+- [x] Reconcile the raw timing fields and protocol differences. Instrumented
+      single invocations cannot allocate the ordinary median regression.
+- [ ] Prototype the retained combined R11/R19 construction changes against
+      current source, preserving the existing ownership and lifecycle contracts.
+- [ ] Independently review and push the diagnostic evidence. Rendering parity
+      and editor performance remain open before main.
+
+The [diagnostic report](preview-final-20261107/rendering/measurements/official-workcount-cpu-20261108/README.md)
+retains exact counts and explicit limits. It does not establish a dominant
+cause for the ordinary timing gap or justify repeating rejected cache/ownership
+experiments. New publication still requires approval.
+
 ## November 8 HTML bundle checkpoint
 
 - [x] Reconcile the retained rendering research before adapting overlapping
@@ -8,10 +26,11 @@
       preserving public signatures, callable metadata and lifecycle behavior.
 - [x] Verify current source, emitted consumers, 546 focused tests and all nine
       unchanged compiler ceilings. Retain the negative controls and exact assets.
-- [ ] Independently review the exact HTML commit and pass the normal push gate
-      and CI. The prior stabilization commit `3f0a41b927` is already pushed.
-- [ ] Analyze the separate optimized-first CPU and work-count captures before
-      choosing the next runtime optimization. Bundle size is not rendering time.
+- [x] Independently approve exact HTML commit `977b57321f`.
+- [ ] Pass its normal push gate and CI. The prior stabilization commit
+      `3f0a41b927` is already pushed.
+- [x] Analyze the separate optimized-first CPU and work-count captures before
+      choosing the next runtime experiment. Bundle size is not rendering time.
 
 The [HTML checkpoint](preview-html-definitions-20261108.md) records a 12,779-byte
 raw and about 4.3 KB gzip reduction. The ordinary timing batch establishes

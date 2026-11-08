@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "status": "running",
+  "mode": "cpu",
+  "startedAt": "2026-11-08T02:58:46.611Z",
+  "root": "/private/tmp/foldkit-record-release-rendering-xpwmm820",
+  "output": "/private/tmp/foldkit-official-workcount-cpu-20261107/cpu",
+  "artifactReceipt": {
+    "path": "/private/tmp/foldkit-record-release-rendering-xpwmm820/final-artifact-receipt.json",
+    "sha256": "9e4713466acc76e4f063e257212f209bf8533828c92c36f6eab8cd49a9c2bbde",
+    "publishedCommit": "54f8bcd443b4fd18952403a3d02e212abf872d58",
+    "actualMainCommit": "a471adb24d750ab9e8d8312edad53ff6f26d961b"
+  },
+  "node": {
+    "executable": "/Users/devinjameson/.vite-plus/js_runtime/node/26.13.0/bin/node",
+    "version": "v26.13.0",
+    "sha256": "533bd644c5ae0e0ea3a80e433aad16b817447ccba1e1eea701875eac80cb75d4"
+  },
+  "chromium": {
+    "executable": "/Users/devinjameson/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "sha256": "8319963f6625accf51c0dd4f55091ceaf9f09ed39e7a52fed4fae12b2a6b668a"
+  },
+  "port": 38472,
+  "itemCount": 100,
+  "samplingIntervalUs": 100,
+  "slots": [
+    "foldkit-main-optimised",
+    "foldkit-preview-final-optimised",
+    "foldkit-main",
+    "foldkit-preview-final"
+  ],
+  "span": "CDP capture starts before window.runBenchmark loads the app iframe and ends after the unchanged runner resolves; it is boot-inclusive. The runner timing buckets reset after boot, but CDP capture does not.",
+  "workload": "Unchanged retained runner: add 100, toggle 100, delete 100; two requestAnimationFrame waits after each logical action and final quiet-frame gate.",
+  "interpretation": "Ordinary sampled CPU diagnostic without precise coverage. It is not an official callback-time observation.",
+  "results": []
+}

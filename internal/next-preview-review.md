@@ -1,5 +1,20 @@
 # Next preview review
 
+## November 8 diagnostic review
+
+- [x] Preserve exact assets, maps, all CPU and coverage captures and the failed
+      pre-browser launch with original and stored hashes.
+- [x] Verify equal descendant-view and lazy work counts rather than assuming
+      a root HtmlBuilder identity regression.
+- [x] Distinguish instrumented single observations from ordinary cyclic timing
+      medians; retain raw fields and every material protocol difference.
+- [ ] Independently review the exact diagnostic commit and complete push checks.
+- [ ] Verify a current-source optimization with unchanged ordinary workloads
+      and identical-code controls before claiming runtime improvement.
+
+The [diagnostic report](preview-final-20261107/rendering/measurements/official-workcount-cpu-20261108/README.md)
+records reached work without allocating the ordinary timing gap.
+
 ## November 8 HTML bundle review
 
 - [x] Preserve the earlier research and distinguish the shared-definition
@@ -10,7 +25,7 @@
       them and pass current source, emitted, runtime and compiler checks.
 - [x] Reproduce exact baseline and candidate assets on the current source.
       Preserve all timing samples and state the duplicate-control limitation.
-- [ ] Independently review the exact committed diff before push.
+- [x] Independently approve exact commit `977b57321f` before push.
 - [ ] Complete the normal push gate and current CI; publication remains held.
 
 The [HTML checkpoint](preview-html-definitions-20261108.md) owns this evidence.
