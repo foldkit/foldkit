@@ -1840,20 +1840,25 @@ const findAncestorWithHandler = (
   )
 
 type SimulatedClick = Readonly<{
-  event: Readonly<{
-    preventDefault: () => void
-    stopPropagation: () => void
-  }>
+  event: KeyboardModifiers &
+    Readonly<{
+      preventDefault: () => void
+      stopPropagation: () => void
+    }>
   isDefaultPrevented: () => boolean
   isPropagationStopped: () => boolean
 }>
 
-const createSimulatedClick = (): SimulatedClick => {
+const createSimulatedClick = (
+  modifiers: Partial<KeyboardModifiers> | undefined,
+): SimulatedClick => {
   let isDefaultPrevented = false
   let isPropagationStopped = false
 
   return {
     event: {
+      ...DEFAULT_KEYBOARD_MODIFIERS,
+      ...modifiers,
       preventDefault: () => {
         isDefaultPrevented = true
       },
@@ -1874,9 +1879,12 @@ const createSimulatedClick = (): SimulatedClick => {
  *  When the target activates a submit button and no click handler prevents
  *  the default, the click falls through to the `submit` handler of its form
  *  owner. Scene honors an explicit `form` attribute before looking for the
- *  nearest ancestor `<form>`. */
+ *  nearest ancestor `<form>`.
+ *
+ *  Pass `modifiers` to hold `shiftKey`, `ctrlKey`, `altKey`, or `metaKey`
+ *  during the click. Omitted keys are released. */
 export const click =
-  (target: string | Locator) =>
+  (target: string | Locator, modifiers?: Partial<KeyboardModifiers>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> => {
@@ -1915,7 +1923,7 @@ export const click =
       )
     }
 
-    const simulatedClick = createSimulatedClick()
+    const simulatedClick = createSimulatedClick(modifiers)
     let isClickHandled = false
     let isSubmitHandled = false
 

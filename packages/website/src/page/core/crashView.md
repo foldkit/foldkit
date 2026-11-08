@@ -18,7 +18,7 @@ The default crash view shows the error message and a reload button. To replace i
 
 #### No Runtime Dispatch
 
-The builder is `HtmlBuilder<never>` because Foldkit can no longer dispatch Messages. Event helpers such as `h.OnClick` therefore fail to compile instead of creating handlers that cannot run.
+The builder is `HtmlBuilder<never>` because Foldkit can no longer dispatch Messages. No value has type `never`, so passing a Message to an event helper such as `h.OnClick` fails to compile instead of creating a handler that cannot run.
 
 ### Browser Actions After a Crash
 
