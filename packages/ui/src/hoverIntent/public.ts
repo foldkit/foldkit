@@ -1,5 +1,9 @@
 export {
+  FocusLocation,
   HoverIntentBlock,
+  PanelEngagement,
+  Trigger,
+  TriggerEngagement,
   layer,
   type InitConfig,
   type RenderInfo,
