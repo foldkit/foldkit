@@ -1,10 +1,12 @@
 import {
   Cause,
   Effect,
+  Equivalence,
+  MutableRef,
   Option,
   PubSub,
+  Queue,
   Record,
-  Ref,
   Schema,
   Scope,
   Stream,
@@ -19,12 +21,25 @@ import {
   reportSlowPhase,
 } from './slowPhase.js'
 
+type FollowedSubscription<Model> = Readonly<{
+  key: string
+  modelToDependencies: (model: Model) => unknown
+  equivalence: Equivalence.Equivalence<unknown>
+  latestDependencies: MutableRef.MutableRef<unknown>
+  restartedDependencies: MutableRef.MutableRef<unknown>
+  restarts: Queue.Queue<unknown>
+}>
+
 /**
- * Forks one fiber per Subscription into the runtime scope. Each fiber
- * derives the Subscription's dependencies from every Model, restarts its
- * stream when they change under its equivalence, and feeds the Messages
- * the stream emits into the queue. A defect anywhere in that pipeline
- * crashes the runtime instead of dying silently in the fiber.
+ * Forks one fiber per Subscription into the runtime scope, and one fiber that
+ * follows the Model for all of them. On every Model, that fiber derives each
+ * Subscription's dependencies in a single synchronous pass and hands them only
+ * to the Subscriptions whose dependencies changed under their equivalence. Each
+ * Subscription's fiber restarts its stream on what it is handed and feeds the
+ * Messages the stream emits into the queue. A Model change therefore wakes one
+ * fiber plus the Subscriptions it affects, not every Subscription. A defect
+ * anywhere in that pipeline crashes the runtime instead of dying silently in
+ * the fiber.
  */
 export const forkSubscriptionFibers = <Model, Message, Services>({
   subscriptions,
@@ -52,10 +67,33 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
     maybeMessage: Option.Option<Message>,
   ) => Effect.Effect<void>
 }>): Effect.Effect<void> =>
-  pipe(
-    subscriptions,
-    Record.toEntries,
-    Effect.forEach(
+  Effect.gen(function* () {
+    const deriveDependencies = (
+      key: string,
+      modelToDependencies: (model: Model) => unknown,
+      model: Model,
+    ): unknown => {
+      const [dependencies, maybeDependenciesDuration] = measureSlowPhase(
+        maybeSlowSubscriptionDependencies,
+        () => modelToDependencies(model),
+      )
+      reportSlowPhase<SlowSubscriptionDependenciesContext<Model>>(
+        maybeSlowSubscriptionDependencies,
+        maybeDependenciesDuration,
+        (durationMs, thresholdMs) => ({
+          _tag: 'SubscriptionDependencies',
+          subscriptionKey: key,
+          model,
+          durationMs,
+          thresholdMs,
+        }),
+      )
+
+      return dependencies
+    }
+
+    const followedSubscriptions = yield* Effect.forEach(
+      Record.toEntries(subscriptions),
       ([
         key,
         {
@@ -68,72 +106,35 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
         Effect.gen(function* () {
           const equivalence =
             keepAliveEquivalence ?? Schema.toEquivalence(dependenciesSchema)
-
-          const [initDependencies, maybeInitDependenciesDuration] =
-            measureSlowPhase(maybeSlowSubscriptionDependencies, () =>
-              modelToDependencies(initModel),
-            )
-          reportSlowPhase<SlowSubscriptionDependenciesContext<Model>>(
-            maybeSlowSubscriptionDependencies,
-            maybeInitDependenciesDuration,
-            (durationMs, thresholdMs) => ({
-              _tag: 'SubscriptionDependencies',
-              subscriptionKey: key,
-              model: initModel,
-              durationMs,
-              thresholdMs,
-            }),
+          const initDependencies = deriveDependencies(
+            key,
+            modelToDependencies,
+            initModel,
           )
+          const restarts = yield* Queue.unbounded<unknown>()
 
-          const latestDependenciesRef = yield* Ref.make(initDependencies)
-          const modelSubscription = yield* PubSub.subscribe(modelPubSub).pipe(
-            Effect.provideService(Scope.Scope, runtimeScope),
-          )
-
-          const modelChangesStream = Stream.fromSubscription(
-            modelSubscription,
-          ).pipe(
-            // NOTE: Ref.set runs upstream of Stream.changesWith on
-            // every model change, so readDependencies() returns
-            // current values even when the equivalence filter
-            // doesn't emit. Moving this into a tap after
-            // changesWith would silently break subscribers whose
-            // dependencies are equivalence-stable across model
-            // changes.
-            Stream.mapEffect(model =>
-              Effect.gen(function* () {
-                const [dependencies, maybeDependenciesDuration] =
-                  measureSlowPhase(maybeSlowSubscriptionDependencies, () =>
-                    modelToDependencies(model),
-                  )
-
-                reportSlowPhase<SlowSubscriptionDependenciesContext<Model>>(
-                  maybeSlowSubscriptionDependencies,
-                  maybeDependenciesDuration,
-                  (durationMs, thresholdMs) => ({
-                    _tag: 'SubscriptionDependencies',
-                    subscriptionKey: key,
-                    model,
-                    durationMs,
-                    thresholdMs,
-                  }),
-                )
-
-                yield* Ref.set(latestDependenciesRef, dependencies)
-                return dependencies
-              }),
-            ),
-          )
+          // NOTE: restarts compare against `restartedDependencies`, the
+          // dependencies the stream last restarted on, not against the
+          // previous Model's. Comparing against the previous Model's would
+          // let a run of small changes, each within the equivalence, add up
+          // without ever restarting the stream.
+          const followed: FollowedSubscription<Model> = {
+            key,
+            modelToDependencies,
+            equivalence,
+            latestDependencies: MutableRef.make(initDependencies),
+            restartedDependencies: MutableRef.make(initDependencies),
+            restarts,
+          }
 
           yield* Effect.forkIn(runtimeScope)(
             Stream.concat(
               Stream.make(initDependencies),
-              modelChangesStream,
+              Stream.fromQueue(restarts),
             ).pipe(
-              Stream.changesWith(equivalence),
               Stream.switchMap(dependencies =>
                 dependenciesToStream(dependencies, () =>
-                  Ref.getUnsafe(latestDependenciesRef),
+                  MutableRef.get(followed.latestDependencies),
                 ),
               ),
               Stream.runForEach(message =>
@@ -144,10 +145,41 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
               Effect.catchCause(cause => crashWith(cause, Option.none())),
             ),
           )
+
+          return followed
         }),
-      {
-        concurrency: 'unbounded',
-        discard: true,
-      },
-    ),
-  )
+    )
+
+    const followModel = (model: Model): void => {
+      for (const followed of followedSubscriptions) {
+        const dependencies = deriveDependencies(
+          followed.key,
+          followed.modelToDependencies,
+          model,
+        )
+        MutableRef.set(followed.latestDependencies, dependencies)
+
+        if (
+          !followed.equivalence(
+            dependencies,
+            MutableRef.get(followed.restartedDependencies),
+          )
+        ) {
+          MutableRef.set(followed.restartedDependencies, dependencies)
+          Queue.offerUnsafe(followed.restarts, dependencies)
+        }
+      }
+    }
+
+    const modelSubscription = yield* PubSub.subscribe(modelPubSub).pipe(
+      Effect.provideService(Scope.Scope, runtimeScope),
+    )
+
+    yield* Effect.forkIn(runtimeScope)(
+      pipe(
+        Stream.fromSubscription(modelSubscription),
+        Stream.runForEach(model => Effect.sync(() => followModel(model))),
+        Effect.catchCause(cause => crashWith(cause, Option.none())),
+      ),
+    )
+  })
