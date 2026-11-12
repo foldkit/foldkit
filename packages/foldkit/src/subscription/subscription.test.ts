@@ -350,6 +350,70 @@ const makeTwoEntryChildSubscriptions = () =>
     }),
   }))
 
+describe('lift reads the parent Model', () => {
+  it('once per parent Model for every entry', () => {
+    const readModels: Array<ParentModel> = []
+    const subscriptions = lift(makeTwoEntryChildSubscriptions())<
+      ParentModel,
+      ParentMessage
+    >({
+      read: model => {
+        readModels.push(model)
+        return Option.some(model.child)
+      },
+      toParentMessage,
+    })
+    const firstModel: ParentModel = {
+      isChildActive: true,
+      child: { isRunning: true, label: 'a' },
+    }
+    const nextModel: ParentModel = {
+      isChildActive: true,
+      child: { isRunning: true, label: 'b' },
+    }
+
+    subscriptions.ticks.modelToDependencies(firstModel)
+    subscriptions.pulses.modelToDependencies(firstModel)
+
+    expect(readModels).toEqual([firstModel])
+
+    const tickDependencies = subscriptions.ticks.modelToDependencies(nextModel)
+    const pulseDependencies =
+      subscriptions.pulses.modelToDependencies(nextModel)
+
+    expect(readModels).toEqual([firstModel, nextModel])
+    expect(tickDependencies).toEqual({
+      maybeDependencies: Option.some({ isRunning: true, label: 'b' }),
+    })
+    expect(pulseDependencies).toEqual({
+      maybeDependencies: Option.some({ isRunning: true, label: 'b' }),
+    })
+  })
+
+  it('again for a parent Model that is equal but not the same object', () => {
+    const readModels: Array<ParentModel> = []
+    const subscriptions = lift(makeTwoEntryChildSubscriptions())<
+      ParentModel,
+      ParentMessage
+    >({
+      read: model => {
+        readModels.push(model)
+        return Option.some(model.child)
+      },
+      toParentMessage,
+    })
+    const model: ParentModel = {
+      isChildActive: true,
+      child: { isRunning: true, label: 'a' },
+    }
+
+    subscriptions.ticks.modelToDependencies(model)
+    subscriptions.pulses.modelToDependencies({ ...model })
+
+    expect(readModels).toHaveLength(2)
+  })
+})
+
 describe('lift with a per-entry when gate', () => {
   const liftPerEntry = () =>
     lift(makeTwoEntryChildSubscriptions())({
