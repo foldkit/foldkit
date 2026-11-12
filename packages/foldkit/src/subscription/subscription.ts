@@ -3,6 +3,7 @@ import {
   type Equivalence,
   Function,
   Option,
+  Predicate,
   Record,
   Schema,
   Stream,
@@ -463,6 +464,28 @@ const toEntryWhen = (
   }
 }
 
+const readOncePerParentModel = (
+  read: AnyLiftConfig['read'],
+): AnyLiftConfig['read'] => {
+  const childModelsByParentModel = new WeakMap<object, Option.Option<any>>()
+
+  return parentModel => {
+    if (Predicate.isObjectKeyword(parentModel)) {
+      return pipe(
+        childModelsByParentModel.get(parentModel),
+        Option.fromNullishOr,
+        Option.getOrElse(() => {
+          const maybeChildModel = read(parentModel)
+          childModelsByParentModel.set(parentModel, maybeChildModel)
+          return maybeChildModel
+        }),
+      )
+    } else {
+      return read(parentModel)
+    }
+  }
+}
+
 const toParentStream = (
   config: AnyLiftConfig,
   stream: Stream.Stream<any, never, any>,
@@ -551,6 +574,13 @@ const toLiftedEntry = (
  * projection. Entries omitted from a gate map still stop when the child
  * is absent.
  *
+ * `read` runs once per parent Model for the whole lifted record: every entry
+ * that reads the same parent Model object receives the same child Model. Keep
+ * `read` a pure projection of the parent Model. A `read` that derives its
+ * child (merging parent fields, resolving shared context) then runs once per
+ * Model however many entries the record has. A slow `read` is reported as
+ * slow dependencies under the key of whichever entry read that Model first.
+ *
  * Every lifted entry wraps its dependencies in {@link GatedDependencies}.
  * The child's dependency Schema, service requirements, and
  * `keepAliveEquivalence` are preserved inside that wrapper. A running child
@@ -587,8 +617,14 @@ export const lift =
   ) =>
   <ParentModel, ParentMessage>(
     config: LiftConfig<ParentModel, ParentMessage, Subscriptions>,
-  ): LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> =>
+  ): LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> => {
+    const sharedConfig = {
+      ...config,
+      read: readOncePerParentModel(config.read),
+    }
+
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    Record.map(subscriptions, (subscription, key) =>
-      toLiftedEntry(subscription, config, toEntryWhen(config.when, key)),
+    return Record.map(subscriptions, (subscription, key) =>
+      toLiftedEntry(subscription, sharedConfig, toEntryWhen(config.when, key)),
     ) as any
+  }
