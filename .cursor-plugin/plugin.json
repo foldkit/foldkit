@@ -12,5 +12,9 @@
   "logo": "packages/website/public/favicon.svg",
   "keywords": ["foldkit", "effect", "elm-architecture", "typescript", "skills"],
   "category": "developer-tools",
-  "skills": "./skills/"
+  "skills": [
+    "./skills/foldkit/",
+    "./skills/generate-program/",
+    "./skills/audit-program/"
+  ]
 }
