@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+CLAUDE_MANIFEST=.claude-plugin/plugin.json
+CURSOR_MANIFEST=.cursor-plugin/plugin.json
+
+if [ ! -f "$CURSOR_MANIFEST" ]; then
+  echo "ERROR: $CURSOR_MANIFEST is missing."
+  echo ""
+  echo "Restore it with the same \"version\" as $CLAUDE_MANIFEST."
+  exit 1
+fi
+
+CLAUDE_VERSION=$(grep '"version"' "$CLAUDE_MANIFEST" | sed 's/.*: *"\(.*\)".*/\1/')
+CURSOR_VERSION=$(grep '"version"' "$CURSOR_MANIFEST" | sed 's/.*: *"\(.*\)".*/\1/')
+
+if [ "$CLAUDE_VERSION" != "$CURSOR_VERSION" ]; then
+  echo "ERROR: Plugin manifest versions differ: $CLAUDE_MANIFEST is $CLAUDE_VERSION, $CURSOR_MANIFEST is $CURSOR_VERSION."
+  echo ""
+  echo "Set the same \"version\" field in $CLAUDE_MANIFEST and $CURSOR_MANIFEST."
+  exit 1
+fi
+
 BASE=$(git merge-base origin/main HEAD)
 
 SKILL_CHANGES=$(git diff --name-only "$BASE" HEAD -- \
@@ -20,7 +40,7 @@ if [ -z "$VERSION_CHANGED" ]; then
   echo "Changed skill files:"
   echo "$SKILL_CHANGES" | sed 's/^/  - /'
   echo ""
-  echo "Bump the \"version\" field in .claude-plugin/plugin.json so users pick up the new skills."
+  echo "Bump the \"version\" field in .claude-plugin/plugin.json and .cursor-plugin/plugin.json so users pick up the new skills."
   exit 1
 fi
 
@@ -30,7 +50,7 @@ HEAD_VERSION=$(grep '"version"' .claude-plugin/plugin.json | sed 's/.*: *"\(.*\)
 if [ "$MAIN_VERSION" = "$HEAD_VERSION" ]; then
   echo "ERROR: plugin.json was modified but the version is unchanged ($MAIN_VERSION)."
   echo ""
-  echo "Bump the \"version\" field in .claude-plugin/plugin.json so users pick up the new skills."
+  echo "Bump the \"version\" field in .claude-plugin/plugin.json and .cursor-plugin/plugin.json so users pick up the new skills."
   exit 1
 fi
 

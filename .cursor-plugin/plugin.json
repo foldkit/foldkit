@@ -1,0 +1,16 @@
+{
+  "name": "foldkit-skills",
+  "displayName": "Foldkit Skills",
+  "version": "0.18.32",
+  "description": "Agent skills for Foldkit apps: load the framework's conventions, generate a complete app from a description, and audit an app against the architecture.",
+  "author": {
+    "name": "Foldkit"
+  },
+  "homepage": "https://foldkit.dev/ai/skills",
+  "repository": "https://github.com/foldkit/foldkit",
+  "license": "MIT",
+  "logo": "packages/website/public/favicon.svg",
+  "keywords": ["foldkit", "effect", "elm-architecture", "typescript", "skills"],
+  "category": "developer-tools",
+  "skills": "./skills/"
+}
