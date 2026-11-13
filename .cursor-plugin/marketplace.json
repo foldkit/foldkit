@@ -1,0 +1,13 @@
+{
+  "name": "foldkit",
+  "owner": {
+    "name": "Foldkit"
+  },
+  "plugins": [
+    {
+      "name": "foldkit-skills",
+      "source": "./",
+      "description": "Agent skills for Foldkit apps: load the framework's conventions, generate a complete app from a description, and audit an app against the architecture."
+    }
+  ]
+}
