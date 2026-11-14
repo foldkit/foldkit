@@ -1,13 +1,4 @@
-import {
-  Array,
-  Effect,
-  Equal,
-  Function,
-  Match,
-  Number,
-  Option,
-  Result,
-} from 'effect'
+import { Array, Effect, Equal, Function, Match, Number, Option } from 'effect'
 
 import { afterCommit, afterPaint } from '../render/render.js'
 import { DialogRuntime } from './dialogRuntime.js'
@@ -168,29 +159,43 @@ const synchronizeModalIsolation = (): void => {
     return
   }
 
-  const { allowedOutsideSelectors } = maybeTopmostModal.value
+  // NOTE: 1Password removes inert from its notification hosts in an observer.
+  // Isolating them would create an endless microtask loop between observers.
+  const allowedOutsideSelectors = [
+    'com-1password-notification',
+    ...maybeTopmostModal.value.allowedOutsideSelectors,
+  ]
   const dialogsAtOrAboveModal = Array.dropWhile(
     openDialogStack,
     dialog => dialog !== maybeTopmostModal.value,
   )
-  const allowedOutsideElements = Array.filterMap(
+  const allowedOutsideElements = Array.flatMap(
     allowedOutsideSelectors,
     selector => {
       try {
-        const outsideElement = document.querySelector(selector)
-        return outsideElement instanceof HTMLElement
-          ? Result.succeed(outsideElement)
-          : Result.failVoid
+        return Array.filter(
+          Array.fromIterable(document.querySelectorAll(selector)),
+          (element): element is HTMLElement => element instanceof HTMLElement,
+        )
       } catch {
-        return Result.failVoid
+        return []
       }
     },
   )
 
-  const nextAllowedElements = [
+  const allowedElements = [
     ...Array.map(dialogsAtOrAboveModal, dialog => dialog.element),
     ...allowedOutsideElements,
   ]
+
+  const nextAllowedElements = Array.filter(
+    allowedElements,
+    element =>
+      !Array.some(
+        allowedElements,
+        ancestor => ancestor !== element && ancestor.contains(element),
+      ),
+  )
 
   modalIsolation ??= makeOutsideIsolation()
   modalIsolation.update(nextAllowedElements)
@@ -347,7 +352,10 @@ export const focus = (
  * `showModal()` so that DevTools (and any other high-z-index overlay) remains
  * interactive. Pass `isModal: true` to make the background inert and hide it
  * from assistive technology. `allowedOutsideSelectors` keeps separate developer
- * overlays available while modal isolation is active. Stacked modal dialogs
+ * overlays available while modal isolation is active. 1Password notification
+ * hosts are always excluded from isolation to avoid competing attribute
+ * observers freezing the page. Background content remains isolated and focus
+ * stays trapped in the dialog. Stacked modal dialogs
  * isolate against the topmost one, and closing it restores the dialog beneath.
  * The Dialog component provides its own backdrop, scroll locking,
  * and transitions. Fails with `ElementNotFound` if the selector does not match

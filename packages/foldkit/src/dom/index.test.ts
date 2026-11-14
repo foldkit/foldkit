@@ -824,6 +824,72 @@ describe('showDialog', () => {
       }),
   )
 
+  it.effect('avoids fighting 1Password notification observers', () =>
+    Effect.gen(function* () {
+      const background = document.createElement('main')
+      const backgroundButton = document.createElement('button')
+      background.appendChild(backgroundButton)
+      const trigger = document.createElement('button')
+      const existingNotification = document.createElement(
+        'com-1password-notification',
+      )
+      document.body.append(trigger, background, existingNotification)
+      trigger.focus()
+      const dialog = makeDialog('solo')
+      const notification = document.createElement('com-1password-notification')
+      const removalLimit = 20
+      let removals = 0
+      const observer = new MutationObserver(() => {
+        for (const host of [existingNotification, notification]) {
+          if (host.inert) {
+            removals++
+            if (removals >= removalLimit) {
+              observer.disconnect()
+            }
+            host.removeAttribute('inert')
+          }
+        }
+      })
+      for (const host of [existingNotification, notification]) {
+        observer.observe(host, { attributes: true, attributeFilter: ['inert'] })
+      }
+
+      try {
+        yield* showDialog('#solo', { isModal: true })
+        background.appendChild(notification)
+        dialog.appendChild(document.createElement('com-1password-notification'))
+        yield* Effect.promise(
+          () => new Promise<void>(resolve => setTimeout(resolve, 50)),
+        )
+
+        expect(removals).toBe(0)
+        for (const host of [existingNotification, notification]) {
+          expect(host.inert).toBe(false)
+          expect(host.hasAttribute('aria-hidden')).toBe(false)
+        }
+        expect(backgroundButton.inert).toBe(true)
+        expect(backgroundButton.getAttribute('aria-hidden')).toBe('true')
+        expect(trigger.inert).toBe(true)
+        expect(dialog.querySelector('button')?.inert).toBe(false)
+        expect(document.activeElement).toBe(dialog.querySelector('button'))
+        expect(pressTab().defaultPrevented).toBe(true)
+
+        const cancel = vi.fn()
+        dialog.addEventListener('cancel', cancel)
+        pressEscape()
+        expect(cancel).toHaveBeenCalledOnce()
+        yield* closeDialog('#solo')
+        expect(backgroundButton.inert).toBe(false)
+        expect(backgroundButton.hasAttribute('aria-hidden')).toBe(false)
+        expect(document.activeElement).toBe(trigger)
+      } finally {
+        observer.disconnect()
+        yield* closeDialog('#solo')
+        document.body.innerHTML = ''
+      }
+    }),
+  )
+
   it.effect('does not register a runtime owner when opening fails', () =>
     Effect.gen(function* () {
       const dialog = makeDialog('solo')
