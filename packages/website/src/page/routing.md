@@ -74,6 +74,12 @@ Here’s where the biparser pays off. The same router that parses URLs can build
 
 TypeScript ensures you provide the correct data. If `personRouter` expects `{ personId: number }`, you can’t accidentally pass a string or forget the parameter.
 
+### Encode Segment Values
+
+Each value captured by `literal`, `string`, `int`, `param`, or `schemaSegment` is one path segment. Building a URL percent-encodes the value, and parsing decodes it, so the route gets back exactly the value it was built from. A username of `a/b` builds `/users/a%2Fb` and parses back to `a/b`, rather than turning into two segments. The same holds for `?`, `#`, `%`, spaces, and non-ASCII text such as `café`.
+
+A few values have no segment that parses back to them: an empty string, `.`, and `..`. Browsers drop or resolve those segments, so building a URL from one fails instead of producing a link to a different page. A URL segment with a malformed percent escape, such as `%E0%A4%A`, does not match the route.
+
 ## Query Parameters
 
 Query parameters use [Effect Schema](https://effect.website/docs/schema/introduction/) for validation. This gives you type-safe parsing, optional parameters, and automatic encoding/decoding.
@@ -102,7 +108,7 @@ Whether a segment decodes is the route’s match test, and the decoded value is 
 
 ::Snippet{name="routingSchemaSegmentRefinement" label="Schema refinement"}
 
-The schema’s encoded form must be a single segment string, and `schemaSegment` runs it both ways: it decodes when parsing and encodes when building, so the route still round-trips. For values that span several segments use `rest`, and for values in the query string use `Route.query`.
+The schema’s encoded form is a string, and `schemaSegment` runs it both ways: it decodes when parsing and encodes when building, so the route round-trips. The encoded string is one segment, percent-encoded like every [segment value](#encode-segment-values). For values that span several segments use `rest`, and for values in the query string use `Route.query`.
 
 ## Rest Segments
 

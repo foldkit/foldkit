@@ -94,88 +94,164 @@ const makeTerminalParser = <A>(parser: Biparser<A>): TerminalParser<A> =>
 
 const pathToSegments = flow(String.split('/'), Array.filter(String.isNonEmpty))
 
-/**
- * Creates a parser that matches an exact URL path segment.
- *
- * @example
- * ```ts
- * literal('users') // matches /users
- * ```
- */
-export const literal = (segment: string): Biparser<{}> => ({
-  parse: segments =>
-    Array.matchLeft(segments, {
-      onEmpty: () =>
-        Effect.fail(
-          new ParseError({
-            message: `Expected '${segment}'`,
-            expected: segment,
-            actual: 'end of path',
-            position: 0,
-          }),
-        ),
-      onNonEmpty: (head, tail) =>
-        head === segment
-          ? Effect.succeed([{}, tail])
-          : Effect.fail(
-              new ParseError({
-                message: `Expected '${segment}'`,
-                expected: segment,
-                actual: head,
-                position: 0,
-              }),
-            ),
-    }),
-  print: (_, state) =>
-    Effect.succeed({
-      ...state,
-      segments: [...state.segments, segment],
-    }),
-})
+const DOT_SEGMENTS: ReadonlyArray<string> = ['.', '..']
 
-/**
- * Creates a parser for a dynamic URL segment with custom parse and print functions.
- *
- * @param label - A descriptive name used in error messages.
- * @param parse - Converts a raw URL segment string into the parsed value.
- * @param print - Converts the parsed value back into a URL segment string.
- */
-export const param = <A>(
-  label: string,
-  parse: (segment: string) => Effect.Effect<A, ParseError>,
-  print: (value: A) => string,
-): Biparser<A> => ({
+type SegmentDescription = Readonly<{
+  label: string
+  expected: string
+}>
+
+type SingleSegment<A> = SegmentDescription &
+  Readonly<{
+    parse: (value: string) => Effect.Effect<A, ParseError>
+    print: (value: A) => Effect.Effect<string, ParseError>
+  }>
+
+const decodeSegment = (
+  { label, expected }: SegmentDescription,
+  segment: string,
+): Effect.Effect<string, ParseError> =>
+  Effect.try({
+    try: () => decodeURIComponent(segment),
+    catch: () =>
+      new ParseError({
+        message: `Malformed percent-encoding in ${label}`,
+        expected: `percent-encoded segment (${expected})`,
+        actual: segment,
+        position: 0,
+      }),
+  })
+
+const encodeSegment = (
+  { label, expected }: SegmentDescription,
+  value: string,
+): Effect.Effect<string, ParseError> => {
+  if (String.isEmpty(value)) {
+    return Effect.fail(
+      new ParseError({
+        message: `Expected a non-empty segment for ${label}`,
+        expected: `non-empty segment (${expected})`,
+        actual: 'empty string',
+      }),
+    )
+  } else if (Array.contains(DOT_SEGMENTS, value)) {
+    return Effect.fail(
+      new ParseError({
+        message: `Expected a segment other than '.' or '..' for ${label}`,
+        expected: `segment other than '.' or '..' (${expected})`,
+        actual: value,
+      }),
+    )
+  } else {
+    return Effect.try({
+      try: () => encodeURIComponent(value),
+      catch: () =>
+        new ParseError({
+          message: `Expected well-formed Unicode for ${label}`,
+          expected: `well-formed Unicode segment (${expected})`,
+          actual: value,
+        }),
+    })
+  }
+}
+
+const singleSegment = <A>(definition: SingleSegment<A>): Biparser<A> => ({
   parse: segments =>
     Array.matchLeft(segments, {
       onEmpty: () =>
         Effect.fail(
           new ParseError({
-            message: `Expected ${label}`,
-            expected: label,
+            message: `Expected ${definition.label}`,
+            expected: definition.expected,
             actual: 'end of path',
             position: 0,
           }),
         ),
       onNonEmpty: (head, tail) =>
         pipe(
-          head,
-          parse,
+          decodeSegment(definition, head),
+          Effect.flatMap(definition.parse),
           Effect.map(value => [value, tail]),
         ),
     }),
   print: (value, state) =>
-    Effect.succeed({
-      ...state,
-      segments: [...state.segments, print(value)],
-    }),
+    pipe(
+      definition.print(value),
+      Effect.flatMap(segmentValue => encodeSegment(definition, segmentValue)),
+      Effect.map(segment => ({
+        ...state,
+        segments: [...state.segments, segment],
+      })),
+    ),
 })
+
+/**
+ * Creates a parser that matches an exact URL path segment.
+ *
+ * The segment is compared with the percent-decoded URL segment and
+ * percent-encoded when printing, so `literal('café')` matches and builds
+ * `/caf%C3%A9`. The whole string is one segment: a slash inside it prints as
+ * `%2F`. Join several segments with `slash` instead.
+ *
+ * @example
+ * ```ts
+ * literal('users') // matches /users
+ * ```
+ */
+export const literal = (segment: string): Biparser<{}> =>
+  singleSegment({
+    label: `'${segment}'`,
+    expected: segment,
+    parse: value =>
+      value === segment
+        ? Effect.succeed({})
+        : Effect.fail(
+            new ParseError({
+              message: `Expected '${segment}'`,
+              expected: segment,
+              actual: value,
+              position: 0,
+            }),
+          ),
+    print: () => Effect.succeed(segment),
+  })
+
+/**
+ * Creates a parser for a dynamic URL segment with custom parse and print functions.
+ *
+ * `parse` receives the percent-decoded segment, and the string `print`
+ * returns is percent-encoded into the URL, so any value round-trips as one
+ * segment, including one that contains `/`, `?`, `#`, `%`, spaces, or
+ * non-ASCII text. A URL segment with a malformed percent escape does not
+ * match. Building a URL fails when `print` returns an empty string, `.`, or
+ * `..`, because no URL segment parses back to those values.
+ *
+ * @param label - A descriptive name used in error messages.
+ * @param parse - Converts the decoded URL segment into the parsed value.
+ * @param print - Converts the parsed value back into the unencoded segment.
+ */
+export const param = <A>(
+  label: string,
+  parse: (segment: string) => Effect.Effect<A, ParseError>,
+  print: (value: A) => string,
+): Biparser<A> =>
+  singleSegment({
+    label,
+    expected: label,
+    parse,
+    print: value => Effect.succeed(print(value)),
+  })
 
 /**
  * Creates a parser that captures a URL segment as a named string field.
  *
+ * The value is percent-decoded when parsing and percent-encoded when
+ * building, as described on `param`.
+ *
  * @example
  * ```ts
  * string('slug') // parses /hello into { slug: "hello" }
+ * string('slug') // parses /a%2Fb into { slug: "a/b" }
  * ```
  */
 export const string = <K extends string>(
@@ -218,39 +294,19 @@ export const int = <K extends string>(name: K): Biparser<Record<K, number>> =>
     record => record[name].toString(),
   )
 
-export const __isSingleSegment = (segment: string): boolean =>
-  Array.matchLeft(pathToSegments(segment), {
-    onEmpty: () => false,
-    onNonEmpty: (head, tail) => head === segment && Array.isArrayEmpty(tail),
-  })
-
-const warnIfNotSingleSegment = (
-  name: string,
-  segment: string,
-): Effect.Effect<void> =>
-  Effect.sync(() => {
-    if (import.meta.hot && !__isSingleSegment(segment)) {
-      console.warn(
-        `[foldkit] schemaSegment('${name}') encoded to '${segment}', which is not ` +
-          'a single URL segment. Parsing re-splits the path on slashes and drops ' +
-          'empty pieces, so this value will not round-trip. Encode to one ' +
-          'non-empty, slash-free segment, or use rest for multi-segment values.',
-      )
-    }
-  })
-
 /**
  * Creates a parser that captures a URL segment and decodes it through an
  * Effect `Schema`, producing a named field of the schema's decoded type.
  *
- * Decodes the raw segment when parsing and encodes the value back when
- * printing, so branded ids, refined strings, and string-literal unions
+ * Decodes the percent-decoded segment when parsing and encodes the value back
+ * when printing, so branded ids, refined strings, and string-literal unions
  * round-trip through the route. The decoded type flows straight into the
  * route value, so a model carries `UserId` rather than a bare `string`.
  *
- * The schema's encoded form must be a single URL segment string. For shapes
- * that span multiple segments or live in the query string, use `rest` or
- * `query`.
+ * The schema's encoded string is percent-encoded into one URL segment, as
+ * described on `param`, so an encoded value containing `/` stays one
+ * segment. For shapes that span multiple segments or live in the query
+ * string, use `rest` or `query`.
  *
  * @example
  * ```ts
@@ -260,7 +316,7 @@ const warnIfNotSingleSegment = (
  * ```
  *
  * @param name - The field name the decoded value is captured under.
- * @param schema - A codec whose encoded form is a single URL segment string.
+ * @param schema - A codec whose encoded form is a string.
  */
 export const schemaSegment = <K extends string, A, I extends string>(
   name: K,
@@ -269,34 +325,24 @@ export const schemaSegment = <K extends string, A, I extends string>(
   const decode = Schema.decodeUnknownEffect(schema)
   const encode = Schema.encodeEffect(schema)
 
-  return {
-    parse: segments =>
-      Array.matchLeft(segments, {
-        onEmpty: () =>
-          Effect.fail(
+  return singleSegment({
+    label: name,
+    expected: name,
+    parse: segment =>
+      pipe(
+        segment,
+        decode,
+        Effect.mapError(
+          error =>
             new ParseError({
-              message: `Expected ${name}`,
+              message: `Invalid ${name}: ${error.message}`,
               expected: name,
-              actual: 'end of path',
-              position: 0,
+              actual: segment,
             }),
-          ),
-        onNonEmpty: (head, tail) =>
-          pipe(
-            head,
-            decode,
-            Effect.mapError(
-              error =>
-                new ParseError({
-                  message: `Invalid ${name}: ${error.message}`,
-                  expected: name,
-                  actual: head,
-                }),
-            ),
-            Effect.map(value => [Record.singleton(name, value), tail]),
-          ),
-      }),
-    print: (value, state) =>
+        ),
+        Effect.map(value => Record.singleton(name, value)),
+      ),
+    print: value =>
       pipe(
         value[name],
         encode,
@@ -306,13 +352,8 @@ export const schemaSegment = <K extends string, A, I extends string>(
               message: `Failed to encode ${name}: ${error.message}`,
             }),
         ),
-        Effect.tap(segment => warnIfNotSingleSegment(name, segment)),
-        Effect.map(segment => ({
-          ...state,
-          segments: [...state.segments, segment],
-        })),
       ),
-  }
+  })
 }
 
 /**
