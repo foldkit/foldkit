@@ -27,6 +27,7 @@ import {
   create,
   groupContiguous,
   init,
+  open,
   resolveTypeaheadMatch,
   update,
 } from './index.js'
@@ -133,6 +134,79 @@ describe('Menu', () => {
           PortalMenuBackdrop,
           Message.CompletedPortalMenuBackdrop(),
         ),
+      )
+    })
+  })
+
+  describe('arrow keys with no active item', () => {
+    const items = Scene.selector('#test-items')
+    const item = (index: number) => Scene.selector(`#test-item-${index}`)
+
+    const disabledFirstItemView = (model: Model, h: HtmlBuilder<Message>) =>
+      TestMenu.view(
+        model,
+        {
+          items: ['Edit', 'Duplicate', 'Delete'],
+          itemToConfig: item => ({ content: h.span([], [item]) }),
+          isItemDisabled: item => item === 'Edit',
+          buttonContent: h.span([], ['Actions']),
+        },
+        h,
+      )
+
+    const openedWithNoActiveItem = open(init({ id: 'test' })).model
+
+    const acknowledgeAnchor = Scene.Mount.resolve(
+      AnchorMenu,
+      Message.CompletedAnchorMenu(),
+    )
+
+    const acknowledgeBackdrop = Scene.Mount.resolve(
+      PortalMenuBackdrop,
+      Message.CompletedPortalMenuBackdrop(),
+    )
+
+    const acknowledgeScroll = Scene.Command.resolve(
+      ScrollIntoView,
+      Message.CompletedScrollIntoView(),
+    )
+
+    it('activates the first item on ArrowDown', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openedWithNoActiveItem),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+        Scene.keydown(items, 'ArrowDown'),
+        acknowledgeScroll,
+        Scene.expect(item(0)).toHaveAttr('data-active', ''),
+        Scene.expect(item(1)).not.toHaveAttr('data-active'),
+      )
+    })
+
+    it('activates the last item on ArrowUp', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openedWithNoActiveItem),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+        Scene.keydown(items, 'ArrowUp'),
+        acknowledgeScroll,
+        Scene.expect(item(2)).toHaveAttr('data-active', ''),
+        Scene.expect(item(1)).not.toHaveAttr('data-active'),
+      )
+    })
+
+    it('activates the first enabled item on ArrowDown when the first item is disabled', () => {
+      Scene.scene(
+        { update, view: disabledFirstItemView },
+        Scene.given(openedWithNoActiveItem),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+        Scene.keydown(items, 'ArrowDown'),
+        acknowledgeScroll,
+        Scene.expect(item(1)).toHaveAttr('data-active', ''),
+        Scene.expect(item(2)).not.toHaveAttr('data-active'),
       )
     })
   })

@@ -23,7 +23,7 @@ import {
   UnlockScroll,
   inputId,
 } from './shared.js'
-import { create, init, update } from './single.js'
+import { create, init, open, update } from './single.js'
 import type { Model, ViewInputs } from './single.js'
 
 const TestCombobox = create<string>()
@@ -1985,6 +1985,60 @@ describe('Combobox', () => {
 
       it('inputId derives the input id from the base id', () => {
         expect(inputId('test')).toBe('test-input')
+      })
+    })
+
+    describe('arrow keys with no active item', () => {
+      const input = Scene.selector('#test-input')
+      const item = (index: number) => Scene.selector(`#test-item-${index}`)
+
+      const openedWithNoActiveItem = open(init({ id: 'test' })).model
+
+      const acknowledgeScroll = Scene.Command.resolve(
+        ScrollIntoView,
+        Message.CompletedScrollIntoView(),
+      )
+
+      it('activates the first item on ArrowDown', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(openedWithNoActiveItem),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(input, 'ArrowDown'),
+          acknowledgeScroll,
+          Scene.expect(item(0)).toHaveAttr('data-active', ''),
+          Scene.expect(item(1)).not.toHaveAttr('data-active'),
+        )
+      })
+
+      it('activates the last item on ArrowUp', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(openedWithNoActiveItem),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(input, 'ArrowUp'),
+          acknowledgeScroll,
+          Scene.expect(item(1)).toHaveAttr('data-active', ''),
+          Scene.expect(item(0)).not.toHaveAttr('data-active'),
+        )
+      })
+
+      it('activates the first enabled item on ArrowDown when the first item is disabled', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({ isItemDisabled: item => item === 'Apple' }),
+          },
+          Scene.given(openedWithNoActiveItem),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(input, 'ArrowDown'),
+          acknowledgeScroll,
+          Scene.expect(item(1)).toHaveAttr('data-active', ''),
+          Scene.expect(item(0)).not.toHaveAttr('data-active'),
+        )
       })
     })
 

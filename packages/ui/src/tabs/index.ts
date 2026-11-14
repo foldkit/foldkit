@@ -238,7 +238,7 @@ const internalView = defineView<Model, Message, ViewInputs>(
       nextKey,
       previousKey,
       tabs.length,
-      focusedIndex,
+      Option.some(focusedIndex),
       isDisabled,
     )
 

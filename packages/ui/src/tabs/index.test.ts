@@ -258,59 +258,78 @@ describe('Tabs', () => {
   })
 
   describe('keyToIndex', () => {
+    const resolveHorizontal = (
+      itemCount: number,
+      focusedIndex: number,
+      isDisabled: (index: number) => boolean,
+    ) =>
+      keyToIndex(
+        'ArrowRight',
+        'ArrowLeft',
+        itemCount,
+        Option.some(focusedIndex),
+        isDisabled,
+      )
+
     it('moves to next tab on next key', () => {
-      const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 5, 0, noneDisabled)
+      const resolve = resolveHorizontal(5, 0, noneDisabled)
       expect(resolve('ArrowRight')).toBe(1)
     })
 
     it('moves to previous tab on previous key', () => {
-      const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 5, 2, noneDisabled)
+      const resolve = resolveHorizontal(5, 2, noneDisabled)
       expect(resolve('ArrowLeft')).toBe(1)
     })
 
     it('wraps from last to first on next key', () => {
-      const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 3, 2, noneDisabled)
+      const resolve = resolveHorizontal(3, 2, noneDisabled)
       expect(resolve('ArrowRight')).toBe(0)
     })
 
     it('wraps from first to last on previous key', () => {
-      const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 3, 0, noneDisabled)
+      const resolve = resolveHorizontal(3, 0, noneDisabled)
       expect(resolve('ArrowLeft')).toBe(2)
     })
 
     it('jumps to first enabled tab on Home', () => {
-      const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 5, 3, disabledAt(0))
+      const resolve = resolveHorizontal(5, 3, disabledAt(0))
       expect(resolve('Home')).toBe(1)
     })
 
     it('jumps to first enabled tab on PageUp', () => {
-      const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 5, 3, disabledAt(0))
+      const resolve = resolveHorizontal(5, 3, disabledAt(0))
       expect(resolve('PageUp')).toBe(1)
     })
 
     it('jumps to last enabled tab on End', () => {
-      const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 5, 0, disabledAt(4))
+      const resolve = resolveHorizontal(5, 0, disabledAt(4))
       expect(resolve('End')).toBe(3)
     })
 
     it('jumps to last enabled tab on PageDown', () => {
-      const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 5, 0, disabledAt(4))
+      const resolve = resolveHorizontal(5, 0, disabledAt(4))
       expect(resolve('PageDown')).toBe(3)
     })
 
     it('returns focusedIndex for unrecognized key', () => {
-      const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 5, 2, noneDisabled)
+      const resolve = resolveHorizontal(5, 2, noneDisabled)
       expect(resolve('Tab')).toBe(2)
     })
 
     it('works with vertical orientation keys', () => {
-      const resolve = keyToIndex('ArrowDown', 'ArrowUp', 3, 0, noneDisabled)
+      const resolve = keyToIndex(
+        'ArrowDown',
+        'ArrowUp',
+        3,
+        Option.some(0),
+        noneDisabled,
+      )
       expect(resolve('ArrowDown')).toBe(1)
       expect(resolve('ArrowUp')).toBe(2)
     })
 
     it('skips disabled tabs during arrow navigation', () => {
-      const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 5, 0, disabledAt(1))
+      const resolve = resolveHorizontal(5, 0, disabledAt(1))
       expect(resolve('ArrowRight')).toBe(2)
     })
   })
