@@ -1079,7 +1079,7 @@ const expectNoCommandsStep =
 
 /** Resolves a specific pending Mount with the given result Message. Accepts
  *  either a Mount Definition (matches by name) or a Mount instance produced
- *  by calling a Definition (matches by name + structural-equal args). The
+ *  by calling a Definition (matches by name + structurally equal args). The
  *  first pending mount that matches is resolved. Mirrors `resolve` for
  *  Commands: when the mount lives inside a Submodel, the boundary's own
  *  `toParentMessage` lift (snapshotted at render time) is applied to
@@ -1156,18 +1156,17 @@ const resolveAllMounts =
       resolveMount(matcher, resultMessage)(current),
     )
 
-/** Acknowledges pending Mounts that never produce a Message: those whose
- *  `messages` is `[Schema.Never]`, which install a listener or an observer and
- *  run until their element leaves. Nothing goes through update; each matcher
- *  clears the first pending Mount it matches, and an acknowledged Mount still
- *  needs `expectEnded` once its element disappears. Accepts Mount Definitions
- *  (match by name) and Mount instances (match by name + args). */
+/** Acknowledges pending Mounts without dispatching a Message. Use this for
+ *  Mounts declared with `messages: [Schema.Never]`. Each matcher acknowledges
+ *  the first pending occurrence it matches. Definitions match by name;
+ *  instances match by name and structurally equal args. Throws if a matcher
+ *  has no pending match. Acknowledged Mounts require `expectEnded` when
+ *  their elements leave the tree. */
 const acknowledgeMounts =
   (...matchers: ReadonlyArray<MountMatcher>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> => {
-    /* eslint-disable @typescript-eslint/consistent-type-assertions */
     const internal = toInternal(simulation)
     const pendingMounts = Array.reduce(
       matchers,
@@ -1187,22 +1186,22 @@ const acknowledgeMounts =
           },
         ),
     )
-    const stillPending = new Set(Array.map(pendingMounts, slotKey))
+    const pendingKeys = new Set(Array.map(pendingMounts, slotKey))
     const updatedSlots = Array.map(
       internal.mountSlots,
       (state): MountSlotState =>
-        state.status._tag === 'Pending' &&
-        !stillPending.has(slotKey(state.slot))
+        state.status._tag === 'Pending' && !pendingKeys.has(slotKey(state.slot))
           ? { slot: state.slot, status: RESOLVED }
           : state,
     )
 
-    return {
+    const acknowledged: InternalSceneSimulation<Model, Message, OutMessage> = {
       ...internal,
       mountSlots: updatedSlots,
       mounts: pendingMounts,
-    } as unknown as SceneSimulation<Model, Message, OutMessage>
-    /* eslint-enable @typescript-eslint/consistent-type-assertions */
+    }
+
+    return acknowledged
   }
 
 /** Asserts that every given Mount is among the pending Mounts. Accepts Mount
@@ -1538,8 +1537,9 @@ export const Mount = {
   resolve: resolveMount,
   /** Resolves all listed Mounts with their result Messages. */
   resolveAll: resolveAllMounts,
-  /** Acknowledges pending Mounts that never produce a Message
-   *  (`messages: [Schema.Never]`), without sending one through update. */
+  /** Acknowledges pending Mounts without dispatching a Message. Use for Mounts
+   *  declared with `messages: [Schema.Never]`; each matcher consumes one
+   *  occurrence. Unmounts require `expectEnded`. */
   acknowledge: acknowledgeMounts,
   /** Asserts that every given Mount is among the pending Mounts. */
   expectHas: expectHasMountsStep,

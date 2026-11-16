@@ -214,38 +214,48 @@ When update returns Commands, Scene keeps them pending until the test supplies t
 
 Prefer `Command.expectExact` as the default. It catches bugs where an interaction produces unexpected Commands. Use `Command.expectHas` when you only care about a subset of the pending Commands.
 
-Each matcher accepts either a Command Definition (matches by name) or a Command instance (matches by name AND structural-equal args). Pass a Definition when the test only cares that the Command was dispatched; pass an instance when the args are part of what the test is verifying. `Command.expectExact(FetchWeather({ zipCode: '90210' }))` fails if the runtime dispatched `FetchWeather({ zipCode: '99999' })`, where the same call with just `FetchWeather` would pass.
+Each matcher accepts either a Command Definition (matches by name) or a Command instance (matches by name AND structurally equal args). Pass a Definition when the test only cares that the Command was dispatched; pass an instance when the args are part of what the test is verifying. `Command.expectExact(FetchWeather({ zipCode: '90210' }))` fails if the runtime dispatched `FetchWeather({ zipCode: '99999' })`, where the same call with just `FetchWeather` would pass.
 
 ## Mounts
 
-When a rendered view contains an `OnMount` attribute, Scene keeps that Mount pending until the test supplies its result Message. If the mounted element later leaves the tree, the test must also acknowledge the unmount with `Mount.expectEnded`.
+When a rendered view contains an `OnMount` attribute, Scene records a pending Mount. Supply its result Message with `Mount.resolve`, or use `Mount.acknowledge` when the Mount produces no Message. If its element leaves the tree, acknowledge the unmount with `Mount.expectEnded`.
 
 This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, dialogs, and other components export their Mount Definitions so a consumer test can name and resolve them.
 
 ### Mount Lifecycle Rules
 
-- Pending mounts persist across re-renders. Resolving a mount does not re-pend it on the next render.
-- Every mount that fires and unmounts during a scene must be acknowledged with `Mount.expectEnded`, even if it was already resolved. `resolve` handles a mount’s result Message; `expectEnded` handles its unmount. Unacknowledged unmounts throw at the end of the scene.
-- Same-named mounts in the tree are disambiguated by occurrence. `Mount.resolve` resolves the first pending occurrence; a second call resolves the next.
-- Interactions throw if there are unresolved mounts or unacknowledged unmounts when they try to dispatch a Message. Same contract as Commands.
-- `scene` throws at the end if any mount remains unresolved.
-- A mount that never produces a Message (`messages: [Schema.Never]`: one that installs a listener or an observer and runs until its element leaves) has no result to resolve with. Clear it with `Mount.acknowledge`, which sends nothing through update.
+- Pending Mounts persist across re-renders. Resolving or acknowledging a Mount prevents it from becoming pending again on the next render.
+- Every Mount that unmounts during a scene requires `Mount.expectEnded`, whether it was pending, resolved, or acknowledged. Unacknowledged unmounts throw at the next interaction or at the end of the scene.
+- Same-named Mounts are distinguished by occurrence. Each matcher in `Mount.resolve` or `Mount.acknowledge` consumes the first pending occurrence it matches.
+- Interactions throw if there are pending Mounts or unacknowledged unmounts when they try to dispatch a Message.
+- `scene` throws at the end if any Mount is pending.
+- A Mount rendered again after unmounting starts a new pending occurrence.
 
 ### Resolve and Inspect Mounts
 
 ::Snippet{name="sceneMountAssertions" label="Mount assertions"}
 
-| Step                                          | Effect                                                                                                                                                                                                                            |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Mount.resolve(Def, ResultMessage)`           | Resolves the first pending mount with the given name by feeding `ResultMessage` through update. For a mount inside a child Submodel, resolve replays the boundary lift automatically, so you pass the child’s raw result Message. |
-| `Mount.resolveAll([Def, ResultMessage], ...)` | Resolves a batch of pending mounts in order.                                                                                                                                                                                      |
-| `Mount.acknowledge(A, ...)`                   | Clears pending mounts that never produce a Message (`messages: [Schema.Never]`), without sending one through update. Each matcher clears one occurrence; an acknowledged mount still needs `Mount.expectEnded` when it unmounts.  |
-| `Mount.expectExact(A, B)`                     | The pending mounts are exactly A and B (order-independent, by name).                                                                                                                                                              |
-| `Mount.expectHas(A)`                          | A is among the pending mounts (subset check).                                                                                                                                                                                     |
-| `Mount.expectNone()`                          | There are no pending mounts.                                                                                                                                                                                                      |
-| `Mount.expectEnded(A)`                        | A has disappeared from the rendered tree. Required for every Mount that fires and then unmounts during the scene, regardless of whether it was resolved first; otherwise the scene throws at the end.                             |
+| Step                                          | Effect                                                                                                                                                                                                                 |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Mount.resolve(Def, ResultMessage)`           | Resolves the first pending Mount that matches by feeding `ResultMessage` through update. For a Mount inside a child Submodel, resolve replays the boundary lift automatically, so pass the child's raw result Message. |
+| `Mount.resolveAll([Def, ResultMessage], ...)` | Resolves a batch of pending Mounts in order.                                                                                                                                                                           |
+| `Mount.acknowledge(A, ...)`                   | Acknowledges pending Mounts without dispatching a Message. Each matcher consumes one pending occurrence and throws if none matches.                                                                                    |
+| `Mount.expectExact(A, B)`                     | The pending Mounts match A and B exactly, in any order.                                                                                                                                                                |
+| `Mount.expectHas(A)`                          | A matches a pending Mount.                                                                                                                                                                                             |
+| `Mount.expectNone()`                          | There are no pending Mounts.                                                                                                                                                                                           |
+| `Mount.expectEnded(A)`                        | A has disappeared from the rendered tree. Required for every Mount that unmounts during the scene, whether it was pending, resolved, or acknowledged.                                                                  |
 
-UI components export their Mount definitions (`Popover.AnchorPopover`, `Listbox.AnchorListbox`, and so on) so consumer tests can name them in `Mount.resolve`.
+Mount matchers accept Definitions, which match by name, or instances, which match by name and structurally equal args. To acknowledge several occurrences of the same Mount, repeat its matcher once per occurrence.
+
+### Mounts Without Result Messages
+
+A Mount declared with `messages: [Schema.Never]` has no result Message to pass to `Mount.resolve`. Use `Mount.acknowledge` to acknowledge its pending occurrence without calling update or changing the Model or Commands. It requires `Mount.expectEnded` when its element leaves the tree.
+
+Acknowledgement does not verify setup or supply a completion or readiness Message for update or replay. Prefer a descriptive `Completed*` result for setup that completes, even when the Model is unchanged. See [Mount result Messages](/core/mount#result-messages) for the explicitly silent exception.
+
+This Mount stops `keydown` events from reaching listeners on ancestor elements. Its Effect installs the listener and removes it when the element unmounts. Scene records the Mount without executing its Effect.
+
+::Snippet{name="sceneSilentMount" label="Acknowledging a Mount without a result Message"}
 
 ## Subscriptions
 

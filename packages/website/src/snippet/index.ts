@@ -436,6 +436,8 @@ export { default as sceneCommandAssertionsRaw } from './sceneCommandAssertions.t
 export { default as sceneCommandAssertionsHighlighted } from './sceneCommandAssertions.ts?highlighted'
 export { default as sceneMountAssertionsRaw } from './sceneMountAssertions.ts?raw'
 export { default as sceneMountAssertionsHighlighted } from './sceneMountAssertions.ts?highlighted'
+export { default as sceneSilentMountRaw } from './sceneSilentMount.ts?raw'
+export { default as sceneSilentMountHighlighted } from './sceneSilentMount.ts?highlighted'
 export { default as sceneSubscriptionEmitRaw } from './sceneSubscriptionEmit.ts?raw'
 export { default as sceneSubscriptionEmitHighlighted } from './sceneSubscriptionEmit.ts?highlighted'
 export { default as sceneManagedResourceStepsRaw } from './sceneManagedResourceSteps.ts?raw'

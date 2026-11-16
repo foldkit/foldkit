@@ -191,8 +191,9 @@ const wrapEffectAsStream =
  * args Schema, `messages` lists the Messages this Mount can produce, and
  * `execute` holds the work. `execute` receives the live `Element` as `element`
  * and the runtime's `viewStateChanges` Stream alongside the declared args, and
- * returns an `Effect<Message>` that runs once when the element mounts and
- * produces exactly one Message.
+ * returns an `Effect<Message>` that runs once when the element mounts. It
+ * produces one result Message unless `messages: [Schema.Never]` explicitly
+ * declares silent work.
  *
  * `args` is optional. Omit it and the Definition is callable as `Definition()`;
  * declare it and the Definition is callable as `Definition(args)`. `execute`
@@ -228,15 +229,19 @@ const wrapEffectAsStream =
  * the third argument to `Effect.acquireRelease`. Construct the resource
  * after the interruptible wait so cancellation leaves no handle to release.
  *
- * At least one result Message schema is required. The Effect's success
- * type is `Schema.Schema.Type<Messages[number]>`; without a declared
- * result, `execute` would have to return `Effect.never`, leaving
- * `update` with no record of the work and removing DevTools, Scene,
- * and time-travel replay's reference point. Fire-and-forget Mounts
- * follow the same convention as fire-and-forget Commands: declare a
- * `Completed*` result Message that `update` no-ops on. The side
- * effect stays observable; `update` simply has nothing meaningful to
- * do with the acknowledgment.
+ * `messages` requires a non-empty list of Schemas. For setup that completes,
+ * declare and return a descriptive `Completed*` Message even when update
+ * leaves the Model unchanged. The Effect's success type is
+ * `Schema.Schema.Type<Messages[number]>`; its result records completion for
+ * update, DevTools history, Scene tests, and replay.
+ *
+ * An explicitly silent Mount can declare `messages: [Schema.Never]` and
+ * return an `Effect<never>` when its element-owned work intentionally reports
+ * no result or events. It can register cleanup and wait with `Effect.never`
+ * until unmount. There is no completion or readiness Message for update or
+ * replay. Scene tests use `Scene.Mount.acknowledge` for its pending occurrence
+ * and `Scene.Mount.expectEnded` for its unmount. An unchanged Model alone is
+ * not a reason to choose this exception.
  *
  * The runtime starts cleanup from snabbdom's `destroy` hook by forking
  * `Fiber.interrupt` without waiting. A release with no asynchronous step
@@ -419,23 +424,28 @@ export function define(name: string, config: DefineConfig): unknown {
  * for the Mount's lifetime. When time travel is unavailable, it emits only
  * `Live`.
  *
- * At least one result Message schema is required. The Stream's emission
- * type is `Schema.Schema.Type<Messages[number]>`; without a declared
- * result, `execute` would have to return `Stream<never>`, leaving
- * `update` with no record of the work and removing DevTools, Scene,
- * and time-travel replay's reference point. Fire-and-forget Mounts
- * follow the same convention as fire-and-forget Commands: declare a
- * `Completed*` result Message that `update` no-ops on. The side
- * effect stays observable; `update` simply has nothing meaningful to
- * do with the acknowledgment. Re-check the cause.
+ * `messages` requires a non-empty list of Schemas. The Stream's emission
+ * type is `Schema.Schema.Type<Messages[number]>`. Declare the Messages the
+ * element's events produce. For setup that completes without changing the
+ * Model, return a descriptive `Completed*` Message through `Mount.define`.
+ * That Message records completion for update, DevTools history, Scene tests,
+ * and replay.
+ *
+ * An explicitly silent Mount can declare `messages: [Schema.Never]` and
+ * return a `Stream<never>` when its element-owned work intentionally reports
+ * no result or events. There is no completion or readiness Message for update
+ * or replay. Scene tests use `Scene.Mount.acknowledge` for its pending
+ * occurrence and `Scene.Mount.expectEnded` for its unmount. An unchanged Model
+ * alone is not a reason to choose this exception. Prefer `Mount.define` for
+ * silent setup with lifecycle-scoped cleanup.
  *
  * Cleanup has the same timing relative to snabbdom's `destroy` hook as
  * `Mount.define`.
  *
  * For a Mount that produces exactly one Message at acquire and then holds
  * lifecycle-scoped resources, use `Mount.define` with `Effect<Message>`.
- * That form encodes "exactly one Message" in the type system. Reserve
- * `defineStream` for cases that genuinely emit a stream of events.
+ * Reserve `defineStream` for continuing events; `Mount.define` also supports
+ * explicitly silent setup through `messages: [Schema.Never]`.
  *
  * @example Continuous scroll events from an element
  * ```ts

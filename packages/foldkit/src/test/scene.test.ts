@@ -1,6 +1,7 @@
-import { Array, Effect, Option, Schema, pipe } from 'effect'
-import { describe, expect, expectTypeOf, test } from 'vitest'
+import { Array, Effect, Match, Option, Schema, pipe } from 'effect'
+import { describe, expect, expectTypeOf, test, vi } from 'vitest'
 
+import * as Command from '../command/index.js'
 import * as CustomElement from '../customElement/index.js'
 import {
   type Html,
@@ -5071,7 +5072,7 @@ describe('scene mounts', () => {
     )
   })
 
-  test('Mount Instance matcher resolves on name + structural-equal args', () => {
+  test('Mount Instance matcher resolves on name + structurally equal args', () => {
     const offset = 240
     Scene.scene(
       {
@@ -6657,22 +6658,25 @@ describe('scene Mount.acknowledge', () => {
   const SilentMessage = defineMessageUnion({
     ClickedToggle: {},
     ClickedSave: {},
+    CompletedPersistSave: {},
   })
   type SilentMessage = typeof SilentMessage.Type
 
-  type SilentModel = Readonly<{ isOpen: boolean; saves: number }>
+  const SilentModel = Schema.Struct({
+    isOpen: Schema.Boolean,
+    saves: Schema.Number,
+  })
+  type SilentModel = typeof SilentModel.Type
 
-  const silentUpdate = (
-    model: SilentModel,
-    message: SilentMessage,
-  ): Update.Return<SilentModel, SilentMessage> =>
-    SilentMessage.match(message, {
+  const silentUpdate = (model: SilentModel, message: SilentMessage) =>
+    SilentMessage.match<Update.Return<SilentModel, SilentMessage>>(message, {
       ClickedToggle: () => ({
         model: modifyFields(model, { isOpen: isOpen => !isOpen }),
       }),
       ClickedSave: () => ({
         model: modifyFields(model, { saves: saves => saves + 1 }),
       }),
+      CompletedPersistSave: () => ({ model }),
     })
 
   const silentView = (
@@ -6718,7 +6722,7 @@ describe('scene Mount.acknowledge', () => {
     ).toThrow(/I found unresolved Mounts/)
   })
 
-  test('acknowledge clears it without sending a Message through update', () => {
+  test('acknowledgement permits interactions across re-renders', () => {
     Scene.scene(
       { update: silentUpdate, view: silentView },
       Scene.given(open),
@@ -6734,7 +6738,7 @@ describe('scene Mount.acknowledge', () => {
     )
   })
 
-  test('an acknowledged Mount that unmounts still needs expectEnded', () => {
+  test('unmounting an acknowledged Mount requires expectEnded', () => {
     expect(() =>
       Scene.scene(
         { update: silentUpdate, view: silentView },
@@ -6745,7 +6749,7 @@ describe('scene Mount.acknowledge', () => {
     ).toThrow(/ListenForKeys/)
   })
 
-  test('a Mount rendered again after it ended is pending again', () => {
+  test('remounting an acknowledged Mount creates a pending occurrence', () => {
     expect(() =>
       Scene.scene(
         { update: silentUpdate, view: silentView },
@@ -6771,7 +6775,7 @@ describe('scene Mount.acknowledge', () => {
     )
   })
 
-  test('each matcher clears one pending Mount', () => {
+  test('repeating a matcher requires another pending occurrence', () => {
     expect(() =>
       Scene.scene(
         { update: silentUpdate, view: silentView },
@@ -6779,5 +6783,177 @@ describe('scene Mount.acknowledge', () => {
         Scene.Mount.acknowledge(ListenForKeys, ListenForKeys),
       ),
     ).toThrow(/I tried to acknowledge Mount ListenForKeys/)
+  })
+
+  const ListenForShortcut = Mount.define('ListenForShortcut', {
+    args: { shortcut: Schema.Struct({ key: Schema.String }) },
+    messages: [Schema.Never],
+    execute: () => Effect.never,
+  })
+
+  const twoMountView = (
+    _model: SilentModel,
+    html: HtmlBuilder<SilentMessage>,
+  ) =>
+    html.div(
+      [],
+      [
+        html.div([html.OnMount(ListenForShortcut({ shortcut: { key: 's' } }))]),
+        html.div([html.OnMount(ListenForShortcut({ shortcut: { key: 's' } }))]),
+        html.div([html.OnMount(ListenForShortcut({ shortcut: { key: 'p' } }))]),
+      ],
+    )
+
+  test('Definitions consume occurrences in rendered order regardless of args', () => {
+    Scene.scene(
+      { update: silentUpdate, view: twoMountView },
+      Scene.given(open),
+      Scene.Mount.acknowledge(ListenForShortcut),
+      Scene.tap(({ mounts }) => {
+        expect(mounts).toEqual([
+          expect.objectContaining({
+            occurrence: 1,
+            args: { shortcut: { key: 's' } },
+          }),
+          expect.objectContaining({
+            occurrence: 2,
+            args: { shortcut: { key: 'p' } },
+          }),
+        ])
+      }),
+      Scene.Mount.acknowledge(ListenForShortcut, ListenForShortcut),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('instances match structurally equal args and consume one occurrence each', () => {
+    Scene.scene(
+      { update: silentUpdate, view: twoMountView },
+      Scene.given(open),
+      Scene.Mount.acknowledge(ListenForShortcut({ shortcut: { key: 'p' } })),
+      Scene.Mount.expectExact(
+        ListenForShortcut({ shortcut: { key: 's' } }),
+        ListenForShortcut({ shortcut: { key: 's' } }),
+      ),
+      Scene.Mount.acknowledge(
+        ListenForShortcut({ shortcut: { key: 's' } }),
+        ListenForShortcut({ shortcut: { key: 's' } }),
+      ),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('a missing instance reports its args and the pending Mount args', () => {
+    expect(() =>
+      Scene.scene(
+        { update: silentUpdate, view: twoMountView },
+        Scene.given(open),
+        Scene.Mount.acknowledge(ListenForShortcut({ shortcut: { key: 'x' } })),
+      ),
+    ).toThrow(
+      /ListenForShortcut.*"x"[\s\S]*Pending Mounts:[\s\S]*"s"[\s\S]*"p"/,
+    )
+  })
+
+  test('an acknowledgement Step can be reused across remounts and scenes', () => {
+    const acknowledgeListener = Scene.Mount.acknowledge(ListenForKeys)
+
+    Scene.scene(
+      { update: silentUpdate, view: silentView },
+      Scene.given(open),
+      acknowledgeListener,
+      Scene.click(Scene.role('button', { name: 'Close' })),
+      Scene.Mount.expectEnded(ListenForKeys),
+      Scene.click(Scene.role('button', { name: 'Open' })),
+      acknowledgeListener,
+      Scene.click(Scene.role('button', { name: 'Save' })),
+      Scene.expect(Scene.selector('.saves')).toHaveText('1'),
+    )
+
+    Scene.scene(
+      { update: silentUpdate, view: silentView },
+      Scene.given(open),
+      acknowledgeListener,
+    )
+  })
+
+  test('acknowledgement preserves the view, pending Commands, OutMessage, and update count', () => {
+    const PersistSave = Command.define('PersistSave', {
+      messages: [SilentMessage.CompletedPersistSave],
+      execute: Effect.succeed(SilentMessage.CompletedPersistSave()),
+    })
+    const PanelOutMessage = defineMessageUnion({ OpenedPanel: {} })
+    type PanelOutMessage = typeof PanelOutMessage.Type
+
+    const updateWithCommand = vi.fn(
+      (model: SilentModel, message: SilentMessage) => {
+        const silentUpdate_ = silentUpdate(model, message)
+
+        return Match.value(message).pipe(
+          Match.withReturnType<
+            Update.ReturnWithOutMessage<
+              SilentModel,
+              SilentMessage,
+              PanelOutMessage
+            >
+          >(),
+          Match.tag('ClickedToggle', () => ({
+            model: silentUpdate_.model,
+            commands: Array.append(silentUpdate_.commands ?? [], PersistSave()),
+            outMessage: PanelOutMessage.OpenedPanel(),
+          })),
+          Match.orElse(() => silentUpdate_),
+        )
+      },
+    )
+
+    Scene.scene(
+      { update: updateWithCommand, view: silentView },
+      Scene.given(modifyFields(open, { isOpen: () => false })),
+      Scene.click(Scene.role('button', { name: 'Open' })),
+      Scene.Command.expectExact(PersistSave),
+      (
+        simulation: Scene.SceneSimulation<
+          SilentModel,
+          SilentMessage,
+          PanelOutMessage
+        >,
+      ) => {
+        const acknowledged = Scene.Mount.acknowledge(ListenForKeys)(simulation)
+        expect(acknowledged.html).toBe(simulation.html)
+        expect(acknowledged.commands).toBe(simulation.commands)
+        expect(acknowledged.outMessage).toBe(simulation.outMessage)
+        expect(updateWithCommand).toHaveBeenCalledTimes(1)
+        return acknowledged
+      },
+      Scene.expectHandled(),
+      Scene.expectOutMessage(PanelOutMessage.OpenedPanel()),
+      Scene.Command.resolve(PersistSave, SilentMessage.CompletedPersistSave()),
+      Scene.click(Scene.role('button', { name: 'Save' })),
+      Scene.expect(Scene.selector('.saves')).toHaveText('1'),
+    )
+  })
+
+  test('acknowledgement inside a Submodel does not invoke its boundary lift', () => {
+    const liftMessage = vi.fn((message: SilentMessage) => message)
+    const childView = defineView<SilentModel, SilentMessage>(silentView)
+    const parentView = (model: SilentModel, html: HtmlBuilder<SilentMessage>) =>
+      html.submodel({
+        slotId: 'child',
+        model,
+        view: childView,
+        toParentMessage: liftMessage,
+      })
+
+    Scene.scene(
+      { update: silentUpdate, view: parentView },
+      Scene.given(open),
+      Scene.Mount.acknowledge(ListenForKeys),
+      Scene.tap(() => expect(liftMessage).not.toHaveBeenCalled()),
+      Scene.click(Scene.role('button', { name: 'Save' })),
+      Scene.expect(Scene.selector('.saves')).toHaveText('1'),
+    )
+
+    expect(liftMessage).toHaveBeenCalledWith(SilentMessage.ClickedSave())
   })
 })

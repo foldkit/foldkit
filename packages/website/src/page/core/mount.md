@@ -8,18 +8,20 @@ Mount is the escape hatch for work whose cause is a particular element existing 
 
 ### Mount Definitions
 
-Use `Mount.define` for work that produces one Message when it starts. Its `execute` receives the live element and the rendered view's state, then returns an `Effect<Message>` that emits that Message. Its scope remains open until unmount so cleanup registered with `Effect.acquireRelease` runs at the right time. Use `Mount.defineStream` when listeners or observers on the element must emit a continuing `Stream<Message>`.
+Use `Mount.define` for setup that normally produces one result Message. Its `execute` receives the live element and the rendered view's state, then returns an `Effect<Message>` that emits that Message. Its scope remains open until unmount so cleanup registered with `Effect.acquireRelease` runs at the right time. Use `Mount.defineStream` when listeners or observers on the element must emit a continuing `Stream<Message>`.
 
 ### Result Messages
 
-Both `Mount.define` and `Mount.defineStream` require at least one declared result Message. When no result needs to change the Model, return a descriptive `Completed*` Message and leave the Model unchanged in update. The Message keeps the effect visible to DevTools, Scene tests, and replay.
+Both `Mount.define` and `Mount.defineStream` require a non-empty list of Message Schemas. For setup that completes, declare and return a descriptive `Completed*` Message even when update leaves the Model unchanged. That Message records setup completion for update, DevTools history, Scene tests, and replay.
+
+An explicitly silent Mount can declare `messages: [Schema.Never]` when its element-owned work intentionally reports no result or events. Its `execute` returns an `Effect<never>` or `Stream<never>`. For example, a listener that only stops DOM event propagation can register cleanup and wait until unmount. Such a Mount has no completion or readiness Message for update or replay. An unchanged Model alone is not a reason to choose this exception.
 
 :::Info{label="Functional core, imperative shell"}
-The view describes what should be on screen. `OnMount` handles imperative work at the boundary between the virtual DOM and a live element. Results still return to update as Messages, and setup stays paired with cleanup inside the Mount's Effect or Stream.
+The view describes what should be on screen. `OnMount` handles imperative work at the boundary between the virtual DOM and a live element. Any results return to update as Messages, and setup stays paired with cleanup inside the Mount's Effect or Stream.
 :::
 
 :::Info{label="Mounts surface in tests"}
-Scene records every `OnMount` in the rendered view as a pending Mount. A test must acknowledge or resolve each one with a declared result Message. See [Scene](/testing/scene) for the full contract.
+Scene records every `OnMount` in the rendered view as a pending Mount. Supply its declared result Message with `Mount.resolve`, or use `Mount.acknowledge` for a Mount declared with `messages: [Schema.Never]`. Every unmount requires `Mount.expectEnded`. See [Scene](/testing/scene) for the full contract.
 :::
 
 ## When to Reach for Mount
