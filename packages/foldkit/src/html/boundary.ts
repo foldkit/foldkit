@@ -519,7 +519,7 @@ const rollbackBoundaryWrapRegistration = (
   }
 }
 
-/** Starts a nested boundary-registration transaction for one Submodel view. */
+/** Starts a nested transaction for boundary registrations and cache writes. */
 export const beginBoundaryWrapTransaction = (
   registry: BoundaryRegistry,
 ): BoundaryWrapTransaction => {
@@ -531,8 +531,8 @@ export const beginBoundaryWrapTransaction = (
   return transaction
 }
 
-/** Commits a Submodel view's boundary registrations. Nested registrations stay
- *  in the parent transaction until that parent also produces a VNode. */
+/** Commits the active transaction. Nested writes can be rolled back until
+ *  the outermost transaction commits. */
 export const commitBoundaryWrapTransaction = (
   registry: BoundaryRegistry,
   transaction: BoundaryWrapTransaction,
@@ -546,8 +546,8 @@ export const commitBoundaryWrapTransaction = (
   }
 }
 
-/** Registers an internal cache restoration with the active Submodel boundary
- *  transaction. Calls outside a Submodel view need no rollback and are ignored. */
+/** Registers a restoration callback with the active render, lazy, or Submodel
+ *  transaction. Calls without an active transaction are ignored. */
 export const registerBoundaryWrapTransactionRollback = <A>(
   registry: BoundaryRegistry,
   value: A,
@@ -563,9 +563,8 @@ export const registerBoundaryWrapTransactionRollback = <A>(
   }
 }
 
-/** Restores every boundary registration performed since a Submodel view began,
- *  including registrations from nested Submodels whose VNodes never reached
- *  snabbdom. */
+/** Restores every boundary registration and cache write recorded since the
+ *  transaction began. */
 export const rollbackBoundaryWrapTransaction = (
   registry: BoundaryRegistry,
   transaction: BoundaryWrapTransaction,
