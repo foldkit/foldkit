@@ -19,23 +19,6 @@ import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
 import { makeApplication } from './makeApplication.js'
 
-/**
- * Internal benchmark for Subscriptions lifted through a deriving `read`.
- * Skipped by default to keep CI runs lean. Run with:
- *
- *   RUN_RUNTIME_BENCH=1 pnpm vitest run src/runtime/liftedSubscriptionBench.test.ts
- *
- * Starts a counter application whose N Subscriptions are lifted from a child
- * record through a `read` that derives the child Model from the parent (it
- * indexes a list of settings by key, as a child context built from parent
- * fields does). Dispatches a burst of Messages that each change the Model and
- * measures wall-clock time until every Subscription has derived its
- * dependencies from every Model.
- */
-
-// NOTE: reads process.env through globalThis so this browser-typed package
-// never needs node type definitions; under vitest the node process global
-// is always present.
 const readBenchFlag = (): unknown => {
   const nodeProcess: unknown = Reflect.get(globalThis, 'process')
   if (!Predicate.hasProperty(nodeProcess, 'env')) {
@@ -60,13 +43,14 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-type ChildModel = Readonly<{
-  count: number
-  settingsByKey: Readonly<Record<string, string>>
-}>
+const ChildModel = Schema.Struct({
+  count: Schema.Number,
+  settingsByKey: Schema.Record(Schema.String, Schema.String),
+})
+type ChildModel = typeof ChildModel.Type
 
 const Message = defineMessageUnion({
-  Increment: {},
+  RequestedIncrement: {},
 })
 type Message = typeof Message.Type
 
@@ -84,7 +68,7 @@ const init = (): UpdateReturn => ({
 
 const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    Increment: () => ({
+    RequestedIncrement: () => ({
       model: modifyFields(model, { count: Number.increment }),
     }),
   })
@@ -174,7 +158,7 @@ const runOnce = async (
   const dispatch = capturedDispatch!
   const start = performance.now()
   for (let index = 0; index < messageCount; index++) {
-    dispatch(Message.Increment())
+    dispatch(Message.RequestedIncrement())
   }
   await derived
   const elapsed = performance.now() - start
@@ -189,7 +173,7 @@ const median = (samples: ReadonlyArray<number>): number =>
     samples,
     Array.sort(Number.Order),
     sorted => Array.get(sorted, Math.floor(sorted.length / 2)),
-    Option.getOrElse(() => 0),
+    Option.getOrThrow,
   )
 
 describe.skipIf(!isBenchEnabled)('lifted Subscriptions', () => {

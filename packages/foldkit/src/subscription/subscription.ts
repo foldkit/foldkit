@@ -574,12 +574,11 @@ const toLiftedEntry = (
  * projection. Entries omitted from a gate map still stop when the child
  * is absent.
  *
- * `read` runs once per parent Model for the whole lifted record: every entry
- * that reads the same parent Model object receives the same child Model. Keep
- * `read` a pure projection of the parent Model. A `read` that derives its
- * child (merging parent fields, resolving shared context) then runs once per
- * Model however many entries the record has. A slow `read` is reported as
- * slow dependencies under the key of whichever entry read that Model first.
+ * Entries that read the same parent Model object or function share one
+ * `read` result. Primitive parent Models are read separately for each entry.
+ * Keep `read` a pure projection of the parent Model. A slow `read` is reported
+ * as slow dependencies under the key of whichever entry reads that Model
+ * first.
  *
  * Every lifted entry wraps its dependencies in {@link GatedDependencies}.
  * The child's dependency Schema, service requirements, and

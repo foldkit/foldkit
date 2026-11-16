@@ -132,7 +132,9 @@ Most entries should use the first `dependencies` argument directly. Reach for `r
 
 ## Lifting Subscriptions
 
-When a parent embeds a Submodel with Subscriptions, the parent must lift the child's Messages into its own Message type. `Subscription.lift` composes the entire record in one call. Its `read` returns an `Option` of the child Model, matching `Update.foldChild` and `ManagedResource.lift`. Returning `None` stops every child Stream without reading child dependencies. Wrap an always-present child in `Option.some`. `read` runs once per parent Model for the whole record, and every entry receives the child Model it returned, so keep `read` a pure projection of the parent Model.
+When a parent embeds a Submodel with Subscriptions, the parent must lift the child's Messages into its own Message type. `Subscription.lift` composes the entire record in one call. Its `read` returns an `Option` of the child Model, matching `Update.foldChild` and `ManagedResource.lift`. Returning `None` stops every child Stream without reading child dependencies. Wrap an always-present child in `Option.some`.
+
+Entries that read the same parent Model object or function share one `read` result. Primitive parent Models are read separately for each entry. Keep `read` a pure projection of the parent Model.
 
 ### Gating Child Subscriptions
 

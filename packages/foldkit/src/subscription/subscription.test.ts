@@ -10,6 +10,7 @@ import {
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
 import { defineTaggedUnion } from '../schema/index.js'
+import { modifyFields } from '../struct/index.js'
 import {
   type GatedDependencies,
   type Subscriptions,
@@ -351,7 +352,7 @@ const makeTwoEntryChildSubscriptions = () =>
   }))
 
 describe('lift reads the parent Model', () => {
-  it('once per parent Model for every entry', () => {
+  it('shares a projection across entries reading the same parent Model', () => {
     const readModels: Array<ParentModel> = []
     const subscriptions = lift(makeTwoEntryChildSubscriptions())<
       ParentModel,
@@ -367,10 +368,9 @@ describe('lift reads the parent Model', () => {
       isChildActive: true,
       child: { isRunning: true, label: 'a' },
     }
-    const nextModel: ParentModel = {
-      isChildActive: true,
-      child: { isRunning: true, label: 'b' },
-    }
+    const nextModel = modifyFields(firstModel, {
+      child: child => modifyFields(child, { label: () => 'b' }),
+    })
 
     subscriptions.ticks.modelToDependencies(firstModel)
     subscriptions.pulses.modelToDependencies(firstModel)
@@ -390,7 +390,7 @@ describe('lift reads the parent Model', () => {
     })
   })
 
-  it('again for a parent Model that is equal but not the same object', () => {
+  it('projects equal parent Models separately when their identities differ', () => {
     const readModels: Array<ParentModel> = []
     const subscriptions = lift(makeTwoEntryChildSubscriptions())<
       ParentModel,
@@ -411,6 +411,79 @@ describe('lift reads the parent Model', () => {
     subscriptions.pulses.modelToDependencies({ ...model })
 
     expect(readModels).toHaveLength(2)
+  })
+
+  it('reuses an earlier parent projection after another Model is read', () => {
+    const readModels: Array<ParentModel> = []
+    const subscriptions = lift(makeTwoEntryChildSubscriptions())<
+      ParentModel,
+      ParentMessage
+    >({
+      read: model => {
+        readModels.push(model)
+        return Option.some(model.child)
+      },
+      toParentMessage,
+    })
+    const firstModel: ParentModel = {
+      isChildActive: true,
+      child: { isRunning: true, label: 'a' },
+    }
+    const nextModel = modifyFields(firstModel, {
+      child: child => modifyFields(child, { label: () => 'b' }),
+    })
+
+    subscriptions.ticks.modelToDependencies(firstModel)
+    subscriptions.ticks.modelToDependencies(nextModel)
+    subscriptions.pulses.modelToDependencies(firstModel)
+    subscriptions.pulses.modelToDependencies(nextModel)
+
+    expect(readModels).toEqual([firstModel, nextModel])
+  })
+
+  it('shares an absent child result across entries', () => {
+    const readModels: Array<ParentModel> = []
+    const subscriptions = lift(makeTwoEntryChildSubscriptions())<
+      ParentModel,
+      ParentMessage
+    >({
+      read: model => {
+        readModels.push(model)
+        return Option.none()
+      },
+      toParentMessage,
+    })
+    const model: ParentModel = {
+      isChildActive: false,
+      child: { isRunning: true, label: 'a' },
+    }
+
+    expect(subscriptions.ticks.modelToDependencies(model)).toEqual({
+      maybeDependencies: Option.none(),
+    })
+    expect(subscriptions.pulses.modelToDependencies(model)).toEqual({
+      maybeDependencies: Option.none(),
+    })
+    expect(readModels).toEqual([model])
+  })
+
+  it('reads primitive parent Models separately for each entry', () => {
+    const readModels: Array<number> = []
+    const subscriptions = lift(makeTwoEntryChildSubscriptions())<
+      number,
+      ParentMessage
+    >({
+      read: model => {
+        readModels.push(model)
+        return Option.some({ isRunning: true, label: `${model}` })
+      },
+      toParentMessage,
+    })
+
+    subscriptions.ticks.modelToDependencies(1)
+    subscriptions.pulses.modelToDependencies(1)
+
+    expect(readModels).toEqual([1, 1])
   })
 })
 
