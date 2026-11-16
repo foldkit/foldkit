@@ -4,21 +4,31 @@ set -euo pipefail
 CLAUDE_MANIFEST=.claude-plugin/plugin.json
 CURSOR_MANIFEST=.cursor-plugin/plugin.json
 
-read_version() {
-  grep '"version"' | sed 's/.*: *"\(.*\)".*/\1/' || true
-}
+read_manifest_field() {
+  node --input-type=module -e '
+import { readFileSync } from "node:fs"
 
-require_version() {
-  if [ -z "$2" ]; then
-    echo "ERROR: $1 has no \"version\" field."
-    echo ""
-    echo "Set the same \"version\" field in $CLAUDE_MANIFEST and $CURSOR_MANIFEST."
-    exit 1
-  fi
-}
+const [manifestPath, field] = process.argv.slice(1)
 
-read_skills() {
-  tr -d '[:space:]' | sed -n 's/.*"skills":\(\[[^]]*\]\).*/\1/p'
+try {
+  const manifest = JSON.parse(readFileSync(0, "utf8"))
+  const value = manifest?.[field]
+  const isNonEmptyString = value => typeof value === "string" && value.trim().length > 0
+
+  if (field === "version" && !isNonEmptyString(value)) {
+    throw new Error(`"version" must be a non-empty string.`)
+  }
+
+  if (field === "skills" && (!Array.isArray(value) || value.length === 0 || !value.every(isNonEmptyString))) {
+    throw new Error(`"skills" must be a non-empty array of paths.`)
+  }
+
+  console.log(field === "skills" ? JSON.stringify(value) : value)
+} catch (error) {
+  console.error(`ERROR: ${manifestPath}: ${error.message}`)
+  process.exit(1)
+}
+' "$1" "$2"
 }
 
 for MANIFEST in "$CLAUDE_MANIFEST" "$CURSOR_MANIFEST"; do
@@ -30,11 +40,8 @@ for MANIFEST in "$CLAUDE_MANIFEST" "$CURSOR_MANIFEST"; do
   fi
 done
 
-CLAUDE_VERSION=$(read_version < "$CLAUDE_MANIFEST")
-CURSOR_VERSION=$(read_version < "$CURSOR_MANIFEST")
-
-require_version "$CLAUDE_MANIFEST" "$CLAUDE_VERSION"
-require_version "$CURSOR_MANIFEST" "$CURSOR_VERSION"
+CLAUDE_VERSION=$(read_manifest_field "$CLAUDE_MANIFEST" version < "$CLAUDE_MANIFEST")
+CURSOR_VERSION=$(read_manifest_field "$CURSOR_MANIFEST" version < "$CURSOR_MANIFEST")
 
 if [ "$CLAUDE_VERSION" != "$CURSOR_VERSION" ]; then
   echo "ERROR: Plugin manifest versions differ: $CLAUDE_MANIFEST is $CLAUDE_VERSION, $CURSOR_MANIFEST is $CURSOR_VERSION."
@@ -43,8 +50,8 @@ if [ "$CLAUDE_VERSION" != "$CURSOR_VERSION" ]; then
   exit 1
 fi
 
-CLAUDE_SKILLS=$(read_skills < "$CLAUDE_MANIFEST")
-CURSOR_SKILLS=$(read_skills < "$CURSOR_MANIFEST")
+CLAUDE_SKILLS=$(read_manifest_field "$CLAUDE_MANIFEST" skills < "$CLAUDE_MANIFEST")
+CURSOR_SKILLS=$(read_manifest_field "$CURSOR_MANIFEST" skills < "$CURSOR_MANIFEST")
 
 if [ "$CLAUDE_SKILLS" != "$CURSOR_SKILLS" ]; then
   echo "ERROR: Plugin manifest skills differ: $CLAUDE_MANIFEST lists $CLAUDE_SKILLS, $CURSOR_MANIFEST lists $CURSOR_SKILLS."
@@ -76,7 +83,7 @@ if [ -z "$VERSION_CHANGED" ]; then
   exit 1
 fi
 
-MAIN_VERSION=$(git show "$BASE:$CLAUDE_MANIFEST" | read_version)
+MAIN_VERSION=$(git show "$BASE:$CLAUDE_MANIFEST" | read_manifest_field "$CLAUDE_MANIFEST at $BASE" version)
 
 if [ "$MAIN_VERSION" = "$CLAUDE_VERSION" ]; then
   echo "ERROR: $CLAUDE_MANIFEST was modified but the version is unchanged ($MAIN_VERSION)."
