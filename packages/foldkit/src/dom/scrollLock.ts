@@ -1,4 +1,6 @@
-import { Effect, Number } from 'effect'
+import { Effect, Number, Option } from 'effect'
+
+import { DialogRuntime } from './dialogRuntime.js'
 
 const scrollLockState = {
   count: 0,
@@ -50,13 +52,20 @@ const handleTouchMove = (event: TouchEvent): void => {
  * while allowing scrolling within overflow containers.
  * Uses reference counting so nested locks are safe. The page only unlocks
  * when every lock has been released.
+ * Calls from a crashed or disposed runtime do not acquire a new lock.
  *
  * @example
  * ```typescript
  * Dom.lockScroll
  * ```
  */
-export const lockScroll: Effect.Effect<void> = Effect.sync(() => {
+export const lockScroll: Effect.Effect<void> = Effect.gen(function* () {
+  const maybeDialogRuntime = yield* Effect.serviceOption(DialogRuntime)
+
+  if (Option.exists(maybeDialogRuntime, runtime => !runtime.isActive())) {
+    return
+  }
+
   const {
     documentElement,
     documentElement: { style },
@@ -96,29 +105,11 @@ export const unlockScroll: Effect.Effect<void> = Effect.sync(() => {
   scrollLockState.count = Math.max(0, Number.decrement(scrollLockState.count))
 
   if (scrollLockState.count === 0) {
-    restoreDocumentScroll()
+    const {
+      documentElement: { style },
+    } = document
+    style.overflow = scrollLockState.overflow
+    style.paddingRight = scrollLockState.paddingRight
+    document.removeEventListener('touchmove', handleTouchMove)
   }
 })
-
-const restoreDocumentScroll = (): void => {
-  const {
-    documentElement: { style },
-  } = document
-  style.overflow = scrollLockState.overflow
-  style.paddingRight = scrollLockState.paddingRight
-  document.removeEventListener('touchmove', handleTouchMove)
-}
-
-/** Releases every scroll lock at once, restoring the document element's
- *  original `overflow` and `padding-right`. The runtime calls it when the
- *  application crashes, where a lock taken by a Command with no release still
- *  pending would otherwise outlive the application.
- * @internal */
-export const __releaseAllScrollLocks = (): void => {
-  if (scrollLockState.count === 0) {
-    return
-  }
-
-  scrollLockState.count = 0
-  restoreDocumentScroll()
-}

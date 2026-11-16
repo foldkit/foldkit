@@ -12,8 +12,8 @@ import {
 import { afterCommit, afterPaint } from '../render/render.js'
 import { DialogRuntime } from './dialogRuntime.js'
 import { ElementNotFound } from './error.js'
-import { __restoreAllInert, makeOutsideIsolation } from './inert.js'
-import { __releaseAllScrollLocks, unlockScroll } from './scrollLock.js'
+import { makeOutsideIsolation } from './inert.js'
+import { unlockScroll } from './scrollLock.js'
 
 const BASE_DIALOG_Z_INDEX = 2147483600
 let openDialogCount = 0
@@ -24,6 +24,8 @@ let openDialogCount = 0
 // live element is addressable. Membership in this map is the per-dialog "holds
 // hygiene" flag, read-and-deleted to make release exactly-once.
 type DialogHygiene = Readonly<{
+  acquisition: symbol
+  isAcquiring: boolean
   removeKeydownListener: () => void
   unregisterOwner: (() => void) | undefined
   returnFocus: HTMLElement | undefined
@@ -359,9 +361,10 @@ export const focus = (
  *
  * Records the element that had focus when the dialog opened so `closeDialog`
  * can return focus there, the way `showModal()` would natively. Resolves to
- * `true` when it installs the dialog resources, or `false` when that id already
- * holds them. The latter makes concurrent lifecycle recovery and application
- * Commands safe without duplicating focus traps or stack entries.
+ * `true` when the dialog holds its acquired resources. Resolves to `false`
+ * when the id already holds them, the element leaves or closes during focus,
+ * or its runtime stops before acquisition completes. Callers that lock scroll
+ * should do so only when the result is `true`.
  *
  * @example
  * ```typescript
@@ -379,7 +382,19 @@ export const showDialog = (
   }>,
 ): Effect.Effect<boolean, ElementNotFound> =>
   Effect.gen(function* () {
+    const maybeDialogRuntime = yield* Effect.serviceOption(DialogRuntime)
+    const isRuntimeActive = (): boolean =>
+      Option.isNone(maybeDialogRuntime) || maybeDialogRuntime.value.isActive()
+
+    if (!isRuntimeActive()) {
+      return false
+    }
+
     yield* afterCommit
+
+    if (!isRuntimeActive()) {
+      return false
+    }
 
     const element = document.querySelector(selector)
 
@@ -388,7 +403,6 @@ export const showDialog = (
     }
 
     const { id } = element
-    const maybeDialogRuntime = yield* Effect.serviceOption(DialogRuntime)
     const existingHygiene = dialogHygieneById.get(id)
 
     if (existingHygiene !== undefined) {
@@ -406,6 +420,18 @@ export const showDialog = (
         : undefined
 
     element.show()
+
+    if (dialogHygieneById.has(id)) {
+      return false
+    }
+
+    if (!isRuntimeActive() || !element.isConnected || !element.open) {
+      if (element.open) {
+        element.close()
+      }
+
+      return false
+    }
 
     openDialogCount++
     element.style.zIndex = String(BASE_DIALOG_Z_INDEX + openDialogCount)
@@ -452,14 +478,17 @@ export const showDialog = (
     }
 
     document.addEventListener('keydown', handleKeydown)
-    dialogHygieneById.set(id, {
+    const hygiene: DialogHygiene = {
+      acquisition: Symbol(id),
+      isAcquiring: true,
       removeKeydownListener: () =>
         document.removeEventListener('keydown', handleKeydown),
       unregisterOwner: Option.isSome(maybeDialogRuntime)
         ? () => maybeDialogRuntime.value.unregister(id)
         : undefined,
       returnFocus,
-    })
+    }
+    dialogHygieneById.set(id, hygiene)
 
     if (Option.isSome(maybeDialogRuntime)) {
       maybeDialogRuntime.value.register(id)
@@ -468,6 +497,29 @@ export const showDialog = (
     const focusTarget = findDialogFocusTarget(element, options?.focusSelector)
     focusTarget.focus()
 
+    const currentHygiene = dialogHygieneById.get(id)
+    if (
+      currentHygiene === undefined ||
+      currentHygiene.acquisition !== hygiene.acquisition
+    ) {
+      if (currentHygiene === undefined && element.open) {
+        element.close()
+      }
+
+      return false
+    }
+
+    if (!isRuntimeActive() || !element.isConnected || !element.open) {
+      releaseDialogHygieneById(id)
+
+      if (element.open) {
+        element.close()
+      }
+
+      return false
+    }
+
+    dialogHygieneById.set(id, { ...currentHygiene, isAcquiring: false })
     return true
   })
 
@@ -521,8 +573,8 @@ const trapFocusWithinDialog = (
  * a stacked dialog).
  * Resolves to `true` when it released the keyboard handlers, the return
  * focus, and the stack entry.
- * Resolves to `false` when the dialog held none, for example when the close
- * runs before `showDialog` has installed them. A caller that unlocks page
+ * Resolves to `false` when the dialog held none or its acquisition was
+ * interrupted before `showDialog` returned. A caller that unlocks page
  * scroll after the close should unlock only when the result is `true`.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLDialogElement`.
  *
@@ -537,8 +589,11 @@ export const closeDialog = (
   Effect.suspend(() => {
     const element = document.querySelector(selector)
     if (element instanceof HTMLDialogElement) {
+      const isAcquiring =
+        dialogHygieneById.get(element.id)?.isAcquiring ?? false
       element.close()
-      return Effect.succeed(releaseDialogHygieneById(element.id))
+      const isReleased = releaseDialogHygieneById(element.id)
+      return Effect.succeed(isReleased && !isAcquiring)
     }
     return Effect.fail(new ElementNotFound({ selector }))
   })
@@ -605,7 +660,7 @@ const releaseDialogHygieneById = (id: string): boolean => {
  * the dialog stack entry, the z-index counter, and one page scroll lock.
  * Use this when the element is removed without a close Message, such as
  * navigation away from a route-keyed subtree. The runtime also calls it
- * directly on disposal. The normal close path already releases these.
+ * directly on crash or disposal. The normal close path already releases these.
  * That path is `closeDialog` first, then the Dialog component's scroll unlock
  * when `closeDialog` reports a release. This function is the cleanup for the
  * case where no close Message ever reaches `update`.
@@ -617,6 +672,8 @@ const releaseDialogHygieneById = (id: string): boolean => {
  * non-empty and unique within the document, since it keys this cleanup
  * accounting; a duplicate or empty id would release the wrong dialog's hygiene.
  *
+ * An acquisition interrupted during focus has not acquired its paired scroll
+ * lock, so releasing that pending acquisition does not unlock page scroll.
  * Idempotent and exactly-once. It releases only when the dialog currently
  * holds hygiene, then clears the per-dialog marker, so calling it after a
  * normal close, or twice, is a no-op that never under-counts the shared
@@ -635,39 +692,13 @@ const releaseDialogHygieneById = (id: string): boolean => {
  */
 export const releaseDialogResources = (id: string): Effect.Effect<boolean> =>
   Effect.suspend(() => {
+    const isAcquiring = dialogHygieneById.get(id)?.isAcquiring ?? false
     const released = releaseDialogHygieneById(id)
-    if (released) {
+    if (released && !isAcquiring) {
       return Effect.as(unlockScroll, true)
     }
-    return Effect.succeed(false)
+    return Effect.succeed(released)
   })
-
-/**
- * Releases every page-level resource the `Dom` helpers hold, whichever
- * runtime or Command acquired it: each open dialog's hygiene (topmost first),
- * the modal isolation and its `MutationObserver`, every `inertOthers`
- * isolation, and every scroll lock. The runtime calls it when the application
- * crashes, after the application's own finalizers have run, so a resource
- * acquired by a plain Command with no release still pending cannot leave the
- * crash view inert or the page unscrollable.
- *
- * Page-global by design: a crash is terminal for the page, so this also
- * releases what a second runtime on the same page holds.
- * @internal
- */
-export const __releaseAllDomResources = (): void => {
-  for (const id of Array.reverse(
-    Array.fromIterable(dialogHygieneById.keys()),
-  )) {
-    releaseDialogHygieneById(id)
-  }
-
-  openDialogStack = []
-  openDialogCount = 0
-  synchronizeModalIsolation()
-  __restoreAllInert()
-  __releaseAllScrollLocks()
-}
 
 /**
  * Programmatically clicks an element matching the given selector.

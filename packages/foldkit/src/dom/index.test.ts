@@ -560,6 +560,90 @@ describe('showDialog', () => {
     }),
   )
 
+  for (const focusPhase of ['Native', 'Explicit']) {
+    it.effect(
+      `rejects an acquisition detached during ${focusPhase} focus`,
+      () =>
+        Effect.gen(function* () {
+          const dialog = makeDialog('solo')
+          const target = document.createElement('button')
+          target.id = 'detach-target'
+          target.addEventListener('focus', () => dialog.remove())
+          dialog.appendChild(target)
+          const nativeShow = dialog.show.bind(dialog)
+          const show = vi.spyOn(dialog, 'show').mockImplementation(() => {
+            nativeShow()
+
+            if (focusPhase === 'Native') {
+              target.focus()
+            }
+          })
+
+          yield* lockScroll
+
+          try {
+            expect(
+              yield* showDialog('#solo', {
+                isModal: true,
+                focusSelector: '#detach-target',
+              }),
+            ).toBe(false)
+            expect(dialog.open).toBe(false)
+            expect(document.documentElement.style.overflow).toBe('hidden')
+            expect(yield* releaseDialogResources('solo')).toBe(false)
+          } finally {
+            yield* releaseDialogResources('solo')
+            yield* unlockScroll
+            show.mockRestore()
+            document.body.innerHTML = ''
+          }
+        }),
+    )
+  }
+
+  it.effect(
+    'preserves an acquisition when focus closes its underlying dialog',
+    () =>
+      Effect.gen(function* () {
+        const trigger = document.createElement('button')
+        document.body.appendChild(trigger)
+        trigger.focus()
+        makeDialog('parent')
+        const child = makeDialog('child')
+        const target = document.createElement('button')
+        target.id = 'child-target'
+        child.appendChild(target)
+        target.addEventListener('focus', () => {
+          const isReleased = Effect.runSync(closeDialog('#parent'))
+
+          if (isReleased) {
+            Effect.runSync(unlockScroll)
+          }
+        })
+
+        try {
+          expect(yield* showDialog('#parent', { isModal: true })).toBe(true)
+          yield* lockScroll
+          expect(
+            yield* showDialog('#child', {
+              isModal: true,
+              focusSelector: '#child-target',
+            }),
+          ).toBe(true)
+          yield* lockScroll
+          expect(document.documentElement.style.overflow).toBe('hidden')
+          expect(yield* closeDialog('#child')).toBe(true)
+          yield* unlockScroll
+          expect(document.activeElement).toBe(trigger)
+          expect(document.documentElement.style.overflow).not.toBe('hidden')
+        } finally {
+          yield* releaseDialogResources('parent')
+          yield* releaseDialogResources('child')
+          document.body.innerHTML = ''
+        }
+      }),
+  )
+
   it.effect('does not acquire the same dialog element twice', () =>
     Effect.gen(function* () {
       const dialog = makeDialog('solo')
@@ -835,6 +919,7 @@ describe('showDialog', () => {
       const opening = yield* Effect.exit(
         showDialog('#solo', { isModal: true }).pipe(
           Effect.provideService(DialogRuntime, {
+            isActive: () => true,
             register: id => {
               registered.add(id)
             },

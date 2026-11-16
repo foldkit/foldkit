@@ -8,12 +8,11 @@ When an unrecoverable error escapes update, view, or a Command, Foldkit stops th
 
 #### Crash Context
 
-The default crash view shows the error message and a reload button. To replace it, pass `crash.view` to `makeApplication`. The function receives a `CrashContext`, followed by `h`. The context has four fields:
+The default crash view shows the error message and a reload button. To replace it, pass `crash.view` to `makeApplication`. The function receives a `CrashContext`, followed by `h`. The context has three fields:
 
 - `error` is the error that stopped the application.
 - `model` is the Model at the time of the crash.
 - `message` is the Message being processed, wrapped in `Option`. It is `None` when the initial render crashes.
-- `maybeReleaseError` is the error raised while Foldkit released the application's Command, Subscription, and Managed Resource fibers and its open dialogs after the crash, wrapped in `Option`. It is `None` when every finalizer completed. That [release](#resource-release-on-crash) is where the application's own `Effect.acquireRelease` finalizers run.
 
 ::Snippet{name="crashViewCustom" label="Custom crash view"}
 
@@ -35,15 +34,13 @@ In a normal Foldkit app, always use `OnClick` with Messages, never raw DOM event
 
 If the custom crash view throws, Foldkit renders the default crash screen with both errors.
 
-### Resource Release on Crash
+### Modal Dialogs
 
-Before the crash view renders, Foldkit releases everything the running application holds. The application has stopped, so nothing it started should keep running and nothing it acquired should keep shaping the page the crash view renders into. A Command left running would produce Messages that are dropped, and a scroll lock or modal isolation left applied, for example by a Dialog open at the crash, would leave the crash view locked or inert. The release covers:
+Before calling `crash.report` and rendering the crash view, Foldkit releases dialogs registered with the failed runtime through `Dom.showDialog`. This removes their focus traps, modal isolation, and scroll locks so an open Dialog cannot block recovery. Dialogs owned by other runtimes retain their resources.
 
-- Every Command, Subscription, and Managed Resource fiber is interrupted, and every dialog opened through `Dom.showDialog` is released. Their `Effect.acquireRelease` finalizers run with the DOM still on screen.
-- The live view is patched away, which releases every Mount through its destroy hook while its element is still in the document.
-- Every remaining dialog, `Dom.inertOthers` isolation, and `Dom.lockScroll` lock held through the `Dom` helpers is released, including one taken by a Command that never ran its release.
+Dialog opens interrupted by a focus handler cannot restore the released resources. Calls to `Dom.showDialog` and `Dom.lockScroll` from a crashed or disposed runtime do not acquire new resources.
 
-A finalizer that throws is logged and does not stop the crash view. An error from the first step, the fibers and the dialogs, also reaches `crash.report` and `crash.view` as `maybeReleaseError`. A finalizer that dispatches a Message is dropped, as every dispatch after a crash is. A Command parked on `Render.afterCommit` at the crash is interrupted rather than resumed, so no Command observes the crash view's DOM. Services from `resources` stay built until the runtime is disposed.
+Crash reporting and rendering do not wait for Command, Subscription, or ManagedResource finalizers. Dispose the runtime when the host removes the crashed application to complete its teardown and restore an embedded container.
 
 ## Crash Reporting {#crash-report}
 
@@ -53,12 +50,10 @@ Use `crash.report` to send the failure to Sentry or another reporting service. I
 
 ::Snippet{name="crashReport" label="Crash reporting"}
 
-Foldkit logs the crash at the crash point, releases the application's resources, calls `crash.report` synchronously, and then renders the crash view. It does not await work the reporter starts. If the reporter must flush a buffer or make a request, start that work inside the callback. The Model and Message in the context are the ones captured when the crash happened, before any finalizer ran.
-
-Because the release has already happened, a finalizer that failed during it arrives as `maybeReleaseError`.
+Foldkit calls `crash.report` synchronously and does not await work it starts. If the reporter must flush a buffer or make a request, start that work inside the callback.
 
 ### Reporting Failures
 
-If `crash.report` throws, Foldkit logs that error and still renders the crash view.
+Reporting runs before the crash view renders. If `crash.report` throws, Foldkit logs that error and still renders the crash view.
 
 See the [crash-view example](/example-apps/crash-view) for a working demonstration.

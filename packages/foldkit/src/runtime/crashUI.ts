@@ -17,30 +17,17 @@ import { applyDocumentMetadata } from './documentMetadata.js'
 /** Context provided to crash.view and crash.report when the runtime encounters
  *  an unrecoverable error. `message` is the Message being processed when the
  *  crash occurred, present as an `Option` because a crash during the initial
- *  render has no triggering Message. `maybeReleaseError` is the error raised
- *  while the runtime released the application's Command, Subscription, and
- *  Managed Resource fibers and its open dialogs after the crash, which is
- *  where the application's own `acquireRelease` finalizers run. It is `None`
- *  when every finalizer completed. */
+ *  render has no triggering Message. */
 export type CrashContext<Model, Message> = Readonly<{
   error: Error
   model: Model
   message: Option.Option<Message>
-  maybeReleaseError: Option.Option<Error>
 }>
 
 /** Configuration for crash handling, with custom crash UI and/or crash
  *  reporting. The crash view renders after the dispatch loop has stopped, so
  *  its builder's Message is `never` and no handler is expressible. Reload or
- *  navigate with a raw DOM attribute instead.
- *
- *  `report` is a telemetry hook. It runs synchronously after the runtime
- *  releases what the application holds (Command, Subscription, and Managed
- *  Resource fibers, Mounts, open dialogs, scroll locks, inert isolation) and
- *  before the crash view renders, so a finalizer that failed during that
- *  release reaches it as `maybeReleaseError`. The Model and Message it
- *  receives are the ones captured at the crash point. An error it throws is
- *  logged and does not stop the crash view. */
+ *  navigate with a raw DOM attribute instead. */
 export type CrashConfig<Model, Message> = Readonly<{
   view?: (
     context: CrashContext<Model, Message>,
@@ -51,7 +38,7 @@ export type CrashConfig<Model, Message> = Readonly<{
 
 /** Configuration for crash handling in a `makeElement` app. The crash view
  *  returns `Html`, not a `Document`, because a scoped app never owns the
- *  document `<head>`. `report` has the same contract as in `CrashConfig`. */
+ *  document `<head>`. */
 export type ElementCrashConfig<Model, Message> = Readonly<{
   view?: (context: CrashContext<Model, Message>, h: HtmlBuilder<never>) => Html
   report?: (context: CrashContext<Model, Message>) => void
@@ -276,26 +263,6 @@ export type VNodeSlot = {
   maybeCurrentVNode: Option.Option<VNode>
 }
 
-/** Coerces a squashed Cause or a thrown value into the `Error` the crash
- *  context carries. */
-export const toCrashError = (value: unknown): Error =>
-  value instanceof Error ? value : new Error(String(value))
-
-/** Hands the crash to `crash.report`. A throwing reporter is logged, so
- *  reporting can never stop the crash view from rendering. */
-export const reportCrash = <Model, Message>(
-  context: CrashContext<Model, Message>,
-  crash: CrashConfig<Model, Message> | undefined,
-): void => {
-  if (crash?.report) {
-    try {
-      crash.report(context)
-    } catch (reportError) {
-      console.error('[foldkit] crash.report failed:', reportError)
-    }
-  }
-}
-
 export const renderCrashView = <Model, Message>(
   context: CrashContext<Model, Message>,
   crash: CrashConfig<Model, Message> | undefined,
@@ -303,6 +270,16 @@ export const renderCrashView = <Model, Message>(
   vnodeSlot: VNodeSlot,
   manageDocument: boolean,
 ): void => {
+  console.error('[foldkit] Application crash:', context.error)
+
+  if (crash?.report) {
+    try {
+      crash.report(context)
+    } catch (reportError) {
+      console.error('[foldkit] crash.report failed:', reportError)
+    }
+  }
+
   const crashContext = Context.make(Dispatch, noOpDispatch).pipe(
     Context.add(MountTracker, {
       started: () => {},
@@ -333,10 +310,13 @@ export const renderCrashView = <Model, Message>(
   } catch (viewError) {
     console.error('[foldkit] crash.view failed:', viewError)
 
+    const fallbackViewError =
+      viewError instanceof Error ? viewError : new Error(String(viewError))
+
     setHtmlRuntime(noOpDispatch.dispatchSync, crashContext)
     let fallbackDocument: Document
     try {
-      fallbackDocument = defaultCrashView(context, toCrashError(viewError))
+      fallbackDocument = defaultCrashView(context, fallbackViewError)
     } finally {
       clearHtmlRuntime()
     }

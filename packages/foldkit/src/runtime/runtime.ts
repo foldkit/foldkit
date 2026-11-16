@@ -1,5 +1,6 @@
 import {
   Array,
+  Cause,
   Duration,
   Effect,
   Exit,
@@ -9,7 +10,6 @@ import {
   Predicate,
   PubSub,
   Schema,
-  Scope,
   pipe,
 } from 'effect'
 
@@ -52,7 +52,7 @@ import { preserveModel } from './modelPreservationBridge.js'
 import { makePreserveScheduler } from './preserveScheduler.js'
 import { type ResolvedViewTransition, makeRenderer } from './renderer.js'
 import { makeResourceProvider } from './resourceProvider.js'
-import { makeRuntimeStatus } from './runtimeStatus.js'
+import { type RuntimeStatus, makeRuntimeStatus } from './runtimeStatus.js'
 import {
   preserveScrollPosition,
   restorePreservedScrollPosition,
@@ -384,6 +384,7 @@ export const makeRuntime = <
     // `Render.afterCommit` awaiting inside another.
     const commitNotifier = createCommitNotifier()
     const dialogIds = new Set<string>()
+    let maybeRuntimeStatus = Option.none<RuntimeStatus>()
 
     return Effect.scoped(
       Effect.gen(function* () {
@@ -397,23 +398,12 @@ export const makeRuntime = <
           )
         }
 
-        // NOTE: the runtime scope lives until the runtime fiber is
-        // interrupted (what dispose does). It holds what must survive a
-        // crash: the rendered container and its teardown patch, the
-        // `resources` Layer, the navigation listeners, and the host
-        // connector. Everything the running application acquires goes
-        // into `applicationScope` below instead.
-        const runtimeScope = yield* Effect.scope
-
         // NOTE: every perpetual fiber (for example, Subscription streams
-        // and ManagedResource lifecycles), every Command fiber, and every
-        // dialog registered through `DialogRuntime` belongs to the
-        // application scope, so closing it interrupts them all and runs
-        // their finalizers. A crash closes it before the crash view renders,
-        // and dispose closes it through the runtime scope at the point
-        // registered below, after the renderer is built. A detached fork
-        // would outlive both.
-        const applicationScope = yield* Scope.make()
+        // and ManagedResource lifecycles) and every Command fiber forks
+        // into the runtime scope, so interrupting the runtime fiber (what
+        // dispose does) interrupts them all and runs their finalizers. A
+        // detached fork would outlive the runtime.
+        const runtimeScope = yield* Effect.scope
 
         const maybePortChannels: Option.Option<PortChannelsBundle> = pipe(
           Option.fromNullishOr(ports),
@@ -553,6 +543,7 @@ export const makeRuntime = <
           hot ? preserveScheduler.schedule(model) : Effect.void
 
         const status = makeRuntimeStatus()
+        maybeRuntimeStatus = Option.some(status)
 
         // NOTE: `processMessagePlain` and `crashWith` are defined further
         // down, so they are wrapped here instead of passed by reference. The
@@ -631,9 +622,27 @@ export const makeRuntime = <
         // runtime.
         const runtimeContext = yield* Effect.context<never>()
 
+        const releaseDialogs = Effect.suspend(() =>
+          Effect.forEach(
+            pipe(dialogIds, Array.fromIterable, Array.reverse),
+            id =>
+              releaseDialogResources(id).pipe(
+                Effect.catchCause(cause =>
+                  Effect.sync(() => {
+                    console.error(
+                      '[foldkit] Releasing dialog resources failed:',
+                      id,
+                      Cause.squash(cause),
+                    )
+                  }),
+                ),
+              ),
+            { discard: true },
+          ),
+        )
+
         const {
           crashWith,
-          recordReleaseFailure,
           render,
           setLastDirtyMessage,
           scheduleRenderFrame,
@@ -658,34 +667,17 @@ export const makeRuntime = <
           readLiveModel: () => liveModel,
           messageQueue,
           devToolsIntegration,
-          applicationScope,
+          releaseDialogs,
         })
 
-        // NOTE: registered after the renderer so that on dispose the
-        // application scope closes before the teardown patch (finalizers
-        // are LIFO): fibers are interrupted and dialogs released while
-        // their DOM is still on screen, as they were when they forked into
-        // the runtime scope directly. After a crash the application scope
-        // is already closed and this returns at once.
-        yield* Effect.addFinalizer(exit => Scope.close(applicationScope, exit))
-
-        yield* Scope.addFinalizer(
-          applicationScope,
-          Effect.suspend(() =>
-            Effect.forEach(
-              pipe(dialogIds, Array.fromIterable, Array.reverse),
-              releaseDialogResources,
-              { discard: true },
-            ),
-          ),
-        )
+        yield* Effect.addFinalizer(() => releaseDialogs)
 
         // NOTE: the fork is deferred one microtask so a Command's Effect
         // never begins on the dispatching stack. Commands are facts from
         // outside the update loop; their results always arrive
         // asynchronously, exactly as under the old queue. The fork runs
         // through `Effect.runForkWith` (which starts its fiber
-        // synchronously, so the child is registered in `applicationScope`
+        // synchronously, so the child is registered in `runtimeScope`
         // before this callback returns), not `Effect.runSyncWith`:
         // `runSyncWith` injects a temporary synchronous scheduler into the
         // fiber context, the child would inherit it, and every later yield
@@ -730,11 +722,10 @@ export const makeRuntime = <
                 : providedCommand
 
             Effect.runForkWith(runtimeContext)(
-              Effect.forkIn(applicationScope)(
+              Effect.forkIn(runtimeScope)(
                 recordedCommand.pipe(
                   Effect.flatMap(enqueueMessageEffect),
                   Effect.catchCause(cause => crashWith(cause, message)),
-                  recordReleaseFailure,
                 ),
               ),
             )
@@ -837,12 +828,11 @@ export const makeRuntime = <
             subscriptions,
             initModel,
             modelPubSub,
-            applicationScope,
+            runtimeScope,
             maybeSlowSubscriptionDependencies,
             enqueueMessageEffect,
             provideAllResources,
             crashWith,
-            recordReleaseFailure,
           })
         }
 
@@ -850,10 +840,9 @@ export const makeRuntime = <
           managedResourceRefs,
           initModel,
           modelPubSub,
-          applicationScope,
+          runtimeScope,
           enqueueMessageEffect,
           crashWith,
-          recordReleaseFailure,
         })
 
         // NOTE: registered before the boot buffer drains, so an interrupt
@@ -920,6 +909,11 @@ export const makeRuntime = <
     ).pipe(
       Effect.provideService(RenderCommit, commitNotifier.service),
       Effect.provideService(DialogRuntime, {
+        isActive: () =>
+          Option.match(maybeRuntimeStatus, {
+            onNone: () => true,
+            onSome: status => !status.isCrashed && !status.isRuntimeDisposed,
+          }),
         register: id => {
           dialogIds.add(id)
         },

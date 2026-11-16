@@ -1,12 +1,10 @@
-import { Effect, Fiber, Option, Schema, Stream } from 'effect'
+import { Deferred, Effect, Fiber, Option, Schema } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
 import * as Dom from '../dom/index.js'
 import { type Html, __htmlBuilder, __requireDispatch } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
-import * as Mount from '../mount/index.js'
-import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
 import type { ElementCrashConfig } from './crashUI.js'
 import { makeElement } from './makeElement.js'
@@ -16,11 +14,14 @@ type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   ThrewInUpdate: {},
-  SucceededShowDialog: {},
+  CompletedShowDialog: {},
   FailedShowDialog: {},
-  CompletedHoldResource: {},
-  CompletedTrackPanel: {},
-  UnmountedPanel: {},
+  CompletedReleaseResource: {},
+  CompletedShowFocusDialog: {},
+  FailedShowFocusDialog: {},
+  CompletedShowDelayedDialog: {},
+  FailedShowDelayedDialog: {},
+  CompletedLockScrollAfterWait: {},
 })
 type Message = typeof Message.Type
 
@@ -30,76 +31,78 @@ const CRASH_VIEW_ID = 'crash-view'
 const DIALOG_ID = 'owned-dialog'
 
 const ShowDialog = Command.define('ShowDialog', {
-  messages: [Message.SucceededShowDialog, Message.FailedShowDialog],
-  execute: Dom.showDialog(`#${DIALOG_ID}`, { isModal: true }).pipe(
-    Effect.tap(isAcquired => (isAcquired ? Dom.lockScroll : Effect.void)),
-    Effect.as(Message.SucceededShowDialog()),
-    Effect.catch(() => Effect.succeed(Message.FailedShowDialog())),
-  ),
+  args: { id: Schema.String },
+  messages: [Message.CompletedShowDialog, Message.FailedShowDialog],
+  execute: ({ id }) =>
+    Dom.showDialog(`#${id}`, { isModal: true }).pipe(
+      Effect.tap(isAcquired => (isAcquired ? Dom.lockScroll : Effect.void)),
+      Effect.as(Message.CompletedShowDialog()),
+      Effect.catch(() => Effect.succeed(Message.FailedShowDialog())),
+    ),
 })
 
-const dialogView = (): Html =>
-  h.div([], [h.dialog([h.Id(DIALOG_ID)], [h.button([], ['Close'])])])
+const dialogView = (id = DIALOG_ID): Html =>
+  h.div([], [h.dialog([h.Id(id)], [h.button([], ['Close'])])])
 
 const crashView = (): Html =>
   h.div([h.Id(CRASH_VIEW_ID)], [h.button([h.Id('crash-reload')], ['Reload'])])
-
-type StartedProgram = Readonly<{
-  fiber: Fiber.Fiber<void>
-  crash: () => void
-  processedTags: ReadonlyArray<Message['_tag']>
-}>
 
 const startProgram = async (
   container: HTMLElement,
   config: Readonly<{
     view: () => Html
     commands?: ReadonlyArray<Command.Command<Message>>
-    subscriptions?: Subscription.Subscriptions<Model, Message>
     crash?: ElementCrashConfig<Model, Message>
   }>,
-): Promise<StartedProgram> => {
-  const processedTags: Array<Message['_tag']> = []
-  let capturedDispatch: ((message: Message) => void) | null = null
+) => {
+  let maybeDispatch = Option.none<(message: Message) => void>()
 
   const program = makeElement({
     Model,
-    init: () => ({ model: Model.make({}), commands: config.commands ?? [] }),
-    update: (model: Model, message: Message) => {
-      processedTags.push(message._tag)
-      return Message.match<Update.Return<Model, Message>>(message, {
+    init: () => {
+      const model = Model.make({})
+      const { commands } = config
+
+      if (commands === undefined) {
+        return { model }
+      } else {
+        return { model, commands }
+      }
+    },
+    update: (model: Model, message: Message) =>
+      Message.match<Update.Return<Model, Message>>(message, {
         ThrewInUpdate: () => {
           throw new Error('boom in update')
         },
-        SucceededShowDialog: () => ({ model }),
+        CompletedShowDialog: () => ({ model }),
         FailedShowDialog: () => ({ model }),
-        CompletedHoldResource: () => ({ model }),
-        CompletedTrackPanel: () => ({ model }),
-        UnmountedPanel: () => ({ model }),
-      })
-    },
+        CompletedReleaseResource: () => ({ model }),
+        CompletedShowFocusDialog: () => ({ model }),
+        FailedShowFocusDialog: () => ({ model }),
+        CompletedShowDelayedDialog: () => ({ model }),
+        FailedShowDelayedDialog: () => ({ model }),
+        CompletedLockScrollAfterWait: () => ({ model }),
+      }),
     view: () => {
-      capturedDispatch = __requireDispatch()
+      maybeDispatch = Option.some(__requireDispatch())
       return config.view()
     },
-    subscriptions: config.subscriptions ?? {},
     crash: config.crash ?? { view: crashView },
     container,
   })
 
   const fiber = Effect.runFork(program.start())
   await vi.waitFor(() => {
-    expect(capturedDispatch).not.toBeNull()
+    expect(Option.isSome(maybeDispatch)).toBe(true)
   })
 
   return {
     fiber,
-    crash: () => capturedDispatch!(Message.ThrewInUpdate()),
-    processedTags,
+    crash: () => Option.getOrThrow(maybeDispatch)(Message.ThrewInUpdate()),
   }
 }
 
-describe('runtime crash cleanup', () => {
+describe('modal recovery after a runtime crash', () => {
   let background: HTMLElement
   let container: HTMLElement
 
@@ -117,235 +120,20 @@ describe('runtime crash cleanup', () => {
     document.body.innerHTML = ''
   })
 
-  it('releases an open modal dialog, its scroll lock, and the modal observer before rendering the crash view', async () => {
-    const program = await startProgram(container, {
-      view: dialogView,
-      commands: [ShowDialog()],
-    })
-    const disconnectObserver = vi.spyOn(
-      MutationObserver.prototype,
-      'disconnect',
-    )
-
-    try {
-      await vi.waitFor(() => {
-        expect(background.inert).toBe(true)
-        expect(background.getAttribute('aria-hidden')).toBe('true')
-        expect(document.documentElement.style.overflow).toBe('hidden')
-      })
-      const disconnectCount = disconnectObserver.mock.calls.length
-
-      program.crash()
-
-      const crashRoot = document.getElementById(CRASH_VIEW_ID)
-      expect(crashRoot).not.toBeNull()
-      expect(crashRoot?.inert).toBe(false)
-      expect(crashRoot?.hasAttribute('aria-hidden')).toBe(false)
-      expect(document.getElementById('crash-reload')?.inert).toBe(false)
-      expect(background.inert).toBe(false)
-      expect(background.getAttribute('aria-hidden')).toBe('false')
-      expect(document.documentElement.style.overflow).not.toBe('hidden')
-      expect(disconnectObserver.mock.calls.length).toBeGreaterThan(
-        disconnectCount,
-      )
-
-      const latePortal = document.createElement('button')
-      document.body.appendChild(latePortal)
-      await new Promise(resolve => setTimeout(resolve, 0))
-      expect(latePortal.inert).toBe(false)
-      expect(latePortal.hasAttribute('aria-hidden')).toBe(false)
-
-      expect(
-        await Effect.runPromise(Dom.releaseDialogResources(DIALOG_ID)),
-      ).toBe(false)
-    } finally {
-      await Effect.runPromise(Fiber.interrupt(program.fiber))
-    }
-  })
-
-  it('releases a Mount while its element is still in the document', async () => {
-    let wasPanelConnectedAtRelease: boolean | undefined
-
-    const TrackPanel = Mount.define('TrackPanel', {
-      messages: [Message.CompletedTrackPanel],
-      execute: ({ element }) =>
-        Effect.acquireRelease(
-          Effect.sync(() => ({ panel: element })),
-          ({ panel }) =>
-            Effect.sync(() => {
-              wasPanelConnectedAtRelease = panel.isConnected
-            }),
-        ).pipe(Effect.as(Message.CompletedTrackPanel())),
-    })
-
-    const program = await startProgram(container, {
-      view: () => h.div([h.Id('panel'), h.OnMount(TrackPanel())]),
-    })
-
-    try {
-      await vi.waitFor(() => {
-        expect(program.processedTags).toContain('CompletedTrackPanel')
-      })
-
-      program.crash()
-
-      expect(document.getElementById(CRASH_VIEW_ID)).not.toBeNull()
-      expect(document.getElementById('panel')).toBeNull()
-      expect(wasPanelConnectedAtRelease).toBe(true)
-    } finally {
-      await Effect.runPromise(Fiber.interrupt(program.fiber))
-    }
-  })
-
-  it('runs Command and Subscription finalizers on crash', async () => {
-    let isCommandResourceAcquired = false
-    let isCommandResourceReleased = false
-    let isSubscriptionResourceAcquired = false
-    let isSubscriptionResourceReleased = false
-
-    const HoldResource = Command.define('HoldResource', {
-      messages: [Message.CompletedHoldResource],
-      execute: Effect.scoped(
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            isCommandResourceAcquired = true
-          }),
-          () =>
-            Effect.sync(() => {
-              isCommandResourceReleased = true
-            }),
-        ).pipe(Effect.andThen(Effect.never)),
-      ),
-    })
-
-    const subscriptions = Subscription.make<Model, Message>()(() => ({
-      heldListener: Subscription.persistentEntry(
-        Stream.scoped(
-          Stream.fromEffect(
-            Effect.acquireRelease(
-              Effect.sync(() => {
-                isSubscriptionResourceAcquired = true
-              }),
-              () =>
-                Effect.sync(() => {
-                  isSubscriptionResourceReleased = true
-                }),
-            ),
-          ),
-        ).pipe(Stream.flatMap(() => Stream.never)),
-      ),
-    }))
-
-    const program = await startProgram(container, {
-      view: () => h.div([], ['live']),
-      commands: [HoldResource()],
-      subscriptions,
-    })
-
-    try {
-      await vi.waitFor(() => {
-        expect(isCommandResourceAcquired).toBe(true)
-        expect(isSubscriptionResourceAcquired).toBe(true)
-      })
-      expect(isCommandResourceReleased).toBe(false)
-      expect(isSubscriptionResourceReleased).toBe(false)
-
-      program.crash()
-
-      expect(document.getElementById(CRASH_VIEW_ID)).not.toBeNull()
-      expect(isCommandResourceReleased).toBe(true)
-      expect(isSubscriptionResourceReleased).toBe(true)
-    } finally {
-      await Effect.runPromise(Fiber.interrupt(program.fiber))
-    }
-  })
-
-  it('renders the crash view when a finalizer throws or dispatches a Message, and hands the release error to crash.report and crash.view', async () => {
-    let isFailingResourceAcquired = false
-    let didFailingReleaseRun = false
-    let maybeReportedReleaseError: Option.Option<Error> | undefined
-    let maybeViewedReleaseError: Option.Option<Error> | undefined
-
-    const HoldFailingResource = Command.define('HoldFailingResource', {
-      messages: [Message.CompletedHoldResource],
-      execute: Effect.scoped(
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            isFailingResourceAcquired = true
-          }),
-          () =>
-            Effect.sync(() => {
-              didFailingReleaseRun = true
-              throw new Error('release failed')
-            }),
-        ).pipe(Effect.andThen(Effect.never)),
-      ),
-    })
-
-    const program = await startProgram(container, {
-      view: () =>
-        h.div(
-          [],
-          [
-            h.keyed('span')(
-              'panel',
-              [h.OnUnmount(Message.UnmountedPanel())],
-              ['panel'],
-            ),
-          ],
-        ),
-      commands: [HoldFailingResource()],
-      crash: {
-        view: ({ maybeReleaseError }) => {
-          maybeViewedReleaseError = maybeReleaseError
-          return crashView()
-        },
-        report: ({ maybeReleaseError }) => {
-          maybeReportedReleaseError = maybeReleaseError
-        },
-      },
-    })
-
-    try {
-      await vi.waitFor(() => {
-        expect(isFailingResourceAcquired).toBe(true)
-      })
-
-      program.crash()
-
-      expect(didFailingReleaseRun).toBe(true)
-      expect(document.getElementById(CRASH_VIEW_ID)).not.toBeNull()
-      expect(maybeReportedReleaseError).toEqual(
-        Option.some(new Error('release failed')),
-      )
-      expect(maybeViewedReleaseError).toEqual(maybeReportedReleaseError)
-      await new Promise(resolve => setTimeout(resolve, 0))
-      expect(program.processedTags).toEqual(['ThrewInUpdate'])
-      expect(document.getElementById(CRASH_VIEW_ID)).not.toBeNull()
-    } finally {
-      await Effect.runPromise(Fiber.interrupt(program.fiber))
-    }
-  })
-
-  it('calls crash.report after the release and before the crash view', async () => {
+  it('releases owned modal resources before reporting and rendering the crash', async () => {
     let reportObservation:
-      | Readonly<{
-          wasBackgroundInert: boolean
-          hadCrashView: boolean
-          maybeReleaseError: Option.Option<Error>
-        }>
+      | Readonly<{ isBackgroundInert: boolean; hasCrashView: boolean }>
       | undefined
 
     const program = await startProgram(container, {
       view: dialogView,
-      commands: [ShowDialog()],
+      commands: [ShowDialog({ id: DIALOG_ID })],
       crash: {
         view: crashView,
-        report: ({ maybeReleaseError }) => {
+        report: () => {
           reportObservation = {
-            wasBackgroundInert: background.inert,
-            hadCrashView: document.getElementById(CRASH_VIEW_ID) !== null,
-            maybeReleaseError,
+            isBackgroundInert: background.inert,
+            hasCrashView: document.getElementById(CRASH_VIEW_ID) !== null,
           }
         },
       },
@@ -354,40 +142,394 @@ describe('runtime crash cleanup', () => {
     try {
       await vi.waitFor(() => {
         expect(background.inert).toBe(true)
+        expect(document.documentElement.style.overflow).toBe('hidden')
       })
 
       program.crash()
 
       expect(reportObservation).toEqual({
-        wasBackgroundInert: false,
-        hadCrashView: false,
-        maybeReleaseError: Option.none(),
+        isBackgroundInert: false,
+        hasCrashView: false,
       })
       expect(document.getElementById(CRASH_VIEW_ID)).not.toBeNull()
+      expect(document.getElementById(CRASH_VIEW_ID)?.inert).toBe(false)
       expect(background.inert).toBe(false)
+      expect(background.getAttribute('aria-hidden')).toBe('false')
+      expect(document.documentElement.style.overflow).not.toBe('hidden')
+      expect(
+        await Effect.runPromise(Dom.releaseDialogResources(DIALOG_ID)),
+      ).toBe(false)
+
+      const latePortal = document.createElement('button')
+      document.body.appendChild(latePortal)
+      await new Promise<void>(resolve => queueMicrotask(resolve))
+      expect(latePortal.inert).toBe(false)
+      expect(latePortal.hasAttribute('aria-hidden')).toBe(false)
     } finally {
       await Effect.runPromise(Fiber.interrupt(program.fiber))
     }
   })
 
-  it('restores the container when a crashed runtime is disposed', async () => {
+  it('preserves modal resources owned by another running application', async () => {
+    const healthyContainer = document.createElement('div')
+    healthyContainer.id = 'healthy-app'
+    document.body.appendChild(healthyContainer)
+
+    const healthyProgram = await startProgram(healthyContainer, {
+      view: dialogView,
+      commands: [ShowDialog({ id: DIALOG_ID })],
+    })
+    const crashingDialogId = 'crashing-dialog'
+    const crashingProgram = await startProgram(container, {
+      view: () => dialogView(crashingDialogId),
+      commands: [ShowDialog({ id: crashingDialogId })],
+    })
+
+    try {
+      await vi.waitFor(() => {
+        expect(document.getElementById(crashingDialogId)).toHaveProperty(
+          'open',
+          true,
+        )
+        expect(background.inert).toBe(true)
+        expect(document.documentElement.style.overflow).toBe('hidden')
+      })
+
+      crashingProgram.crash()
+
+      expect(document.getElementById(CRASH_VIEW_ID)).not.toBeNull()
+      expect(background.inert).toBe(true)
+      expect(document.documentElement.style.overflow).toBe('hidden')
+
+      const escape = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        cancelable: true,
+      })
+      document.dispatchEvent(escape)
+      expect(escape.defaultPrevented).toBe(true)
+      expect(
+        await Effect.runPromise(Dom.releaseDialogResources(DIALOG_ID)),
+      ).toBe(true)
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(crashingProgram.fiber))
+      await Effect.runPromise(Fiber.interrupt(healthyProgram.fiber))
+    }
+  })
+
+  it('releases every owned dialog in a modal stack', async () => {
+    const secondDialogId = 'second-owned-dialog'
+    const program = await startProgram(container, {
+      view: () =>
+        h.div(
+          [],
+          [
+            h.dialog([h.Id(DIALOG_ID)], [h.button([], ['First'])]),
+            h.dialog([h.Id(secondDialogId)], [h.button([], ['Second'])]),
+          ],
+        ),
+      commands: [
+        ShowDialog({ id: DIALOG_ID }),
+        ShowDialog({ id: secondDialogId }),
+      ],
+    })
+
+    try {
+      await vi.waitFor(() => {
+        expect(document.getElementById(secondDialogId)).toHaveProperty(
+          'open',
+          true,
+        )
+        expect(document.documentElement.style.overflow).toBe('hidden')
+      })
+
+      program.crash()
+
+      expect(background.inert).toBe(false)
+      expect(document.documentElement.style.overflow).not.toBe('hidden')
+      expect(
+        await Effect.runPromise(Dom.releaseDialogResources(DIALOG_ID)),
+      ).toBe(false)
+      expect(
+        await Effect.runPromise(Dom.releaseDialogResources(secondDialogId)),
+      ).toBe(false)
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(program.fiber))
+    }
+  })
+
+  it('reports once across repeated crashes and restores the container on disposal', async () => {
+    const report = vi.fn()
     const program = await startProgram(container, {
       view: dialogView,
-      commands: [ShowDialog()],
+      commands: [ShowDialog({ id: DIALOG_ID })],
+      crash: { view: crashView, report },
     })
 
-    await vi.waitFor(() => {
-      expect(background.inert).toBe(true)
-    })
+    try {
+      await vi.waitFor(() => {
+        expect(background.inert).toBe(true)
+      })
 
-    program.crash()
-    expect(document.getElementById(CRASH_VIEW_ID)).not.toBeNull()
+      program.crash()
+      program.crash()
 
-    await Effect.runPromise(Fiber.interrupt(program.fiber))
+      expect(report).toHaveBeenCalledTimes(1)
+      expect(document.getElementById(CRASH_VIEW_ID)).not.toBeNull()
+      expect(background.inert).toBe(false)
+      expect(document.documentElement.style.overflow).not.toBe('hidden')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(program.fiber))
+    }
 
     expect(document.body.contains(container)).toBe(true)
     expect(document.getElementById(CRASH_VIEW_ID)).toBeNull()
-    expect(background.inert).toBe(false)
     expect(document.documentElement.style.overflow).not.toBe('hidden')
+  })
+
+  it('reports and renders while a Command finalizer is pending', async () => {
+    const releaseGate = await Effect.runPromise(Deferred.make<void>())
+    let isReleaseStarted = false
+    const report = vi.fn()
+
+    const ReleaseResource = Command.define('ReleaseResource', {
+      messages: [Message.CompletedReleaseResource],
+      execute: Effect.scoped(
+        Effect.acquireRelease(Effect.void, () =>
+          Effect.sync(() => {
+            isReleaseStarted = true
+          }).pipe(Effect.andThen(Deferred.await(releaseGate))),
+        ).pipe(Effect.as(Message.CompletedReleaseResource())),
+      ),
+    })
+
+    const program = await startProgram(container, {
+      view: dialogView,
+      commands: [ShowDialog({ id: DIALOG_ID }), ReleaseResource()],
+      crash: { view: crashView, report },
+    })
+
+    try {
+      await vi.waitFor(() => {
+        expect(isReleaseStarted).toBe(true)
+        expect(background.inert).toBe(true)
+      })
+
+      program.crash()
+
+      expect(report).toHaveBeenCalledTimes(1)
+      expect(document.getElementById(CRASH_VIEW_ID)).not.toBeNull()
+      expect(background.inert).toBe(false)
+      expect(document.documentElement.style.overflow).not.toBe('hidden')
+    } finally {
+      await Effect.runPromise(Deferred.succeed(releaseGate, undefined))
+      await Effect.runPromise(Fiber.interrupt(program.fiber))
+    }
+  })
+
+  it('reports and renders when releasing a dialog throws', async () => {
+    const opener = document.createElement('button')
+    document.body.appendChild(opener)
+    opener.focus()
+    const report = vi.fn()
+    const releaseError = new Error('focus restoration failed')
+    const program = await startProgram(container, {
+      view: dialogView,
+      commands: [ShowDialog({ id: DIALOG_ID })],
+      crash: { view: crashView, report },
+    })
+
+    try {
+      await vi.waitFor(() => {
+        expect(background.inert).toBe(true)
+      })
+      vi.spyOn(opener, 'focus').mockImplementation(() => {
+        throw releaseError
+      })
+
+      program.crash()
+
+      expect(report).toHaveBeenCalledTimes(1)
+      expect(document.getElementById(CRASH_VIEW_ID)).not.toBeNull()
+      expect(console.error).toHaveBeenCalledWith(
+        '[foldkit] Releasing dialog resources failed:',
+        DIALOG_ID,
+        releaseError,
+      )
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(program.fiber))
+      await Effect.runPromise(Dom.unlockScroll)
+    }
+  })
+
+  it.each(['Native', 'Explicit'])(
+    'preserves a sibling scroll lock when %s focus crashes during dialog acquisition',
+    async focusPhase => {
+      const healthyContainer = document.createElement('div')
+      healthyContainer.id = 'healthy-focus-app'
+      document.body.appendChild(healthyContainer)
+      const healthyProgram = await startProgram(healthyContainer, {
+        view: dialogView,
+        commands: [ShowDialog({ id: DIALOG_ID })],
+      })
+      const crashingDialogId = 'focus-crashing-dialog'
+      const report = vi.fn()
+      let maybeAcquired = Option.none<boolean>()
+      const nativeShow = HTMLDialogElement.prototype.show
+      vi.spyOn(HTMLDialogElement.prototype, 'show').mockImplementation(
+        function (this: HTMLDialogElement) {
+          nativeShow.call(this)
+
+          if (this.id === crashingDialogId && focusPhase === 'Native') {
+            const target = this.querySelector('button')
+
+            if (target instanceof HTMLElement) {
+              target.focus()
+            }
+          }
+        },
+      )
+
+      const ShowFocusDialog = Command.define('ShowFocusDialog', {
+        messages: [
+          Message.CompletedShowFocusDialog,
+          Message.FailedShowFocusDialog,
+        ],
+        execute: Dom.showDialog(`#${crashingDialogId}`, { isModal: true }).pipe(
+          Effect.tap(isAcquired => {
+            maybeAcquired = Option.some(isAcquired)
+            return isAcquired ? Dom.lockScroll : Effect.void
+          }),
+          Effect.as(Message.CompletedShowFocusDialog()),
+          Effect.catch(() => Effect.succeed(Message.FailedShowFocusDialog())),
+        ),
+      })
+      const crashingProgram = await startProgram(container, {
+        view: () =>
+          h.div(
+            [],
+            [
+              h.dialog(
+                [h.Id(crashingDialogId)],
+                [
+                  h.button(
+                    [h.OnFocus(Message.ThrewInUpdate())],
+                    ['Crash on focus'],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        commands: [ShowFocusDialog()],
+        crash: { view: crashView, report },
+      })
+
+      try {
+        await vi.waitFor(() => {
+          expect(report).toHaveBeenCalledTimes(1)
+          expect(maybeAcquired).toEqual(Option.some(false))
+        })
+
+        expect(document.getElementById(CRASH_VIEW_ID)).not.toBeNull()
+        expect(background.inert).toBe(true)
+        expect(document.documentElement.style.overflow).toBe('hidden')
+        expect(
+          await Effect.runPromise(Dom.releaseDialogResources(crashingDialogId)),
+        ).toBe(false)
+        expect(
+          await Effect.runPromise(Dom.releaseDialogResources(DIALOG_ID)),
+        ).toBe(true)
+        expect(background.inert).toBe(false)
+        expect(document.documentElement.style.overflow).not.toBe('hidden')
+      } finally {
+        await Effect.runPromise(Fiber.interrupt(crashingProgram.fiber))
+        await Effect.runPromise(Fiber.interrupt(healthyProgram.fiber))
+      }
+    },
+  )
+
+  it('rejects dialog and scroll acquisitions resumed after their runtime crashed', async () => {
+    const healthyContainer = document.createElement('div')
+    healthyContainer.id = 'healthy-late-app'
+    document.body.appendChild(healthyContainer)
+    const healthyProgram = await startProgram(healthyContainer, {
+      view: dialogView,
+      commands: [ShowDialog({ id: DIALOG_ID })],
+    })
+    const lateDialog = document.createElement('dialog')
+    lateDialog.id = 'late-owned-dialog'
+    lateDialog.appendChild(document.createElement('button'))
+    document.body.appendChild(lateDialog)
+    const show = vi.spyOn(lateDialog, 'show')
+    const gate = await Effect.runPromise(Deferred.make<void>())
+    let isShowWaiting = false
+    let isLockWaiting = false
+    let isLockResumed = false
+    let maybeAcquired = Option.none<boolean>()
+
+    const ShowDelayedDialog = Command.define('ShowDelayedDialog', {
+      messages: [
+        Message.CompletedShowDelayedDialog,
+        Message.FailedShowDelayedDialog,
+      ],
+      execute: Effect.gen(function* () {
+        isShowWaiting = true
+        yield* Deferred.await(gate)
+        const isAcquired = yield* Dom.showDialog(`#${lateDialog.id}`, {
+          isModal: true,
+        })
+        maybeAcquired = Option.some(isAcquired)
+
+        if (isAcquired) {
+          yield* Dom.lockScroll
+        }
+
+        return Message.CompletedShowDelayedDialog()
+      }).pipe(
+        Effect.catch(() => Effect.succeed(Message.FailedShowDelayedDialog())),
+      ),
+    })
+    const LockScrollAfterWait = Command.define('LockScrollAfterWait', {
+      messages: [Message.CompletedLockScrollAfterWait],
+      execute: Effect.gen(function* () {
+        isLockWaiting = true
+        yield* Deferred.await(gate)
+        yield* Dom.lockScroll
+        isLockResumed = true
+        return Message.CompletedLockScrollAfterWait()
+      }),
+    })
+    const crashingProgram = await startProgram(container, {
+      view: () => h.div([], ['Live application']),
+      commands: [ShowDelayedDialog(), LockScrollAfterWait()],
+    })
+
+    try {
+      await vi.waitFor(() => {
+        expect(background.inert).toBe(true)
+        expect(isShowWaiting).toBe(true)
+        expect(isLockWaiting).toBe(true)
+      })
+
+      crashingProgram.crash()
+      await Effect.runPromise(Deferred.succeed(gate, undefined))
+      await vi.waitFor(() => {
+        expect(maybeAcquired).toEqual(Option.some(false))
+        expect(isLockResumed).toBe(true)
+      })
+
+      expect(show).not.toHaveBeenCalled()
+      expect(lateDialog.open).toBe(false)
+      expect(background.inert).toBe(true)
+      expect(document.documentElement.style.overflow).toBe('hidden')
+      expect(
+        await Effect.runPromise(Dom.releaseDialogResources(DIALOG_ID)),
+      ).toBe(true)
+      expect(background.inert).toBe(false)
+      expect(document.documentElement.style.overflow).not.toBe('hidden')
+    } finally {
+      await Effect.runPromise(Deferred.succeed(gate, undefined))
+      await Effect.runPromise(Fiber.interrupt(crashingProgram.fiber))
+      await Effect.runPromise(Fiber.interrupt(healthyProgram.fiber))
+    }
   })
 })
