@@ -31,16 +31,19 @@ const makeAnimationFrameStream = <Message>(
           lastTime: performance.now(),
           endPhaseChannel,
           isPhaseEndReleased: false,
+          pendingPhaseEndCount: 0,
         }
         endPhaseChannel.port2.onmessage = () => {
           if (state.isPhaseEndReleased) {
             return
           }
+          state.pendingPhaseEndCount -= 1
           endAnimationFrameCallbackPhase()
         }
 
         const tick = (now: number): void => {
           beginAnimationFrameCallbackPhase(now)
+          state.pendingPhaseEndCount += 1
           try {
             const deltaTime = now - state.lastTime
             state.lastTime = now
@@ -58,6 +61,10 @@ const makeAnimationFrameStream = <Message>(
         Effect.sync(() => {
           state.isPhaseEndReleased = true
           cancelAnimationFrame(state.frameId)
+          while (state.pendingPhaseEndCount > 0) {
+            state.pendingPhaseEndCount -= 1
+            endAnimationFrameCallbackPhase()
+          }
           state.endPhaseChannel.port1.close()
           state.endPhaseChannel.port2.close()
         }),
@@ -67,8 +74,9 @@ const makeAnimationFrameStream = <Message>(
 /**
  * Build a Subscription entry that emits a Message on every
  * `requestAnimationFrame` tick, with the inter-frame delta in milliseconds.
- * The runtime renders the Model that tick produced before the browser
- * paints the frame, so the view keeps up with the display.
+ * Ticks can schedule their render in the current frame. The runtime advances
+ * at most one render per frame this way and coalesces ticks into a render
+ * that is already pending.
  *
  * @example
  * ```typescript
