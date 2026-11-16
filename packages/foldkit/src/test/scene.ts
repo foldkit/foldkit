@@ -1156,6 +1156,55 @@ const resolveAllMounts =
       resolveMount(matcher, resultMessage)(current),
     )
 
+/** Acknowledges pending Mounts that never produce a Message: those whose
+ *  `messages` is `[Schema.Never]`, which install a listener or an observer and
+ *  run until their element leaves. Nothing goes through update; each matcher
+ *  clears the first pending Mount it matches, and an acknowledged Mount still
+ *  needs `expectEnded` once its element disappears. Accepts Mount Definitions
+ *  (match by name) and Mount instances (match by name + args). */
+const acknowledgeMounts =
+  (...matchers: ReadonlyArray<MountMatcher>) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    /* eslint-disable @typescript-eslint/consistent-type-assertions */
+    const internal = toInternal(simulation)
+    const pendingMounts = Array.reduce(
+      matchers,
+      internal.mounts,
+      (pending, matcher) =>
+        Option.match(
+          Array.findFirstIndex(pending, mount => mountMatches(matcher, mount)),
+          {
+            onNone: () => {
+              throw new Error(
+                `I tried to acknowledge Mount ${formatMountMatcher(matcher)} but it wasn't in the pending Mounts.\n\n` +
+                  `Pending Mounts:\n${formatMountList(pending)}\n\n` +
+                  'Make sure the rendered view contains an OnMount with this name and (when matching by instance) matching args.',
+              )
+            },
+            onSome: index => Array.remove(pending, index),
+          },
+        ),
+    )
+    const stillPending = new Set(Array.map(pendingMounts, slotKey))
+    const updatedSlots = Array.map(
+      internal.mountSlots,
+      (state): MountSlotState =>
+        state.status._tag === 'Pending' &&
+        !stillPending.has(slotKey(state.slot))
+          ? { slot: state.slot, status: RESOLVED }
+          : state,
+    )
+
+    return {
+      ...internal,
+      mountSlots: updatedSlots,
+      mounts: pendingMounts,
+    } as unknown as SceneSimulation<Model, Message, OutMessage>
+    /* eslint-enable @typescript-eslint/consistent-type-assertions */
+  }
+
 /** Asserts that every given Mount is among the pending Mounts. Accepts Mount
  *  Definitions (match by name) and Mount instances (match by name + args). */
 const expectHasMountsStep =
@@ -1489,6 +1538,9 @@ export const Mount = {
   resolve: resolveMount,
   /** Resolves all listed Mounts with their result Messages. */
   resolveAll: resolveAllMounts,
+  /** Acknowledges pending Mounts that never produce a Message
+   *  (`messages: [Schema.Never]`), without sending one through update. */
+  acknowledge: acknowledgeMounts,
   /** Asserts that every given Mount is among the pending Mounts. */
   expectHas: expectHasMountsStep,
   /** Asserts that the pending Mounts match the given definitions exactly (order-independent, by name). */

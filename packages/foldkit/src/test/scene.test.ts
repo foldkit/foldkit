@@ -1,13 +1,15 @@
-import { Array, Option, Schema, pipe } from 'effect'
+import { Array, Effect, Option, Schema, pipe } from 'effect'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import * as CustomElement from '../customElement/index.js'
 import {
+  type Html,
   type HtmlBuilder,
   __htmlBuilder as attributeHtml,
   inertHtml,
 } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
+import * as Mount from '../mount/index.js'
 import * as PublicScene from '../scene/public.js'
 import { h } from '../snabbdom/index.js'
 import type { VNode } from '../snabbdom/index.js'
@@ -6643,5 +6645,139 @@ describe('expectHandled and expectIgnored', () => {
       Scene.expect(Scene.selector('.commits')).toHaveText('0'),
       Scene.expectIgnored(),
     )
+  })
+})
+
+describe('scene Mount.acknowledge', () => {
+  const ListenForKeys = Mount.define('ListenForKeys', {
+    messages: [Schema.Never],
+    execute: () => Effect.never,
+  })
+
+  const SilentMessage = defineMessageUnion({
+    ClickedToggle: {},
+    ClickedSave: {},
+  })
+  type SilentMessage = typeof SilentMessage.Type
+
+  type SilentModel = Readonly<{ isOpen: boolean; saves: number }>
+
+  const silentUpdate = (
+    model: SilentModel,
+    message: SilentMessage,
+  ): Update.Return<SilentModel, SilentMessage> =>
+    SilentMessage.match(message, {
+      ClickedToggle: () => ({
+        model: modifyFields(model, { isOpen: isOpen => !isOpen }),
+      }),
+      ClickedSave: () => ({
+        model: modifyFields(model, { saves: saves => saves + 1 }),
+      }),
+    })
+
+  const silentView = (
+    model: SilentModel,
+    html: HtmlBuilder<SilentMessage>,
+  ): Html =>
+    html.div(
+      [],
+      [
+        html.button(
+          [html.OnClick(SilentMessage.ClickedToggle())],
+          [model.isOpen ? 'Close' : 'Open'],
+        ),
+        ...(model.isOpen
+          ? [
+              html.form(
+                [html.OnMount(ListenForKeys())],
+                [
+                  html.button(
+                    [
+                      html.Type('button'),
+                      html.OnClick(SilentMessage.ClickedSave()),
+                    ],
+                    ['Save'],
+                  ),
+                  html.span([html.Class('saves')], [String(model.saves)]),
+                ],
+              ),
+            ]
+          : []),
+      ],
+    )
+
+  const open: SilentModel = { isOpen: true, saves: 0 }
+
+  test('a Mount that sends no Message blocks the next interaction until acknowledged', () => {
+    expect(() =>
+      Scene.scene(
+        { update: silentUpdate, view: silentView },
+        Scene.given(open),
+        Scene.click(Scene.role('button', { name: 'Save' })),
+      ),
+    ).toThrow(/I found unresolved Mounts/)
+  })
+
+  test('acknowledge clears it without sending a Message through update', () => {
+    Scene.scene(
+      { update: silentUpdate, view: silentView },
+      Scene.given(open),
+      Scene.Mount.expectHas(ListenForKeys),
+      Scene.Mount.acknowledge(ListenForKeys),
+      Scene.Mount.expectNone(),
+      Scene.expect(Scene.selector('.saves')).toHaveText('0'),
+      Scene.click(Scene.role('button', { name: 'Save' })),
+      Scene.click(Scene.role('button', { name: 'Save' })),
+      Scene.expect(Scene.selector('.saves')).toHaveText('2'),
+      Scene.click(Scene.role('button', { name: 'Close' })),
+      Scene.Mount.expectEnded(ListenForKeys),
+    )
+  })
+
+  test('an acknowledged Mount that unmounts still needs expectEnded', () => {
+    expect(() =>
+      Scene.scene(
+        { update: silentUpdate, view: silentView },
+        Scene.given(open),
+        Scene.Mount.acknowledge(ListenForKeys),
+        Scene.click(Scene.role('button', { name: 'Close' })),
+      ),
+    ).toThrow(/ListenForKeys/)
+  })
+
+  test('a Mount rendered again after it ended is pending again', () => {
+    expect(() =>
+      Scene.scene(
+        { update: silentUpdate, view: silentView },
+        Scene.given(open),
+        Scene.Mount.acknowledge(ListenForKeys),
+        Scene.click(Scene.role('button', { name: 'Close' })),
+        Scene.Mount.expectEnded(ListenForKeys),
+        Scene.click(Scene.role('button', { name: 'Open' })),
+        Scene.click(Scene.role('button', { name: 'Save' })),
+      ),
+    ).toThrow(/I found unresolved Mounts/)
+  })
+
+  test('acknowledge throws when no pending Mount matches', () => {
+    expect(() =>
+      Scene.scene(
+        { update: silentUpdate, view: silentView },
+        Scene.given({ isOpen: false, saves: 0 }),
+        Scene.Mount.acknowledge(ListenForKeys),
+      ),
+    ).toThrow(
+      /I tried to acknowledge Mount ListenForKeys but it wasn't in the pending Mounts/,
+    )
+  })
+
+  test('each matcher clears one pending Mount', () => {
+    expect(() =>
+      Scene.scene(
+        { update: silentUpdate, view: silentView },
+        Scene.given(open),
+        Scene.Mount.acknowledge(ListenForKeys, ListenForKeys),
+      ),
+    ).toThrow(/I tried to acknowledge Mount ListenForKeys/)
   })
 })

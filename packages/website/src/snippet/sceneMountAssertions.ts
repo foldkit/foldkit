@@ -2,6 +2,8 @@ import { Mount, click, role } from 'foldkit/scene'
 
 import { Listbox, Popover } from '@foldkit/ui'
 
+import { ListenForShortcuts } from './mount'
+
 // Single Mount. Open a popover, acknowledge its anchor mount.
 click(role('button', { name: 'Open' }))
 Mount.expectExact(Popover.AnchorPopover)
@@ -18,6 +20,10 @@ Mount.resolveAll(
     Listbox.Message.CompletedPortalListboxBackdrop(),
   ],
 )
+
+// A Mount that never produces a Message (`messages: [Schema.Never]`), such as
+// a key listener on a form, has no result Message. Acknowledge it instead.
+Mount.acknowledge(ListenForShortcuts)
 
 // Subset assertion. Use when you only care that a particular mount is pending.
 Mount.expectHas(Listbox.AnchorListbox)

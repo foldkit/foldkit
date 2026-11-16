@@ -229,6 +229,7 @@ This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, d
 - Same-named mounts in the tree are disambiguated by occurrence. `Mount.resolve` resolves the first pending occurrence; a second call resolves the next.
 - Interactions throw if there are unresolved mounts or unacknowledged unmounts when they try to dispatch a Message. Same contract as Commands.
 - `scene` throws at the end if any mount remains unresolved.
+- A mount that never produces a Message (`messages: [Schema.Never]`: one that installs a listener or an observer and runs until its element leaves) has no result to resolve with. Clear it with `Mount.acknowledge`, which sends nothing through update.
 
 ### Resolve and Inspect Mounts
 
@@ -238,6 +239,7 @@ This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, d
 | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Mount.resolve(Def, ResultMessage)`           | Resolves the first pending mount with the given name by feeding `ResultMessage` through update. For a mount inside a child Submodel, resolve replays the boundary lift automatically, so you pass the child’s raw result Message. |
 | `Mount.resolveAll([Def, ResultMessage], ...)` | Resolves a batch of pending mounts in order.                                                                                                                                                                                      |
+| `Mount.acknowledge(A, ...)`                   | Clears pending mounts that never produce a Message (`messages: [Schema.Never]`), without sending one through update. Each matcher clears one occurrence; an acknowledged mount still needs `Mount.expectEnded` when it unmounts.  |
 | `Mount.expectExact(A, B)`                     | The pending mounts are exactly A and B (order-independent, by name).                                                                                                                                                              |
 | `Mount.expectHas(A)`                          | A is among the pending mounts (subset check).                                                                                                                                                                                     |
 | `Mount.expectNone()`                          | There are no pending mounts.                                                                                                                                                                                                      |
