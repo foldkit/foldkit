@@ -188,15 +188,18 @@ export const hydrate = <P extends Ports | undefined, Flags, Resources>(
  * `EmbedHandle`. This is the entry point for embedding a Foldkit app inside
  * another application: the host pushes values in through the handle's inbound
  * Ports, listens to outbound Ports, and calls `dispose` when it unmounts the
- * app. `dispose` returns before cleanup has finished; `disposeAsync` returns a
- * Promise that resolves after it has. The host never touches the Model or
- * dispatches Messages directly; the Schema-typed Ports are the whole boundary.
+ * app. Await `disposeAsync` when the host must wait for runtime shutdown and
+ * container restoration. Mount finalizers may finish after it resolves.
+ * The host never touches the Model or dispatches Messages directly; the
+ * Schema-typed Ports are the whole boundary.
  *
  * Works with programs from both `makeApplication` and `makeElement`; for a
  * widget on a page the host owns, `makeElement` is the natural fit.
  *
  * A program can be embedded once at a time (it owns one container). After
- * `dispose`, the same container can be embedded again with a fresh program.
+ * `dispose`, embedding the same program waits for its previous runtime.
+ * Before embedding a different program in that container, await
+ * `disposeAsync` on the old handle.
  *
  * ```ts
  * const handle = Runtime.embed(element)
@@ -282,10 +285,6 @@ export function embed<P extends Ports | undefined = undefined>(
     Effect.runFork(Fiber.interrupt(fiber))
   }
 
-  // NOTE: interrupting the runtime fiber waits for the scope it owns, so the
-  // fiber's exit is the point where Subscriptions, ManagedResources, in-flight
-  // Commands, and the renderer have finished releasing. Mount fibers are not
-  // in that scope: view teardown interrupts them without waiting.
   const disposeAsync = (): Promise<void> => {
     dispose()
     return Effect.runPromise(Effect.asVoid(Fiber.await(fiber)))

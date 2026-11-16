@@ -63,27 +63,21 @@ export type PortHandles<P extends Ports | undefined> = P extends Ports
  * through it: `ports.<name>.send` pushes values in, `ports.<name>.subscribe`
  * listens to values the app emits, and `dispose` shuts the runtime down.
  *
- * `dispose` is idempotent. It interrupts the runtime and runs all cleanup:
- * Subscriptions, ManagedResources, Mounts, listeners, and in-flight Commands
- * stop, and the rendered DOM is removed with the container element restored
- * empty in its place, ready for a fresh `embed`. It returns before that
- * cleanup has finished. `disposeAsync` starts the same disposal and returns a
- * Promise that resolves once the cleanup has finished.
+ * `dispose` starts shutdown and returns immediately. `disposeAsync` starts
+ * the same shutdown and waits for the runtime and container restoration.
  */
 export type EmbedHandle<P extends Ports | undefined = undefined> = Readonly<{
   ports: PortHandles<P>
   dispose: () => void
-  /** Starts disposal exactly like `dispose`, then resolves once the runtime
-   *  has finished shutting down: Subscriptions, ManagedResources, and
-   *  in-flight Commands have released (including any asynchronous release),
-   *  and the rendered DOM is removed with the container restored. Await it
-   *  before starting something that must not overlap with this app's cleanup,
-   *  such as embedding a different program in the same container. A Mount is
-   *  interrupted when its element is removed, but the Promise does not wait
-   *  for the Mount's own release. A Subscription or ManagedResource release
-   *  that never completes keeps the Promise pending. Safe to call more than
-   *  once, and after `dispose`. It never rejects: runtime failures are logged
-   *  by the runtime's error reporting, as they are for `dispose`. */
+  /** Starts disposal and resolves after the runtime scope has closed and the
+   *  original container has been restored. This waits for Subscription,
+   *  ManagedResource, and Command finalizers, including asynchronous release.
+   *  Await it before embedding a different program in the same container.
+   *
+   *  Mount finalizers run outside the runtime scope and may finish after this
+   *  Promise resolves. A runtime finalizer that never completes keeps the
+   *  Promise pending. Repeated calls await the same runtime, including calls
+   *  after `dispose`. Runtime failures do not reject the returned Promise. */
   disposeAsync: () => Promise<void>
 }>
 

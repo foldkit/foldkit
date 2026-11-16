@@ -2,6 +2,6 @@
 'foldkit': minor
 ---
 
-Add `disposeAsync` to the `EmbedHandle` returned by `Runtime.embed`. `dispose` interrupts the runtime and returns before the cleanup has finished, so a host that wanted to start something afterwards, such as embedding a different program in the same container, had no way to know when it was safe. `disposeAsync` starts the same disposal and returns a Promise that resolves once Subscriptions, ManagedResources, and in-flight Commands have released, including any asynchronous release, and the rendered DOM is removed with the container restored. It is safe to call more than once, and after `dispose`.
+Add `disposeAsync` to the `EmbedHandle` returned by `Runtime.embed`. It starts shutdown and returns a Promise that resolves after the runtime scope has closed and the original container has been restored. Await it before embedding a different program in the same container. It waits for Subscription, ManagedResource, and Command finalizers, including asynchronous release.
 
-A Mount is interrupted when its element is removed, but `disposeAsync` does not wait for the Mount's own release. `dispose` behaves as before.
+Mount finalizers run outside the runtime scope and may finish after the Promise resolves. A runtime finalizer that never completes keeps the Promise pending. Repeated calls await the same runtime, including calls after `dispose`. Runtime failures do not reject the returned Promise.

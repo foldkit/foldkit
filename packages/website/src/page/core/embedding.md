@@ -42,15 +42,21 @@ When the program runs without an embed handle (started with `Runtime.run`), emit
 
 ## The Embed Handle
 
-`Runtime.embed(program)` starts the runtime and returns an `EmbedHandle`. The handle has one entry per declared Port under `ports` (inbound Ports get `send`, outbound Ports get `subscribe`), plus `dispose`:
+`Runtime.embed(program)` starts the runtime and returns an `EmbedHandle`. The handle has one entry per declared Port under `ports` (inbound Ports get `send`, outbound Ports get `subscribe`), plus `dispose` and `disposeAsync`:
 
 ::Snippet{name="embeddingHost" label="Host wiring"}
 
-`dispose` ties the runtime to the host’s unmount. It interrupts the runtime and runs all cleanup: Subscriptions, Mounts, and ManagedResources release, in-flight Commands stop, the rendered DOM is removed, and the container element is restored empty in its place, ready for a fresh `embed`. It is idempotent, and sends on a disposed handle are no-ops, so a host that unmounts and remounts in quick succession stays correct. A program can be embedded once at a time; after `dispose`, the same program and container can be embedded again.
+`dispose` starts shutdown and returns immediately. Ports stop delivering values, Subscriptions and ManagedResources release, in-flight Commands stop, and the rendered DOM is removed. The original container is restored empty in its place. Mounts are interrupted when their elements are removed, and their release can finish later. Calling `dispose` again has no effect.
+
+A program can be embedded once at a time. Embedding the same program after `dispose` waits for its previous runtime to finish shutting down.
 
 ### Waiting for Cleanup {#dispose-async}
 
-`dispose` returns right away and the cleanup finishes afterwards. When the host must not start something until the old app is fully gone, such as embedding a different program in the same container, await `disposeAsync` instead. It starts the same disposal and resolves once Subscriptions, ManagedResources, and in-flight Commands have released, including any asynchronous release, and the rendered DOM is removed with the container restored. A Mount is interrupted when its element is removed, but `disposeAsync` does not wait for the Mount's own release. It is safe to call more than once, and after `dispose`.
+`disposeAsync` starts the same shutdown and resolves after the runtime scope has closed and the original container has been restored. It waits for Subscription, ManagedResource, and Command finalizers, including asynchronous release. Await it before embedding a different program in the same container.
+
+Mount finalizers run outside the runtime scope and may finish after the Promise resolves. A runtime finalizer that never completes keeps the Promise pending. Repeated calls await the same runtime, including calls after `dispose`. Runtime failures do not reject the returned Promise.
+
+Given cart and checkout program factories, the host can wait for the cart's runtime to stop before replacing it with the checkout:
 
 ::Snippet{name="embeddingDisposeAsync" label="Replacing one app with another"}
 
