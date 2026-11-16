@@ -18,28 +18,6 @@ import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
 import { makeApplication } from './makeApplication.js'
 
-/**
- * Internal Subscription fan-out benchmark. Skipped by default to keep CI
- * runs lean. Run with:
- *
- *   RUN_RUNTIME_BENCH=1 pnpm vitest run src/runtime/subscriptionBench.test.ts
- *
- * Starts a counter application with N Subscriptions, dispatches a burst of
- * Messages that each change the Model, and measures wall-clock time until
- * every Subscription has derived its dependencies from every Model and
- * started its stream for the final ones (a restart superseded before its
- * stream starts never starts it; when dependencies never change, the final
- * stream is the one started at boot, before timing begins). The dependency
- * projections are trivial, so the result is the runtime's own
- * per-Subscription cost. Two cases: dependencies that never change (the
- * common case, most Subscriptions on most Messages) and dependencies that
- * change on every Message (every Subscription restarts its stream every
- * time).
- */
-
-// NOTE: reads process.env through globalThis so this browser-typed package
-// never needs node type definitions; under vitest the node process global
-// is always present.
 const readBenchFlag = (): unknown => {
   const nodeProcess: unknown = Reflect.get(globalThis, 'process')
   if (!Predicate.hasProperty(nodeProcess, 'env')) {
@@ -58,7 +36,7 @@ const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
-  Increment: {},
+  RequestedIncrement: {},
 })
 type Message = typeof Message.Type
 
@@ -68,7 +46,7 @@ const init = (): UpdateReturn => ({ model: { count: 0 } })
 
 const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
-    Increment: () => ({
+    RequestedIncrement: () => ({
       model: modifyFields(model, { count: Number.increment }),
     }),
   })
@@ -167,7 +145,7 @@ const runOnce = async (
   const dispatch = capturedDispatch!
   const start = performance.now()
   for (let index = 0; index < messageCount; index++) {
-    dispatch(Message.Increment())
+    dispatch(Message.RequestedIncrement())
   }
   await derived
   const elapsed = performance.now() - start
@@ -182,7 +160,7 @@ const median = (samples: ReadonlyArray<number>): number =>
     samples,
     Array.sort(Number.Order),
     sorted => Array.get(sorted, Math.floor(sorted.length / 2)),
-    Option.getOrElse(() => 0),
+    Option.getOrThrow,
   )
 
 describe.skipIf(!isBenchEnabled)('Subscription fan-out', () => {
