@@ -1079,7 +1079,7 @@ const expectNoCommandsStep =
 
 /** Resolves a specific pending Mount with the given result Message. Accepts
  *  either a Mount Definition (matches by name) or a Mount instance produced
- *  by calling a Definition (matches by name + structurally equal args). The
+ *  by calling a Definition (matches by name + structural-equal args). The
  *  first pending mount that matches is resolved. Mirrors `resolve` for
  *  Commands: when the mount lives inside a Submodel, the boundary's own
  *  `toParentMessage` lift (snapshotted at render time) is applied to
@@ -1155,54 +1155,6 @@ const resolveAllMounts =
     Array.reduce(resolvers, simulation, (current, [matcher, resultMessage]) =>
       resolveMount(matcher, resultMessage)(current),
     )
-
-/** Acknowledges pending Mounts without dispatching a Message. Use this for
- *  Mounts declared with `messages: [Schema.Never]`. Each matcher acknowledges
- *  the first pending occurrence it matches. Definitions match by name;
- *  instances match by name and structurally equal args. Throws if a matcher
- *  has no pending match. Acknowledged Mounts require `expectEnded` when
- *  their elements leave the tree. */
-const acknowledgeMounts =
-  (...matchers: ReadonlyArray<MountMatcher>) =>
-  <Model, Message, OutMessage = undefined>(
-    simulation: SceneSimulation<Model, Message, OutMessage>,
-  ): SceneSimulation<Model, Message, OutMessage> => {
-    const internal = toInternal(simulation)
-    const pendingMounts = Array.reduce(
-      matchers,
-      internal.mounts,
-      (pending, matcher) =>
-        Option.match(
-          Array.findFirstIndex(pending, mount => mountMatches(matcher, mount)),
-          {
-            onNone: () => {
-              throw new Error(
-                `I tried to acknowledge Mount ${formatMountMatcher(matcher)} but it wasn't in the pending Mounts.\n\n` +
-                  `Pending Mounts:\n${formatMountList(pending)}\n\n` +
-                  'Make sure the rendered view contains an OnMount with this name and (when matching by instance) matching args.',
-              )
-            },
-            onSome: index => Array.remove(pending, index),
-          },
-        ),
-    )
-    const pendingKeys = new Set(Array.map(pendingMounts, slotKey))
-    const updatedSlots = Array.map(
-      internal.mountSlots,
-      (state): MountSlotState =>
-        state.status._tag === 'Pending' && !pendingKeys.has(slotKey(state.slot))
-          ? { slot: state.slot, status: RESOLVED }
-          : state,
-    )
-
-    const acknowledged: InternalSceneSimulation<Model, Message, OutMessage> = {
-      ...internal,
-      mountSlots: updatedSlots,
-      mounts: pendingMounts,
-    }
-
-    return acknowledged
-  }
 
 /** Asserts that every given Mount is among the pending Mounts. Accepts Mount
  *  Definitions (match by name) and Mount instances (match by name + args). */
@@ -1537,10 +1489,6 @@ export const Mount = {
   resolve: resolveMount,
   /** Resolves all listed Mounts with their result Messages. */
   resolveAll: resolveAllMounts,
-  /** Acknowledges pending Mounts without dispatching a Message. Use for Mounts
-   *  declared with `messages: [Schema.Never]`; each matcher consumes one
-   *  occurrence. Unmounts require `expectEnded`. */
-  acknowledge: acknowledgeMounts,
   /** Asserts that every given Mount is among the pending Mounts. */
   expectHas: expectHasMountsStep,
   /** Asserts that the pending Mounts match the given definitions exactly (order-independent, by name). */

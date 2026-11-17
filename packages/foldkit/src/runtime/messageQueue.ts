@@ -9,6 +9,7 @@ export type MessageQueue<Message> = Readonly<{
   enqueueMessage: (message: Message) => void
   enqueueMessageEffect: (message: Message) => Effect.Effect<void>
   drainPendingMessages: () => void
+  drainQueuedPrefix: () => void
   resetDrainBudget: () => void
   isAnyMessageDeferred: () => boolean
   completeBoot: () => void
@@ -157,6 +158,37 @@ export const makeMessageQueue = <Message>({
       }
     }
 
+    const drainQueuedPrefix = (): void => {
+      if (
+        !isBootComplete ||
+        isProcessingMessages ||
+        status.isRenderingFrame ||
+        status.isRuntimeDisposed ||
+        status.isCrashed
+      ) {
+        return
+      }
+
+      const prefix = pendingMessages
+      pendingMessages = []
+      const drainStartedAt = performance.now()
+      isProcessingMessages = true
+
+      try {
+        for (const message of prefix) {
+          currentMessage = Option.some(message)
+          processMessage(message)
+        }
+      } catch (error) {
+        Effect.runFork(crashWith(Cause.die(error), currentMessage))
+      } finally {
+        const drainEndedAt = performance.now()
+        syncWorkMsSinceYield += drainEndedAt - drainStartedAt
+        lastDrainEndedAt = drainEndedAt
+        isProcessingMessages = false
+      }
+    }
+
     const resetDrainBudget = (): void => {
       syncWorkMsSinceYield = 0
     }
@@ -173,6 +205,7 @@ export const makeMessageQueue = <Message>({
       enqueueMessage,
       enqueueMessageEffect,
       drainPendingMessages,
+      drainQueuedPrefix,
       resetDrainBudget,
       isAnyMessageDeferred,
       completeBoot,

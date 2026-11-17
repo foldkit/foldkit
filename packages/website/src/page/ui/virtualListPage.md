@@ -76,6 +76,14 @@ The Mount also supplies the live container to scroll Commands, so programmatic s
 
 The Mount emits `ObservedContainerScroll` with the scroll position, scroll height, container height, and visible row anchor, and `ResizedContainer` with both container dimensions. Delete manual `ScrolledContainer` and `MeasuredContainer` dispatches; the Mount supplies those observations. Update exhaustive Message matches for the new variants.
 
+## Memoizing rows
+
+`itemToKey` is the row's DOM identity. Use that same id when memoizing the row view with `createKeyedLazy`.
+
+The default cache releases entries absent from the completed render, including rows that scroll out of the window. Rows in the window retain their cache hits, including when a memoized parent skips its view.
+
+::Snippet{name="uiVirtualListMemoizedRows" label="Memoizing visible VirtualList rows"}
+
 ## Styling
 
 ### Constrain the Container
