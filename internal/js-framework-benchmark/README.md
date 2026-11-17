@@ -40,8 +40,10 @@ cd webdriver-ts
 npm ci --ignore-scripts
 npm run compile
 cd ..
-node cli.js rebuild-single --ci true --frameworks keyed/vanillajs-lite keyed/solid keyed/react-hooks keyed/svelte keyed/vue
 mkdir -p frameworks/non-keyed
+for framework in vanillajs-lite solid react-hooks svelte vue; do
+  (cd "frameworks/keyed/$framework" && npm ci --ignore-scripts && npm run build-prod) || exit 1
+done
 ```
 
 The pinned Elm build script calls `elm-tooling`, which is not declared as a dependency. Build with its installed Elm 0.19.1-6 compiler and the two minification steps from that script:
@@ -79,7 +81,7 @@ done
 test "$memory_failed" -eq 0
 ```
 
-The harness measures operations from browser traces, including rendering. The CPU timing run uses a visible browser. The separate memory pass uses seven isolated headless Chrome instances concurrently, one per entry. Check system memory pressure before and during the memory pass; this batch ran under normal pressure. CPU tests collect 15 samples each; selection adds 10 samples for a total of 25. Memory tests collect five post-GC samples in MiB using `performance.measureUserAgentSpecificMemory()`. The selected tests cover the nine CPU operations and ready, create, and repeated create/clear memory measurements. Read the pinned harness source for each operation's exact workload.
+The harness measures operations from browser traces, including rendering. The CPU timing run uses a visible browser. The separate memory pass uses seven isolated headless Chrome instances concurrently, one per entry. Record system memory pressure before and during the memory pass alongside the results. CPU tests collect 15 samples each; selection adds 10 samples for a total of 25. Memory tests collect five post-GC samples in MiB using `performance.measureUserAgentSpecificMemory()`. The selected tests cover the nine CPU operations and ready, create, and repeated create/clear memory measurements. Read the pinned harness source for each operation's exact workload.
 
 Optionally collect transfer sizes with the harness's default single sample:
 

@@ -63,6 +63,8 @@ export type ResolvedViewTransition<Model, Message> = Readonly<{
   reducedMotionQuery: MediaQueryList
 }>
 
+const QUEUE_REFUSAL_LIMIT = 3
+
 type RenderMode = 'Live' | 'Replay'
 
 type PendingViewTransition = Readonly<{
@@ -128,6 +130,7 @@ export const makeRenderer = <Model, Message>({
   readLiveModel,
   messageQueue,
   devToolsIntegration,
+  releaseDialogs,
 }: Readonly<{
   status: RuntimeStatus
   container: HTMLElement
@@ -153,12 +156,14 @@ export const makeRenderer = <Model, Message>({
   readLiveModel: () => Model
   messageQueue: MessageQueue<Message>
   devToolsIntegration: DevToolsIntegration<Model, Message>
+  releaseDialogs: Effect.Effect<void>
 }>): Effect.Effect<Renderer<Model, Message>, never, Scope.Scope> =>
   Effect.gen(function* () {
     const {
       enqueueMessage,
       enqueueMessageEffect,
       drainPendingMessages,
+      drainQueuedPrefix,
       resetDrainBudget,
       isAnyMessageDeferred,
     } = messageQueue
@@ -189,6 +194,7 @@ export const makeRenderer = <Model, Message>({
     // from an ordinary frame that was already queued when jumpTo installed
     // the historical view.
     let isLiveViewRestorePending = false
+    let queueRefusalCount = 0
 
     // NOTE: the Model behind the DOM currently on screen, which is what a
     // View Transition animates away from. Seeded with `initModel` because
@@ -319,10 +325,11 @@ export const makeRenderer = <Model, Message>({
       cause: Cause.Cause<never>,
       maybeMessage: Option.Option<Message>,
     ): Effect.Effect<void> =>
-      Effect.sync(() => {
+      Effect.gen(function* () {
         if (status.isCrashed) {
           return
         }
+
         status.isCrashed = true
         // NOTE: the crash view should appear at once, not animate in from
         // a snapshot of the state that crashed.
@@ -331,6 +338,9 @@ export const makeRenderer = <Model, Message>({
         const squashed = Cause.squash(cause)
         const error =
           squashed instanceof Error ? squashed : new Error(String(squashed))
+
+        yield* releaseDialogs
+
         try {
           renderCrashView(
             { error, model, message: maybeMessage },
@@ -551,11 +561,6 @@ export const makeRenderer = <Model, Message>({
       mountRuntime,
     )
 
-    // NOTE: rendering before a deferred drain resumes would restore stale
-    // controlled input values. Disposed or crashed runtimes use the frame guards.
-    const isLiveModelBehindQueue = (): boolean =>
-      isAnyMessageDeferred() && !status.isRuntimeDisposed && !status.isCrashed
-
     // NOTE: the render, Mount drain, DevTools attribution, and
     // patch-time-buffer flush. Shared by the plain path (called directly)
     // and the View Transition path (called from the transition's update
@@ -589,6 +594,7 @@ export const makeRenderer = <Model, Message>({
         // NOTE: after the patch, so a render that threw leaves this on the
         // Model still on screen, and before `drainPendingMessages` below,
         // whose handlers can advance the live Model again.
+        queueRefusalCount = 0
         lastRenderedModel = renderedModel
         // NOTE: resume clears the store's pause flag before this frame.
         // Publish Live only after the live DOM has been installed.
@@ -656,13 +662,6 @@ export const makeRenderer = <Model, Message>({
           }
           update.didRun = true
 
-          // NOTE: a drain may have been deferred since the preceding frame
-          // started the transition. Leave the DOM unchanged until it catches up.
-          if (isLiveModelBehindQueue()) {
-            skipPendingViewTransition()
-            scheduleRenderFrame()
-            return
-          }
           // NOTE: the view state closes the resume window after the
           // store is live but before its plain frame has restored the live
           // DOM. A transition invalidated by jumpTo stays invalid forever,
@@ -677,6 +676,22 @@ export const makeRenderer = <Model, Message>({
             settlePendingCommit()
             return
           }
+          if (isAnyMessageDeferred()) {
+            update.isInvalidated = true
+            skipPendingViewTransition()
+            if (queueRefusalCount < QUEUE_REFUSAL_LIMIT) {
+              queueRefusalCount += 1
+              scheduleRenderFrame()
+              return
+            }
+
+            drainQueuedPrefix()
+            if (status.isRuntimeDisposed || status.isCrashed) {
+              settlePendingCommit()
+              return
+            }
+          }
+
           runRenderFrameBody()
         }, maybeDecision.value.maybeTypes)
         maybePendingViewTransition = Option.some({ handle, update })
@@ -690,16 +705,11 @@ export const makeRenderer = <Model, Message>({
       }
     }
 
-    // NOTE: every path out of a scheduled frame settles the commit
-    // notifier, whether or not it patched. A frame abandoned silently
+    // NOTE: terminal paths settle the commit notifier. Queue-related
+    // refusals retain it for the retry. A frame abandoned silently
     // would strand any `Render.afterCommit` registered against it, and
     // the Dom helpers that gate on it would never run their DOM work.
     const renderFramePlain = (): void => {
-      // NOTE: retain the scheduled frame's pending commit while the drain waits.
-      if (isLiveModelBehindQueue()) {
-        requestAnimationFrame(renderFramePlain)
-        return
-      }
       isRenderFrameScheduled = false
       const isRestoringLiveView = isLiveViewRestorePending
       isLiveViewRestorePending = false
@@ -728,6 +738,24 @@ export const makeRenderer = <Model, Message>({
         settlePendingCommit()
         return
       }
+      if (isAnyMessageDeferred()) {
+        if (queueRefusalCount < QUEUE_REFUSAL_LIMIT) {
+          queueRefusalCount += 1
+          scheduleRenderFrame(isRestoringLiveView)
+          return
+        }
+
+        skipPendingViewTransition()
+        drainQueuedPrefix()
+        if (status.isRuntimeDisposed || status.isCrashed) {
+          settlePendingCommit()
+          return
+        }
+
+        runRenderFrameBody()
+        return
+      }
+
       // NOTE: the unconfigured path pays one `Option.isNone` check and
       // renders directly, allocating no per-frame callback. Only a
       // runtime configured with `viewTransition` reaches
