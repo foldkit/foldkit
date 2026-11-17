@@ -1,9 +1,6 @@
-import { Effect, Queue, Schema, Stream } from 'effect'
+import { Effect, Schema, Stream } from 'effect'
 
-import {
-  beginAnimationFrameCallbackPhase,
-  endAnimationFrameCallbackPhase,
-} from '../runtime/animationFramePhase.js'
+import { animationFrameTicks } from '../runtime/animationFrame.js'
 
 /**
  * Configuration for the `animationFrameEntry` Subscription helper.
@@ -19,64 +16,14 @@ export type AnimationFrameConfig<Model, Message> = Readonly<{
   toMessage: (deltaTime: number) => Message
 }>
 
-const makeAnimationFrameStream = <Message>(
-  toMessage: (deltaTime: number) => Message,
-): Stream.Stream<Message> =>
-  Stream.callback<Message>(queue =>
-    Effect.acquireRelease(
-      Effect.sync(() => {
-        const endPhaseChannel = new MessageChannel()
-        const state = {
-          frameId: 0,
-          lastTime: performance.now(),
-          endPhaseChannel,
-          isPhaseEndReleased: false,
-          pendingPhaseEndCount: 0,
-        }
-        endPhaseChannel.port2.onmessage = () => {
-          if (state.isPhaseEndReleased) {
-            return
-          }
-          state.pendingPhaseEndCount -= 1
-          endAnimationFrameCallbackPhase()
-        }
-
-        const tick = (now: number): void => {
-          beginAnimationFrameCallbackPhase(now)
-          state.pendingPhaseEndCount += 1
-          try {
-            const deltaTime = now - state.lastTime
-            state.lastTime = now
-            Queue.offerUnsafe(queue, toMessage(deltaTime))
-            state.frameId = requestAnimationFrame(tick)
-          } finally {
-            endPhaseChannel.port1.postMessage(null)
-          }
-        }
-
-        state.frameId = requestAnimationFrame(tick)
-        return state
-      }),
-      state =>
-        Effect.sync(() => {
-          state.isPhaseEndReleased = true
-          cancelAnimationFrame(state.frameId)
-          while (state.pendingPhaseEndCount > 0) {
-            state.pendingPhaseEndCount -= 1
-            endAnimationFrameCallbackPhase()
-          }
-          state.endPhaseChannel.port1.close()
-          state.endPhaseChannel.port2.close()
-        }),
-    ).pipe(Effect.flatMap(() => Effect.never)),
-  )
-
 /**
  * Build a Subscription entry that emits a Message on every
  * `requestAnimationFrame` tick, with the inter-frame delta in milliseconds.
- * Ticks can schedule their render in the current frame. The runtime advances
+ * Ticks can render before the current frame paints. The runtime advances
  * at most one render per frame this way and coalesces ticks into a render
  * that is already pending.
+ * Frame timing is local to the application. Messages from later browser tasks
+ * retain their next-frame scheduling.
  *
  * @example
  * ```typescript
@@ -107,7 +54,7 @@ export const animationFrameEntry = <Model, Message>(
   }),
   dependenciesToStream: ({ isActive }: { readonly isActive: boolean }) =>
     Stream.when(
-      makeAnimationFrameStream(config.toMessage),
+      Stream.map(animationFrameTicks, config.toMessage),
       Effect.sync(() => isActive),
     ),
 })

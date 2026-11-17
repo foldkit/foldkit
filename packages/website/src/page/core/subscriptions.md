@@ -86,7 +86,7 @@ The [websocket-chat example](/example-apps/websocket-chat) shows a more involved
 
 ## Animation Frames
 
-`Subscription.animationFrameEntry` is a ready-made entry for work tied to the browser's paint clock. It emits a Message on each `requestAnimationFrame` tick while its `isActive` function returns `true`, and supplies the inter-frame delta in milliseconds. Ticks can schedule their render in the current frame. The runtime advances at most one render per frame this way and coalesces ticks into a render that is already pending.
+`Subscription.animationFrameEntry` is a ready-made entry for work tied to the browser's paint clock. It emits a Message on each `requestAnimationFrame` tick while its `isActive` function returns `true`, and supplies the inter-frame delta in milliseconds. Ticks can render before the current frame paints. The runtime advances at most one render per application per frame this way and coalesces ticks into a render that is already pending. Messages from other applications or later browser tasks retain their next-frame scheduling.
 
 The helper returns a complete entry with `{ isActive: boolean }` dependencies. Its `toMessage` maps frame deltas to the entry's Message type. Place it directly in the record passed to `Subscription.make`:
 

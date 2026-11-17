@@ -1,13 +1,4 @@
-import {
-  Array,
-  Effect,
-  Equal,
-  Function,
-  Match,
-  Number,
-  Option,
-  Result,
-} from 'effect'
+import { Array, Effect, Equal, Function, Match, Number, Option } from 'effect'
 
 import { afterCommit, afterPaint } from '../render/render.js'
 import { DialogRuntime } from './dialogRuntime.js'
@@ -67,17 +58,6 @@ const containsCurrentAllowedElement = (node: Node): boolean =>
   Array.some(modalAllowedElements, element => node.contains(element))
 
 const isRelevantModalMutation = (mutation: MutationRecord): boolean => {
-  if (
-    mutation.type === 'attributes' &&
-    (mutation.attributeName === 'aria-hidden' ||
-      mutation.attributeName === 'inert')
-  ) {
-    return (
-      mutation.target instanceof HTMLElement &&
-      modalIsolation?.contains(mutation.target) === true
-    )
-  }
-
   if (mutation.type === 'attributes') {
     return (
       Array.some(modalAllowedOutsideElements, element =>
@@ -173,24 +153,33 @@ const synchronizeModalIsolation = (): void => {
     openDialogStack,
     dialog => dialog !== maybeTopmostModal.value,
   )
-  const allowedOutsideElements = Array.filterMap(
+  const allowedOutsideElements = Array.flatMap(
     allowedOutsideSelectors,
     selector => {
       try {
-        const outsideElement = document.querySelector(selector)
-        return outsideElement instanceof HTMLElement
-          ? Result.succeed(outsideElement)
-          : Result.failVoid
+        return Array.filter(
+          Array.fromIterable(document.querySelectorAll(selector)),
+          (element): element is HTMLElement => element instanceof HTMLElement,
+        )
       } catch {
-        return Result.failVoid
+        return []
       }
     },
   )
 
-  const nextAllowedElements = [
+  const allowedElements = [
     ...Array.map(dialogsAtOrAboveModal, dialog => dialog.element),
     ...allowedOutsideElements,
   ]
+
+  const nextAllowedElements = Array.filter(
+    allowedElements,
+    element =>
+      !Array.some(
+        allowedElements,
+        ancestor => ancestor !== element && ancestor.contains(element),
+      ),
+  )
 
   modalIsolation ??= makeOutsideIsolation()
   modalIsolation.update(nextAllowedElements)
@@ -200,8 +189,9 @@ const synchronizeModalIsolation = (): void => {
   modalAllowedAncestors = ancestorsOfAllowedElements(nextAllowedElements)
 
   modalObserver ??= new MutationObserver(mutations => {
+    recordModalAttributeMutations(mutations)
+
     if (Array.some(mutations, isRelevantModalMutation)) {
-      recordModalAttributeMutations(mutations)
       synchronizeModalIsolation()
     }
   })
@@ -347,8 +337,12 @@ export const focus = (
  * `showModal()` so that DevTools (and any other high-z-index overlay) remains
  * interactive. Pass `isModal: true` to make the background inert and hide it
  * from assistive technology. `allowedOutsideSelectors` keeps separate developer
- * overlays available while modal isolation is active. Stacked modal dialogs
- * isolate against the topmost one, and closing it restores the dialog beneath.
+ * overlays available while modal isolation is active. Newly added background
+ * content is isolated. External changes to `inert` and `aria-hidden` are
+ * preserved while the dialog is open and during cleanup, so another script
+ * can override background isolation without competing attribute writes.
+ * Stacked modal dialogs isolate against the topmost one, and closing it
+ * restores the dialog beneath.
  * The Dialog component provides its own backdrop, scroll locking,
  * and transitions. Fails with `ElementNotFound` if the selector does not match
  * an `HTMLDialogElement`.

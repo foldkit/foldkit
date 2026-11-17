@@ -1,4 +1,4 @@
-import { Effect, Fiber, Number, Option, Schema } from 'effect'
+import { Effect, Fiber, Number, Schema, Stream } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { __htmlBuilder } from '../html/index.js'
@@ -7,10 +7,6 @@ import { modifyFields } from '../struct/index.js'
 import { animationFrameEntry } from '../subscription/animationFrame.js'
 import { make } from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
-import {
-  currentAnimationFrame,
-  endAnimationFrameCallbackPhase,
-} from './animationFramePhase.js'
 import { provideBrowserScheduler } from './browserScheduler.js'
 import { makeApplication } from './makeApplication.js'
 
@@ -31,8 +27,7 @@ const flushMicrotasks = (): Promise<void> =>
     setTimeout(resolve, 0)
   })
 
-// NOTE: yields to queued microtasks only. A MessageChannel or setTimeout
-// task stays queued, so the frame's callback phase is still open.
+// NOTE: yields to microtasks while MessageChannel and timer tasks stay queued.
 const flushMicrotaskQueue = async (): Promise<void> => {
   for (let turn = 0; turn < MICROTASK_TURN_COUNT; turn++) {
     await Promise.resolve()
@@ -336,44 +331,56 @@ describe('animation frame rendering', () => {
   })
 
   it.each([
-    { lifecycle: 'Inactive', subscriptionCount: 1, pendingFrameCount: 1 },
-    { lifecycle: 'Disposed', subscriptionCount: 1, pendingFrameCount: 1 },
-    { lifecycle: 'Inactive', subscriptionCount: 2, pendingFrameCount: 3 },
-    { lifecycle: 'Disposed', subscriptionCount: 2, pendingFrameCount: 3 },
+    {
+      lifecycle: 'Inactive',
+      subscriptionCount: 1,
+      pendingFrameCount: 1,
+      scenario: 'one frame Subscription becomes inactive',
+    },
+    {
+      lifecycle: 'Disposed',
+      subscriptionCount: 1,
+      pendingFrameCount: 1,
+      scenario: 'one frame Subscription is disposed',
+    },
+    {
+      lifecycle: 'Inactive',
+      subscriptionCount: 2,
+      pendingFrameCount: 3,
+      scenario: 'two frame Subscriptions become inactive with queued ticks',
+    },
+    {
+      lifecycle: 'Disposed',
+      subscriptionCount: 2,
+      pendingFrameCount: 3,
+      scenario: 'two frame Subscriptions are disposed with queued ticks',
+    },
+    {
+      lifecycle: 'Active',
+      subscriptionCount: 1,
+      pendingFrameCount: 1,
+      scenario: 'another app has an active frame Subscription',
+    },
     {
       lifecycle: 'InactiveWithSibling',
       subscriptionCount: 2,
       pendingFrameCount: 1,
+      scenario: 'one frame Subscription stops while its sibling is active',
     },
   ])(
-    'defers another application after $subscriptionCount frame Subscriptions become $lifecycle',
+    'defers ordinary Messages when $scenario',
     async ({ lifecycle, subscriptionCount, pendingFrameCount }) => {
       const clock = installFrameClock()
       restoreClock = clock.restore
-      const deliveries: Array<() => void> = []
-
-      vi.stubGlobal(
-        'MessageChannel',
-        class {
-          isClosed = false
-          port1 = {
-            postMessage: () =>
-              deliveries.push(() => {
-                if (!this.isClosed) {
-                  this.port2.onmessage?.()
-                }
-              }),
-            close: () => {
-              this.isClosed = true
-            },
-          }
-          port2: { onmessage?: () => void; close: () => void } = {
-            close: () => {
-              this.isClosed = true
-            },
-          }
-        },
-      )
+      if (lifecycle === 'Active') {
+        vi.stubGlobal(
+          'MessageChannel',
+          class {
+            port1 = { postMessage: () => {}, close: () => {} }
+            port2 = { onmessage: undefined, close: () => {} }
+          },
+        )
+      }
 
       const frameApplication = makeApplication({
         Model: FrameModel,
@@ -386,11 +393,17 @@ describe('animation frame rendering', () => {
           }),
         view: model => ({
           title: 'frames',
-          body: frameH.div([], [globalThis.String(model.step)]),
+          body: frameH.div(
+            [frameH.Id('frame-value')],
+            [globalThis.String(model.step)],
+          ),
         }),
         subscriptions: make<FrameModel, FrameMessage>()(() => ({
           frame: animationFrameEntry({
-            isActive: model => lifecycle === 'Disposed' || model.step === 0,
+            isActive: model =>
+              lifecycle === 'Active' ||
+              lifecycle === 'Disposed' ||
+              model.step === 0,
             toMessage: deltaTime => FrameMessage.Ticked({ deltaTime }),
           }),
           ...(subscriptionCount === 2
@@ -450,36 +463,146 @@ describe('animation frame rendering', () => {
         await flushMicrotaskQueue()
         if (lifecycle === 'Disposed') {
           await Effect.runPromise(Fiber.interrupt(frameFiber))
-        } else {
+        } else if (lifecycle !== 'Active') {
           await flushMicrotasks()
         }
-        if (lifecycle === 'InactiveWithSibling') {
-          expect(currentAnimationFrame()).toEqual(Option.some(FRAME_STEP_MS))
+
+        const expectedFrameCount =
+          lifecycle === 'Active' || lifecycle === 'InactiveWithSibling' ? 1 : 0
+        if (clock.scheduledCount() > expectedFrameCount) {
+          await clock.runFrame()
         }
-        for (const delivery of deliveries.splice(0)) {
-          delivery()
-        }
-        expect(currentAnimationFrame()).toEqual(Option.none())
+        expect(clock.scheduledCount()).toBe(expectedFrameCount)
 
         const button = clickHost.querySelector('button')
         if (button === null) {
           throw new Error('expected a button')
         }
 
+        expect(button.textContent).toBe('idle')
+        const frameValue =
+          lifecycle === 'InactiveWithSibling'
+            ? document.getElementById('frame-value')
+            : undefined
+        if (lifecycle === 'InactiveWithSibling') {
+          expect(frameValue).not.toBeNull()
+        }
+        const previousFrameValue = frameValue?.textContent
         button.click()
         await flushMicrotaskQueue()
         expect(button.textContent).toBe('idle')
         await clock.runFrame()
         expect(button.textContent).toBe('bumped')
+        if (lifecycle === 'InactiveWithSibling') {
+          expect(frameValue?.textContent).not.toBe(previousFrameValue)
+        }
       } finally {
         await Effect.runPromise(Fiber.interrupt(frameFiber))
         await Effect.runPromise(Fiber.interrupt(clickFiber))
-        while (Option.isSome(currentAnimationFrame())) {
-          endAnimationFrameCallbackPhase()
-        }
         vi.unstubAllGlobals()
         clickHost.remove()
       }
     },
   )
+
+  it('keeps a same-runtime Message in a later task on the next frame', async () => {
+    const clock = installFrameClock()
+    restoreClock = clock.restore
+
+    vi.stubGlobal(
+      'MessageChannel',
+      class {
+        port1 = { postMessage: () => {}, close: () => {} }
+        port2 = { onmessage: undefined, close: () => {} }
+      },
+    )
+
+    const application = makeApplication({
+      Model: MixedModel,
+      init: () => ({ model: { step: 0, label: 'idle' } }),
+      update: (model: MixedModel, message: MixedMessage) =>
+        MixedMessage.match<Update.Return<MixedModel, MixedMessage>>(message, {
+          Ticked: () => ({ model }),
+          ClickedBump: () => ({
+            model: modifyFields(model, { label: () => 'bumped' }),
+          }),
+        }),
+      view: model => ({
+        title: 'frames',
+        body: mixedH.button(
+          [mixedH.OnClick(MixedMessage.ClickedBump())],
+          [model.label],
+        ),
+      }),
+      subscriptions: make<MixedModel, MixedMessage>()(() => ({
+        frame: animationFrameEntry({
+          isActive: () => true,
+          toMessage: deltaTime => MixedMessage.Ticked({ deltaTime }),
+        }),
+      })),
+      container,
+    })
+    const fiber = Effect.runFork(provideBrowserScheduler(application.start()))
+
+    try {
+      await waitUntil(
+        () => clock.scheduledCount() === 1,
+        'animation frame was not scheduled',
+      )
+      clock.startFrame()
+      await flushMicrotaskQueue()
+      await flushMicrotasks()
+
+      const button = document.body.querySelector('button')
+      if (button === null) {
+        throw new Error('expected a button')
+      }
+
+      button.click()
+      await flushMicrotaskQueue()
+      expect(button.textContent).toBe('idle')
+      await clock.runFrame()
+      expect(button.textContent).toBe('bumped')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('keeps animation-frame entries usable without runtime services', async () => {
+    const clock = installFrameClock()
+    restoreClock = clock.restore
+    const messages: Array<FrameMessage> = []
+    const entry = animationFrameEntry<FrameModel, FrameMessage>({
+      isActive: () => true,
+      toMessage: deltaTime => FrameMessage.Ticked({ deltaTime }),
+    })
+    const stream: Stream.Stream<FrameMessage> = entry.dependenciesToStream({
+      isActive: true,
+    })
+    const fiber = Effect.runFork(
+      Stream.runForEach(stream, message =>
+        Effect.sync(() => {
+          messages.push(message)
+        }),
+      ),
+    )
+
+    try {
+      await waitUntil(
+        () => clock.scheduledCount() === 1,
+        'standalone frame was not scheduled',
+      )
+      clock.startFrame()
+      await waitUntil(
+        () => messages.length === 1,
+        'standalone stream did not emit',
+      )
+      expect(messages).toHaveLength(1)
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+
+    expect(clock.scheduledCount()).toBe(0)
+  })
 })
