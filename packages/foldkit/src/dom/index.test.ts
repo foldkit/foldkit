@@ -681,38 +681,43 @@ describe('showDialog', () => {
     }),
   )
 
-  it.effect('reasserts isolation if background attributes are changed', () =>
-    Effect.gen(function* () {
-      const background = document.createElement('main')
-      background.setAttribute('aria-hidden', 'false')
-      makeDialog('solo')
-      document.body.appendChild(background)
+  it.effect(
+    'preserves external attribute changes when new content is isolated',
+    () =>
+      Effect.gen(function* () {
+        const background = document.createElement('main')
+        background.setAttribute('aria-hidden', 'false')
+        makeDialog('solo')
+        document.body.appendChild(background)
 
-      yield* showDialog('#solo', { isModal: true })
+        yield* showDialog('#solo', { isModal: true })
 
-      const setBackgroundAttribute = vi.spyOn(background, 'setAttribute')
-      background.setAttribute('aria-hidden', 'false')
-      background.inert = false
+        const setBackgroundAttribute = vi.spyOn(background, 'setAttribute')
+        background.setAttribute('aria-hidden', 'false')
+        background.inert = false
+        const lateBackground = document.createElement('aside')
+        document.body.appendChild(lateBackground)
 
-      yield* Effect.promise(() =>
-        vi.waitFor(() => {
-          expect(background.inert).toBe(true)
-          expect(background.getAttribute('aria-hidden')).toBe('true')
-        }),
-      )
+        yield* Effect.promise(() =>
+          vi.waitFor(() => {
+            expect(lateBackground.inert).toBe(true)
+          }),
+        )
 
-      expect(
-        setBackgroundAttribute.mock.calls.filter(
-          ([name]) => name === 'aria-hidden',
-        ),
-      ).toHaveLength(2)
-      setBackgroundAttribute.mockRestore()
+        expect(background.inert).toBe(false)
+        expect(background.getAttribute('aria-hidden')).toBe('false')
+        expect(
+          setBackgroundAttribute.mock.calls.filter(
+            ([name]) => name === 'aria-hidden',
+          ),
+        ).toHaveLength(1)
+        setBackgroundAttribute.mockRestore()
 
-      yield* closeDialog('#solo')
-      expect(background.inert).toBe(false)
-      expect(background.getAttribute('aria-hidden')).toBe('false')
-      document.body.innerHTML = ''
-    }),
+        yield* closeDialog('#solo')
+        expect(background.inert).toBe(false)
+        expect(background.getAttribute('aria-hidden')).toBe('false')
+        document.body.innerHTML = ''
+      }),
   )
 
   it.effect(
@@ -730,13 +735,12 @@ describe('showDialog', () => {
         background.removeAttribute('aria-hidden')
         background.inert = false
 
-        yield* Effect.promise(() =>
-          vi.waitFor(() => {
-            expect(background.inert).toBe(true)
-            expect(background.getAttribute('aria-hidden')).toBe('true')
-          }),
+        yield* Effect.promise(
+          () => new Promise<void>(resolve => setTimeout(resolve, 0)),
         )
 
+        expect(background.inert).toBe(false)
+        expect(background.getAttribute('aria-hidden')).toBeNull()
         yield* closeDialog('#solo')
 
         expect(background.inert).toBe(false)
@@ -767,6 +771,49 @@ describe('showDialog', () => {
       }),
   )
 
+  for (const attributeName of ['inert', 'aria-hidden']) {
+    it.effect(
+      `preserves an external ${attributeName} change independently`,
+      () =>
+        Effect.gen(function* () {
+          const background = document.createElement('main')
+          background.inert = true
+          background.setAttribute('aria-hidden', 'true')
+          document.body.appendChild(background)
+          makeDialog('solo')
+
+          try {
+            yield* showDialog('#solo', { isModal: true })
+
+            if (attributeName === 'inert') {
+              background.inert = false
+            } else {
+              background.removeAttribute('aria-hidden')
+            }
+
+            yield* Effect.promise(
+              () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+            )
+
+            expect(background.inert).toBe(attributeName !== 'inert')
+            expect(background.getAttribute('aria-hidden')).toBe(
+              attributeName === 'aria-hidden' ? null : 'true',
+            )
+
+            yield* closeDialog('#solo')
+
+            expect(background.inert).toBe(attributeName !== 'inert')
+            expect(background.getAttribute('aria-hidden')).toBe(
+              attributeName === 'aria-hidden' ? null : 'true',
+            )
+          } finally {
+            yield* closeDialog('#solo')
+            document.body.innerHTML = ''
+          }
+        }),
+    )
+  }
+
   it.effect('preserves another inert lock when the modal closes', () =>
     Effect.gen(function* () {
       const background = document.createElement('main')
@@ -786,6 +833,146 @@ describe('showDialog', () => {
       expect(background.getAttribute('aria-hidden')).toBe('false')
       document.body.innerHTML = ''
     }),
+  )
+
+  it.effect(
+    'preserves external attributes across nested modal transitions',
+    () =>
+      Effect.gen(function* () {
+        const background = document.createElement('main')
+        background.inert = true
+        background.setAttribute('aria-hidden', 'true')
+        document.body.appendChild(background)
+        const parent = makeDialog('parent')
+        const child = makeDialog('child')
+
+        try {
+          yield* showDialog('#parent', { isModal: true })
+          background.inert = false
+          background.setAttribute('aria-hidden', 'false')
+
+          yield* Effect.promise(
+            () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+          )
+          yield* showDialog('#child', { isModal: true })
+
+          expect(parent.inert).toBe(true)
+          expect(child.inert).toBe(false)
+          expect(background.inert).toBe(false)
+          expect(background.getAttribute('aria-hidden')).toBe('false')
+
+          yield* closeDialog('#child')
+
+          expect(parent.inert).toBe(false)
+          expect(background.inert).toBe(false)
+          expect(background.getAttribute('aria-hidden')).toBe('false')
+
+          yield* closeDialog('#parent')
+
+          expect(background.inert).toBe(false)
+          expect(background.getAttribute('aria-hidden')).toBe('false')
+        } finally {
+          yield* closeDialog('#child')
+          yield* closeDialog('#parent')
+          document.body.innerHTML = ''
+        }
+      }),
+  )
+
+  it.effect(
+    'updates isolation when an allowed selector matches and stops matching',
+    () =>
+      Effect.gen(function* () {
+        const background = document.createElement('main')
+        const backgroundButton = document.createElement('button')
+        const overlay = document.createElement('div')
+        background.append(backgroundButton, overlay)
+        document.body.appendChild(background)
+        makeDialog('solo')
+
+        try {
+          yield* showDialog('#solo', {
+            isModal: true,
+            allowedOutsideSelectors: ['[data-external-overlay="Active"]'],
+          })
+          expect(background.inert).toBe(true)
+
+          overlay.setAttribute('data-external-overlay', 'Active')
+
+          yield* Effect.promise(() =>
+            vi.waitFor(() => {
+              expect(background.inert).toBe(false)
+              expect(backgroundButton.inert).toBe(true)
+              expect(overlay.inert).toBe(false)
+            }),
+          )
+
+          overlay.setAttribute('data-external-overlay', 'Inactive')
+
+          yield* Effect.promise(() =>
+            vi.waitFor(() => {
+              expect(background.inert).toBe(true)
+              expect(backgroundButton.inert).toBe(false)
+            }),
+          )
+
+          yield* closeDialog('#solo')
+          expect(background.inert).toBe(false)
+        } finally {
+          yield* closeDialog('#solo')
+          document.body.innerHTML = ''
+        }
+      }),
+  )
+
+  it.effect(
+    'allows every matching overlay without isolating dialog descendants',
+    () =>
+      Effect.gen(function* () {
+        const background = document.createElement('main')
+        const backgroundButton = document.createElement('button')
+        const existingOverlay = document.createElement('div')
+        const otherOverlay = document.createElement('div')
+        existingOverlay.className = 'external-overlay'
+        otherOverlay.className = 'external-overlay'
+        background.appendChild(backgroundButton)
+        document.body.append(background, existingOverlay, otherOverlay)
+        const dialog = makeDialog('solo')
+        const nestedOverlay = document.createElement('div')
+        nestedOverlay.className = 'external-overlay'
+        dialog.appendChild(nestedOverlay)
+
+        try {
+          yield* showDialog('#solo', {
+            isModal: true,
+            allowedOutsideSelectors: ['.external-overlay'],
+          })
+
+          expect(existingOverlay.inert).toBe(false)
+          expect(otherOverlay.inert).toBe(false)
+          expect(dialog.querySelector('button')?.inert).toBe(false)
+          expect(background.inert).toBe(true)
+
+          const lateOverlay = document.createElement('div')
+          lateOverlay.className = 'external-overlay'
+          background.appendChild(lateOverlay)
+
+          yield* Effect.promise(() =>
+            vi.waitFor(() => {
+              expect(background.inert).toBe(false)
+              expect(backgroundButton.inert).toBe(true)
+              expect(lateOverlay.inert).toBe(false)
+            }),
+          )
+
+          expect(existingOverlay.inert).toBe(false)
+          expect(otherOverlay.inert).toBe(false)
+          expect(dialog.querySelector('button')?.inert).toBe(false)
+        } finally {
+          yield* closeDialog('#solo')
+          document.body.innerHTML = ''
+        }
+      }),
   )
 
   it.effect(
@@ -824,70 +1011,86 @@ describe('showDialog', () => {
       }),
   )
 
-  it.effect('avoids fighting 1Password notification observers', () =>
-    Effect.gen(function* () {
-      const background = document.createElement('main')
-      const backgroundButton = document.createElement('button')
-      background.appendChild(backgroundButton)
-      const trigger = document.createElement('button')
-      const existingNotification = document.createElement(
-        'com-1password-notification',
-      )
-      document.body.append(trigger, background, existingNotification)
-      trigger.focus()
-      const dialog = makeDialog('solo')
-      const notification = document.createElement('com-1password-notification')
-      const removalLimit = 20
-      let removals = 0
-      const observer = new MutationObserver(() => {
-        for (const host of [existingNotification, notification]) {
-          if (host.inert) {
-            removals++
-            if (removals >= removalLimit) {
-              observer.disconnect()
+  it.effect(
+    'preserves external observer changes across background updates',
+    () =>
+      Effect.gen(function* () {
+        const background = document.createElement('main')
+        const backgroundButton = document.createElement('button')
+        background.appendChild(backgroundButton)
+        const trigger = document.createElement('button')
+        const existingOverlay = document.createElement('aside')
+        document.body.append(trigger, background, existingOverlay)
+        trigger.focus()
+        const dialog = makeDialog('solo')
+        const lateOverlay = document.createElement('section')
+        const removalLimit = 20
+        const observerSettleDelayMs = 50
+        let removals = 0
+        const observer = new MutationObserver(() => {
+          for (const host of [existingOverlay, lateOverlay]) {
+            if (host.inert || host.hasAttribute('aria-hidden')) {
+              removals++
+              if (removals >= removalLimit) {
+                observer.disconnect()
+              }
+              host.removeAttribute('inert')
+              host.removeAttribute('aria-hidden')
             }
-            host.removeAttribute('inert')
           }
+        })
+        for (const host of [existingOverlay, lateOverlay]) {
+          observer.observe(host, {
+            attributes: true,
+            attributeFilter: ['inert', 'aria-hidden'],
+          })
         }
-      })
-      for (const host of [existingNotification, notification]) {
-        observer.observe(host, { attributes: true, attributeFilter: ['inert'] })
-      }
 
-      try {
-        yield* showDialog('#solo', { isModal: true })
-        background.appendChild(notification)
-        dialog.appendChild(document.createElement('com-1password-notification'))
-        yield* Effect.promise(
-          () => new Promise<void>(resolve => setTimeout(resolve, 50)),
-        )
+        try {
+          yield* showDialog('#solo', { isModal: true })
+          document.body.appendChild(lateOverlay)
+          yield* Effect.promise(
+            () =>
+              new Promise<void>(resolve =>
+                setTimeout(resolve, observerSettleDelayMs),
+              ),
+          )
 
-        expect(removals).toBe(0)
-        for (const host of [existingNotification, notification]) {
-          expect(host.inert).toBe(false)
-          expect(host.hasAttribute('aria-hidden')).toBe(false)
+          expect(removals).toBe(2)
+          const lateBackground = document.createElement('main')
+          document.body.appendChild(lateBackground)
+          yield* Effect.promise(() =>
+            vi.waitFor(() => {
+              expect(lateBackground.inert).toBe(true)
+            }),
+          )
+
+          expect(removals).toBe(2)
+          for (const host of [existingOverlay, lateOverlay]) {
+            expect(host.inert).toBe(false)
+            expect(host.hasAttribute('aria-hidden')).toBe(false)
+          }
+          expect(background.inert).toBe(true)
+          expect(background.getAttribute('aria-hidden')).toBe('true')
+          expect(trigger.inert).toBe(true)
+          expect(dialog.querySelector('button')?.inert).toBe(false)
+          expect(document.activeElement).toBe(dialog.querySelector('button'))
+          expect(pressTab().defaultPrevented).toBe(true)
+
+          const cancel = vi.fn()
+          dialog.addEventListener('cancel', cancel)
+          pressEscape()
+          expect(cancel).toHaveBeenCalledOnce()
+          yield* closeDialog('#solo')
+          expect(backgroundButton.inert).toBe(false)
+          expect(backgroundButton.hasAttribute('aria-hidden')).toBe(false)
+          expect(document.activeElement).toBe(trigger)
+        } finally {
+          observer.disconnect()
+          yield* closeDialog('#solo')
+          document.body.innerHTML = ''
         }
-        expect(backgroundButton.inert).toBe(true)
-        expect(backgroundButton.getAttribute('aria-hidden')).toBe('true')
-        expect(trigger.inert).toBe(true)
-        expect(dialog.querySelector('button')?.inert).toBe(false)
-        expect(document.activeElement).toBe(dialog.querySelector('button'))
-        expect(pressTab().defaultPrevented).toBe(true)
-
-        const cancel = vi.fn()
-        dialog.addEventListener('cancel', cancel)
-        pressEscape()
-        expect(cancel).toHaveBeenCalledOnce()
-        yield* closeDialog('#solo')
-        expect(backgroundButton.inert).toBe(false)
-        expect(backgroundButton.hasAttribute('aria-hidden')).toBe(false)
-        expect(document.activeElement).toBe(trigger)
-      } finally {
-        observer.disconnect()
-        yield* closeDialog('#solo')
-        document.body.innerHTML = ''
-      }
-    }),
+      }),
   )
 
   it.effect('does not register a runtime owner when opening fails', () =>

@@ -2,4 +2,4 @@
 'foldkit': patch
 ---
 
-Exclude 1Password notification hosts from modal isolation to prevent competing inert observers from freezing the page. Background isolation and the dialog focus trap remain active. Resolve every matching allowed overlay, including notifications inserted after a dialog opens.
+Prevent modal isolation from freezing the page when another script changes `inert` or `aria-hidden`. Apply isolation to newly added background content and preserve external attribute changes while the Dialog is open and during cleanup. External scripts can override background isolation; the Dialog's focus trap stays active. Resolve every matching allowed overlay, including overlays inserted after a Dialog opens.

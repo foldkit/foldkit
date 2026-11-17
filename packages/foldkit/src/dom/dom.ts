@@ -58,17 +58,6 @@ const containsCurrentAllowedElement = (node: Node): boolean =>
   Array.some(modalAllowedElements, element => node.contains(element))
 
 const isRelevantModalMutation = (mutation: MutationRecord): boolean => {
-  if (
-    mutation.type === 'attributes' &&
-    (mutation.attributeName === 'aria-hidden' ||
-      mutation.attributeName === 'inert')
-  ) {
-    return (
-      mutation.target instanceof HTMLElement &&
-      modalIsolation?.contains(mutation.target) === true
-    )
-  }
-
   if (mutation.type === 'attributes') {
     return (
       Array.some(modalAllowedOutsideElements, element =>
@@ -159,12 +148,7 @@ const synchronizeModalIsolation = (): void => {
     return
   }
 
-  // NOTE: 1Password removes inert from its notification hosts in an observer.
-  // Isolating them would create an endless microtask loop between observers.
-  const allowedOutsideSelectors = [
-    'com-1password-notification',
-    ...maybeTopmostModal.value.allowedOutsideSelectors,
-  ]
+  const { allowedOutsideSelectors } = maybeTopmostModal.value
   const dialogsAtOrAboveModal = Array.dropWhile(
     openDialogStack,
     dialog => dialog !== maybeTopmostModal.value,
@@ -205,8 +189,9 @@ const synchronizeModalIsolation = (): void => {
   modalAllowedAncestors = ancestorsOfAllowedElements(nextAllowedElements)
 
   modalObserver ??= new MutationObserver(mutations => {
+    recordModalAttributeMutations(mutations)
+
     if (Array.some(mutations, isRelevantModalMutation)) {
-      recordModalAttributeMutations(mutations)
       synchronizeModalIsolation()
     }
   })
@@ -352,11 +337,12 @@ export const focus = (
  * `showModal()` so that DevTools (and any other high-z-index overlay) remains
  * interactive. Pass `isModal: true` to make the background inert and hide it
  * from assistive technology. `allowedOutsideSelectors` keeps separate developer
- * overlays available while modal isolation is active. 1Password notification
- * hosts are always excluded from isolation to avoid competing attribute
- * observers freezing the page. Background content remains isolated and focus
- * stays trapped in the dialog. Stacked modal dialogs
- * isolate against the topmost one, and closing it restores the dialog beneath.
+ * overlays available while modal isolation is active. Newly added background
+ * content is isolated. External changes to `inert` and `aria-hidden` are
+ * preserved while the dialog is open and during cleanup, so another script
+ * can override background isolation without competing attribute writes.
+ * Stacked modal dialogs isolate against the topmost one, and closing it
+ * restores the dialog beneath.
  * The Dialog component provides its own backdrop, scroll locking,
  * and transitions. Fails with `ElementNotFound` if the selector does not match
  * an `HTMLDialogElement`.
