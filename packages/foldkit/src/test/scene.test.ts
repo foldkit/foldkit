@@ -1,4 +1,4 @@
-import { Array, Option, Schema, pipe } from 'effect'
+import { Array, Effect, Option, Schema, pipe } from 'effect'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import * as CustomElement from '../customElement/index.js'
@@ -8,6 +8,7 @@ import {
   inertHtml,
 } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
+import * as Mount from '../mount/index.js'
 import * as PublicScene from '../scene/public.js'
 import { h } from '../snabbdom/index.js'
 import type { VNode } from '../snabbdom/index.js'
@@ -4748,6 +4749,113 @@ describe('scene mounts', () => {
         Scene.Mount.expectNone(),
       ),
     ).toThrow(/Expected no Mounts/)
+  })
+
+  test('an OnMount added to an element already in the tree is not pending', () => {
+    const ReusedMessage = defineMessageUnion({
+      ClickedToggle: {},
+      CompletedTrack: {},
+    })
+    type ReusedMessage = typeof ReusedMessage.Type
+    const ReusedModel = Schema.Struct({ isActive: Schema.Boolean })
+    type ReusedModel = typeof ReusedModel.Type
+    const Track = Mount.define('Track', {
+      messages: [ReusedMessage.CompletedTrack],
+      execute: () => Effect.succeed(ReusedMessage.CompletedTrack()),
+    })
+    const reusedUpdate = (
+      model: ReusedModel,
+      message: ReusedMessage,
+    ): Update.Return<ReusedModel, ReusedMessage> =>
+      ReusedMessage.match(message, {
+        ClickedToggle: () => ({
+          model: modifyFields(model, { isActive: isActive => !isActive }),
+        }),
+        CompletedTrack: () => ({ model }),
+      })
+    const reusedView = (model: ReusedModel, html: HtmlBuilder<ReusedMessage>) =>
+      html.div(
+        [],
+        [
+          html.button(
+            [html.Id('toggle'), html.OnClick(ReusedMessage.ClickedToggle())],
+            ['toggle'],
+          ),
+          html.div([
+            html.Id('target'),
+            ...(model.isActive ? [html.OnMount(Track())] : []),
+          ]),
+        ],
+      )
+
+    Scene.scene(
+      { update: reusedUpdate, view: reusedView },
+      Scene.given({ isActive: false }),
+      Scene.Mount.expectNone(),
+      Scene.click(Scene.selector('#toggle')),
+      Scene.Mount.expectNone(),
+    )
+
+    Scene.scene(
+      { update: reusedUpdate, view: reusedView },
+      Scene.given({ isActive: true }),
+      Scene.Mount.resolve(Track, ReusedMessage.CompletedTrack()),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('a keyed mount stays resolved when a keyed sibling is inserted', () => {
+    const KeyedMessage = defineMessageUnion({
+      ClickedAdd: {},
+      CompletedStable: {},
+      CompletedExtra: {},
+    })
+    type KeyedMessage = typeof KeyedMessage.Type
+    const KeyedModel = Schema.Struct({ showExtra: Schema.Boolean })
+    type KeyedModel = typeof KeyedModel.Type
+    const Stable = Mount.define('Stable', {
+      messages: [KeyedMessage.CompletedStable],
+      execute: () => Effect.succeed(KeyedMessage.CompletedStable()),
+    })
+    const Extra = Mount.define('Extra', {
+      messages: [KeyedMessage.CompletedExtra],
+      execute: () => Effect.succeed(KeyedMessage.CompletedExtra()),
+    })
+    const keyedUpdate = (
+      model: KeyedModel,
+      message: KeyedMessage,
+    ): Update.Return<KeyedModel, KeyedMessage> =>
+      KeyedMessage.match(message, {
+        ClickedAdd: () => ({
+          model: modifyFields(model, { showExtra: () => true }),
+        }),
+        CompletedStable: () => ({ model }),
+        CompletedExtra: () => ({ model }),
+      })
+    const keyedView = (model: KeyedModel, html: HtmlBuilder<KeyedMessage>) =>
+      html.div(
+        [],
+        [
+          html.button(
+            [html.Id('add'), html.OnClick(KeyedMessage.ClickedAdd())],
+            ['add'],
+          ),
+          ...(model.showExtra
+            ? [html.keyed('div')('extra', [html.OnMount(Extra())])]
+            : []),
+          html.keyed('div')('stable', [html.OnMount(Stable())]),
+        ],
+      )
+
+    Scene.scene(
+      { update: keyedUpdate, view: keyedView },
+      Scene.given({ showExtra: false }),
+      Scene.Mount.resolve(Stable, KeyedMessage.CompletedStable()),
+      Scene.click(Scene.selector('#add')),
+      Scene.Mount.expectHas(Extra),
+      Scene.Mount.resolve(Extra, KeyedMessage.CompletedExtra()),
+      Scene.Mount.expectNone(),
+    )
   })
 
   test('resolveMount feeds the result Message through update', () => {

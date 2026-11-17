@@ -2,30 +2,17 @@
 import { type DOMAPI, htmlDomApi } from './htmldomapi.js'
 import * as is from './is.js'
 import type { Module } from './module.js'
-import { type Key, type VNode, vnode, vnodeDataMaskKey } from './vnode.js'
+import {
+  type Key,
+  type VNode,
+  sameVnode,
+  vnode,
+  vnodeDataMaskKey,
+} from './vnode.js'
 
 type VNodeQueue = Array<VNode>
 
 const emptyNode = vnode('', {}, [], undefined, undefined)
-
-function sameVnode(vnode1: VNode, vnode2: VNode): boolean {
-  if (vnode1 === vnode2) {
-    return true
-  }
-  if (vnode1.sel !== vnode2.sel) {
-    return false
-  }
-  if (vnode1.key !== vnode2.key) {
-    return false
-  }
-  if (vnode1.identity !== vnode2.identity) {
-    return false
-  }
-  if (vnode1.data?.is !== vnode2.data?.is) {
-    return false
-  }
-  return vnode1.sel !== undefined || typeof vnode1.text === typeof vnode2.text
-}
 
 /**
  * @todo Remove this function when the document fragment is considered stable.
