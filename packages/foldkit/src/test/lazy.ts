@@ -18,6 +18,7 @@ import { Dispatch } from '../runtime/dispatch.js'
 
 type LazyMiss = Readonly<{
   slotId: number
+  label: string | undefined
   key: PropertyKey | undefined
   reason: LazyMissReason
 }>
@@ -59,10 +60,13 @@ const formatReason = LazyMissReason.$match({
     `ArgumentsChanged at ${indices.length === 1 ? 'index' : 'indices'} ${indices.join(', ')}`,
 })
 
-const formatMiss = ({ slotId, key, reason }: LazyMiss): string =>
+const formatSlot = (slotId: number, label: string | undefined): string =>
+  label === undefined ? `slot ${slotId}` : `slot ${slotId} "${label}"`
+
+const formatMiss = ({ slotId, label, key, reason }: LazyMiss): string =>
   key === undefined
-    ? `  slot ${slotId}: ${formatReason(reason)}`
-    : `  slot ${slotId}, key ${formatKey(key)}: ${formatReason(reason)}`
+    ? `  ${formatSlot(slotId, label)}: ${formatReason(reason)}`
+    : `  ${formatSlot(slotId, label)}, key ${formatKey(key)}: ${formatReason(reason)}`
 
 const formatFailure = (misses: ReadonlyArray<LazyMiss>): string => {
   const missCount =
@@ -91,12 +95,12 @@ const toMisses = (
   const slotIds = new Map<object, number>()
   const misses: Array<LazyMiss> = []
 
-  for (const { slot, key, missReason } of resolutions) {
+  for (const { slot, label, key, missReason } of resolutions) {
     const slotId = slotIds.get(slot) ?? slotIds.size + 1
     slotIds.set(slot, slotId)
 
     if (missReason !== undefined) {
-      misses.push({ slotId, key, reason: missReason })
+      misses.push({ slotId, label, key, reason: missReason })
     }
   }
 

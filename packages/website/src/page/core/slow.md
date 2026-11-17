@@ -60,6 +60,20 @@ Passing an object also measures every phase unless `measuredPhases` narrows the 
 
 ::Snippet{name="slowConfig" label="Configuring slow-phase warnings"}
 
+## Frame Instrumentation {#instrument}
+
+Slow warnings report a phase only when it goes over budget, and only for that phase. To send interaction timing to your own telemetry, pass `instrument` instead. Its `onFrame` callback receives one record per rendered frame, after the frame has painted:
+
+- the Messages the frame processed, each with its tag (Submodel tags joined, as in `GotTimeline>ClickedRow`), update time, and the DOM event that dispatched it (`click`, `keydown`, `scroll`) with the event's timestamp
+- view and patch time for the render
+- `startTime` (the earliest event timestamp), `commitEnd` and `paintEnd`, so `durationMs` is the input-to-paint latency that INP measures
+
+A Message that leaves the Model unchanged is reported at once with `isRendered: false`. The initial render is reported with no Messages.
+
+::Snippet{name="instrumentConfig" label="Reporting slow interactions"}
+
+`instrument` runs in every environment unless `show: 'Development'` is set. `minDurationMs` skips fast frames and `sampleRate` reports a fraction of them. When `instrument` is not configured, the runtime measures nothing extra.
+
 ### Memoization Follow-up
 
 When profiling confirms repeated work in View or Patch, the [view memoization](/core/view-memoization) page explains how `createLazy` and `createKeyedLazy` can skip stable subtrees.

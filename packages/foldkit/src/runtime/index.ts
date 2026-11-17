@@ -47,6 +47,14 @@ export type { MakeRuntimeReturn } from './runtime.js'
 
 export { SlowPhase, defaultSlowCallback } from './slowPhase.js'
 
+export { messageTagPath } from './instrument.js'
+
+export type {
+  InstrumentConfig,
+  InstrumentFrame,
+  InstrumentMessage,
+} from './instrument.js'
+
 export type {
   SlowConfig,
   SlowContext,

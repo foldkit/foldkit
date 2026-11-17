@@ -105,6 +105,8 @@ An interaction invokes the matched element's event handler. If the handler produ
 | `pointerDown(target, options?)`        | `OnPointerDown` with optional `{ pointerType, button, screenX, screenY, clientX, clientY, pointerId }` (bubbles to ancestors) |
 | `pointerUp(target, options?)`          | `OnPointerUp` with optional `{ pointerType, screenX, screenY }` (bubbles to ancestors)                                        |
 | `hover(target)`                        | `OnMouseEnter` (falls back to `OnMouseOver`)                                                                                  |
+| `unhover(target, options?)`            | `OnMouseLeave` (falls back to `OnPointerLeave`, then `OnMouseOut`), with optional `{ pointerType }`                           |
+| `scroll(target, { scrollTop })`        | `OnScroll` with the given position                                                                                            |
 | `focus(target)`                        | `OnFocus`                                                                                                                     |
 | `blur(target)`                         | `OnBlur`                                                                                                                      |
 | `focusEnter(target)`                   | `OnFocusEnter`                                                                                                                |
@@ -302,6 +304,32 @@ A Submodel with ViewInputs has a `(model, viewInputs, h)` view. Scene expects `(
 ::Snippet{name="sceneWithViewInputs" label="Using withViewInputs"}
 
 Each test can override any ViewInputs field except `toView`, so values vary while the renderer stays fixed. See `packages/ui/src/slider/scene.test.ts` for a complete example.
+
+## Render Performance
+
+Scene renders the view after every step, so it can count the work each interaction causes. `Perf.measure` and `Perf.budget` wrap steps the way `inside` does. Every normal Scene check still applies inside them.
+
+### Measure an Interaction
+
+`Perf.measure(onProfile, ...steps)` reports one entry per step that ran update: the Message tags, update and view time, how many VNodes the view built and how many it reused from the previous render, lazy cache hits and misses with their reasons, and an estimate of the DOM patch (nodes created, removed, updated and moved). Steps that only assert re-render in a Scene but not in the runtime, so they are left out. `Perf.format(profile)` turns a profile into readable text.
+
+### Budget an Interaction
+
+`Perf.budget(limits, ...steps)` measures the same way and fails when a total goes over its limit. The failure lists every exceeded limit and the full profile, including which lazy slots missed and why.
+
+::Snippet{name="scenePerfBudget" label="Budgeting a hover"}
+
+Budget counts, not times. `vnodesBuilt`, `lazyInvalidations`, `nodesChanged` and the other counts are deterministic, so they hold in CI. `updateMs` and `viewMs` depend on the machine; keep them generous or leave them out. `lazyInvalidations` excludes `NoCachedEntry`, which is expected when a row scrolls into view for the first time, while `lazyMisses` counts every miss.
+
+`vnodesBuilt` is the measure of view cost. A view that memoizes nothing has no lazy misses and may patch almost nothing, yet still rebuilds its whole tree on every Message; only `vnodesBuilt` shows that.
+
+### Check the Patched DOM
+
+Scene asserts against VNodes and never patches a real DOM, so it cannot see a patch that lands on the wrong element. `expectDomInSync(...steps)` patches every render into a DOM the way the runtime does and fails when the result differs from a fresh render of the same view. It catches, for example, a lazy-cached row reused at a different position among unkeyed siblings, which leaves stale rows behind after scrolling.
+
+::Snippet{name="sceneExpectDomInSync" label="Checking the DOM through a scroll"}
+
+It compares markup (attributes, classes, styles and text); hooks and listeners do not run. It needs a DOM environment such as happy-dom.
 
 ## A Complete Scene
 

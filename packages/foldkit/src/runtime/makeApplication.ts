@@ -14,6 +14,7 @@ import {
   findDocumentHydration,
   hasServerRenderedMarkup,
 } from './hydrationHandoff.js'
+import type { InstrumentConfig } from './instrument.js'
 import {
   type FlagsSchemaConfig,
   type MakeRuntimeReturn,
@@ -45,6 +46,7 @@ type BaseApplicationConfig<
   ports?: P
   crash?: CrashConfig<Model, Message>
   slow?: SlowConfig<Model, Message>
+  instrument?: InstrumentConfig<Message>
   viewTransition?: ViewTransitionConfig<Model, Message>
   freezeModel?: boolean
   preserveScroll?: boolean
@@ -322,6 +324,9 @@ export function makeApplication<
     ...(config.crash && { crash: config.crash }),
     ...(Predicate.isNotUndefined(config.slow) && {
       slow: config.slow,
+    }),
+    ...(Predicate.isNotUndefined(config.instrument) && {
+      instrument: config.instrument,
     }),
     ...(Predicate.isNotUndefined(config.viewTransition) && {
       viewTransition: config.viewTransition,

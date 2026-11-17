@@ -505,13 +505,24 @@ const matchesSimpleSelector =
           Option.exists(Equal.equals(id)),
         ),
     }) &&
-    Array.every(
-      selector.classes,
-      className => vnode.data?.class?.[className] === true,
-    ) &&
+    Array.every(selector.classes, hasClass(vnode)) &&
     Array.every(selector.attributes, matchesAttribute(vnode)) &&
     !Array.some(selector.negatedSelectors, negatedSelector =>
       matchesSimpleSelector(negatedSelector)(vnode),
+    )
+
+// NOTE: `h.Class` fills the class module, while `h.Attribute('class', ...)`
+// writes a plain attribute string. Both put the class on the element.
+const hasClass =
+  (vnode: VNode) =>
+  (className: string): boolean =>
+    vnode.data?.class?.[className] === true ||
+    pipe(
+      vnode.data?.attrs?.['class'],
+      Option.liftPredicate(Predicate.isString),
+      Option.exists(classes =>
+        Array.contains(String.split(classes, /\s+/), className),
+      ),
     )
 
 // IMPLICIT ROLES

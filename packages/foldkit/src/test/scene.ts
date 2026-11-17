@@ -21,11 +21,14 @@ import type { FoldkitMountMarker } from '../html/index.js'
 import {
   FOLDKIT_MOUNT_KEY,
   FileHandlerSymbol,
+  __beginRender as beginHtmlRender,
   __clearRuntime as clearHtmlRuntime,
+  __createBoundaryRegistry as createHtmlBoundaryRegistry,
   __htmlBuilder as htmlBuilderFor,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
 import type {
+  BoundaryRegistry,
   Document,
   Html,
   HtmlBuilder,
@@ -287,6 +290,9 @@ type InternalSceneSimulation<
     resolvers: ReadonlyArray<ResolverEntry>
     viewFn: (model: Model, h: HtmlBuilder<Message>) => Html | Document
     capturingDispatch: CapturingDispatch
+    // NOTE: one registry per scene, like the runtime keeps one per app, so
+    // Submodel dispatchers and lazy cache keys stay stable across steps.
+    boundaryRegistry: BoundaryRegistry
     scope: Option.Option<Locator>
     mountSlots: ReadonlyArray<MountSlotState>
     outMessages: ReadonlyArray<OutMessage>
@@ -518,6 +524,7 @@ const renderView = <Model, Message>(
   viewFn: (model: Model, h: HtmlBuilder<Message>) => Html | Document,
   model: Model,
   dispatch: DispatchService,
+  boundaryRegistry: BoundaryRegistry,
 ): VNode => {
   const sceneContext = Context.make(Dispatch, dispatch).pipe(
     Context.add(MountTracker, {
@@ -526,7 +533,8 @@ const renderView = <Model, Message>(
     }),
   )
 
-  setHtmlRuntime(dispatch.dispatchSync, sceneContext)
+  beginHtmlRender(boundaryRegistry)
+  setHtmlRuntime(dispatch.dispatchSync, sceneContext, boundaryRegistry)
   let result: Html | Document
   try {
     result = viewFn(model, htmlBuilderFor<Message>())
@@ -566,6 +574,10 @@ const EVENT_NAMES: Record<string, string> = {
   focusout: 'OnFocusLeave',
   mouseenter: 'OnMouseEnter',
   mouseover: 'OnMouseOver',
+  mouseleave: 'OnMouseLeave',
+  pointerleave: 'OnPointerLeave',
+  mouseout: 'OnMouseOut',
+  scroll: 'OnScroll',
   keydown:
     'OnKeyDown, OnKeyDownPreventDefault, OnKeyDownSelf, or OnKeyDownSelfPreventDefault',
   pointerdown: 'OnPointerDown',
@@ -1780,6 +1792,7 @@ const runSteps = <Model, Message, OutMessage>(
         internal.viewFn,
         internal.model,
         internal.capturingDispatch.dispatch,
+        internal.boundaryRegistry,
       )
       const mountSlots = reconcileMountSlots(internal.mountSlots, html)
       const mounts = pendingMountsOf(mountSlots)
@@ -2317,6 +2330,60 @@ export const hover =
       handler()
     })
   }
+
+type UnhoverOptions = Readonly<{
+  pointerType?: string
+}>
+
+const UNHOVER_EVENTS = ['mouseleave', 'pointerleave', 'mouseout'] as const
+
+/** Simulates the pointer leaving the element matching the target. Dispatches
+ *  the `mouseleave` handler, falling back to `pointerleave` and then
+ *  `mouseout`. The `OnPointerLeave` callback receives `pointerType`, which
+ *  defaults to `'mouse'`. */
+export const unhover =
+  (target: string | Locator, options?: UnhoverOptions) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const scopedTarget = applyScopeToTarget(internal.scope, target)
+    const { maybeElement } = resolveTarget(internal.html, scopedTarget)
+    const eventName = pipe(
+      maybeElement,
+      Option.flatMap(element =>
+        Array.findFirst(
+          UNHOVER_EVENTS,
+          name => element.data?.on?.[name] !== undefined,
+        ),
+      ),
+      Option.getOrElse(() => 'mouseleave'),
+    )
+    return invokeAndCapture(simulation, target, eventName, handler => {
+      handler({ pointerType: options?.pointerType ?? 'mouse' })
+    })
+  }
+
+type ScrollOptions = Readonly<{
+  scrollTop: number
+  scrollLeft?: number
+}>
+
+/** Simulates a scroll event on the element matching the target, as if it had
+ *  scrolled to `scrollTop`. The `OnScroll` callback receives that position. */
+export const scroll =
+  (target: string | Locator, options: ScrollOptions) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> =>
+    invokeAndCapture(simulation, target, 'scroll', handler => {
+      handler({
+        target: {
+          scrollTop: options.scrollTop,
+          scrollLeft: options.scrollLeft ?? 0,
+        },
+      })
+    })
 
 /** Simulates a focus event on the element matching the target. */
 export const focus =
@@ -3090,6 +3157,7 @@ export const scene: {
     html: undefined as unknown,
     viewFn: config.view,
     capturingDispatch,
+    boundaryRegistry: createHtmlBoundaryRegistry(),
     scope: Option.none(),
     lastInteractionOutcome: NotRun,
     maybeUnacknowledgedIgnored: Option.none(),
@@ -3106,3 +3174,13 @@ export const scene: {
   )
   assertNoUnacknowledgedIgnored(internal)
 }
+
+/** @internal Runs scene steps against a simulation. Used by `Perf`. */
+export const __runSteps = runSteps
+
+/** @internal Exposes the internal simulation fields. Used by `Perf`. */
+export const __toInternal = toInternal
+
+/** @internal The internal simulation shape. Used by `Perf`. */
+export type __InternalSceneSimulation<Model, Message, OutMessage> =
+  InternalSceneSimulation<Model, Message, OutMessage>

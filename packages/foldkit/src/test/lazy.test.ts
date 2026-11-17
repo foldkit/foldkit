@@ -138,6 +138,19 @@ describe('Lazy.expectAllReused', () => {
     )
   })
 
+  test('names a labelled slot in the failure', () => {
+    const lazyRows = createKeyedLazy('rows')
+    const view: View = (model, h) =>
+      h.ul(
+        [],
+        model.rows.map(row => lazyRows(row.id, rowView, [row, [row.id]])),
+      )
+
+    expect(failureMessage(view)).toContain(
+      '  slot 1 "rows", key "row-1": ArgumentsChanged at index 1',
+    )
+  })
+
   test('lists one hint per reason', () => {
     const lazyTitle = createLazy()
     const view: View = (model, h) =>

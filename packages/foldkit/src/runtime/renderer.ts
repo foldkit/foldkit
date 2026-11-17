@@ -34,6 +34,7 @@ import type {
 import { Dispatch } from './dispatch.js'
 import { applyDocumentMetadata } from './documentMetadata.js'
 import type { DuplicateIdScanner } from './duplicateIdScanner.js'
+import type { FrameRecorder } from './instrument.js'
 import type { MessageQueue } from './messageQueue.js'
 import type { RuntimeStatus } from './runtimeStatus.js'
 import {
@@ -126,6 +127,7 @@ export const makeRenderer = <Model, Message>({
   readLiveModel,
   messageQueue,
   devToolsIntegration,
+  maybeFrameRecorder,
 }: Readonly<{
   status: RuntimeStatus
   container: HTMLElement
@@ -151,6 +153,7 @@ export const makeRenderer = <Model, Message>({
   readLiveModel: () => Model
   messageQueue: MessageQueue<Message>
   devToolsIntegration: DevToolsIntegration<Model, Message>
+  maybeFrameRecorder: Option.Option<FrameRecorder<Message>>
 }>): Effect.Effect<Renderer<Model, Message>, never, Scope.Scope> =>
   Effect.gen(function* () {
     const {
@@ -390,6 +393,13 @@ export const makeRenderer = <Model, Message>({
         maybeLiveRender,
         () => maybeSlowPatch,
       )
+      const maybeLiveRecorder = Option.flatMap(
+        maybeLiveRender,
+        () => maybeFrameRecorder,
+      )
+      const viewStartedAt = Option.isSome(maybeLiveRecorder)
+        ? performance.now()
+        : 0
       const [nextDocument, maybeViewDuration] = measureSlowPhase(
         maybeLiveSlowView,
         () => {
@@ -409,6 +419,9 @@ export const makeRenderer = <Model, Message>({
         },
       )
       const { body: nextVNode } = nextDocument
+      const viewEndedAt = Option.isSome(maybeLiveRecorder)
+        ? performance.now()
+        : 0
 
       reportSlowPhase<SlowViewContext<Model, Message>>(
         maybeLiveSlowView,
@@ -461,6 +474,14 @@ export const makeRenderer = <Model, Message>({
         },
       )
       vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
+
+      if (Option.isSome(maybeLiveRecorder)) {
+        maybeLiveRecorder.value.recordCommit(
+          viewStartedAt,
+          viewEndedAt - viewStartedAt,
+          performance.now() - viewEndedAt,
+        )
+      }
 
       reportSlowPhase<SlowPatchContext<Model, Message>>(
         maybeLiveSlowPatch,

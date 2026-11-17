@@ -34,10 +34,12 @@ export type LazyMissReason = Data.TaggedEnum<{
 export const LazyMissReason = Data.taggedEnum<LazyMissReason>()
 
 /** The result of a lazy cache lookup. `slot` identifies the `createLazy` or
- *  `createKeyedLazy` instance. `key` is undefined for unkeyed calls, and
- *  `missReason` is undefined when the cached result is reused. */
+ *  `createKeyedLazy` instance and `label` is the name it was created with.
+ *  `key` is undefined for unkeyed calls, and `missReason` is undefined when
+ *  the cached result is reused. */
 export type LazyResolution = Readonly<{
   slot: object
+  label: string | undefined
   key: PropertyKey | undefined
   missReason: LazyMissReason | undefined
 }>
@@ -128,8 +130,10 @@ const findMissReason = (
   return LazyMissReason.ArgumentsChanged({ indices })
 }
 
+type Slot = Readonly<{ label: string | undefined }>
+
 const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
-  slot: object,
+  slot: Slot,
   key: PropertyKey | undefined,
   previousEntry: CacheEntry | undefined,
   fn: (...args: Args) => VNode | null,
@@ -159,6 +163,7 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
   if (resolutionObserver !== undefined) {
     resolutionObserver({
       slot,
+      label: slot.label,
       key,
       missReason: isHit
         ? undefined
@@ -225,13 +230,18 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
  *  and assumes one VNode per position. Rendering the same cached VNode at
  *  two positions causes patches to collide and can duplicate or misplace
  *  DOM nodes. If the same content needs to appear in multiple positions,
- *  create one slot per position. */
-export const createLazy = (): (<Args extends ReadonlyArray<unknown>>(
+ *  create one slot per position.
+ *
+ *  `label` names the slot in lazy diagnostics such as `Lazy.expectAllReused`
+ *  and `Perf` reports. It does not affect caching. */
+export const createLazy = (
+  label?: string,
+): (<Args extends ReadonlyArray<unknown>>(
   fn: (...args: Args) => VNode | null,
   args: Args,
 ) => VNode | null) => {
   let cached: CacheEntry | undefined
-  const slot = {}
+  const slot: Slot = { label }
 
   return <Args extends ReadonlyArray<unknown>>(
     fn: (...args: Args) => VNode | null,
@@ -264,14 +274,19 @@ export const createLazy = (): (<Args extends ReadonlyArray<unknown>>(
  *
  *  Like `createLazy`, each key's cached VNode must be rendered at a single
  *  position in the tree. If the same content needs to appear in multiple
- *  positions, give each position its own key. */
-export const createKeyedLazy = (): (<Args extends ReadonlyArray<unknown>>(
+ *  positions, give each position its own key.
+ *
+ *  `label` names the slot in lazy diagnostics such as `Lazy.expectAllReused`
+ *  and `Perf` reports. It does not affect caching. */
+export const createKeyedLazy = (
+  label?: string,
+): (<Args extends ReadonlyArray<unknown>>(
   key: PropertyKey,
   fn: (...args: Args) => VNode | null,
   args: Args,
 ) => VNode | null) => {
   const cache = new Map<PropertyKey, CacheEntry>()
-  const slot = {}
+  const slot: Slot = { label }
 
   return <Args extends ReadonlyArray<unknown>>(
     key: PropertyKey,

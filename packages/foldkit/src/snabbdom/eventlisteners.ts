@@ -32,13 +32,25 @@ function invokeHandler<N extends keyof HTMLElementEventMap>(
   }
 }
 
+let dispatchingEvent: Event | undefined
+
+/** The DOM event whose handlers are running, or undefined outside one.
+ *  Read by runtime instrumentation to name what enqueued a Message. */
+export const currentDispatchingEvent = (): Event | undefined => dispatchingEvent
+
 function handleEvent(event: Event, vnode: VNode) {
   const name = event.type
   const on = (vnode.data as VNodeData).on
 
   // call event handler(s) if exists
   if (on && on[name]) {
-    invokeHandler(on[name], vnode, event)
+    const previousEvent = dispatchingEvent
+    dispatchingEvent = event
+    try {
+      invokeHandler(on[name], vnode, event)
+    } finally {
+      dispatchingEvent = previousEvent
+    }
   }
 }
 
