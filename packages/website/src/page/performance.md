@@ -45,7 +45,7 @@ Every state change in a Foldkit app flows through one pipeline, so the cost mode
 ### Dispatch and Rendering
 
 - A dispatched Message runs `update` synchronously, right on the dispatching stack, in arrival order. The runtime compares the returned Model to the previous one by reference. If nothing changed, nothing renders.
-- Renders coalesce. Any number of Messages arriving between frames mark at most one pending frame; the next animation frame renders once with the latest Model. A burst of two hundred Messages inside one frame costs two hundred update calls and a single render.
+- Renders coalesce. Any number of Messages arriving between frames mark at most one pending frame; the next animation frame renders once with the latest Model. Animation-frame Subscription ticks can advance that render into the frame that delivers them. A burst of two hundred Messages inside one frame costs two hundred update calls and a single render.
 - A render is `view` plus diff plus patch: build the new virtual tree, diff it against the previous one, and touch only the DOM that changed.
 - Command results always arrive asynchronously. A synchronous burst that exhausts its time budget defers its remaining Messages to a new task, yielding to the browser.
 
@@ -53,7 +53,7 @@ Rendering can refuse an eligible commit three times while Messages are deferred.
 
 ### Model Size and Change Detection
 
-The production hot path does no work proportional to Model size. No serialization, no deep comparison, no freezing, no snapshots. Change detection is reference equality, and `modifyFields` preserves unchanged branches by reference, so the cost of a Message is the cost of your `update` logic, and the cost of a frame is the cost of the subtrees that actually changed.
+By default, the production hot path does no work proportional to Model size. No serialization, no deep comparison, no freezing, no snapshots. Change detection is reference equality, and `modifyFields` preserves unchanged branches by reference, so the cost of a Message is the cost of your `update` logic, and the cost of a frame is the cost of the subtrees that actually changed.
 
 ## What the abstractions cost
 
@@ -72,9 +72,9 @@ Keep `Message.match` anyway. Its signature requires a handler for every tag in t
 
 ## Development mode is not production
 
-### Development-Only Systems
+### Development Diagnostics
 
-The dev server runs several systems that production builds strip entirely:
+The default development configuration adds several systems:
 
 - [Freeze Model](/core/freeze-model) deep-freezes the Model after every update to catch accidental mutation at the write site.
 - [DevTools](/core/devtools) records each Message with Model snapshots and diffs for time travel.
@@ -83,7 +83,7 @@ The dev server runs several systems that production builds strip entirely:
 
 ### Measure a Production Build
 
-All of it is gated behind `import.meta.hot` and eliminated from production bundles. The consequence: judge performance with a production build. An animation-heavy app dispatching Messages at 60Hz pays the dev-mode systems on every single update, so the dev server systematically understates how the deployed app performs. If DevTools is enabled, use `excludeFromHistory` to skip history recording for high-frequency Messages like frame ticks and pointer moves.
+Model freezing and preservation run only under the dev server. DevTools and Slow Warnings are disabled in production by default, but `show: 'Always'` enables them there. Measure a production build with the diagnostic settings you intend to deploy. An animation-heavy app dispatching Messages at 60Hz can pay extra development costs on every update. If DevTools is enabled, use `excludeFromHistory` to skip history recording for high-frequency Messages like frame ticks and pointer moves.
 
 ## The optimization toolkit
 
