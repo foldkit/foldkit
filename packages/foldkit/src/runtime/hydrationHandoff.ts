@@ -3,6 +3,7 @@ import { Array, Data, Effect, Option, Predicate, Schema, pipe } from 'effect'
 import { HYDRATION_BUILD_ATTRIBUTE } from '../buildToken.js'
 import {
   FOLDKIT_APP_ATTRIBUTE,
+  FOLDKIT_EMBED_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
 } from '../hydrationMarker.js'
 
@@ -319,18 +320,27 @@ export const hasServerRenderedMarkup = (ownerDocument: Document): boolean =>
       `[${FOLDKIT_FLAGS_ATTRIBUTE}]`,
   ) !== null
 
+// NOTE: a root stamped as embedded belongs to a program started with
+// `Runtime.embed`, not to the page, so the page-owning application neither
+// counts it nor adopts it.
+const PAGE_OWNING_ROOT_SELECTOR = `[${FOLDKIT_APP_ATTRIBUTE}]:not([${FOLDKIT_EMBED_ATTRIBUTE}])`
+
 export const findDocumentHydration = (
   container: HTMLElement | null,
   isFlagsRequired: boolean,
 ): HydrationConfig | undefined => {
-  const stampedRoots = Array.fromIterable(
-    document.querySelectorAll<HTMLElement>(`[${FOLDKIT_APP_ATTRIBUTE}]`),
+  assertRuntimeIdsAreUnique(
+    Array.fromIterable(
+      document.querySelectorAll<HTMLElement>(`[${FOLDKIT_APP_ATTRIBUTE}]`),
+    ),
   )
-  assertRuntimeIdsAreUnique(stampedRoots)
+  const stampedRoots = Array.fromIterable(
+    document.querySelectorAll<HTMLElement>(PAGE_OWNING_ROOT_SELECTOR),
+  )
   assertSinglePageApplication(stampedRoots)
   if (container !== null) {
     const stampedAncestor = container.closest<HTMLElement>(
-      `[${FOLDKIT_APP_ATTRIBUTE}]`,
+      PAGE_OWNING_ROOT_SELECTOR,
     )
     if (container.hasAttribute(FOLDKIT_APP_ATTRIBUTE)) {
       const isDocumentRoot = Option.match(Array.head(stampedRoots), {
@@ -379,6 +389,55 @@ export const findDocumentHydration = (
     onNone: () => undefined,
     onSome: root => hydrationForRoot(root, isFlagsRequired),
   })
+}
+
+// NOTE: an embedded program adopts its own container, never a root it has to
+// search for. The container is the stamped root when the server rendered the
+// view into it, so the host's `getElementById` still finds it after the page
+// loads, and the stamp value is the container's id. A container with no stamp
+// is not an error: the host may embed into an empty placeholder on a page the
+// server did not render, and that program builds fresh. A refused handoff
+// contains the page for the same reason the page-owning application does: the
+// served markup is still live.
+export const findEmbeddedHydration = (
+  container: HTMLElement,
+  isFlagsRequired: boolean,
+): HydrationConfig | undefined => {
+  assertRuntimeIdsAreUnique(
+    Array.fromIterable(
+      document.querySelectorAll<HTMLElement>(`[${FOLDKIT_APP_ATTRIBUTE}]`),
+    ),
+  )
+  if (!container.hasAttribute(FOLDKIT_APP_ATTRIBUTE)) {
+    if (container.closest(`[${FOLDKIT_APP_ATTRIBUTE}]`) === null) {
+      return undefined
+    }
+    containRefusedPage(container.ownerDocument)
+    throw new Error(
+      '[foldkit] Runtime.embed received a container inside a server-rendered ' +
+        'root that is not itself the root. Pass the stamped root as the ' +
+        'container, so the program adopts its own markup and nothing beside ' +
+        'it.',
+    )
+  }
+  if (!container.hasAttribute(FOLDKIT_EMBED_ATTRIBUTE)) {
+    containRefusedPage(container.ownerDocument)
+    throw new Error(
+      '[foldkit] Runtime.embed received the page-owning server root. A ' +
+        'page-owning root is adopted by Runtime.hydrate. Render an embedded ' +
+        'program with `isEmbedded: true` so its root carries the embed stamp.',
+    )
+  }
+  const runtimeId = container.getAttribute(FOLDKIT_APP_ATTRIBUTE) ?? ''
+  if (runtimeId !== container.id) {
+    containRefusedPage(container.ownerDocument)
+    throw new Error(
+      `[foldkit] Runtime.embed found a server root stamped "${runtimeId}" ` +
+        `in a container with id "${container.id}". An embedded root is keyed ` +
+        'by its container id, so render it with `runtimeId` set to that id.',
+    )
+  }
+  return hydrationForRoot(container, isFlagsRequired)
 }
 
 /** What the boot takes from the handoff: the server-rendered root the first

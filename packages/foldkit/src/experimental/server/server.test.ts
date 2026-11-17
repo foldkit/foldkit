@@ -299,6 +299,27 @@ describe('renderToString', () => {
     view,
   }
 
+  it.effect('stamps an embedded root and nothing else differently', () =>
+    Effect.gen(function* () {
+      const embedded = yield* renderToString(configWithoutFlags, {
+        runtimeId: 'panel',
+        buildId: 'build-one',
+        isEmbedded: true,
+      })
+      const pageOwning = yield* renderToString(configWithoutFlags, {
+        runtimeId: 'panel',
+        buildId: 'build-one',
+      })
+
+      expect(embedded.html).toContain(`${FOLDKIT_APP_ATTRIBUTE}="panel"`)
+      expect(embedded.html).toContain('data-foldkit-embed=""')
+      expect(pageOwning.html).not.toContain('data-foldkit-embed')
+      expect(embedded.html.replace(' data-foldkit-embed=""', '')).toBe(
+        pageOwning.html,
+      )
+    }),
+  )
+
   it('accepts the build identity compiled into the server artifact', () => {
     if (false) {
       renderToStringWithOptions(configWithoutFlags)
