@@ -1,3 +1,5 @@
+export { default as runtimeLazyCompositionRaw } from './runtimeLazyComposition.ts?raw'
+export { default as runtimeLazyCompositionHighlighted } from './runtimeLazyComposition.ts?highlighted'
 export { default as counterRaw } from './counter.ts?raw'
 export { default as counterHighlighted } from './counter.ts?highlighted'
 export { default as counterEntryRaw } from './counterEntry.ts?raw'

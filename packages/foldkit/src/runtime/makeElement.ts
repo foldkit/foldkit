@@ -11,6 +11,7 @@ import type {
   ElementCrashConfig,
 } from './crashUI.js'
 import type { DevToolsConfig } from './devToolsConfig.js'
+import type { LazyCompositionConfig } from './lazyComposition.js'
 import type { ApplicationInit } from './makeApplication.js'
 import {
   type FlagsSchemaConfig,
@@ -38,6 +39,13 @@ type BaseElementConfig<
     Model,
     Message,
     Resources | ManagedResourceServices
+  >
+  lazyComposition?: LazyCompositionConfig<
+    Model,
+    Message,
+    NoInfer<Resources>,
+    NoInfer<Resources | ManagedResourceServices>,
+    Html
   >
   container: HTMLElement | null
   ports?: P
@@ -206,6 +214,27 @@ export function makeElement<
 
   const crash = toCrashConfig(config.crash)
 
+  const elementComposition = config.lazyComposition
+  const lazyComposition =
+    elementComposition === undefined
+      ? undefined
+      : {
+          ...elementComposition,
+          load: (key: string) =>
+            elementComposition.load(key).pipe(
+              Effect.map(composition => {
+                const compositionView = composition.view
+                return {
+                  ...composition,
+                  view: (model: Model, h: HtmlBuilder<Message>): Document => ({
+                    title: '',
+                    body: compositionView(model, h),
+                  }),
+                }
+              }),
+            ),
+        }
+
   const baseConfig = {
     kind: 'Element',
     Model: config.Model,
@@ -214,6 +243,7 @@ export function makeElement<
     manageDocument: false,
     ports: config.ports,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
+    ...(lazyComposition && { lazyComposition }),
     container,
     ...(Predicate.isNotUndefined(crash) && { crash }),
     ...(Predicate.isNotUndefined(config.slow) && {

@@ -13,6 +13,11 @@ import {
 
 import type { Subscriptions } from '../subscription/subscription.js'
 import {
+  type Composition,
+  type CompositionIdentity,
+  sameCompositionIdentity,
+} from './lazyComposition.js'
+import {
   type ResolvedSlowPhaseConfig,
   type SlowSubscriptionDependenciesContext,
   measureSlowPhase,
@@ -35,6 +40,7 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
   enqueueMessageEffect,
   provideAllResources,
   crashWith,
+  isActive,
 }: Readonly<{
   subscriptions: Subscriptions<Model, Message, Services>
   initModel: Model
@@ -51,6 +57,7 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
     cause: Cause.Cause<never>,
     maybeMessage: Option.Option<Message>,
   ) => Effect.Effect<void>
+  isActive?: () => boolean
 }>): Effect.Effect<void> =>
   pipe(
     subscriptions,
@@ -102,6 +109,9 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
             // changes.
             Stream.mapEffect(model =>
               Effect.gen(function* () {
+                if (isActive !== undefined && !isActive()) {
+                  return Ref.getUnsafe(latestDependenciesRef)
+                }
                 const [dependencies, maybeDependenciesDuration] =
                   measureSlowPhase(maybeSlowSubscriptionDependencies, () =>
                     modelToDependencies(model),
@@ -151,3 +161,70 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
       },
     ),
   )
+
+/** @internal Switches subscription scopes using complete accepted activation identity. */
+export const forkCompositionSubscriptionFibers = <Model, Message, Services>({
+  composition,
+  readLiveModel,
+  ...options
+}: Omit<
+  Parameters<typeof forkSubscriptionFibers<Model, Message, Services>>[0],
+  'subscriptions'
+> &
+  Readonly<{
+    composition: Readonly<{
+      accepted: (model: Model) => Option.Option<CompositionIdentity>
+      resolve: (model: Model) => Composition<Model, Message, Services>
+    }>
+    readLiveModel: () => Model
+  }>): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    const models = yield* PubSub.subscribe(options.modelPubSub).pipe(
+      Effect.provideService(Scope.Scope, options.runtimeScope),
+    )
+    yield* Stream.concat(
+      Stream.make(options.initModel),
+      Stream.fromSubscription(models),
+    ).pipe(
+      Stream.map(() => composition.accepted(readLiveModel())),
+      Stream.changesWith(sameCompositionIdentity),
+      Stream.switchMap(() =>
+        Stream.scoped(
+          Stream.unwrap(
+            Effect.gen(function* () {
+              const model = readLiveModel()
+              const identity = composition.accepted(model)
+              const subscriptions = composition.resolve(model).subscriptions
+              if (subscriptions !== undefined) {
+                const scope = yield* Effect.scope
+                yield* forkSubscriptionFibers({
+                  ...options,
+                  subscriptions,
+                  initModel: model,
+                  runtimeScope: scope,
+                  isActive: () =>
+                    sameCompositionIdentity(
+                      identity,
+                      composition.accepted(readLiveModel()),
+                    ),
+                  enqueueMessageEffect: message =>
+                    Effect.suspend(() =>
+                      sameCompositionIdentity(
+                        identity,
+                        composition.accepted(readLiveModel()),
+                      )
+                        ? options.enqueueMessageEffect(message)
+                        : Effect.void,
+                    ),
+                })
+              }
+              return Stream.never
+            }),
+          ),
+        ),
+      ),
+      Stream.runDrain,
+      Effect.catchCause(cause => options.crashWith(cause, Option.none())),
+      Effect.forkIn(options.runtimeScope),
+    )
+  })
