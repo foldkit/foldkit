@@ -56,7 +56,7 @@ A program can be embedded once at a time. Embedding the same program after `disp
 
 Mount finalizers run outside the runtime scope and may finish after the Promise resolves. A runtime finalizer that never completes keeps the Promise pending. Repeated calls await the same runtime, including calls after `dispose`. Runtime failures do not reject the returned Promise.
 
-Given cart and checkout program factories, the host can wait for the cart's runtime to stop before replacing it with the checkout:
+For example, given cart and checkout program factories, the host can wait for the cart's runtime to stop before replacing it with the checkout:
 
 ::Snippet{name="embeddingDisposeAsync" label="Replacing one app with another"}
 
