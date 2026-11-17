@@ -1,12 +1,110 @@
-import { Effect, Fiber, Schema } from 'effect'
+import { Effect, Fiber, Option, Schema } from 'effect'
+import * as Dom from 'foldkit/dom'
 import type { HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import * as Runtime from 'foldkit/runtime'
 import { modifyFields } from 'foldkit/struct'
+import * as Update from 'foldkit/update'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { Message, Model, boot, update, view } from './index.js'
+import {
+  Message,
+  Model,
+  OutMessage,
+  boot,
+  init,
+  update,
+  view,
+} from './index.js'
 
 const dialogId = 'preserved-dialog'
+const pageDialogId = 'page-dialog'
+
+const PageModel = Schema.Struct({ maybeDialog: Schema.Option(Model) })
+type PageModel = typeof PageModel.Type
+
+const PageMessage = defineMessageUnion({
+  ClickedOpenDialog: {},
+  ClickedLeavePage: {},
+  GotDialogMessage: { message: Message },
+})
+type PageMessage = typeof PageMessage.Type
+
+const foldDialogOutMessage = OutMessage.match<
+  Update.Step<PageModel, PageMessage>
+>({
+  Opened: () => model => ({ model }),
+  Closed: () => model => ({ model }),
+})
+
+const foldDialog = Update.foldChild({
+  update,
+  read: (model: PageModel) => model.maybeDialog,
+  write: (model: PageModel, nextDialog: Model) =>
+    modifyFields(model, { maybeDialog: () => Option.some(nextDialog) }),
+  toParentMessage: (message: Message) =>
+    PageMessage.GotDialogMessage({ message }),
+  foldOutMessage: foldDialogOutMessage,
+})
+
+const makePageProgram = (container: HTMLElement) =>
+  Runtime.makeElement({
+    Model: PageModel,
+    init: () => ({
+      model: { maybeDialog: Option.some(init({ id: pageDialogId })) },
+    }),
+    update: (model: PageModel, message: PageMessage) =>
+      PageMessage.match<Update.Return<PageModel, PageMessage>>(message, {
+        ClickedOpenDialog: () => foldDialog(model, Message.RequestedOpen()),
+        ClickedLeavePage: () => ({
+          model: modifyFields(model, { maybeDialog: () => Option.none() }),
+        }),
+        GotDialogMessage: ({ message: dialogMessage }) =>
+          foldDialog(model, dialogMessage),
+      }),
+    view: (model: PageModel, h: HtmlBuilder<PageMessage>) =>
+      h.div(
+        [],
+        [
+          h.button(
+            [h.Id('open-dialog'), h.OnClick(PageMessage.ClickedOpenDialog())],
+            ['Open'],
+          ),
+          h.button(
+            [h.Id('leave-page'), h.OnClick(PageMessage.ClickedLeavePage())],
+            ['Leave'],
+          ),
+          ...Option.match(model.maybeDialog, {
+            onNone: () => [h.p([h.Id('next-page')], ['Next page'])],
+            onSome: dialog => [
+              h.submodel({
+                slotId: 'dialog',
+                model: dialog,
+                view,
+                viewInputs: {
+                  toView: ({ dialog: dialogAttributes, title, panel }) =>
+                    h.dialog(
+                      [...dialogAttributes],
+                      [
+                        h.div(
+                          [...panel],
+                          [
+                            h.h2([...title], ['Page Dialog']),
+                            h.button([h.Id('page-dialog-button')], ['Close']),
+                          ],
+                        ),
+                      ],
+                    ),
+                },
+                toParentMessage: message =>
+                  PageMessage.GotDialogMessage({ message }),
+              }),
+            ],
+          }),
+        ],
+      ),
+    container,
+  })
 
 const makeDialogProgram = (container: HTMLElement) =>
   Runtime.makeElement({
@@ -189,6 +287,49 @@ describe('Dialog runtime lifecycle', () => {
         expect(document.documentElement.style.overflow).not.toBe('hidden')
         expect(document.activeElement).toBe(trigger)
       })
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(runtime))
+    }
+  })
+
+  it('releases modal resources when the page that owns an open Dialog is removed', async () => {
+    const container = document.createElement('div')
+    container.id = 'page-dialog-app'
+    document.body.append(container)
+
+    const runtime = Effect.runFork(makePageProgram(container).start())
+
+    try {
+      await vi.waitFor(() => {
+        expect(document.getElementById('open-dialog')).not.toBeNull()
+      })
+      document.getElementById('open-dialog')?.click()
+
+      await vi.waitFor(() => {
+        expect(document.documentElement.style.overflow).toBe('hidden')
+        expect(document.activeElement?.getAttribute('id')).toBe(
+          'page-dialog-button',
+        )
+      })
+
+      document.getElementById('leave-page')?.click()
+
+      await vi.waitFor(() => {
+        expect(document.getElementById('next-page')).not.toBeNull()
+        expect(document.documentElement.style.overflow).toBe('')
+      })
+
+      const escape = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+        cancelable: true,
+      })
+      document.body.dispatchEvent(escape)
+
+      expect(escape.defaultPrevented).toBe(false)
+      expect(
+        await Effect.runPromise(Dom.releaseDialogResources(pageDialogId)),
+      ).toBe(false)
     } finally {
       await Effect.runPromise(Fiber.interrupt(runtime))
     }

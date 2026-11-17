@@ -516,9 +516,13 @@ export const descriptionId = (model: Model): string =>
  *    while mapping `Dom.showDialog`'s Escape signal to `RequestedClose`,
  *    an `OnMount` acquisition that restores modal resources for an initially
  *    visible or development-preserved Dialog, and an `OnUnmount` backstop that
- *    releases framework hygiene (scroll lock, focus trap, background
- *    isolation, return focus) if the element is removed from the DOM while
+ *    resets the Model to closed if the element is removed from the DOM while
  *    still open, such as navigating away from a route-keyed subtree.
+ *    `Dom.showDialog` releases the framework hygiene (scroll lock, focus trap,
+ *    background isolation, return focus) when the open element leaves the
+ *    document, so the release also happens when the same update removes the
+ *    Model that owns the Dialog and the `Unmounted` Message has no Model to
+ *    reach.
  *    The consumer MUST render an `h.dialog(...)` element so the framework
  *    can open and close it, and so the unmount backstop can fire.
  *  - `backdrop`: attributes for the backdrop element. Includes the
