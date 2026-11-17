@@ -16,7 +16,10 @@ import {
   createDevToolsStore,
 } from '../devTools/store.js'
 import { extractSubmodelInfo, isTagged } from '../devTools/submodelPath.js'
-import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
+import {
+  RuntimeStopped,
+  startWebSocketBridge,
+} from '../devTools/webSocketBridge.js'
 import {
   MountRuntime,
   MountTracker,
@@ -100,19 +103,22 @@ const toCommandRecord = ({ id, command }: RecordableCommand): CommandRecord =>
 /**
  * Builds the DevTools integration for one runtime from the `devTools`
  * config. `update` and `maybeFreezeModel` drive time-travel replay, and
- * `enqueueMessageEffect` is how Messages sent over the WebSocket bridge
- * reach the queue.
+ * `enqueueMessagesAndAwaitProcessing` is how Messages sent over the
+ * WebSocket bridge reach the queue. It succeeds with how many of them
+ * update processed before the runtime stopped.
  */
 export const makeDevToolsIntegration = <Model, Message>({
   devTools,
   update,
   maybeFreezeModel,
-  enqueueMessageEffect,
+  enqueueMessagesAndAwaitProcessing,
 }: Readonly<{
   devTools: DevToolsConfig | undefined
   update: (model: Model, message: Message) => Readonly<{ model: Model }>
   maybeFreezeModel: (model: Model) => Model
-  enqueueMessageEffect: (message: Message) => Effect.Effect<void>
+  enqueueMessagesAndAwaitProcessing: (
+    messages: ReadonlyArray<Message>,
+  ) => Effect.Effect<number>
 }>): Effect.Effect<DevToolsIntegration<Model, Message>> =>
   Effect.gen(function* () {
     const resolvedDevTools = resolveDevToolsConfig(devTools)
@@ -256,8 +262,17 @@ export const makeDevToolsIntegration = <Model, Message>({
               yield* startWebSocketBridge(
                 store,
                 import.meta.hot,
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                message => enqueueMessageEffect(message as Message),
+                messages =>
+                  Effect.flatMap(
+                    enqueueMessagesAndAwaitProcessing(
+                      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                      messages as ReadonlyArray<Message>,
+                    ),
+                    processedCount =>
+                      processedCount === messages.length
+                        ? Effect.void
+                        : Effect.fail(new RuntimeStopped({ processedCount })),
+                  ),
                 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                 maybeMessageSchema as Option.Option<Schema.Codec<any, any>>,
               )
