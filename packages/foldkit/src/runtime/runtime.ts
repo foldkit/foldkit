@@ -1,5 +1,6 @@
 import {
   Array,
+  Cause,
   Duration,
   Effect,
   Exit,
@@ -51,7 +52,7 @@ import { preserveModel } from './modelPreservationBridge.js'
 import { makePreserveScheduler } from './preserveScheduler.js'
 import { type ResolvedViewTransition, makeRenderer } from './renderer.js'
 import { makeResourceProvider } from './resourceProvider.js'
-import { makeRuntimeStatus } from './runtimeStatus.js'
+import { type RuntimeStatus, makeRuntimeStatus } from './runtimeStatus.js'
 import {
   preserveScrollPosition,
   restorePreservedScrollPosition,
@@ -383,6 +384,7 @@ export const makeRuntime = <
     // `Render.afterCommit` awaiting inside another.
     const commitNotifier = createCommitNotifier()
     const dialogIds = new Set<string>()
+    let maybeRuntimeStatus = Option.none<RuntimeStatus>()
 
     return Effect.scoped(
       Effect.gen(function* () {
@@ -541,6 +543,7 @@ export const makeRuntime = <
           hot ? preserveScheduler.schedule(model) : Effect.void
 
         const status = makeRuntimeStatus()
+        maybeRuntimeStatus = Option.some(status)
 
         // NOTE: `processMessagePlain` and `crashWith` are defined further
         // down, so they are wrapped here instead of passed by reference. The
@@ -619,6 +622,25 @@ export const makeRuntime = <
         // runtime.
         const runtimeContext = yield* Effect.context<never>()
 
+        const releaseDialogs = Effect.suspend(() =>
+          Effect.forEach(
+            pipe(dialogIds, Array.fromIterable, Array.reverse),
+            id =>
+              releaseDialogResources(id).pipe(
+                Effect.catchCause(cause =>
+                  Effect.sync(() => {
+                    console.error(
+                      '[foldkit] Releasing dialog resources failed:',
+                      id,
+                      Cause.squash(cause),
+                    )
+                  }),
+                ),
+              ),
+            { discard: true },
+          ),
+        )
+
         const {
           crashWith,
           render,
@@ -645,15 +667,10 @@ export const makeRuntime = <
           readLiveModel: () => liveModel,
           messageQueue,
           devToolsIntegration,
+          releaseDialogs,
         })
 
-        yield* Effect.addFinalizer(() =>
-          Effect.forEach(
-            pipe(dialogIds, Array.fromIterable, Array.reverse),
-            releaseDialogResources,
-            { discard: true },
-          ),
-        )
+        yield* Effect.addFinalizer(() => releaseDialogs)
 
         // NOTE: the fork is deferred one microtask so a Command's Effect
         // never begins on the dispatching stack. Commands are facts from
@@ -892,6 +909,11 @@ export const makeRuntime = <
     ).pipe(
       Effect.provideService(RenderCommit, commitNotifier.service),
       Effect.provideService(DialogRuntime, {
+        isActive: () =>
+          Option.match(maybeRuntimeStatus, {
+            onNone: () => true,
+            onSome: status => !status.isCrashed && !status.isRuntimeDisposed,
+          }),
         register: id => {
           dialogIds.add(id)
         },

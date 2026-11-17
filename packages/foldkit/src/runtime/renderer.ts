@@ -128,6 +128,7 @@ export const makeRenderer = <Model, Message>({
   readLiveModel,
   messageQueue,
   devToolsIntegration,
+  releaseDialogs,
 }: Readonly<{
   status: RuntimeStatus
   container: HTMLElement
@@ -153,6 +154,7 @@ export const makeRenderer = <Model, Message>({
   readLiveModel: () => Model
   messageQueue: MessageQueue<Message>
   devToolsIntegration: DevToolsIntegration<Model, Message>
+  releaseDialogs: Effect.Effect<void>
 }>): Effect.Effect<Renderer<Model, Message>, never, Scope.Scope> =>
   Effect.gen(function* () {
     const {
@@ -319,10 +321,11 @@ export const makeRenderer = <Model, Message>({
       cause: Cause.Cause<never>,
       maybeMessage: Option.Option<Message>,
     ): Effect.Effect<void> =>
-      Effect.sync(() => {
+      Effect.gen(function* () {
         if (status.isCrashed) {
           return
         }
+
         status.isCrashed = true
         // NOTE: the crash view should appear at once, not animate in from
         // a snapshot of the state that crashed.
@@ -331,6 +334,9 @@ export const makeRenderer = <Model, Message>({
         const squashed = Cause.squash(cause)
         const error =
           squashed instanceof Error ? squashed : new Error(String(squashed))
+
+        yield* releaseDialogs
+
         try {
           renderCrashView(
             { error, model, message: maybeMessage },
