@@ -1,6 +1,6 @@
 ---
 title: Foldkit 0.171.0
-description: Rendering fixes, Dialog cleanup after crashes, smaller keyed view caches, less Subscription overhead, and concrete result Messages for Commands and Mounts. Also covering the Effect 4.1 upgrade in 0.170.0.
+description: Rendering and DevTools crash fixes, Dialog cleanup after crashes, view cache cleanup, and result Messages. Also covering Effect 4.1 in 0.170.0.
 date: 2026-11-17
 coverImage: /blog/foldkit-0-171-0/cover.png
 coverImageAlt: The numbers 170 and 171 stacked in cyan, lime, yellow, and coral with black shadows on a light gray background.
@@ -8,7 +8,7 @@ coverImageWidth: 3600
 coverImageHeight: 2400
 ---
 
-Foldkit 0.171.0 fixes delayed renders and Dialogs that block the crash screen, and releases unused keyed view cache entries. This post also covers 0.170.0, which upgrades Foldkit and its companion packages to Effect 4.1.
+Foldkit 0.171.0 fixes delayed renders, DevTools crashes, and Dialogs that block the crash screen. It also releases unused view cache entries. This post also covers 0.170.0, which upgraded Foldkit and its companion packages to Effect 4.1.
 
 ## Rendering and Dialog fixes
 
@@ -29,6 +29,12 @@ By default, `createKeyedLazy()` now releases a cached view when its key is absen
 Foldkit now checks all Subscription dependencies in one pass and wakes only the Subscriptions whose dependencies changed. When several entries read a child Model through `Subscription.lift`, that read now runs once for each parent Model object.
 
 Thank you to [@armancharan](https://github.com/armancharan) for the cache fix, [@ivebenfreed](https://github.com/ivebenfreed) for reporting the retained rows, and [@Makisuo](https://github.com/Makisuo) for the Subscription improvements!
+
+## Inspecting Chunk and BigDecimal values
+
+[DevTools](/core/devtools) now shows `Chunk` values as lists and `BigDecimal` values as decimal strings. Inspecting these values, or recording a Model change that contains them, no longer overflows the stack. Circular references display as `[Circular]`.
+
+Thank you to [@wmaurer](https://github.com/wmaurer) for reporting and fixing the Chunk failure, and [@V1RE](https://github.com/V1RE) for reporting the BigDecimal failure!
 
 ## Result Messages and app shutdown
 
