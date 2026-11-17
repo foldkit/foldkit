@@ -128,6 +128,7 @@ export const makeRenderer = <Model, Message>({
   commitNotifier,
   runtimeContext,
   readLiveModel,
+  readAnimationFrame,
   messageQueue,
   devToolsIntegration,
   releaseDialogs,
@@ -154,6 +155,7 @@ export const makeRenderer = <Model, Message>({
   commitNotifier: CommitNotifier
   runtimeContext: Context.Context<never>
   readLiveModel: () => Model
+  readAnimationFrame: () => Option.Option<number>
   messageQueue: MessageQueue<Message>
   devToolsIntegration: DevToolsIntegration<Model, Message>
   releaseDialogs: Effect.Effect<void>
@@ -189,6 +191,8 @@ export const makeRenderer = <Model, Message>({
     // `commitNotifier` tracks the patch itself, so `Render.afterCommit`
     // waits for the commit rather than for the frame that scheduled it.
     let isRenderFrameScheduled = false
+    let isRunningRenderFrame = false
+    let maybeEarlyRenderFrame: Option.Option<number> = Option.none()
     // NOTE: resume clears the DevTools store's pause flag before its frame
     // patches the live view. This distinguishes that intentional repaint
     // from an ordinary frame that was already queued when jumpTo installed
@@ -709,7 +713,7 @@ export const makeRenderer = <Model, Message>({
     // refusals retain it for the retry. A frame abandoned silently
     // would strand any `Render.afterCommit` registered against it, and
     // the Dom helpers that gate on it would never run their DOM work.
-    const renderFramePlain = (): void => {
+    const renderScheduledFrame = (): void => {
       isRenderFrameScheduled = false
       const isRestoringLiveView = isLiveViewRestorePending
       isLiveViewRestorePending = false
@@ -771,10 +775,18 @@ export const makeRenderer = <Model, Message>({
       }
     }
 
-    // NOTE: render frames run as plain JavaScript inside the
-    // requestAnimationFrame callback. Messages arriving between frames mark
-    // at most one pending frame; the callback renders once with the latest
-    // model.
+    const renderFramePlain = (): void => {
+      isRunningRenderFrame = true
+      try {
+        renderScheduledFrame()
+      } finally {
+        isRunningRenderFrame = false
+      }
+    }
+
+    // NOTE: a frame callback and its browser-scheduler microtasks run before
+    // paint. Advancing one render in that context avoids requesting another
+    // frame from the tick. Later browser tasks have no frame context.
     const scheduleRenderFrame = (
       isRestoringLiveView: boolean = false,
     ): void => {
@@ -786,6 +798,19 @@ export const makeRenderer = <Model, Message>({
       }
       isRenderFrameScheduled = true
       commitNotifier.markCommitPending()
+      const maybeFrame = readAnimationFrame()
+      if (
+        Option.isSome(maybeFrame) &&
+        !isRunningRenderFrame &&
+        !Option.exists(
+          maybeEarlyRenderFrame,
+          frame => frame === maybeFrame.value,
+        )
+      ) {
+        maybeEarlyRenderFrame = maybeFrame
+        queueMicrotask(renderFramePlain)
+        return
+      }
       requestAnimationFrame(renderFramePlain)
     }
 

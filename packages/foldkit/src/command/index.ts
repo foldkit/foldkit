@@ -1,7 +1,10 @@
 import { Array, Effect, Function, Option, Predicate, Schema } from 'effect'
 
+import type { MessageSchemas, ResultMessageSchemas } from '../messageSchemas.js'
 import { CommandDefinitionTypeId, brandAsDefinition } from './brand.js'
 import * as Interruptible from './interruptible/index.js'
+
+export type { ResultMessageSchemas } from '../messageSchemas.js'
 
 export { CommandDefinitionTypeId }
 
@@ -141,6 +144,12 @@ const suspendExecute = (
  * body performs and no exception it raises can reach update, and a Command that
  * update builds and then discards runs nothing at all.
  *
+ * `messages` requires a non-empty list of result Message Schemas. Entries
+ * whose decoded type is `never`, including `Schema.Never`, are rejected by
+ * TypeScript. For work that completes without changing the Model, return a
+ * descriptive `Completed*` Message and leave the Model unchanged in update.
+ * The Message records completion for DevTools, Story, and Scene tests.
+ *
  * With `interrupt`, every invocation registers under a key in the runtime's
  * interrupt registry for the duration of its Effect, and the returned Definition
  * carries an `Interrupt` constructor that builds an ordinary Command to stop it.
@@ -220,7 +229,7 @@ const suspendExecute = (
 export function define<
   const Name extends string,
   Fields extends Schema.Struct.Fields,
-  const Messages extends ReadonlyArray<Schema.Top>,
+  const Messages extends MessageSchemas,
   const KeyField extends keyof Schema.Schema.Type<Schema.Struct<Fields>> &
     string,
   Eff extends Effect.Effect<Schema.Schema.Type<Messages[number]>, any, any>,
@@ -228,7 +237,7 @@ export function define<
   name: Name,
   config: Readonly<{
     args: Fields
-    messages: Messages
+    messages: ResultMessageSchemas<Messages>
     interrupt: Readonly<{
       keyFields: Array.NonEmptyReadonlyArray<KeyField>
       toKey: (
@@ -247,13 +256,13 @@ export function define<
 export function define<
   const Name extends string,
   Fields extends Schema.Struct.Fields,
-  const Messages extends ReadonlyArray<Schema.Top>,
+  const Messages extends MessageSchemas,
   Eff extends Effect.Effect<Schema.Schema.Type<Messages[number]>, any, any>,
 >(
   name: Name,
   config: Readonly<{
     args: Fields
-    messages: Messages
+    messages: ResultMessageSchemas<Messages>
     interrupt: true
     execute: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => Eff
   }>,
@@ -262,13 +271,13 @@ export function define<
 export function define<
   const Name extends string,
   Fields extends Schema.Struct.Fields,
-  const Messages extends ReadonlyArray<Schema.Top>,
+  const Messages extends MessageSchemas,
   Eff extends Effect.Effect<Schema.Schema.Type<Messages[number]>, any, any>,
 >(
   name: Name,
   config: Readonly<{
     args: Fields
-    messages: Messages
+    messages: ResultMessageSchemas<Messages>
     interrupt?: never
     execute: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => Eff
   }>,
@@ -276,12 +285,12 @@ export function define<
 
 export function define<
   const Name extends string,
-  const Messages extends ReadonlyArray<Schema.Top>,
+  const Messages extends MessageSchemas,
   Eff extends Effect.Effect<Schema.Schema.Type<Messages[number]>, any, any>,
 >(
   name: Name,
   config: Readonly<{
-    messages: Messages
+    messages: ResultMessageSchemas<Messages>
     interrupt: true
     execute: Eff
   }>,
@@ -289,12 +298,12 @@ export function define<
 
 export function define<
   const Name extends string,
-  const Messages extends ReadonlyArray<Schema.Top>,
+  const Messages extends MessageSchemas,
   Eff extends Effect.Effect<Schema.Schema.Type<Messages[number]>, any, any>,
 >(
   name: Name,
   config: Readonly<{
-    messages: Messages
+    messages: ResultMessageSchemas<Messages>
     interrupt?: never
     execute: Eff
   }>,

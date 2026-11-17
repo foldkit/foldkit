@@ -26,6 +26,7 @@ import { RenderCommit, createCommitNotifier } from '../render/commit.js'
 import type { Subscriptions } from '../subscription/subscription.js'
 import type { Return as UpdateReturn } from '../update/index.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
+import { createAnimationFrameRuntime } from './animationFrame.js'
 import {
   type RoutingConfig,
   addNavigationEventListeners,
@@ -383,6 +384,7 @@ export const makeRuntime = <
     // the same signal. A commit in one embedded application must never wake a
     // `Render.afterCommit` awaiting inside another.
     const commitNotifier = createCommitNotifier()
+    const animationFrameRuntime = createAnimationFrameRuntime()
     const dialogIds = new Set<string>()
     let maybeRuntimeStatus = Option.none<RuntimeStatus>()
 
@@ -665,6 +667,7 @@ export const makeRuntime = <
           commitNotifier,
           runtimeContext,
           readLiveModel: () => liveModel,
+          readAnimationFrame: animationFrameRuntime.currentFrame,
           messageQueue,
           devToolsIntegration,
           releaseDialogs,
@@ -907,6 +910,7 @@ export const makeRuntime = <
         return yield* Effect.never
       }),
     ).pipe(
+      animationFrameRuntime.provide,
       Effect.provideService(RenderCommit, commitNotifier.service),
       Effect.provideService(DialogRuntime, {
         isActive: () =>
