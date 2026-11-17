@@ -11,6 +11,7 @@ import {
 } from 'effect'
 
 import type { ManagedResourceConfig } from '../managedResource/index.js'
+import { featureRegistry } from './featureRegistry.js'
 import type { ManagedResourceRef } from './resourceProvider.js'
 
 /**
@@ -119,4 +120,10 @@ export const forkManagedResourceFibers = <Model, Message>({
     concurrency: 'unbounded',
     discard: true,
   })
+}
+
+/** Called by `ManagedResource.make` so the runtime can fork managed resources
+ *  without importing this module directly. */
+export const registerManagedResourceRuntime = (): void => {
+  featureRegistry.forkManagedResourceFibers = forkManagedResourceFibers
 }

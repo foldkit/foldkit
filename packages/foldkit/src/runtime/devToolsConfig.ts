@@ -1,6 +1,7 @@
 import { Effect, Option, Schema, Scope, pipe } from 'effect'
 
-import type { DevToolsStore } from '../devTools/store.js'
+import { type DevToolsStore, createDevToolsStore } from '../devTools/store.js'
+import { featureRegistry } from './featureRegistry.js'
 import { type Visibility, isVisible } from './visibility.js'
 
 /** Position of the DevTools badge and panel on screen. */
@@ -82,11 +83,14 @@ export type DevToolsConfig =
 
 let registeredDevToolsOverlay: DevToolsOverlay | undefined
 
-/** Registers the overlay supplied by the Foldkit Vite plugin. */
+/** Registers the overlay supplied by the Foldkit Vite plugin, along with the
+ *  DevTools store it reads. Production builds include the store only through
+ *  this registration, so a build without the overlay leaves the store out. */
 export const __setDevToolsOverlay = (
   overlay: DevToolsOverlay | undefined,
 ): void => {
   registeredDevToolsOverlay = overlay
+  featureRegistry.createProductionDevToolsStore = createDevToolsStore
 }
 
 const DEFAULT_DEV_TOOLS_SHOW: Visibility = 'Development'

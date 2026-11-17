@@ -9,6 +9,8 @@ import {
   pipe,
 } from 'effect'
 
+import { registerSubscriptionRuntime } from '../runtime/subscriptionFibers.js'
+
 type SubscriptionBrand = {
   readonly __subscription: never
 }
@@ -183,6 +185,8 @@ export const make =
   ): {
     readonly [K in keyof Entries]: Entries[K] & SubscriptionBrand
   } => {
+    registerSubscriptionRuntime()
+
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const entryBuilder = ((
       fields: Schema.Struct.Fields,

@@ -10,6 +10,8 @@ import {
   type Scope,
 } from 'effect'
 
+import { registerManagedResourceRuntime } from '../runtime/managedResourceFibers.js'
+
 /** Typed error raised when a command accesses a managed resource that is not currently acquired. */
 export class ResourceNotAvailable extends Data.TaggedError(
   'ResourceNotAvailable',
@@ -301,6 +303,8 @@ export const make =
   <Entries extends Record<string, EntryBrand<Model, Message>>>(
     build: (entry: EntryBuilder<Model, Message>) => Entries,
   ): Entries => {
+    registerManagedResourceRuntime()
+
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const entry = ((
       schema: Schema.Schema<any>,

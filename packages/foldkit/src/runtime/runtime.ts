@@ -34,6 +34,7 @@ import { deepFreeze } from './deepFreeze.js'
 import type { DevToolsConfig } from './devToolsConfig.js'
 import { makeDevToolsIntegration } from './devToolsIntegration.js'
 import { createDuplicateIdScanner } from './duplicateIdScanner.js'
+import { featureRegistry } from './featureRegistry.js'
 import {
   type HostConnector,
   type PortChannelsBundle,
@@ -45,7 +46,6 @@ import {
   type HydrationConfig,
   resolveHydrationHandoff,
 } from './hydrationHandoff.js'
-import { forkManagedResourceFibers } from './managedResourceFibers.js'
 import { type MessageQueue, makeMessageQueue } from './messageQueue.js'
 import { preserveModel } from './modelPreservationBridge.js'
 import { makePreserveScheduler } from './preserveScheduler.js'
@@ -63,7 +63,6 @@ import {
   measureSlowPhase,
   reportSlowPhase,
 } from './slowPhase.js'
-import { forkSubscriptionFibers } from './subscriptionFibers.js'
 import {
   type ViewTransitionConfig,
   __resolveStartViewTransition,
@@ -807,6 +806,15 @@ export const makeRuntime = <
         }
 
         if (subscriptions) {
+          const forkSubscriptionFibers = featureRegistry.forkSubscriptionFibers
+          if (forkSubscriptionFibers === undefined) {
+            return yield* Effect.die(
+              new Error(
+                'Subscriptions must be created with Subscription.make, which installs the Subscription runtime.',
+              ),
+            )
+          }
+
           yield* forkSubscriptionFibers({
             subscriptions,
             initModel,
@@ -819,14 +827,24 @@ export const makeRuntime = <
           })
         }
 
-        yield* forkManagedResourceFibers({
-          managedResourceRefs,
-          initModel,
-          modelPubSub,
-          runtimeScope,
-          enqueueMessageEffect,
-          crashWith,
-        })
+        const forkManagedResourceFibers =
+          featureRegistry.forkManagedResourceFibers
+        if (forkManagedResourceFibers !== undefined) {
+          yield* forkManagedResourceFibers({
+            managedResourceRefs,
+            initModel,
+            modelPubSub,
+            runtimeScope,
+            enqueueMessageEffect,
+            crashWith,
+          })
+        } else if (Array.isReadonlyArrayNonEmpty(managedResourceRefs)) {
+          return yield* Effect.die(
+            new Error(
+              'ManagedResources must be created with ManagedResource.make, which installs the ManagedResource runtime.',
+            ),
+          )
+        }
 
         // NOTE: registered before the boot buffer drains, so an interrupt
         // landing anywhere after this yield tears down with the flag set
