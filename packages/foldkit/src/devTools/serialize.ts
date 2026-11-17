@@ -1,5 +1,6 @@
 import {
   Array,
+  BigDecimal,
   Chunk,
   Function,
   Match,
@@ -18,6 +19,8 @@ import type { CommandRecord, HistoryEntry, MountRecord } from './store.js'
 import { extractSubmodelInfo } from './submodelPath.js'
 
 const inspectableCache = new WeakMap<object, unknown>()
+const activeInspectionValues = new WeakSet<object>()
+const CIRCULAR_REFERENCE = '[Circular]'
 
 const computeInspectableValue = (value: unknown): unknown =>
   Match.value(value).pipe(
@@ -34,6 +37,9 @@ const computeInspectableValue = (value: unknown): unknown =>
     })),
     Match.when(Match.instanceOf(Date), date => date.toISOString()),
     Match.when(Match.instanceOf(URL), ({ href }) => href),
+    Match.when(BigDecimal.isBigDecimal, value =>
+      BigDecimal.format(BigDecimal.make(value.value, value.scale)),
+    ),
     Match.when(Chunk.isChunk, chunk =>
       Array.map(Chunk.toReadonlyArray(chunk), toInspectableValue),
     ),
@@ -43,36 +49,41 @@ const computeInspectableValue = (value: unknown): unknown =>
   )
 
 /**
- * Convert Effect `Redacted` values to their labeled placeholder strings and
- * DOM-class instances (File, Blob, Date, URL) to plain-object
- * representations so the tree renderer's key-enumeration walk can see their
- * meaningful data, which otherwise lives on the prototype as getters and
- * is invisible to `Object.keys`. Converts Effect `Chunk` values to arrays,
- * because a Chunk's `left` and `right` fields lead to the empty Chunk, which
- * refers to itself, so walking them field by field never ends. Recurses
- * through arrays and records so the transform applies at every level. File
- * is matched before Blob because File extends Blob.
+ * Convert values into the representation DevTools displays. Effect `Chunk`
+ * values become arrays, `BigDecimal` values become decimal strings, and
+ * `Redacted` values become labeled placeholders. File and Blob metadata becomes
+ * plain objects; Dates and URLs become strings.
  *
- * Memoized by reference. The transform allocates fresh wrappers via
- * `Array.map` / `Record.map` even when the input contains no DOM classes
- * (because `map` always allocates), which would otherwise produce a fresh
- * tree of references on every call. Without memoization, the inspector
- * tree's row-level `lazyTreeNode` cache would miss on every row of every
- * render — the cached row args reference last render's wrapper objects, not
- * this render's. Memoizing on the input reference makes subsequent calls
- * with the same snapshot return identical references end-to-end, so the
- * row lazy actually hits.
+ * Arrays, records, and Chunk elements are converted recursively. References
+ * back to a value being inspected become `[Circular]` instead of being expanded
+ * again. Shared values reuse their completed conversion. BigDecimals are
+ * formatted without changing their normalization caches.
+ *
+ * Completed conversions are memoized by input identity so repeated inspection
+ * of an immutable snapshot preserves the references used by view memoization.
  */
 export const toInspectableValue = (value: unknown): unknown => {
   if (value === null || typeof value !== 'object') {
     return value
   }
+
+  if (activeInspectionValues.has(value)) {
+    return CIRCULAR_REFERENCE
+  }
+
   if (inspectableCache.has(value)) {
     return inspectableCache.get(value)
   }
-  const result = computeInspectableValue(value)
-  inspectableCache.set(value, result)
-  return result
+
+  activeInspectionValues.add(value)
+
+  try {
+    const result = computeInspectableValue(value)
+    inspectableCache.set(value, result)
+    return result
+  } finally {
+    activeInspectionValues.delete(value)
+  }
 }
 
 /**

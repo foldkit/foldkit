@@ -1,4 +1,13 @@
-import { Chunk, HashSet, Option, Redacted } from 'effect'
+import {
+  BigDecimal,
+  Chunk,
+  Equal,
+  Hash,
+  HashSet,
+  Option,
+  Redacted,
+  Schema,
+} from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -103,12 +112,159 @@ describe('toInspectableValue', () => {
     expect(
       toInspectableValue({
         empty: Chunk.empty(),
+        singleton: Chunk.of(date),
+        concatenated: Chunk.appendAll(Chunk.of(1), Chunk.of(2)),
+        sliced: Chunk.drop(Chunk.make(1, 2, 3), 1),
         log: Chunk.make({ created: date }, { id: 2 }),
       }),
     ).toEqual({
       empty: [],
+      singleton: ['2026-01-01T00:00:00.000Z'],
+      concatenated: [1, 2],
+      sliced: [2, 3],
       log: [{ created: '2026-01-01T00:00:00.000Z' }, { id: 2 }],
     })
+  })
+
+  it('formats fresh, normalized, formatted, compared, and hashed BigDecimals', () => {
+    const fresh = BigDecimal.fromStringUnsafe('14.270')
+    const normalized = BigDecimal.normalize(
+      BigDecimal.fromStringUnsafe('15.280'),
+    )
+    const formatted = BigDecimal.fromStringUnsafe('16.290')
+    BigDecimal.format(formatted)
+    const compared = BigDecimal.fromStringUnsafe('17.300')
+    Equal.equals(compared, BigDecimal.fromStringUnsafe('17.3'))
+    const hashed = BigDecimal.fromStringUnsafe('18.310')
+    Hash.hash(hashed)
+
+    expect(
+      toInspectableValue({ fresh, normalized, formatted, compared, hashed }),
+    ).toEqual({
+      fresh: '14.27',
+      normalized: '15.28',
+      formatted: '16.29',
+      compared: '17.3',
+      hashed: '18.31',
+    })
+  })
+
+  it('inspects Schema.BigDecimal fields without mutating decimal instances', () => {
+    const Model = Schema.Struct({
+      amount: Schema.BigDecimal,
+      frozen: Schema.BigDecimal,
+    })
+    const amount = BigDecimal.fromStringUnsafe('14.270')
+    const originalProperties = Object.getOwnPropertyDescriptors(amount)
+    const frozen = Object.freeze(BigDecimal.fromStringUnsafe('15.280'))
+    const model = Object.freeze(Model.make({ amount, frozen }))
+
+    expect(toInspectableValue(model)).toEqual({
+      amount: '14.27',
+      frozen: '15.28',
+    })
+    expect(Object.getOwnPropertyDescriptors(amount)).toEqual(originalProperties)
+  })
+
+  it('masks Redacted values nested inside Chunk elements', () => {
+    const secret = 'private-inspection-fixture'
+    const hidden = Redacted.make({ secret }, { label: 'session' })
+    const result = toInspectableValue(
+      Chunk.make(
+        { amount: BigDecimal.fromStringUnsafe('14.27'), hidden },
+        hidden,
+      ),
+    )
+
+    expect(result).toEqual([
+      { amount: '14.27', hidden: '<redacted:session>' },
+      '<redacted:session>',
+    ])
+    expect(JSON.stringify(result)).not.toContain(secret)
+  })
+
+  it('replaces object and array ancestor cycles with bounded placeholders', () => {
+    const record: Record<string, unknown> = { label: 'root' }
+    record['self'] = record
+    const array: Array<unknown> = []
+    array.push(array)
+
+    const result = toInspectableValue({ record, array })
+
+    expect(result).toEqual({
+      record: { label: 'root', self: '[Circular]' },
+      array: ['[Circular]'],
+    })
+    expect(() => JSON.stringify(result)).not.toThrow()
+  })
+
+  it('reuses completed conversions for shared acyclic children', () => {
+    const shared = { label: 'shared' }
+    const result = Schema.decodeUnknownSync(
+      Schema.Struct({ left: Schema.Unknown, right: Schema.Unknown }),
+    )(toInspectableValue({ left: shared, right: shared }))
+    const converted = toInspectableValue(shared)
+
+    expect(converted).toEqual({ label: 'shared' })
+    expect(result.left).toBe(converted)
+    expect(result.right).toBe(converted)
+  })
+
+  it('keeps mutually cyclic values bounded when a cached child becomes the root', () => {
+    const parent: Record<string, unknown> = { label: 'parent' }
+    const child: Record<string, unknown> = { label: 'child', parent }
+    parent['child'] = child
+
+    const parentResult = toInspectableValue(parent)
+    const childResult = toInspectableValue(child)
+
+    expect(parentResult).toMatchObject({ label: 'parent' })
+    expect(childResult).toMatchObject({ label: 'child' })
+    expect(JSON.stringify(parentResult)).toContain('[Circular]')
+    expect(JSON.stringify(childResult)).toContain('[Circular]')
+    expect(toInspectableValue(parent)).toBe(parentResult)
+    expect(toInspectableValue(child)).toBe(childResult)
+  })
+
+  it('preserves own __proto__ data on null-prototype records with symbol cycles', () => {
+    const record: Record<string, unknown> = Object.create(null)
+    const hidden = Symbol('hidden')
+    Object.defineProperty(record, '__proto__', {
+      value: { amount: BigDecimal.fromStringUnsafe('14.27') },
+      enumerable: true,
+    })
+    Object.defineProperty(record, hidden, { value: record, enumerable: true })
+
+    const result = toInspectableValue(record)
+
+    expect(Object.getOwnPropertyDescriptor(result, '__proto__')?.value).toEqual(
+      { amount: '14.27' },
+    )
+    expect(Object.getPrototypeOf(result)).toBe(Object.prototype)
+    expect(JSON.parse(JSON.stringify(result))).toEqual({
+      ['__proto__']: { amount: '14.27' },
+    })
+  })
+
+  it('can inspect a value again after an earlier conversion throws', () => {
+    const record: Record<string, unknown> = {}
+    Object.defineProperty(record, 'value', {
+      get: () => {
+        throw new Error('Value is unavailable')
+      },
+      enumerable: true,
+      configurable: true,
+    })
+
+    expect(() => toInspectableValue(record)).toThrow('Value is unavailable')
+
+    Object.defineProperty(record, 'value', {
+      value: 'available',
+      enumerable: true,
+      configurable: true,
+    })
+
+    expect(toInspectableValue(record)).toEqual({ value: 'available' })
   })
 
   it('returns the same reference when called twice with the same input', () => {
