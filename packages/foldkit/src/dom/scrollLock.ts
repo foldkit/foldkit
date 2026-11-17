@@ -1,4 +1,6 @@
-import { Effect, Number } from 'effect'
+import { Effect, Number, Option } from 'effect'
+
+import { DialogRuntime } from './dialogRuntime.js'
 
 const scrollLockState = {
   count: 0,
@@ -50,13 +52,20 @@ const handleTouchMove = (event: TouchEvent): void => {
  * while allowing scrolling within overflow containers.
  * Uses reference counting so nested locks are safe. The page only unlocks
  * when every lock has been released.
+ * Calls from a crashed or disposed runtime do not acquire a new lock.
  *
  * @example
  * ```typescript
  * Dom.lockScroll
  * ```
  */
-export const lockScroll: Effect.Effect<void> = Effect.sync(() => {
+export const lockScroll: Effect.Effect<void> = Effect.gen(function* () {
+  const maybeDialogRuntime = yield* Effect.serviceOption(DialogRuntime)
+
+  if (Option.exists(maybeDialogRuntime, runtime => !runtime.isActive())) {
+    return
+  }
+
   const {
     documentElement,
     documentElement: { style },
