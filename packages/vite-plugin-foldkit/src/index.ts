@@ -184,6 +184,7 @@ const FORCE_INCLUDED_EFFECT_ENTRIES: ReadonlyArray<string> = [
   'effect/Layer',
   'effect/Logger',
   'effect/Match',
+  'effect/MutableRef',
   'effect/Number',
   'effect/Option',
   'effect/Order',

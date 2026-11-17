@@ -182,6 +182,8 @@ Five primitives: Command, Mount, Subscription, ManagedResource, CustomElement. P
 - Model condition plus Commands need a stateful handle? ManagedResource.
 - Rendering a native web component? CustomElement.
 
+`Command.define`, `Mount.define`, and `Mount.defineStream` require a non-empty list of Message Schemas whose decoded types are not `never`. Return a descriptive `Completed*` Message for work that completes without changing the Model.
+
 If a Mount's `execute` doesn't read or write its element, you've misidentified the cause. Mount args are captured at mount, not refreshed across renders.
 
 ## Reference Repos

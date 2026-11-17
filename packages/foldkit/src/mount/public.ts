@@ -3,6 +3,7 @@ export type {
   MountDefinition,
   MountDefinitionNoArgs,
   MountDefinitionWithArgs,
+  ResultMessageSchemas,
 } from './index.js'
 export {
   MountDefinitionTypeId,
