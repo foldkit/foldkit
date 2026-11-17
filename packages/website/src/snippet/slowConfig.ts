@@ -4,6 +4,11 @@ import { Runtime } from 'foldkit'
 import * as Sentry from '@sentry/browser'
 
 const handleSlow = (context: Runtime.SlowContext<Model, Message>): void => {
+  // A hidden tab is throttled by the browser, so its timings are not user-visible cost.
+  if (!context.isDocumentVisible) {
+    return
+  }
+
   const summary = Match.value(context).pipe(
     Match.tagsExhaustive({
       View: ({ durationMs, thresholdMs }) =>

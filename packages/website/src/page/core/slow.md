@@ -24,6 +24,8 @@ A warning identifies work worth profiling. It does not prove that the applicatio
 
 Live reload, DevTools recording, breakpoints, and slow CI workers can all inflate development measurements. Reproduce the problem in a production build and use a profiler to confirm where the time goes.
 
+A hidden document inflates measurements too. Browsers throttle background tabs, so a phase that runs while the tab is hidden can report a duration far above its real cost. Every context carries `isDocumentVisible`; filter on it before treating a reported warning as user-visible slowness.
+
 Measure before and after the change. Keep the optimization only when the profile improves.
 
 ## Optimization playbook {#playbook}
@@ -39,7 +41,7 @@ The warning `_tag` identifies the phase to inspect. Start with the work attribut
 
 ## Measured phases {#phases}
 
-Foldkit measures four phases independently:
+Foldkit measures four phases independently. Every context includes `durationMs`, `thresholdMs`, and `isDocumentVisible`:
 
 - **`View`:** Builds the next VNode tree from the Model. The default budget is 16ms. The context includes the triggering Message as an `Option` because init has no Message.
 - **`Update`:** Produces the next Model for a Message. The default budget is 4ms. The context includes the Message that ran.

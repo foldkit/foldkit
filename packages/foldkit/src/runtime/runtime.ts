@@ -729,13 +729,12 @@ export const makeRuntime = <
           reportSlowPhase<SlowUpdateContext<Model, Message>>(
             maybeSlowUpdate,
             maybeUpdateDuration,
-            (durationMs, thresholdMs) => ({
+            measurement => ({
               _tag: 'Update',
               previousModel: currentModel,
               nextModel,
               message,
-              durationMs,
-              thresholdMs,
+              ...measurement,
             }),
           )
 

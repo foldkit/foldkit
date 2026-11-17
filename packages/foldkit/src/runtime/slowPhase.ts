@@ -9,6 +9,8 @@ export type SlowViewContext<Model, Message> = Readonly<{
   message: Option.Option<Message>
   durationMs: number
   thresholdMs: number
+  /** Whether the document was visible when the phase ran. Browsers throttle hidden documents, so a hidden phase's duration may not reflect user-visible cost. */
+  isDocumentVisible: boolean
 }>
 
 /** Context provided when update exceeds its configured time budget. */
@@ -19,6 +21,8 @@ export type SlowUpdateContext<Model, Message> = Readonly<{
   message: Message
   durationMs: number
   thresholdMs: number
+  /** Whether the document was visible when the phase ran. Browsers throttle hidden documents, so a hidden phase's duration may not reflect user-visible cost. */
+  isDocumentVisible: boolean
 }>
 
 /** Context provided when DOM patching exceeds its configured time budget. */
@@ -28,6 +32,8 @@ export type SlowPatchContext<Model, Message> = Readonly<{
   message: Option.Option<Message>
   durationMs: number
   thresholdMs: number
+  /** Whether the document was visible when the phase ran. Browsers throttle hidden documents, so a hidden phase's duration may not reflect user-visible cost. */
+  isDocumentVisible: boolean
 }>
 
 /** Context provided when subscription dependency extraction exceeds its configured time budget. */
@@ -37,6 +43,8 @@ export type SlowSubscriptionDependenciesContext<Model> = Readonly<{
   model: Model
   durationMs: number
   thresholdMs: number
+  /** Whether the document was visible when the phase ran. Browsers throttle hidden documents, so a hidden phase's duration may not reflect user-visible cost. */
+  isDocumentVisible: boolean
 }>
 
 /** Tagged union of every slow-phase context passed to `slow.onSlow`. */
@@ -195,10 +203,17 @@ export const measureSlowPhase = <Context, Result>(
   }
 }
 
+/** The timing fields every slow-phase context carries. */
+export type SlowMeasurement = Readonly<{
+  durationMs: number
+  thresholdMs: number
+  isDocumentVisible: boolean
+}>
+
 export const reportSlowPhase = <Context>(
   maybeConfig: Option.Option<ResolvedSlowPhaseConfig<Context>>,
   maybeDurationMs: Option.Option<number>,
-  makeContext: (durationMs: number, thresholdMs: number) => Context,
+  makeContext: (measurement: SlowMeasurement) => Context,
 ): void => {
   if (Option.isSome(maybeConfig)) {
     const { thresholdMs, onSlow } = maybeConfig.value
@@ -208,7 +223,15 @@ export const reportSlowPhase = <Context>(
     )
 
     if (Option.isSome(maybeExceededDuration)) {
-      onSlow(makeContext(maybeExceededDuration.value, thresholdMs))
+      // NOTE: a phase runs synchronously, so visibility cannot change between
+      // its start and this read.
+      onSlow(
+        makeContext({
+          durationMs: maybeExceededDuration.value,
+          thresholdMs,
+          isDocumentVisible: document.visibilityState === 'visible',
+        }),
+      )
     }
   }
 }
@@ -230,14 +253,18 @@ const optionMessageTrigger = (maybeMessage: Option.Option<unknown>): string =>
     onSome: messageTag,
   })
 
+const HIDDEN_DOCUMENT_HINT =
+  'The document was hidden, so the browser may have throttled this work.'
+
 const TUNING_HINT =
   'Set slow.thresholdOverrides to change budgets or pass slow: false to disable warnings.'
 
 export const defaultSlowCallback = (
   context: SlowContext<unknown, unknown>,
 ): void => {
-  const { durationMs, thresholdMs: budget } = context
+  const { durationMs, thresholdMs: budget, isDocumentVisible } = context
   const duration = durationMs.toFixed(1)
+  const hiddenHint = isDocumentVisible ? '' : ` ${HIDDEN_DOCUMENT_HINT}`
 
   const summary = Match.value(context).pipe(
     Match.tagsExhaustive({
@@ -263,7 +290,7 @@ export const defaultSlowCallback = (
   )
 
   console.warn(
-    `[foldkit] ${summary} ${TUNING_HINT}`,
+    `[foldkit] ${summary}${hiddenHint} ${TUNING_HINT}`,
     context,
     ...Option.toArray(maybeRawMessage),
   )

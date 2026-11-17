@@ -413,12 +413,11 @@ export const makeRenderer = <Model, Message>({
       reportSlowPhase<SlowViewContext<Model, Message>>(
         maybeLiveSlowView,
         maybeViewDuration,
-        (durationMs, thresholdMs) => ({
+        measurement => ({
           _tag: 'View',
           model,
           message: maybeMessage,
-          durationMs,
-          thresholdMs,
+          ...measurement,
         }),
       )
 
@@ -465,12 +464,11 @@ export const makeRenderer = <Model, Message>({
       reportSlowPhase<SlowPatchContext<Model, Message>>(
         maybeLiveSlowPatch,
         maybePatchDuration,
-        (durationMs, thresholdMs) => ({
+        measurement => ({
           _tag: 'Patch',
           model,
           message: maybeMessage,
-          durationMs,
-          thresholdMs,
+          ...measurement,
         }),
       )
 

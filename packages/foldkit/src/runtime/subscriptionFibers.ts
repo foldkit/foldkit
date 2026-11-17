@@ -76,12 +76,11 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
           reportSlowPhase<SlowSubscriptionDependenciesContext<Model>>(
             maybeSlowSubscriptionDependencies,
             maybeInitDependenciesDuration,
-            (durationMs, thresholdMs) => ({
+            measurement => ({
               _tag: 'SubscriptionDependencies',
               subscriptionKey: key,
               model: initModel,
-              durationMs,
-              thresholdMs,
+              ...measurement,
             }),
           )
 
@@ -110,12 +109,11 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
                 reportSlowPhase<SlowSubscriptionDependenciesContext<Model>>(
                   maybeSlowSubscriptionDependencies,
                   maybeDependenciesDuration,
-                  (durationMs, thresholdMs) => ({
+                  measurement => ({
                     _tag: 'SubscriptionDependencies',
                     subscriptionKey: key,
                     model,
-                    durationMs,
-                    thresholdMs,
+                    ...measurement,
                   }),
                 )
 
