@@ -5,12 +5,12 @@ import * as FieldValidation from '../../fieldValidation/index.js'
 import { defineTaggedUnion } from '../../schema/index.js'
 import * as Form from './form.js'
 
-const submit = { error: Schema.String, execute: () => Effect.void }
+const voidSubmit = { error: Schema.String, execute: () => Effect.void }
 
 describe('typed inputs', () => {
-  const quantity = Form.define({
+  const quantityForm = Form.define({
     name: 'Quantity',
-    submit,
+    submit: voidSubmit,
     fields: {
       count: Form.field({ schema: Schema.FiniteFromString, initial: '3' }),
       age: Form.field({
@@ -21,39 +21,44 @@ describe('typed inputs', () => {
   })
 
   it('stores the input and decodes it into the value', () => {
-    const view = quantity.fieldView(quantity.init(), 'count')
+    const countFieldView = quantityForm.fieldView(quantityForm.init(), 'count')
 
-    expect(view.input).toBe('3')
-    expect(view.maybeValue).toEqual(Option.some(3))
+    expect(countFieldView.input).toBe('3')
+    expect(countFieldView.maybeValue).toEqual(Option.some(3))
   })
 
   it('encodes decoded overrides into inputs that become the reset defaults', () => {
-    const initial = quantity.init({ count: 4 })
-    const change = quantity.update(initial, quantity.changed('count', '9'))
+    const initialModel = quantityForm.init({ count: 4 })
+    const change = quantityForm.update(
+      initialModel,
+      quantityForm.changed('count', '9'),
+    )
 
-    expect(quantity.inputs(initial).count).toBe('4')
-    expect(quantity.inputs(quantity.reset(change.model).model).count).toBe('4')
+    expect(quantityForm.inputs(initialModel).count).toBe('4')
+    expect(
+      quantityForm.inputs(quantityForm.reset(change.model).model).count,
+    ).toBe('4')
   })
 
   it('holds input its Schema rejects and shows the decode message', () => {
-    const change = quantity.update(
-      quantity.init(),
-      quantity.changed('age', '12a'),
+    const change = quantityForm.update(
+      quantityForm.init(),
+      quantityForm.changed('age', '12a'),
     )
-    const view = quantity.fieldView(change.model, 'age')
+    const ageFieldView = quantityForm.fieldView(change.model, 'age')
 
-    expect(view.input).toBe('12a')
-    expect(view.maybeValue).toEqual(Option.none())
-    expect(view.errors).toEqual(['Enter a number'])
+    expect(ageFieldView.input).toBe('12a')
+    expect(ageFieldView.maybeValue).toEqual(Option.none())
+    expect(ageFieldView.errors).toEqual(['Enter a number'])
   })
 
   it('shows a decode error when the Schema has no message annotation', () => {
-    const change = quantity.update(
-      quantity.init(),
-      quantity.changed('count', '12a'),
+    const change = quantityForm.update(
+      quantityForm.init(),
+      quantityForm.changed('count', '12a'),
     )
 
-    expect(quantity.fieldView(change.model, 'count').errors).toHaveLength(1)
+    expect(quantityForm.fieldView(change.model, 'count').errors).toHaveLength(1)
   })
 })
 
@@ -66,9 +71,9 @@ describe('input that fails encoded-side checks', () => {
       SchemaTransformation.numberFromString,
     ),
   )
-  const checked = Form.define({
+  const encodedChecksForm = Form.define({
     name: 'EncodedChecks',
-    submit,
+    submit: voidSubmit,
     fields: {
       age: Form.field({ schema: AgeInput, initial: '' }),
       tags: Form.field({
@@ -79,26 +84,34 @@ describe('input that fails encoded-side checks', () => {
   })
 
   it('stores the input and shows the check message as the field error', () => {
-    const change = checked.update(checked.init(), checked.changed('age', ''))
+    const change = encodedChecksForm.update(
+      encodedChecksForm.init(),
+      encodedChecksForm.changed('age', ''),
+    )
 
-    expect(checked.inputs(change.model).age).toBe('')
-    expect(checked.fieldView(change.model, 'age').errors).toEqual([
+    expect(encodedChecksForm.inputs(change.model).age).toBe('')
+    expect(encodedChecksForm.fieldView(change.model, 'age').errors).toEqual([
       'Enter your age',
     ])
   })
 
   it('lets a parent Model Schema build a Form that holds that input', () => {
-    const Parent = Schema.Struct({ form: checked.Model })
+    const Parent = Schema.Struct({ form: encodedChecksForm.Model })
 
-    expect(() => Parent.make({ form: checked.init() })).not.toThrow()
+    expect(() => Parent.make({ form: encodedChecksForm.init() })).not.toThrow()
   })
 
   it('encodes overrides that fail the checks without throwing', () => {
-    const initial = checked.init({ tags: [''] })
-    const reinitialize = checked.reinitialize(initial, { tags: ['', 'ok'] })
+    const initialModel = encodedChecksForm.init({ tags: [''] })
+    const reinitialize = encodedChecksForm.reinitialize(initialModel, {
+      tags: ['', 'ok'],
+    })
 
-    expect(checked.inputs(initial).tags).toEqual([''])
-    expect(checked.inputs(reinitialize.model).tags).toEqual(['', 'ok'])
+    expect(encodedChecksForm.inputs(initialModel).tags).toEqual([''])
+    expect(encodedChecksForm.inputs(reinitialize.model).tags).toEqual([
+      '',
+      'ok',
+    ])
   })
 })
 
@@ -107,9 +120,9 @@ describe('compound inputs', () => {
     Unspecified: {},
     Coordinates: { latitude: Schema.Number, longitude: Schema.Number },
   })
-  const preferences = Form.define({
+  const preferencesForm = Form.define({
     name: 'Preferences',
-    submit,
+    submit: voidSubmit,
     fields: {
       topics: Form.field({
         schema: Schema.Array(Schema.String),
@@ -129,73 +142,78 @@ describe('compound inputs', () => {
 
   it('stores arrays, nullable inputs, and tagged unions as given', () => {
     const changes = [
-      preferences.changed('topics', ['Effect', 'Foldkit']),
-      preferences.changed('favoriteTopic', 'Effect'),
-      preferences.changed('location', paris),
+      preferencesForm.changed('topics', ['Effect', 'Foldkit']),
+      preferencesForm.changed('favoriteTopic', 'Effect'),
+      preferencesForm.changed('location', paris),
     ]
     const model = Array.reduce(
       changes,
-      preferences.init(),
-      (current, message) => preferences.update(current, message).model,
+      preferencesForm.init(),
+      (current, message) => preferencesForm.update(current, message).model,
     )
 
-    expect(preferences.inputs(model)).toEqual({
+    expect(preferencesForm.inputs(model)).toEqual({
       topics: ['Effect', 'Foldkit'],
       favoriteTopic: 'Effect',
       location: paris,
     })
-    expect(preferences.fieldView(model, 'favoriteTopic').maybeValue).toEqual(
-      Option.some(Option.some('Effect')),
-    )
+    expect(
+      preferencesForm.fieldView(model, 'favoriteTopic').maybeValue,
+    ).toEqual(Option.some(Option.some('Effect')))
   })
 
   it('compares an input with its default by content', () => {
-    const initial = preferences.init({ location: paris })
-    const away = preferences.update(
-      initial,
-      preferences.changed('topics', ['Other']),
+    const initialModel = preferencesForm.init({ location: paris })
+    const topicsChange = preferencesForm.update(
+      initialModel,
+      preferencesForm.changed('topics', ['Other']),
     )
-    const back = preferences.update(
-      away.model,
-      preferences.changed('topics', ['Foldkit']),
+    const topicsRevert = preferencesForm.update(
+      topicsChange.model,
+      preferencesForm.changed('topics', ['Foldkit']),
     )
-    const sameLocation = preferences.update(
-      back.model,
-      preferences.changed(
+    const sameLocation = preferencesForm.update(
+      topicsRevert.model,
+      preferencesForm.changed(
         'location',
         Location.Coordinates({ latitude: 48, longitude: 2 }),
       ),
     )
 
     expect(
-      preferences.fieldView(sameLocation.model, 'topics').meta.isDefaultValue,
+      preferencesForm.fieldView(sameLocation.model, 'topics').meta
+        .isDefaultInput,
     ).toBe(true)
     expect(
-      preferences.fieldView(sameLocation.model, 'location').meta.isDefaultValue,
+      preferencesForm.fieldView(sameLocation.model, 'location').meta
+        .isDefaultInput,
     ).toBe(true)
   })
 
   it('compares inputs with the equivalence annotated on the field Schema', () => {
-    const exactNumber = Schema.Number.pipe(
+    const ExactNumber = Schema.Number.pipe(
       Schema.overrideToEquivalence(() => Object.is),
     )
-    const exact = Form.define({
+    const exactForm = Form.define({
       name: 'ExactNumber',
-      submit,
-      fields: { value: Form.field({ schema: exactNumber, initial: 0 }) },
+      submit: voidSubmit,
+      fields: { value: Form.field({ schema: ExactNumber, initial: 0 }) },
     })
-    const change = exact.update(exact.init(), exact.changed('value', -0))
+    const change = exactForm.update(
+      exactForm.init(),
+      exactForm.changed('value', -0),
+    )
 
-    expect(exact.fieldView(change.model, 'value').meta.isDefaultValue).toBe(
+    expect(exactForm.fieldView(change.model, 'value').meta.isDefaultInput).toBe(
       false,
     )
   })
 
   it('leaves the checks of unrelated fields idle on an edit', () => {
     const check = vi.fn(() => true)
-    const counted = Form.define({
+    const countedForm = Form.define({
       name: 'Counted',
-      submit,
+      submit: voidSubmit,
       fields: {
         text: Form.field({ schema: Schema.String, initial: '' }),
         topics: Form.field({
@@ -207,11 +225,14 @@ describe('compound inputs', () => {
         }),
       },
     })
-    const initial = counted.init()
+    const initialModel = countedForm.init()
     check.mockClear()
 
-    const change = counted.update(initial, counted.changed('text', 'Next'))
-    counted.update(change.model, counted.blurred('text'))
+    const change = countedForm.update(
+      initialModel,
+      countedForm.changed('text', 'Next'),
+    )
+    countedForm.update(change.model, countedForm.blurred('text'))
 
     expect(check).not.toHaveBeenCalled()
   })
@@ -227,27 +248,29 @@ describe('optional inputs', () => {
       }),
     ),
   )
-  const profile = Form.define({
+  const profileForm = Form.define({
     name: 'Profile',
-    submit,
+    submit: voidSubmit,
     fields: { nickname: Form.field({ schema: OptionalText, initial: 'Ada' }) },
   })
 
   it('decodes blank text into None', () => {
-    const change = profile.update(
-      profile.init(),
-      profile.changed('nickname', ''),
+    const change = profileForm.update(
+      profileForm.init(),
+      profileForm.changed('nickname', ''),
     )
 
-    expect(profile.fieldView(change.model, 'nickname').maybeValue).toEqual(
+    expect(profileForm.fieldView(change.model, 'nickname').maybeValue).toEqual(
       Option.some(Option.none()),
     )
   })
 
   it('submits the decoded Option value', () => {
-    const blank = profile.submit(profile.init({ nickname: Option.none() }))
+    const blankSubmit = profileForm.submit(
+      profileForm.init({ nickname: Option.none() }),
+    )
 
-    expect(blank.commands?.map(command => command.args)).toEqual([
+    expect(blankSubmit.commands?.map(command => command.args)).toEqual([
       {
         values: { nickname: Option.none() },
         context: undefined,
@@ -257,17 +280,19 @@ describe('optional inputs', () => {
   })
 
   it('encodes Option overrides into text inputs', () => {
-    const blank = profile.init({ nickname: Option.none() })
-    const named = profile.reinitialize(blank, { nickname: Option.some('Lin') })
+    const blank = profileForm.init({ nickname: Option.none() })
+    const named = profileForm.reinitialize(blank, {
+      nickname: Option.some('Lin'),
+    })
 
-    expect(profile.inputs(blank).nickname).toBe('')
-    expect(profile.inputs(named.model).nickname).toBe('Lin')
+    expect(profileForm.inputs(blank).nickname).toBe('')
+    expect(profileForm.inputs(named.model).nickname).toBe('Lin')
   })
 
   it('requires a value from a nullable input when its rules say so', () => {
-    const age = Form.define({
+    const requiredAgeForm = Form.define({
       name: 'RequiredAge',
-      submit,
+      submit: voidSubmit,
       fields: {
         age: Form.field({
           schema: Schema.OptionFromNullOr(Schema.Number),
@@ -279,22 +304,27 @@ describe('optional inputs', () => {
         }),
       },
     })
-    const empty = age.submit(age.init())
-    const zero = age.submit(
-      age.update(empty.model, age.changed('age', 0)).model,
+    const emptySubmit = requiredAgeForm.submit(requiredAgeForm.init())
+    const zeroSubmit = requiredAgeForm.submit(
+      requiredAgeForm.update(
+        emptySubmit.model,
+        requiredAgeForm.changed('age', 0),
+      ).model,
     )
 
-    expect(age.fieldView(empty.model, 'age').errors).toEqual(['Enter an age'])
-    expect(zero.commands?.map(command => command.args)).toEqual([
+    expect(requiredAgeForm.fieldView(emptySubmit.model, 'age').errors).toEqual([
+      'Enter an age',
+    ])
+    expect(zeroSubmit.commands?.map(command => command.args)).toEqual([
       { values: { age: Option.some(0) }, context: undefined, generation: 2 },
     ])
   })
 })
 
 describe('overrides', () => {
-  const presence = Form.define({
+  const presenceForm = Form.define({
     name: 'Presence',
-    submit,
+    submit: voidSubmit,
     fields: {
       note: Form.field({
         schema: Schema.Union([Schema.String, Schema.Undefined, Schema.Null]),
@@ -304,40 +334,47 @@ describe('overrides', () => {
   })
 
   it('uses the configured initial input for an omitted override', () => {
-    expect(presence.inputs(presence.init()).note).toBe('Configured')
+    expect(presenceForm.inputs(presenceForm.init()).note).toBe('Configured')
     expect(
-      presence.inputs(
-        presence.reinitialize(presence.init({ note: null })).model,
+      presenceForm.inputs(
+        presenceForm.reinitialize(presenceForm.init({ note: null })).model,
       ).note,
     ).toBe('Configured')
   })
 
   it('uses an explicit null or undefined override as the default', () => {
-    const fromNull = presence.init({ note: null })
-    const fromUndefined = presence.init({ note: undefined })
-    const edited = presence.update(fromUndefined, presence.changed('note', 'x'))
-
-    expect(presence.inputs(fromNull).note).toBeNull()
-    expect(presence.inputs(presence.reset(edited.model).model).note).toBe(
-      undefined,
+    const fromNull = presenceForm.init({ note: null })
+    const fromUndefined = presenceForm.init({ note: undefined })
+    const edited = presenceForm.update(
+      fromUndefined,
+      presenceForm.changed('note', 'x'),
     )
+
+    expect(presenceForm.inputs(fromNull).note).toBeNull()
+    expect(
+      presenceForm.inputs(presenceForm.reset(edited.model).model).note,
+    ).toBe(undefined)
   })
 })
 
 describe('field names', () => {
   it('stores fields named like Object prototype members', () => {
-    const text = Form.field({ schema: Schema.String, initial: '' })
-    const special = Form.define({
+    const textField = Form.field({ schema: Schema.String, initial: '' })
+    const specialForm = Form.define({
       name: 'Special',
-      submit,
-      fields: { ['__proto__']: text, constructor: text, toString: text },
+      submit: voidSubmit,
+      fields: {
+        ['__proto__']: textField,
+        constructor: textField,
+        toString: textField,
+      },
     })
-    const change = special.update(
-      special.init(),
-      special.changed('__proto__', 'value'),
+    const change = specialForm.update(
+      specialForm.init(),
+      specialForm.changed('__proto__', 'value'),
     )
 
-    expect(special.inputs(change.model)).toEqual({
+    expect(specialForm.inputs(change.model)).toEqual({
       ['__proto__']: 'value',
       constructor: '',
       toString: '',
@@ -346,41 +383,50 @@ describe('field names', () => {
 })
 
 describe('field metadata', () => {
-  const contact = Form.define({
+  const contactForm = Form.define({
     name: 'Contact',
-    submit,
+    submit: voidSubmit,
     fields: { email: Form.field({ schema: Schema.String, initial: '' }) },
   })
 
   it('starts a field untouched, unedited, and at its default', () => {
-    expect(contact.fieldView(contact.init(), 'email').meta).toEqual({
+    expect(contactForm.fieldView(contactForm.init(), 'email').meta).toEqual({
       isTouched: false,
       isBlurred: false,
       isEdited: false,
-      isDefaultValue: true,
+      isDefaultInput: true,
     })
   })
 
   it('marks an edited field touched and edited even when it returns to its default', () => {
-    const away = contact.update(contact.init(), contact.changed('email', 'a'))
-    const back = contact.update(away.model, contact.changed('email', ''))
+    const emailChange = contactForm.update(
+      contactForm.init(),
+      contactForm.changed('email', 'a'),
+    )
+    const emailRevert = contactForm.update(
+      emailChange.model,
+      contactForm.changed('email', ''),
+    )
 
-    expect(contact.fieldView(back.model, 'email').meta).toEqual({
+    expect(contactForm.fieldView(emailRevert.model, 'email').meta).toEqual({
       isTouched: true,
       isBlurred: false,
       isEdited: true,
-      isDefaultValue: true,
+      isDefaultInput: true,
     })
   })
 
   it('marks a blurred field touched without marking it edited', () => {
-    const blur = contact.update(contact.init(), contact.blurred('email'))
+    const blur = contactForm.update(
+      contactForm.init(),
+      contactForm.blurred('email'),
+    )
 
-    expect(contact.fieldView(blur.model, 'email').meta).toEqual({
+    expect(contactForm.fieldView(blur.model, 'email').meta).toEqual({
       isTouched: true,
       isBlurred: true,
       isEdited: false,
-      isDefaultValue: true,
+      isDefaultInput: true,
     })
   })
 })

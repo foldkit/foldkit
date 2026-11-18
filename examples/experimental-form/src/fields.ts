@@ -3,6 +3,7 @@ import { Form } from 'foldkit/experimental'
 import { Rule, makeRules } from 'foldkit/fieldValidation'
 
 const EMAIL_CHECK_DELAY_MS = 150
+const BLOCKED_EMAIL = 'blocked@example.com'
 
 export const emailField = Form.field({
   schema: Schema.String,
@@ -15,8 +16,6 @@ export const emailField = Form.field({
   validate: value =>
     Effect.gen(function* () {
       yield* Effect.sleep(Duration.millis(EMAIL_CHECK_DELAY_MS))
-      return value === 'blocked@example.com'
-        ? ['This email cannot be used']
-        : []
+      return value === BLOCKED_EMAIL ? ['This email cannot be used'] : []
     }),
 })

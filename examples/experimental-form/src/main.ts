@@ -14,7 +14,7 @@ import { emailField } from './fields'
 const SUBMISSION_DELAY_MS = 500
 const TAKEN_EMAIL = 'taken@example.com'
 const UNAVAILABLE_EMAIL = 'down@example.com'
-const MINIMUM_AGE = 13
+const MIN_AGE = 13
 
 export const RegistrationRejection = defineTaggedUnion({
   EmailTaken: {},
@@ -82,9 +82,7 @@ export const registrationForm = Form.define({
       schema: AgeInput,
       initial: '',
       rules: makeRules<number>({
-        rules: [
-          [age => age >= MINIMUM_AGE, `You must be at least ${MINIMUM_AGE}`],
-        ],
+        rules: [[age => age >= MIN_AGE, `You must be at least ${MIN_AGE}`]],
       }),
     }),
   },
@@ -216,10 +214,10 @@ export const update = (model: Model, message: Message) =>
 
 // VIEW
 
-type TextFieldConfig = Readonly<{
+type TextFieldArgs = Readonly<{
   id: string
   label: string
-  field: Readonly<{
+  fieldView: Readonly<{
     input: string
     errors: ReadonlyArray<string>
     meta: Readonly<{ isEdited: boolean }>
@@ -228,12 +226,12 @@ type TextFieldConfig = Readonly<{
   onBlur: Message
 }>
 
-const textField = (
+const textInputView = (
   h: HtmlBuilder<Message>,
-  { id, label, field, onInput, onBlur }: TextFieldConfig,
+  { id, label, fieldView, onInput, onBlur }: TextFieldArgs,
 ): Html => {
   const errorsId = `${id}-errors`
-  const isInvalid = Array.isReadonlyArrayNonEmpty(field.errors)
+  const isInvalid = Array.isReadonlyArrayNonEmpty(fieldView.errors)
 
   return h.div(
     [h.Class('space-y-1')],
@@ -242,7 +240,7 @@ const textField = (
       h.input([
         h.Id(id),
         h.Type('text'),
-        h.Value(field.input),
+        h.Value(fieldView.input),
         h.AriaInvalid(isInvalid),
         h.AriaDescribedBy(errorsId),
         h.Class(
@@ -255,54 +253,54 @@ const textField = (
       ]),
       h.div(
         [h.Id(errorsId)],
-        Array.map(field.errors, error =>
+        Array.map(fieldView.errors, error =>
           h.p([h.Class('text-sm text-red-700')], [error]),
         ),
       ),
       h.p(
         [h.Class('text-xs text-slate-500')],
-        [field.meta.isEdited ? 'Edited' : 'Not edited yet'],
+        [fieldView.meta.isEdited ? 'Edited' : 'Not edited yet'],
       ),
     ],
   )
 }
 
-const status = (h: HtmlBuilder<Message>, text: string): Html =>
+const statusView = (h: HtmlBuilder<Message>, text: string): Html =>
   h.p([h.Role('status')], [text])
 
-const successStatus = (h: HtmlBuilder<Message>): Html =>
+const successStatusView = (h: HtmlBuilder<Message>): Html =>
   h.p([h.Role('status'), h.Class('text-green-700')], ['Saved'])
 
-const failureStatus = (h: HtmlBuilder<Message>, text: string): Html =>
+const failureStatusView = (h: HtmlBuilder<Message>, text: string): Html =>
   h.p([h.Role('status'), h.Class('text-red-700')], [text])
 
-const registrationFeedback = (
+const registrationFeedbackView = (
   h: HtmlBuilder<Message>,
   submission: Form.Submission<typeof registrationForm>,
 ): Html =>
   registrationForm.Submission.match<Html>(submission, {
-    Idle: () => status(h, 'Ready'),
-    Validating: () => status(h, 'Checking fields…'),
-    Submitting: () => status(h, 'Saving…'),
-    Succeeded: () => successStatus(h),
+    Idle: () => statusView(h, 'Ready'),
+    Validating: () => statusView(h, 'Checking fields…'),
+    Submitting: () => statusView(h, 'Saving…'),
+    Succeeded: () => successStatusView(h),
     Failed: ({ error }) =>
       RegistrationRejection.match<Html>(error, {
-        EmailTaken: () => failureStatus(h, 'Fix the email field'),
+        EmailTaken: () => failureStatusView(h, 'Fix the email field'),
         RegistrationUnavailable: () =>
-          failureStatus(h, 'Registration is unavailable. Try again later.'),
+          failureStatusView(h, 'Registration is unavailable. Try again later.'),
       }),
   })
 
-const profileFeedback = (
+const profileFeedbackView = (
   h: HtmlBuilder<Message>,
   submission: Form.Submission<typeof profileForm>,
 ): Html =>
   profileForm.Submission.match<Html>(submission, {
-    Idle: () => status(h, 'Ready'),
-    Validating: () => status(h, 'Checking fields…'),
-    Submitting: () => status(h, 'Saving…'),
-    Succeeded: () => successStatus(h),
-    Failed: ({ error }) => failureStatus(h, error),
+    Idle: () => statusView(h, 'Ready'),
+    Validating: () => statusView(h, 'Checking fields…'),
+    Submitting: () => statusView(h, 'Saving…'),
+    Succeeded: () => successStatusView(h),
+    Failed: ({ error }) => failureStatusView(h, error),
   })
 
 const isRegistrationPending = registrationForm.Submission.isAnyOf([
@@ -328,28 +326,31 @@ const registrationView = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.form(
         [h.OnSubmit(Message.SubmittedRegistrationForm()), h.Class('space-y-4')],
         [
-          textField(h, {
+          textInputView(h, {
             id: 'registration-email',
             label: 'Registration email',
-            field: registrationForm.fieldView(model.registration, 'email'),
+            fieldView: registrationForm.fieldView(model.registration, 'email'),
             onInput: input =>
               toRegistrationMessage(registrationForm.changed('email', input)),
             onBlur: toRegistrationMessage(registrationForm.blurred('email')),
           }),
-          textField(h, {
+          textInputView(h, {
             id: 'registration-name',
             label: 'Your name',
-            field: registrationForm.fieldView(model.registration, 'fullName'),
+            fieldView: registrationForm.fieldView(
+              model.registration,
+              'fullName',
+            ),
             onInput: input =>
               toRegistrationMessage(
                 registrationForm.changed('fullName', input),
               ),
             onBlur: toRegistrationMessage(registrationForm.blurred('fullName')),
           }),
-          textField(h, {
+          textInputView(h, {
             id: 'registration-age',
             label: 'Your age',
-            field: registrationForm.fieldView(model.registration, 'age'),
+            fieldView: registrationForm.fieldView(model.registration, 'age'),
             onInput: input =>
               toRegistrationMessage(registrationForm.changed('age', input)),
             onBlur: toRegistrationMessage(registrationForm.blurred('age')),
@@ -372,7 +373,7 @@ const registrationView = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
         ],
       ),
-      registrationFeedback(h, submission),
+      registrationFeedbackView(h, submission),
       h.p(
         [h.Class('text-sm')],
         [`Attempts: ${registrationForm.submitCount(model.registration)}`],
@@ -390,7 +391,7 @@ const registrationView = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const topicCheckbox = (
+const topicCheckboxView = (
   h: HtmlBuilder<Message>,
   topic: Topic,
   isChecked: boolean,
@@ -410,7 +411,7 @@ const topicCheckbox = (
   )
 
 const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const topics = profileForm.fieldView(model.profile, 'topics')
+  const topicsFieldView = profileForm.fieldView(model.profile, 'topics')
   const submission = profileForm.submission(model.profile)
 
   return h.section(
@@ -423,18 +424,18 @@ const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.form(
         [h.OnSubmit(Message.SubmittedProfileForm()), h.Class('space-y-4')],
         [
-          textField(h, {
+          textInputView(h, {
             id: 'profile-email',
             label: 'Profile email',
-            field: profileForm.fieldView(model.profile, 'email'),
+            fieldView: profileForm.fieldView(model.profile, 'email'),
             onInput: input =>
               toProfileMessage(profileForm.changed('email', input)),
             onBlur: toProfileMessage(profileForm.blurred('email')),
           }),
-          textField(h, {
+          textInputView(h, {
             id: 'profile-name',
             label: 'Display name',
-            field: profileForm.fieldView(model.profile, 'displayName'),
+            fieldView: profileForm.fieldView(model.profile, 'displayName'),
             onInput: input =>
               toProfileMessage(profileForm.changed('displayName', input)),
             onBlur: toProfileMessage(profileForm.blurred('displayName')),
@@ -444,7 +445,11 @@ const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
             [
               h.legend([h.Class('font-medium')], ['Topics']),
               ...Array.map(Topic.literals, topic =>
-                topicCheckbox(h, topic, topics.input.includes(topic)),
+                topicCheckboxView(
+                  h,
+                  topic,
+                  topicsFieldView.input.includes(topic),
+                ),
               ),
             ],
           ),
@@ -466,7 +471,7 @@ const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
         ],
       ),
-      profileFeedback(h, submission),
+      profileFeedbackView(h, submission),
       h.p(
         [h.Class('text-sm')],
         [`Attempts: ${profileForm.submitCount(model.profile)}`],

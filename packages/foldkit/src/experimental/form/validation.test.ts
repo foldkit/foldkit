@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import * as FieldValidation from '../../fieldValidation/index.js'
 import * as Form from './form.js'
 
-const submit = { error: Schema.String, execute: () => Effect.void }
+const voidSubmit = { error: Schema.String, execute: () => Effect.void }
 
 const firstCommand = <Command>(commands: ReadonlyArray<Command> | undefined) =>
   Array.head(commands ?? []).pipe(Option.getOrThrow)
@@ -12,9 +12,9 @@ const firstCommand = <Command>(commands: ReadonlyArray<Command> | undefined) =>
 const [isEmail] = FieldValidation.Rule.email('Invalid email')
 const [isLongEnough] = FieldValidation.Rule.minLength(8, 'Too short')
 
-const account = Form.define({
+const accountForm = Form.define({
   name: 'Account',
-  submit,
+  submit: voidSubmit,
   fields: {
     email: Form.field({
       schema: Schema.String,
@@ -40,43 +40,55 @@ const account = Form.define({
 
 describe('validation triggers', () => {
   it('validates a Change field on each change', () => {
-    const change = account.update(account.init(), account.changed('age', 10))
+    const change = accountForm.update(
+      accountForm.init(),
+      accountForm.changed('age', 10),
+    )
 
-    expect(account.fieldView(change.model, 'age').errors).toEqual([
+    expect(accountForm.fieldView(change.model, 'age').errors).toEqual([
       'Must be an adult',
     ])
   })
 
   it('waits for blur before validating a Blur field', () => {
-    const change = account.update(account.init(), account.changed('email', 'x'))
-    const blur = account.update(change.model, account.blurred('email'))
+    const change = accountForm.update(
+      accountForm.init(),
+      accountForm.changed('email', 'x'),
+    )
+    const blur = accountForm.update(change.model, accountForm.blurred('email'))
 
-    expect(account.fieldView(change.model, 'email').errors).toEqual([])
-    expect(account.fieldView(blur.model, 'email').errors).toEqual([
+    expect(accountForm.fieldView(change.model, 'email').errors).toEqual([])
+    expect(accountForm.fieldView(blur.model, 'email').errors).toEqual([
       'Invalid email',
     ])
   })
 
   it('clears the errors of a Blur field when its input changes', () => {
-    const change = account.update(account.init(), account.changed('email', 'x'))
-    const blur = account.update(change.model, account.blurred('email'))
-    const correction = account.update(
+    const change = accountForm.update(
+      accountForm.init(),
+      accountForm.changed('email', 'x'),
+    )
+    const blur = accountForm.update(change.model, accountForm.blurred('email'))
+    const correction = accountForm.update(
       blur.model,
-      account.changed('email', 'ada@example.com'),
+      accountForm.changed('email', 'ada@example.com'),
     )
 
-    expect(account.fieldView(correction.model, 'email').errors).toEqual([])
+    expect(accountForm.fieldView(correction.model, 'email').errors).toEqual([])
   })
 
   it('shows the first failing rule on blur and every failing rule on submit', () => {
-    const change = account.update(account.init(), account.changed('email', 'x'))
-    const blur = account.update(change.model, account.blurred('email'))
-    const attempt = account.submit(change.model)
+    const change = accountForm.update(
+      accountForm.init(),
+      accountForm.changed('email', 'x'),
+    )
+    const blur = accountForm.update(change.model, accountForm.blurred('email'))
+    const attempt = accountForm.submit(change.model)
 
-    expect(account.fieldView(blur.model, 'email').errors).toEqual([
+    expect(accountForm.fieldView(blur.model, 'email').errors).toEqual([
       'Invalid email',
     ])
-    expect(account.fieldView(attempt.model, 'email').errors).toEqual([
+    expect(accountForm.fieldView(attempt.model, 'email').errors).toEqual([
       'Invalid email',
       'Too short',
     ])
@@ -84,9 +96,9 @@ describe('validation triggers', () => {
 })
 
 describe('asynchronous checks', () => {
-  const username = Form.define({
+  const checkedUsernameForm = Form.define({
     name: 'Checked',
-    submit,
+    submit: voidSubmit,
     fields: {
       username: Form.field({
         schema: Schema.String,
@@ -96,15 +108,20 @@ describe('asynchronous checks', () => {
       }),
     },
   })
-  const completion = (generation: number, errors: ReadonlyArray<string>) =>
-    username.Message.CompletedValidateField({
+  const completedValidateUsername = (
+    generation: number,
+    errors: ReadonlyArray<string>,
+  ) =>
+    checkedUsernameForm.Message.CompletedValidateField({
       name: 'username',
       generation,
       result: Result.succeed(errors),
     })
 
   it('names each validation Command after the Form and field', () => {
-    expect(username.ValidateField.username.name).toBe('ValidateCheckedUsername')
+    expect(checkedUsernameForm.ValidateField.username.name).toBe(
+      'ValidateCheckedUsername',
+    )
   })
 
   it('throws when two field names would give their validation Commands the same name', () => {
@@ -121,9 +138,9 @@ describe('asynchronous checks', () => {
   })
 
   it('returns a validation Command for a value that passes its rules', () => {
-    const change = username.update(
-      username.init(),
-      username.changed('username', 'taken'),
+    const change = checkedUsernameForm.update(
+      checkedUsernameForm.init(),
+      checkedUsernameForm.changed('username', 'taken'),
     )
 
     expect(change.commands?.map(command => command.args)).toEqual([
@@ -132,85 +149,98 @@ describe('asynchronous checks', () => {
   })
 
   it('shows the errors the check returns', () => {
-    const change = username.update(
-      username.init(),
-      username.changed('username', 'taken'),
+    const change = checkedUsernameForm.update(
+      checkedUsernameForm.init(),
+      checkedUsernameForm.changed('username', 'taken'),
     )
-    const checked = username.update(change.model, completion(1, ['Taken']))
+    const validationCompletion = checkedUsernameForm.update(
+      change.model,
+      completedValidateUsername(1, ['Taken']),
+    )
 
-    expect(username.fieldView(checked.model, 'username').errors).toEqual([
-      'Taken',
-    ])
+    expect(
+      checkedUsernameForm.fieldView(validationCompletion.model, 'username')
+        .errors,
+    ).toEqual(['Taken'])
   })
 
   it('skips the check when the rules fail', () => {
-    const change = username.update(
-      username.init(),
-      username.changed('username', ''),
+    const change = checkedUsernameForm.update(
+      checkedUsernameForm.init(),
+      checkedUsernameForm.changed('username', ''),
     )
 
     expect(change.commands ?? []).toEqual([])
-    expect(username.fieldView(change.model, 'username').errors).toEqual([
-      'Required',
-    ])
+    expect(
+      checkedUsernameForm.fieldView(change.model, 'username').errors,
+    ).toEqual(['Required'])
   })
 
   it('ignores a check for an input a later change replaced', () => {
-    const first = username.update(
-      username.init(),
-      username.changed('username', 'taken'),
+    const firstChange = checkedUsernameForm.update(
+      checkedUsernameForm.init(),
+      checkedUsernameForm.changed('username', 'taken'),
     )
-    const second = username.update(
-      first.model,
-      username.changed('username', 'open'),
+    const secondChange = checkedUsernameForm.update(
+      firstChange.model,
+      checkedUsernameForm.changed('username', 'open'),
     )
-    const third = username.update(
-      second.model,
-      username.changed('username', 'taken'),
+    const thirdChange = checkedUsernameForm.update(
+      secondChange.model,
+      checkedUsernameForm.changed('username', 'taken'),
     )
 
-    expect(username.update(third.model, completion(1, ['Taken'])).model).toBe(
-      third.model,
-    )
+    expect(
+      checkedUsernameForm.update(
+        thirdChange.model,
+        completedValidateUsername(1, ['Taken']),
+      ).model,
+    ).toBe(thirdChange.model)
   })
 
   it.each(['reset', 'reinitialize'])(
     'ignores a check that started before %s',
     operation => {
-      const change = username.update(
-        username.init(),
-        username.changed('username', 'taken'),
+      const change = checkedUsernameForm.update(
+        checkedUsernameForm.init(),
+        checkedUsernameForm.changed('username', 'taken'),
       )
       const cleared =
         operation === 'reset'
-          ? username.reset(change.model)
-          : username.reinitialize(change.model)
-      const next = username.update(
+          ? checkedUsernameForm.reset(change.model)
+          : checkedUsernameForm.reinitialize(change.model)
+      const changeAfterClear = checkedUsernameForm.update(
         cleared.model,
-        username.changed('username', 'taken'),
+        checkedUsernameForm.changed('username', 'taken'),
       )
 
-      expect(username.update(next.model, completion(1, ['Taken'])).model).toBe(
-        next.model,
-      )
       expect(
-        username.update(next.model, completion(2, ['Taken'])).model,
-      ).not.toBe(next.model)
+        checkedUsernameForm.update(
+          changeAfterClear.model,
+          completedValidateUsername(1, ['Taken']),
+        ).model,
+      ).toBe(changeAfterClear.model)
+      expect(
+        checkedUsernameForm.update(
+          changeAfterClear.model,
+          completedValidateUsername(2, ['Taken']),
+        ).model,
+      ).not.toBe(changeAfterClear.model)
     },
   )
 
   it('runs the validator only when its Command runs', () => {
     const validate = vi.fn((_value: string) => Effect.fail('Unavailable'))
-    const deferred = Form.define({
+    const deferredForm = Form.define({
       name: 'Deferred',
-      submit,
+      submit: voidSubmit,
       fields: {
         username: Form.field({ schema: Schema.String, initial: '', validate }),
       },
     })
-    const change = deferred.update(
-      deferred.init(),
-      deferred.changed('username', 'next'),
+    const change = deferredForm.update(
+      deferredForm.init(),
+      deferredForm.changed('username', 'next'),
     )
 
     expect(validate).not.toHaveBeenCalled()
@@ -221,9 +251,9 @@ describe('asynchronous checks', () => {
   })
 
   it('shows a failed check as the field error', () => {
-    const failing = Form.define({
+    const failingForm = Form.define({
       name: 'Failing',
-      submit,
+      submit: voidSubmit,
       fields: {
         username: Form.field({
           schema: Schema.String,
@@ -232,58 +262,58 @@ describe('asynchronous checks', () => {
         }),
       },
     })
-    const change = failing.update(
-      failing.init(),
-      failing.changed('username', 'next'),
+    const change = failingForm.update(
+      failingForm.init(),
+      failingForm.changed('username', 'next'),
     )
-    const checked = failing.update(
+    const validationCompletion = failingForm.update(
       change.model,
       Effect.runSync(firstCommand(change.commands).effect),
     )
 
-    expect(failing.fieldView(checked.model, 'username').errors).toEqual([
-      'Check unavailable',
-    ])
+    expect(
+      failingForm.fieldView(validationCompletion.model, 'username').errors,
+    ).toEqual(['Check unavailable'])
   })
 
   it('runs only the validator of the field whose Command runs', () => {
-    class CheckUsername extends Context.Service<
-      CheckUsername,
+    class UsernameValidator extends Context.Service<
+      UsernameValidator,
       { check: (value: string) => ReadonlyArray<string> }
-    >()('CheckUsername') {}
-    class CheckAge extends Context.Service<
-      CheckAge,
+    >()('UsernameValidator') {}
+    class AgeValidator extends Context.Service<
+      AgeValidator,
       { check: (value: number) => ReadonlyArray<string> }
-    >()('CheckAge') {}
+    >()('AgeValidator') {}
     const checkUsername = vi.fn((_value: string) => ['Taken'])
     const checkAge = vi.fn((_value: number) => [])
-    const serviceful = Form.define({
+    const servicefulForm = Form.define({
       name: 'Serviceful',
-      submit,
+      submit: voidSubmit,
       fields: {
         username: Form.field({
           schema: Schema.String,
           initial: '',
           validate: value =>
-            Effect.map(CheckUsername, service => service.check(value)),
+            Effect.map(UsernameValidator, service => service.check(value)),
         }),
         age: Form.field({
           schema: Schema.FiniteFromString,
           initial: '18',
           validate: value =>
-            Effect.map(CheckAge, service => service.check(value)),
+            Effect.map(AgeValidator, service => service.check(value)),
         }),
       },
     })
-    const change = serviceful.update(
-      serviceful.init(),
-      serviceful.changed('username', 'taken'),
+    const change = servicefulForm.update(
+      servicefulForm.init(),
+      servicefulForm.changed('username', 'taken'),
     )
 
     Effect.runSync(
       firstCommand(change.commands).effect.pipe(
-        Effect.provideService(CheckUsername, { check: checkUsername }),
-        Effect.provideService(CheckAge, { check: checkAge }),
+        Effect.provideService(UsernameValidator, { check: checkUsername }),
+        Effect.provideService(AgeValidator, { check: checkAge }),
       ),
     )
 
@@ -293,12 +323,12 @@ describe('asynchronous checks', () => {
 })
 
 describe('checks on blur', () => {
-  const blurChecked = (
+  const makeBlurCheckedForm = (
     validate: (value: string) => Effect.Effect<ReadonlyArray<string>, string>,
   ) =>
     Form.define({
       name: 'BlurChecked',
-      submit,
+      submit: voidSubmit,
       fields: {
         username: Form.field({
           schema: Schema.String,
@@ -310,9 +340,15 @@ describe('checks on blur', () => {
     })
 
   it('reuses a pending check on a repeated blur', () => {
-    const form = blurChecked(() => Effect.succeed([]))
-    const blur = form.update(form.init(), form.blurred('username'))
-    const repeated = form.update(blur.model, form.blurred('username'))
+    const blurCheckedForm = makeBlurCheckedForm(() => Effect.succeed([]))
+    const blur = blurCheckedForm.update(
+      blurCheckedForm.init(),
+      blurCheckedForm.blurred('username'),
+    )
+    const repeated = blurCheckedForm.update(
+      blur.model,
+      blurCheckedForm.blurred('username'),
+    )
 
     expect(blur.commands).toHaveLength(1)
     expect(repeated.model).toBe(blur.model)
@@ -320,11 +356,14 @@ describe('checks on blur', () => {
   })
 
   it('reuses a successful check on the next blur', () => {
-    const form = blurChecked(() => Effect.succeed([]))
-    const blur = form.update(form.init(), form.blurred('username'))
-    const checked = form.update(
+    const blurCheckedForm = makeBlurCheckedForm(() => Effect.succeed([]))
+    const blur = blurCheckedForm.update(
+      blurCheckedForm.init(),
+      blurCheckedForm.blurred('username'),
+    )
+    const validationCompletion = blurCheckedForm.update(
       blur.model,
-      form.Message.CompletedValidateField({
+      blurCheckedForm.Message.CompletedValidateField({
         name: 'username',
         generation: 1,
         result: Result.succeed([]),
@@ -332,16 +371,22 @@ describe('checks on blur', () => {
     )
 
     expect(
-      form.update(checked.model, form.blurred('username')).commands ?? [],
+      blurCheckedForm.update(
+        validationCompletion.model,
+        blurCheckedForm.blurred('username'),
+      ).commands ?? [],
     ).toEqual([])
   })
 
   it('checks a failed input again on the next blur', () => {
-    const form = blurChecked(() => Effect.succeed(['Taken']))
-    const blur = form.update(form.init(), form.blurred('username'))
-    const failed = form.update(
+    const blurCheckedForm = makeBlurCheckedForm(() => Effect.succeed(['Taken']))
+    const blur = blurCheckedForm.update(
+      blurCheckedForm.init(),
+      blurCheckedForm.blurred('username'),
+    )
+    const failed = blurCheckedForm.update(
       blur.model,
-      form.Message.CompletedValidateField({
+      blurCheckedForm.Message.CompletedValidateField({
         name: 'username',
         generation: 1,
         result: Result.succeed(['Taken']),
@@ -349,7 +394,8 @@ describe('checks on blur', () => {
     )
 
     expect(
-      form.update(failed.model, form.blurred('username')).commands,
+      blurCheckedForm.update(failed.model, blurCheckedForm.blurred('username'))
+        .commands,
     ).toHaveLength(1)
   })
 })

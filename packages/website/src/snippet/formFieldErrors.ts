@@ -17,7 +17,7 @@ class SignupUnavailable extends Schema.TaggedError<SignupUnavailable>()(
   {},
 ) {}
 
-const CONFLICT = 409
+const CONFLICT_STATUS = 409
 
 const SignupError = Schema.Union([EmailTaken, InviteExpired, SignupUnavailable])
 
@@ -32,7 +32,7 @@ const signUp = (values: Readonly<{ email: string; invite: string }>) =>
     )
     const response = yield* client.execute(request)
 
-    if (response.status === CONFLICT) {
+    if (response.status === CONFLICT_STATUS) {
       const rejection =
         yield* HttpClientResponse.schemaBodyJson(SignupError)(response)
       return yield* Effect.fail(rejection)

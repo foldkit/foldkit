@@ -224,7 +224,7 @@ Render `input` in the control and send each new input with `changed`. Send `blur
 - `isEdited` turns true on the first change and stays true, even if the input goes back to its default.
 - `isBlurred` turns true when the field first loses focus.
 - `isTouched` is true when the field is edited or blurred.
-- `isDefaultValue` is true when the input equals the default, comparing arrays and records by content.
+- `isDefaultInput` is true when the input equals the default, comparing arrays and records by content.
 
 To change part of a compound input, send `changed` with the whole new input. In the example app, a checkbox click sends `ClickedProfileTopic`, and the parent adds or removes that topic before folding `profileForm.changed('topics', nextTopics)`.
 

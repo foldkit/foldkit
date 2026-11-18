@@ -9,7 +9,7 @@ const isPending = registrationForm.Submission.isAnyOf([
 ])
 
 const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const email = registrationForm.fieldView(model.registration, 'email')
+  const emailFieldView = registrationForm.fieldView(model.registration, 'email')
   const submission = registrationForm.submission(model.registration)
 
   return {
@@ -20,10 +20,10 @@ const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.label([h.For('email')], ['Email']),
         h.input([
           h.Id('email'),
-          h.Value(email.input),
-          h.OnInput(value =>
+          h.Value(emailFieldView.input),
+          h.OnInput(input =>
             Message.GotRegistrationMessage({
-              message: registrationForm.changed('email', value),
+              message: registrationForm.changed('email', input),
             }),
           ),
           h.OnBlur(
@@ -32,7 +32,7 @@ const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             }),
           ),
         ]),
-        ...Array.map(email.errors, error => h.p([], [error])),
+        ...Array.map(emailFieldView.errors, error => h.p([], [error])),
         h.button(
           [h.Type('submit'), h.Disabled(isPending(submission))],
           ['Register'],

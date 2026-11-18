@@ -11,9 +11,9 @@ import {
   update,
 } from './main'
 import {
-  completedProfileValidation,
-  completedRegistrationValidation,
-} from './validationFixtures'
+  completedValidateProfileEmail,
+  completedValidateRegistrationEmail,
+} from './main.fixture'
 
 const submitValidRegistration = steps(
   given(init().model),
@@ -35,7 +35,7 @@ const submitValidRegistration = steps(
   message(Message.SubmittedRegistrationForm()),
   Command.resolve(
     registrationForm.ValidateField.email,
-    completedRegistrationValidation(),
+    completedValidateRegistrationEmail(),
   ),
 )
 
@@ -124,7 +124,7 @@ test('an unmapped rejection stays at the form level', () => {
 })
 
 test('profile topic clicks build the array from the current Model and submit it with the profile id', () => {
-  const savedProfile = profileForm.Submit({
+  const submitProfile = profileForm.Submit({
     values: {
       email: 'reader@example.com',
       displayName: 'Reader',
@@ -142,11 +142,11 @@ test('profile topic clicks build the array from the current Model and submit it 
     message(Message.SubmittedProfileForm()),
     Command.resolve(
       profileForm.ValidateField.email,
-      completedProfileValidation(),
+      completedValidateProfileEmail(),
     ),
-    Command.expectExact(savedProfile),
+    Command.expectExact(submitProfile),
     Command.resolve(
-      savedProfile,
+      submitProfile,
       profileForm.Message.CompletedSubmit({
         generation: 1,
         result: Result.succeed(undefined),

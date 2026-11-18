@@ -65,7 +65,7 @@ export const isParentFieldConfig = <
   ChildMessage
 > => !Predicate.isFunction(config.read) || !Predicate.isFunction(config.write)
 
-export const parentFieldToLens = <
+export const fromParentField = <
   ParentModel,
   ParentMessage,
   ChildModel,
@@ -85,7 +85,7 @@ export const parentFieldToLens = <
   toParentMessage: message => config.toParentMessage(message),
 })
 
-export const preserveLensReceiver = <
+export const bindReceiver = <
   ParentModel,
   ParentMessage,
   ChildModel,

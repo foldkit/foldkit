@@ -7,7 +7,7 @@ import * as Story from '../../test/story.js'
 import * as Update from '../../update/index.js'
 import * as Form from './form.js'
 
-const registration = Form.define({
+const registrationForm = Form.define({
   name: 'Registration',
   fields: {
     email: Form.field({ schema: Schema.String, initial: '' }),
@@ -19,39 +19,39 @@ const registration = Form.define({
     execute: () => Effect.succeed(7),
   },
 })
-type RegistrationModel = typeof registration.Model.Type
-type RegistrationMessage = typeof registration.Message.Type
+type RegistrationModel = typeof registrationForm.Model.Type
+type RegistrationMessage = typeof registrationForm.Message.Type
 
 const ParentMessage = defineMessageUnion({
-  GotRegistrationMessage: { message: registration.Message },
+  GotRegistrationMessage: { message: registrationForm.Message },
 })
 type ParentMessage = typeof ParentMessage.Type
 const toParentMessage = (message: RegistrationMessage) =>
   ParentMessage.GotRegistrationMessage({ message })
 
 const foldRegistrationOutMessage = <ParentModel>() =>
-  registration.OutMessage.match<Update.Step<ParentModel, ParentMessage>>({
+  registrationForm.OutMessage.match<Update.Step<ParentModel, ParentMessage>>({
     SucceededSubmit: () => stepModel => ({ model: stepModel }),
     FailedSubmit: () => stepModel => ({ model: stepModel }),
   })
 
 const Parent = Schema.Struct({
-  registration: registration.Model,
+  registration: registrationForm.Model,
   maybeRegisteredId: Schema.Option(Schema.Number),
   maybeFailure: Schema.Option(Schema.String),
 })
 type Parent = typeof Parent.Type
 
 const initialParent = Parent.make({
-  registration: registration.init(),
+  registration: registrationForm.init(),
   maybeRegisteredId: Option.none(),
   maybeFailure: Option.none(),
 })
 
-const lifted = registration.lift<Parent, ParentMessage>({
+const registration = registrationForm.lift<Parent, ParentMessage>({
   parentField: 'registration',
   toParentMessage,
-  foldOutMessage: registration.OutMessage.match<
+  foldOutMessage: registrationForm.OutMessage.match<
     Update.Step<Parent, ParentMessage>
   >({
     SucceededSubmit:
@@ -72,7 +72,7 @@ const lifted = registration.lift<Parent, ParentMessage>({
 })
 
 const ExtendedRegistration = Schema.Struct({
-  ...registration.Model.fields,
+  ...registrationForm.Model.fields,
   recordId: Schema.String,
 })
 const ExtendedParent = Schema.Struct({ registration: ExtendedRegistration })
@@ -80,23 +80,26 @@ type ExtendedParent = typeof ExtendedParent.Type
 
 const extendedParent = ExtendedParent.make({
   registration: ExtendedRegistration.make({
-    ...registration.init(),
+    ...registrationForm.init(),
     recordId: 'profile-1',
   }),
 })
 
 describe('lifting through a parent field', () => {
   it('folds Form Messages into the parent field', () => {
-    const fold = lifted.fold(initialParent, registration.changed('age', 22))
+    const ageChange = registration.fold(
+      initialParent,
+      registrationForm.changed('age', 22),
+    )
 
-    expect(registration.inputs(fold.model.registration).age).toBe(22)
+    expect(registrationForm.inputs(ageChange.model.registration).age).toBe(22)
   })
 
   it('folds an accepted submission result through foldOutMessage', () => {
-    const attempt = lifted.submit()(initialParent)
-    const settled = lifted.fold(
+    const attempt = registration.submit()(initialParent)
+    const settled = registration.fold(
       attempt.model,
-      registration.Message.CompletedSubmit({
+      registrationForm.Message.CompletedSubmit({
         generation: 1,
         result: Result.succeed(7),
       }),
@@ -106,10 +109,10 @@ describe('lifting through a parent field', () => {
   })
 
   it('folds a rejected submission result through foldOutMessage', () => {
-    const attempt = lifted.submit()(initialParent)
-    const settled = lifted.fold(
+    const attempt = registration.submit()(initialParent)
+    const settled = registration.fold(
       attempt.model,
-      registration.Message.CompletedSubmit({
+      registrationForm.Message.CompletedSubmit({
         generation: 1,
         result: Result.fail('Registration is closed'),
       }),
@@ -122,8 +125,8 @@ describe('lifting through a parent field', () => {
 
   it('composes its Steps with Update.combine', () => {
     const reinitializeThenSubmit = Update.combine([
-      lifted.reinitialize({ email: 'ada@example.com' }),
-      lifted.submit(),
+      registration.reinitialize({ email: 'ada@example.com' }),
+      registration.submit(),
     ])(initialParent)
 
     expect(
@@ -132,18 +135,18 @@ describe('lifting through a parent field', () => {
   })
 
   it('treats a parentField config with undefined read and write as a parent field', () => {
-    const direct = registration.lift<Parent, ParentMessage>({
+    const directRegistration = registrationForm.lift<Parent, ParentMessage>({
       parentField: 'registration',
       read: undefined,
       write: undefined,
       toParentMessage,
       foldOutMessage: foldRegistrationOutMessage<Parent>(),
     })
-    const reinitialize = direct.reinitialize({ email: 'new@example.com' })(
-      initialParent,
-    )
+    const reinitialize = directRegistration.reinitialize({
+      email: 'new@example.com',
+    })(initialParent)
 
-    expect(registration.inputs(reinitialize.model.registration).email).toBe(
+    expect(registrationForm.inputs(reinitialize.model.registration).email).toBe(
       'new@example.com',
     )
   })
@@ -151,17 +154,19 @@ describe('lifting through a parent field', () => {
 
 describe('lifting through a lens', () => {
   it('leaves the parent unchanged when the lens reads no Form', () => {
-    const absent = registration.lift<Parent, ParentMessage>({
+    const absentRegistration = registrationForm.lift<Parent, ParentMessage>({
       read: () => Option.none(),
       write: parent => parent,
       toParentMessage,
       foldOutMessage: foldRegistrationOutMessage<Parent>(),
     })
 
-    expect(absent.submit()(initialParent).model).toBe(initialParent)
-    expect(absent.reset(initialParent).model).toBe(initialParent)
+    expect(absentRegistration.submit()(initialParent).model).toBe(initialParent)
+    expect(absentRegistration.reset(initialParent).model).toBe(initialParent)
     expect(
-      absent.reinitialize({ email: 'new@example.com' })(initialParent).model,
+      absentRegistration.reinitialize({ email: 'new@example.com' })(
+        initialParent,
+      ).model,
     ).toBe(initialParent)
   })
 
@@ -197,23 +202,26 @@ describe('lifting through a lens', () => {
         toParentMessage,
       }
       const lens = toLens(config)
-      const extended = registration.lift<ExtendedParent, ParentMessage>({
+      const extendedRegistration = registrationForm.lift<
+        ExtendedParent,
+        ParentMessage
+      >({
         ...lens,
         foldOutMessage: foldRegistrationOutMessage<ExtendedParent>(),
       })
-      const reinitialize = extended.reinitialize({ email: 'new@example.com' })(
-        extendedParent,
-      )
+      const reinitialize = extendedRegistration.reinitialize({
+        email: 'new@example.com',
+      })(extendedParent)
 
       expect(reinitialize.model.registration.recordId).toBe('profile-1')
-      expect(registration.inputs(reinitialize.model.registration).email).toBe(
-        'new@example.com',
-      )
+      expect(
+        registrationForm.inputs(reinitialize.model.registration).email,
+      ).toBe('new@example.com')
     },
   )
 
   it('calls class lens methods with the lens as `this`', () => {
-    class ProfileLens implements Form.FormLens<
+    class RegistrationRecordLens implements Form.FormLens<
       ExtendedParent,
       ParentMessage,
       RegistrationModel,
@@ -241,68 +249,71 @@ describe('lifting through a lens', () => {
         return toParentMessage(message)
       }
     }
-    const classLifted = registration.lift<ExtendedParent, ParentMessage>(
-      Object.assign(new ProfileLens(), {
+    const classLensRegistration = registrationForm.lift<
+      ExtendedParent,
+      ParentMessage
+    >(
+      Object.assign(new RegistrationRecordLens(), {
         foldOutMessage: foldRegistrationOutMessage<ExtendedParent>(),
       }),
     )
-    const fold = classLifted.fold(
+    const ageChange = classLensRegistration.fold(
       extendedParent,
-      registration.changed('age', 22),
+      registrationForm.changed('age', 22),
     )
-    const reinitialize = classLifted.reinitialize({ email: 'new@example.com' })(
-      fold.model,
-    )
-    const attempt = classLifted.submit()(reinitialize.model)
-    const reset = classLifted.reset(attempt.model)
+    const reinitialize = classLensRegistration.reinitialize({
+      email: 'new@example.com',
+    })(ageChange.model)
+    const attempt = classLensRegistration.submit()(reinitialize.model)
+    const reset = classLensRegistration.reset(attempt.model)
 
-    expect(registration.inputs(fold.model.registration).age).toBe(22)
-    expect(registration.inputs(reinitialize.model.registration).email).toBe(
+    expect(registrationForm.inputs(ageChange.model.registration).age).toBe(22)
+    expect(registrationForm.inputs(reinitialize.model.registration).email).toBe(
       'new@example.com',
     )
-    expect(registration.submission(attempt.model.registration)._tag).toBe(
+    expect(registrationForm.submission(attempt.model.registration)._tag).toBe(
       'Submitting',
     )
-    expect(registration.submission(reset.model.registration)._tag).toBe('Idle')
+    expect(registrationForm.submission(reset.model.registration)._tag).toBe(
+      'Idle',
+    )
     expect(reset.model.registration.recordId).toBe('profile-1')
   })
 })
 
 describe('lifted submit with context', () => {
   const RecordContext = Schema.Struct({ recordId: Schema.String })
-  const editing = Form.define({
+  const editingForm = Form.define({
     name: 'Editing',
     fields: { name: Form.field({ schema: Schema.String, initial: 'Ada' }) },
     submit: { context: RecordContext, execute: () => Effect.void },
   })
-  const EditingParent = Schema.Struct({ editing: editing.Model })
+  const EditingParent = Schema.Struct({ editing: editingForm.Model })
   type EditingParent = typeof EditingParent.Type
-  const EditingMessage = defineMessageUnion({
+  const EditingParentMessage = defineMessageUnion({
     ClickedSave: {},
-    GotEditingMessage: { message: editing.Message },
+    GotEditingMessage: { message: editingForm.Message },
   })
-  type EditingMessage = typeof EditingMessage.Type
-  const liftedEditing = editing.lift<EditingParent, EditingMessage>({
+  type EditingParentMessage = typeof EditingParentMessage.Type
+  const editing = editingForm.lift<EditingParent, EditingParentMessage>({
     parentField: 'editing',
-    toParentMessage: message => EditingMessage.GotEditingMessage({ message }),
-    foldOutMessage: editing.OutMessage.match<
-      Update.Step<EditingParent, EditingMessage>
+    toParentMessage: message =>
+      EditingParentMessage.GotEditingMessage({ message }),
+    foldOutMessage: editingForm.OutMessage.match<
+      Update.Step<EditingParent, EditingParentMessage>
     >({
       SucceededSubmit: () => stepModel => ({ model: stepModel }),
       FailedSubmit: () => stepModel => ({ model: stepModel }),
     }),
   })
-  const update = (parent: EditingParent, parentMessage: EditingMessage) =>
-    EditingMessage.match<Update.Return<EditingParent, EditingMessage>>(
-      parentMessage,
-      {
-        ClickedSave: () =>
-          liftedEditing.submit({ recordId: 'profile-1' })(parent),
-        GotEditingMessage: ({ message: editingMessage }) =>
-          liftedEditing.fold(parent, editingMessage),
-      },
-    )
-  const submitWithContext = editing.Submit({
+  const update = (model: EditingParent, message: EditingParentMessage) =>
+    EditingParentMessage.match<
+      Update.Return<EditingParent, EditingParentMessage>
+    >(message, {
+      ClickedSave: () => editing.submit({ recordId: 'profile-1' })(model),
+      GotEditingMessage: ({ message }) => editing.fold(model, message),
+    })
+  const submitWithContext = editingForm.Submit({
     values: { name: 'Ada' },
     context: { recordId: 'profile-1' },
     generation: 1,
@@ -311,18 +322,18 @@ describe('lifted submit with context', () => {
   it('passes the context to the Submit Command it returns', () => {
     Story.story(
       update,
-      Story.given(EditingParent.make({ editing: editing.init() })),
-      Story.message(EditingMessage.ClickedSave()),
+      Story.given(EditingParent.make({ editing: editingForm.init() })),
+      Story.message(EditingParentMessage.ClickedSave()),
       Story.Command.expectHas(submitWithContext),
       Story.Command.resolve(
         submitWithContext,
-        editing.Message.CompletedSubmit({
+        editingForm.Message.CompletedSubmit({
           generation: 1,
           result: Result.succeed(undefined),
         }),
       ),
       Story.model(parent =>
-        expect(editing.submission(parent.editing)._tag).toBe('Succeeded'),
+        expect(editingForm.submission(parent.editing)._tag).toBe('Succeeded'),
       ),
     )
   })

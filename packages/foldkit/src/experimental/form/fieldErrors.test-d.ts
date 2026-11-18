@@ -7,12 +7,12 @@ class EmailTaken extends Schema.TaggedError<EmailTaken>()('EmailTaken', {
   email: Schema.String,
 }) {}
 
-const email = Form.field({ schema: Schema.String, initial: '' })
+const emailField = Form.field({ schema: Schema.String, initial: '' })
 
 const fieldErrorChecks = () => {
   Form.define({
     name: 'NoErrorCodec',
-    fields: { email },
+    fields: { email: emailField },
     submit: {
       execute: () => Effect.void,
       // @ts-expect-error toFieldErrors needs an error codec.
@@ -22,7 +22,7 @@ const fieldErrorChecks = () => {
 
   Form.define({
     name: 'TypedRejection',
-    fields: { email },
+    fields: { email: emailField },
     submit: {
       error: EmailTaken,
       execute: () => Effect.void,
@@ -35,7 +35,7 @@ const fieldErrorChecks = () => {
 
   Form.define({
     name: 'EmptyFieldErrors',
-    fields: { email },
+    fields: { email: emailField },
     submit: {
       error: EmailTaken,
       execute: () => Effect.void,
@@ -45,7 +45,7 @@ const fieldErrorChecks = () => {
 
   const unknownFieldConfig = {
     name: 'UnknownField',
-    fields: { email },
+    fields: { email: emailField },
     submit: {
       error: EmailTaken,
       execute: () => Effect.void,
@@ -57,7 +57,7 @@ const fieldErrorChecks = () => {
 
   const mixedFieldErrorsConfig = {
     name: 'MixedFieldErrors',
-    fields: { email },
+    fields: { email: emailField },
     submit: {
       error: EmailTaken,
       execute: () => Effect.void,
@@ -69,7 +69,7 @@ const fieldErrorChecks = () => {
 
   const branchFieldErrorsConfig = {
     name: 'BranchFieldErrors',
-    fields: { email, invite: email },
+    fields: { email: emailField, invite: emailField },
     submit: {
       error: EmailTaken,
       execute: () => Effect.void,
@@ -82,7 +82,7 @@ const fieldErrorChecks = () => {
 
   Form.define({
     name: 'ValidBranchFieldErrors',
-    fields: { email, invite: email },
+    fields: { email: emailField, invite: emailField },
     submit: {
       error: EmailTaken,
       execute: () => Effect.void,
@@ -93,7 +93,7 @@ const fieldErrorChecks = () => {
 
   const nonStringMessageConfig = {
     name: 'NonStringMessage',
-    fields: { email },
+    fields: { email: emailField },
     submit: {
       error: EmailTaken,
       execute: () => Effect.void,
@@ -105,7 +105,7 @@ const fieldErrorChecks = () => {
 
   const wrongErrorParameterConfig = {
     name: 'WrongErrorParameter',
-    fields: { email },
+    fields: { email: emailField },
     submit: {
       error: EmailTaken,
       execute: () => Effect.void,

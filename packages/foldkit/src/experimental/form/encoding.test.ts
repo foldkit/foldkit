@@ -6,7 +6,7 @@ import * as Form from './form.js'
 const RecordContext = Schema.Struct({ recordId: Schema.String })
 const SaveData = Schema.Struct({ id: Schema.NumberFromString })
 
-const account = Form.define({
+const accountForm = Form.define({
   name: 'Account',
   fields: {
     handle: Form.field({ schema: Schema.NonEmptyString, initial: '' }),
@@ -27,51 +27,51 @@ const account = Form.define({
 })
 
 const context = { recordId: 'profile-1' }
-const validating = account.submit(account.init(), context).model
-const submitting = account.update(
+const validating = accountForm.submit(accountForm.init(), context).model
+const submitting = accountForm.update(
   validating,
-  account.Message.CompletedValidateField({
+  accountForm.Message.CompletedValidateField({
     name: 'username',
     generation: 1,
     result: Result.succeed([]),
   }),
 ).model
-const failed = account.update(
+const failed = accountForm.update(
   submitting,
-  account.Message.CompletedSubmit({
+  accountForm.Message.CompletedSubmit({
     generation: 1,
     result: Result.fail('Taken'),
   }),
 ).model
-const succeeded = account.update(
+const succeeded = accountForm.update(
   submitting,
-  account.Message.CompletedSubmit({
+  accountForm.Message.CompletedSubmit({
     generation: 1,
     result: Result.succeed(SaveData.make({ id: 7 })),
   }),
 ).model
 
 describe('Model and Message encoding', () => {
-  const ModelJson = Schema.toCodecJson(account.Model)
-  const MessageJson = Schema.toCodecJson(account.Message)
+  const ModelJson = Schema.toCodecJson(accountForm.Model)
+  const MessageJson = Schema.toCodecJson(accountForm.Message)
 
   it.each([
-    ['an input that fails its encoded-side checks', account.init()],
+    ['an input that fails its encoded-side checks', accountForm.init()],
     ['a Validating submission with its context', validating],
     ['a Submitting submission with its sent inputs', submitting],
     ['a Failed submission with a rejected field', failed],
     ['a Succeeded submission with transformed data', succeeded],
-  ])('round-trips a Model holding %s through JSON', (_state, model) => {
+  ])('round-trips a Model holding %s through JSON', (_description, model) => {
     expect(
       Schema.decodeSync(ModelJson)(Schema.encodeSync(ModelJson)(model)),
     ).toEqual(model)
   })
 
   it.each([
-    ['a change to input its Schema rejects', account.changed('handle', '')],
+    ['a change to input its Schema rejects', accountForm.changed('handle', '')],
     [
       'a validation completion',
-      account.Message.CompletedValidateField({
+      accountForm.Message.CompletedValidateField({
         name: 'username',
         generation: 1,
         result: Result.fail('Unavailable'),
@@ -79,12 +79,12 @@ describe('Model and Message encoding', () => {
     ],
     [
       'a submission completion with transformed data',
-      account.Message.CompletedSubmit({
+      accountForm.Message.CompletedSubmit({
         generation: 1,
         result: Result.succeed(SaveData.make({ id: 7 })),
       }),
     ],
-  ])('round-trips %s through JSON', (_message, message) => {
+  ])('round-trips %s through JSON', (_description, message) => {
     expect(
       Schema.decodeSync(MessageJson)(Schema.encodeSync(MessageJson)(message)),
     ).toEqual(message)
@@ -92,7 +92,7 @@ describe('Model and Message encoding', () => {
 
   it('rejects a change Message whose input does not match its field', () => {
     expect(() =>
-      Schema.decodeUnknownSync(account.Message)({
+      Schema.decodeUnknownSync(accountForm.Message)({
         _tag: 'ChangedField',
         change: { name: 'accepted', input: 'yes' },
       }),

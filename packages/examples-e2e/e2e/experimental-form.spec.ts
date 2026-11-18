@@ -42,13 +42,19 @@ test('profile topics support checkbox clicks and keyboard activation and restore
   page,
 }) => {
   await page.goto('/')
-  const effect = page.getByRole('checkbox', { name: 'Effect', exact: true })
-  const foldkit = page.getByRole('checkbox', { name: 'Foldkit', exact: true })
-  await effect.click()
-  await foldkit.focus()
-  await foldkit.press('Space')
-  await expect(effect).toBeChecked()
-  await expect(foldkit).toBeChecked()
+  const effectCheckbox = page.getByRole('checkbox', {
+    name: 'Effect',
+    exact: true,
+  })
+  const foldkitCheckbox = page.getByRole('checkbox', {
+    name: 'Foldkit',
+    exact: true,
+  })
+  await effectCheckbox.click()
+  await foldkitCheckbox.focus()
+  await foldkitCheckbox.press('Space')
+  await expect(effectCheckbox).toBeChecked()
+  await expect(foldkitCheckbox).toBeChecked()
   await page.getByRole('button', { name: 'Save profile', exact: true }).click()
   await expect(
     page
@@ -56,30 +62,32 @@ test('profile topics support checkbox clicks and keyboard activation and restore
       .getByText('Saved', { exact: true }),
   ).toBeVisible()
   await page.getByRole('button', { name: 'Reset profile', exact: true }).click()
-  await expect(effect).not.toBeChecked()
-  await expect(foldkit).not.toBeChecked()
+  await expect(effectCheckbox).not.toBeChecked()
+  await expect(foldkitCheckbox).not.toBeChecked()
 })
 
 test('continues a single submit after async validation and blocks rejected email', async ({
   page,
 }) => {
   await page.goto('/')
-  const registration = page.getByRole('region', { name: 'Registration' })
+  const registrationRegion = page.getByRole('region', { name: 'Registration' })
   await page.getByLabel('Registration email').fill('blocked@example.com')
   await page.getByLabel('Your name').fill('Person')
   await page.getByLabel('Your age').fill('30')
-  await registration
+  await registrationRegion
     .getByRole('button', { name: 'Register', exact: true })
     .click()
   await expect(
-    registration.getByText('This email cannot be used', { exact: true }),
+    registrationRegion.getByText('This email cannot be used', { exact: true }),
   ).toBeVisible()
   await expect(
-    registration.getByText('Saved', { exact: true }),
+    registrationRegion.getByText('Saved', { exact: true }),
   ).not.toBeVisible()
   await page.getByLabel('Registration email').fill('person@example.com')
-  await registration
+  await registrationRegion
     .getByRole('button', { name: 'Register', exact: true })
     .click()
-  await expect(registration.getByText('Saved', { exact: true })).toBeVisible()
+  await expect(
+    registrationRegion.getByText('Saved', { exact: true }),
+  ).toBeVisible()
 })

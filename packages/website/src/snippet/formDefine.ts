@@ -31,10 +31,10 @@ const registrationForm = Form.define({
   name: 'Registration',
   fields: {
     email: emailField,
-    displayName: Form.field({
+    fullName: Form.field({
       schema: Schema.String,
       initial: '',
-      rules: makeRules({ required: 'Enter a display name' }),
+      rules: makeRules({ required: 'Enter your name' }),
     }),
   },
   submit: {

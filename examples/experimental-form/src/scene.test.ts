@@ -22,9 +22,9 @@ import {
   view,
 } from './main'
 import {
-  completedProfileValidation,
-  completedRegistrationValidation,
-} from './validationFixtures'
+  completedValidateProfileEmail,
+  completedValidateRegistrationEmail,
+} from './main.fixture'
 
 test('ordinary inputs submit through the Form Command and render success', () => {
   scene(
@@ -36,7 +36,7 @@ test('ordinary inputs submit through the Form Command and render success', () =>
     click(role('button', { name: 'Register' })),
     Command.resolve(
       registrationForm.ValidateField.email,
-      completedRegistrationValidation(),
+      completedValidateRegistrationEmail(),
     ),
     expect(text('Saving…')).toExist(),
     Command.resolve(
@@ -61,7 +61,7 @@ test('a taken email shows on the email field until the email changes', () => {
     click(role('button', { name: 'Register' })),
     Command.resolve(
       registrationForm.ValidateField.email,
-      completedRegistrationValidation(),
+      completedValidateRegistrationEmail(),
     ),
     Command.resolve(
       registrationForm.Submit,
@@ -111,7 +111,7 @@ test('failure feedback clears after editing and reset restores edit defaults', (
     click(role('button', { name: 'Save profile' })),
     Command.resolve(
       profileForm.ValidateField.email,
-      completedProfileValidation(),
+      completedValidateProfileEmail(),
     ),
     Command.resolve(
       profileForm.Submit,
@@ -135,7 +135,7 @@ test('reset clears pending submission feedback', () => {
   const profileValidation = update(
     profileSubmit.model,
     Message.GotProfileMessage({
-      message: completedProfileValidation(),
+      message: completedValidateProfileEmail(),
     }),
   )
 

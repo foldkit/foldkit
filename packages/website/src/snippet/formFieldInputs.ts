@@ -4,6 +4,8 @@ import { Http } from 'foldkit'
 import { Form } from 'foldkit/experimental'
 import { makeRules } from 'foldkit/fieldValidation'
 
+const MIN_AGE = 18
+
 const AgeInput = Schema.Trim.check(
   Schema.isNonEmpty({ message: 'Enter your age' }),
 ).pipe(
@@ -45,7 +47,7 @@ const memberForm = Form.define({
       schema: AgeInput,
       initial: '',
       rules: makeRules<number>({
-        rules: [[age => age >= 18, 'Must be an adult']],
+        rules: [[age => age >= MIN_AGE, 'Must be an adult']],
       }),
     }),
     nickname: Form.field({ schema: OptionalText, initial: '' }),
@@ -64,4 +66,4 @@ const ageChange = memberForm.update(
   memberForm.changed('age', '12a'),
 )
 
-const age = memberForm.fieldView(ageChange.model, 'age')
+const ageFieldView = memberForm.fieldView(ageChange.model, 'age')

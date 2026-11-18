@@ -13,15 +13,15 @@ class InviteExpired extends Schema.TaggedError<InviteExpired>()(
   {},
 ) {}
 
-class Unavailable extends Schema.TaggedError<Unavailable>()(
-  'Unavailable',
+class SignupUnavailable extends Schema.TaggedError<SignupUnavailable>()(
+  'SignupUnavailable',
   {},
 ) {}
 
-const SignupError = Schema.Union([EmailTaken, InviteExpired, Unavailable])
+const SignupError = Schema.Union([EmailTaken, InviteExpired, SignupUnavailable])
 type SignupError = typeof SignupError.Type
 
-const signup = Form.define({
+const signupForm = Form.define({
   name: 'Signup',
   fields: {
     email: Form.field({
@@ -42,64 +42,70 @@ const signup = Form.define({
             email: `${email} is already registered`,
           }),
           InviteExpired: () => ({ invite: 'This invite has expired' }),
-          Unavailable: () => ({}),
+          SignupUnavailable: () => ({}),
         }),
       ),
   },
 })
 
-const rejected = (error: SignupError) =>
-  signup.Message.CompletedSubmit({ generation: 1, result: Result.fail(error) })
+const completedSubmitFailure = (error: SignupError) =>
+  signupForm.Message.CompletedSubmit({
+    generation: 1,
+    result: Result.fail(error),
+  })
 
 const submitAndReject = (error: SignupError) =>
-  signup.update(signup.submit(signup.init()).model, rejected(error))
+  signupForm.update(
+    signupForm.submit(signupForm.init()).model,
+    completedSubmitFailure(error),
+  )
 
 describe('submission errors mapped to fields', () => {
   it('shows a mapped error on its field and keeps the typed error', () => {
     const error = new EmailTaken({ email: 'ada@example.com' })
     const rejection = submitAndReject(error)
 
-    expect(signup.fieldView(rejection.model, 'email').errors).toEqual([
+    expect(signupForm.fieldView(rejection.model, 'email').errors).toEqual([
       'ada@example.com is already registered',
     ])
-    expect(signup.submission(rejection.model)).toEqual(
-      signup.Submission.Failed({ error }),
+    expect(signupForm.submission(rejection.model)).toEqual(
+      signupForm.Submission.Failed({ error }),
     )
   })
 
   it('keeps an unmapped error at the form level only', () => {
-    const rejection = submitAndReject(new Unavailable({}))
+    const rejection = submitAndReject(new SignupUnavailable({}))
 
-    expect(signup.fieldView(rejection.model, 'email').errors).toEqual([])
-    expect(signup.fieldView(rejection.model, 'invite').errors).toEqual([])
+    expect(signupForm.fieldView(rejection.model, 'email').errors).toEqual([])
+    expect(signupForm.fieldView(rejection.model, 'invite').errors).toEqual([])
   })
 
-  it.each([new EmailTaken({ email: 'ada@example.com' }), new Unavailable({})])(
-    'reports $_tag to the parent whether or not it maps to a field',
-    error => {
-      expect(submitAndReject(error).outMessage).toEqual(
-        signup.OutMessage.FailedSubmit({ error }),
-      )
-    },
-  )
+  it.each([
+    new EmailTaken({ email: 'ada@example.com' }),
+    new SignupUnavailable({}),
+  ])('reports $_tag to the parent whether or not it maps to a field', error => {
+    expect(submitAndReject(error).outMessage).toEqual(
+      signupForm.OutMessage.FailedSubmit({ error }),
+    )
+  })
 
   it('clears a mapped error when the field changes', () => {
     const rejection = submitAndReject(new InviteExpired({}))
-    const change = signup.update(
+    const change = signupForm.update(
       rejection.model,
-      signup.changed('invite', 'INVITE-2'),
+      signupForm.changed('invite', 'INVITE-2'),
     )
 
-    expect(signup.fieldView(change.model, 'invite').errors).toEqual([])
+    expect(signupForm.fieldView(change.model, 'invite').errors).toEqual([])
   })
 
   it('keeps a mapped error when the field blurs without a change', () => {
     const rejection = submitAndReject(
       new EmailTaken({ email: 'ada@example.com' }),
     )
-    const blur = signup.update(rejection.model, signup.blurred('email'))
+    const blur = signupForm.update(rejection.model, signupForm.blurred('email'))
 
-    expect(signup.fieldView(blur.model, 'email').errors).toEqual([
+    expect(signupForm.fieldView(blur.model, 'email').errors).toEqual([
       'ada@example.com is already registered',
     ])
   })
@@ -108,42 +114,48 @@ describe('submission errors mapped to fields', () => {
     const rejection = submitAndReject(
       new EmailTaken({ email: 'ada@example.com' }),
     )
-    const resubmit = signup.submit(rejection.model)
+    const resubmit = signupForm.submit(rejection.model)
 
-    expect(signup.fieldView(resubmit.model, 'email').errors).toEqual([])
-    expect(signup.submission(resubmit.model)._tag).toBe('Submitting')
+    expect(signupForm.fieldView(resubmit.model, 'email').errors).toEqual([])
+    expect(signupForm.submission(resubmit.model)._tag).toBe('Submitting')
   })
 
   it('leaves a field alone when its input changed while the submission was pending', () => {
-    const attempt = signup.submit(signup.init())
-    const change = signup.update(
+    const attempt = signupForm.submit(signupForm.init())
+    const change = signupForm.update(
       attempt.model,
-      signup.changed('invite', 'INVITE-2'),
+      signupForm.changed('invite', 'INVITE-2'),
     )
-    const rejection = signup.update(
+    const rejection = signupForm.update(
       change.model,
-      rejected(new InviteExpired({})),
+      completedSubmitFailure(new InviteExpired({})),
     )
 
-    expect(signup.fieldView(rejection.model, 'invite').errors).toEqual([])
+    expect(signupForm.fieldView(rejection.model, 'invite').errors).toEqual([])
   })
 
   it('maps an error to a field whose input changed back to what was sent', () => {
-    const attempt = signup.submit(signup.init())
-    const away = signup.update(
+    const attempt = signupForm.submit(signupForm.init())
+    const inviteChange = signupForm.update(
       attempt.model,
-      signup.changed('invite', 'INVITE-2'),
+      signupForm.changed('invite', 'INVITE-2'),
     )
-    const back = signup.update(away.model, signup.changed('invite', 'INVITE-1'))
-    const rejection = signup.update(back.model, rejected(new InviteExpired({})))
+    const inviteRevert = signupForm.update(
+      inviteChange.model,
+      signupForm.changed('invite', 'INVITE-1'),
+    )
+    const rejection = signupForm.update(
+      inviteRevert.model,
+      completedSubmitFailure(new InviteExpired({})),
+    )
 
-    expect(signup.fieldView(rejection.model, 'invite').errors).toEqual([
+    expect(signupForm.fieldView(rejection.model, 'invite').errors).toEqual([
       'This invite has expired',
     ])
   })
 
   it('compares a typed field by its sent input, not its decoded value', () => {
-    const quantity = Form.define({
+    const quantityForm = Form.define({
       name: 'Quantity',
       fields: {
         count: Form.field({ schema: Schema.FiniteFromString, initial: '42' }),
@@ -151,27 +163,27 @@ describe('submission errors mapped to fields', () => {
       submit: {
         error: Schema.String,
         execute: () => Effect.void,
-        toFieldErrors: message => ({ count: message }),
+        toFieldErrors: error => ({ count: error }),
       },
     })
-    const attempt = quantity.submit(quantity.init())
-    const change = quantity.update(
+    const attempt = quantityForm.submit(quantityForm.init())
+    const change = quantityForm.update(
       attempt.model,
-      quantity.changed('count', '042'),
+      quantityForm.changed('count', '042'),
     )
-    const rejection = quantity.update(
+    const rejection = quantityForm.update(
       change.model,
-      quantity.Message.CompletedSubmit({
+      quantityForm.Message.CompletedSubmit({
         generation: 1,
         result: Result.fail('Too many'),
       }),
     )
 
-    expect(quantity.fieldView(rejection.model, 'count').errors).toEqual([])
+    expect(quantityForm.fieldView(rejection.model, 'count').errors).toEqual([])
   })
 
   it('keeps an asynchronous check that started while the submission was pending', () => {
-    const checkedInvite = Form.define({
+    const checkedInviteForm = Form.define({
       name: 'CheckedInvite',
       fields: {
         invite: Form.field({
@@ -186,42 +198,43 @@ describe('submission errors mapped to fields', () => {
         toFieldErrors: () => ({ invite: 'This invite has expired' }),
       },
     })
-    const attempt = checkedInvite.submit(checkedInvite.init())
-    const submitting = checkedInvite.update(
+    const attempt = checkedInviteForm.submit(checkedInviteForm.init())
+    const validationCompletion = checkedInviteForm.update(
       attempt.model,
-      checkedInvite.Message.CompletedValidateField({
+      checkedInviteForm.Message.CompletedValidateField({
         name: 'invite',
         generation: 1,
         result: Result.succeed([]),
       }),
     )
-    const change = checkedInvite.update(
-      submitting.model,
-      checkedInvite.changed('invite', 'INVITE-2'),
+    const change = checkedInviteForm.update(
+      validationCompletion.model,
+      checkedInviteForm.changed('invite', 'INVITE-2'),
     )
-    const rejection = checkedInvite.update(
+    const rejection = checkedInviteForm.update(
       change.model,
-      checkedInvite.Message.CompletedSubmit({
+      checkedInviteForm.Message.CompletedSubmit({
         generation: 1,
         result: Result.fail('Expired'),
       }),
     )
-    const checked = checkedInvite.update(
+    const secondValidationCompletion = checkedInviteForm.update(
       rejection.model,
-      checkedInvite.Message.CompletedValidateField({
+      checkedInviteForm.Message.CompletedValidateField({
         name: 'invite',
         generation: 2,
         result: Result.succeed(['Unknown invite']),
       }),
     )
 
-    expect(checkedInvite.fieldView(checked.model, 'invite').errors).toEqual([
-      'Unknown invite',
-    ])
+    expect(
+      checkedInviteForm.fieldView(secondValidationCompletion.model, 'invite')
+        .errors,
+    ).toEqual(['Unknown invite'])
   })
 
   it('ignores a field whose mapped message is undefined', () => {
-    const contact = Form.define({
+    const contactForm = Form.define({
       name: 'Contact',
       fields: { email: Form.field({ schema: Schema.String, initial: 'a' }) },
       submit: {
@@ -230,19 +243,19 @@ describe('submission errors mapped to fields', () => {
         toFieldErrors: () => ({ email: undefined }),
       },
     })
-    const rejection = contact.update(
-      contact.submit(contact.init()).model,
-      contact.Message.CompletedSubmit({
+    const rejection = contactForm.update(
+      contactForm.submit(contactForm.init()).model,
+      contactForm.Message.CompletedSubmit({
         generation: 1,
         result: Result.fail('Unavailable'),
       }),
     )
 
-    expect(contact.fieldView(rejection.model, 'email').errors).toEqual([])
+    expect(contactForm.fieldView(rejection.model, 'email').errors).toEqual([])
   })
 
   it('uses only the messages the mapping returns, not inherited properties', () => {
-    const special = Form.define({
+    const specialForm = Form.define({
       name: 'SpecialRejection',
       fields: {
         constructor: Form.field({ schema: Schema.String, initial: '' }),
@@ -254,15 +267,19 @@ describe('submission errors mapped to fields', () => {
         toFieldErrors: () => ({}),
       },
     })
-    const rejection = special.update(
-      special.submit(special.init()).model,
-      special.Message.CompletedSubmit({
+    const rejection = specialForm.update(
+      specialForm.submit(specialForm.init()).model,
+      specialForm.Message.CompletedSubmit({
         generation: 1,
         result: Result.fail('Unavailable'),
       }),
     )
 
-    expect(special.fieldView(rejection.model, 'constructor').errors).toEqual([])
-    expect(special.fieldView(rejection.model, 'toString').errors).toEqual([])
+    expect(
+      specialForm.fieldView(rejection.model, 'constructor').errors,
+    ).toEqual([])
+    expect(specialForm.fieldView(rejection.model, 'toString').errors).toEqual(
+      [],
+    )
   })
 })
