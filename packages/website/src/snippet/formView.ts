@@ -15,10 +15,10 @@ const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.label([h.For('email')], ['Email']),
         h.input([
           h.Id('email'),
-          h.Value(email.value),
+          h.Value(email.input),
           h.OnInput(value =>
             Message.GotRegistrationMessage({
-              message: registrationForm.changed('email', { value }),
+              message: registrationForm.changed('email', value),
             }),
           ),
           h.OnBlur(

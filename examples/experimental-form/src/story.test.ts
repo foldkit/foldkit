@@ -2,7 +2,14 @@ import { Result } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { expect, test } from 'vitest'
 
-import { Message, init, profileForm, registrationForm, update } from './main'
+import {
+  Message,
+  RegistrationRejection,
+  init,
+  profileForm,
+  registrationForm,
+  update,
+} from './main'
 import {
   completedProfileValidation,
   completedRegistrationValidation,
@@ -13,22 +20,26 @@ const validRegistrationModel = () => {
   const emailChange = update(
     initial.model,
     Message.GotRegistrationMessage({
-      message: registrationForm.changed('email', {
-        value: 'person@example.com',
-      }),
+      message: registrationForm.changed('email', 'person@example.com'),
     }),
   )
   const nameChange = update(
     emailChange.model,
     Message.GotRegistrationMessage({
-      message: registrationForm.changed('name', { value: 'Person' }),
+      message: registrationForm.changed('name', 'Person'),
+    }),
+  )
+  const ageChange = update(
+    nameChange.model,
+    Message.GotRegistrationMessage({
+      message: registrationForm.changed('age', '30'),
     }),
   )
 
-  return nameChange.model
+  return ageChange.model
 }
 
-test('Form Command success settles the registration Form', () => {
+test('Form Command success settles the registration Form and informs the parent', () => {
   story(
     update,
     given(validRegistrationModel()),
@@ -47,18 +58,19 @@ test('Form Command success settles the registration Form', () => {
       registrationForm.Submit,
       registrationForm.Message.CompletedSubmit({
         token: { generation: 1 },
-        result: Result.succeed(undefined),
+        result: Result.succeed('person@example.com'),
       }),
     ),
-    model(model =>
+    model(model => {
       expect(registrationForm.submission(model.registration)._tag).toBe(
         'Succeeded',
-      ),
-    ),
+      )
+      expect(model.registeredEmails).toEqual(['person@example.com'])
+    }),
   )
 })
 
-test('Form Command failure exposes submission feedback', () => {
+test('a taken email shows on the email field until it is edited', () => {
   story(
     update,
     given(validRegistrationModel()),
@@ -71,15 +83,67 @@ test('Form Command failure exposes submission feedback', () => {
       registrationForm.Submit,
       registrationForm.Message.CompletedSubmit({
         token: { generation: 1 },
-        result: Result.fail('Email is taken'),
+        result: Result.fail(RegistrationRejection.EmailTaken()),
+      }),
+    ),
+    model(model => {
+      expect(registrationForm.submission(model.registration)).toEqual(
+        registrationForm.Submission.Failed({
+          error: RegistrationRejection.EmailTaken(),
+        }),
+      )
+      expect(
+        registrationForm.field(model.registration, 'email').errors,
+      ).toEqual(['This email is already registered'])
+      expect(model.registeredEmails).toEqual([])
+    }),
+    message(
+      Message.GotRegistrationMessage({
+        message: registrationForm.blurred('email'),
       }),
     ),
     model(model =>
-      expect(registrationForm.submission(model.registration)).toEqual({
-        _tag: 'Failed',
-        error: 'Email is taken',
+      expect(
+        registrationForm.field(model.registration, 'email').errors,
+      ).toEqual(['This email is already registered']),
+    ),
+    message(
+      Message.GotRegistrationMessage({
+        message: registrationForm.changed('email', 'other@example.com'),
       }),
     ),
+    model(model =>
+      expect(
+        registrationForm.field(model.registration, 'email').errors,
+      ).toEqual([]),
+    ),
+  )
+})
+
+test('an unmapped rejection stays at the form level', () => {
+  story(
+    update,
+    given(validRegistrationModel()),
+    message(Message.SubmittedRegistration()),
+    Command.resolve(
+      registrationForm.ValidateField.email,
+      completedRegistrationValidation(),
+    ),
+    Command.resolve(
+      registrationForm.Submit,
+      registrationForm.Message.CompletedSubmit({
+        token: { generation: 1 },
+        result: Result.fail(RegistrationRejection.RegistrationUnavailable()),
+      }),
+    ),
+    model(model => {
+      expect(registrationForm.submission(model.registration)._tag).toBe(
+        'Failed',
+      )
+      expect(
+        registrationForm.field(model.registration, 'email').errors,
+      ).toEqual([])
+    }),
   )
 })
 
@@ -101,16 +165,22 @@ test('a late completion after reset cannot settle a newer submission', () => {
   const emailChange = update(
     reset.model,
     Message.GotRegistrationMessage({
-      message: registrationForm.changed('email', { value: 'new@example.com' }),
+      message: registrationForm.changed('email', 'new@example.com'),
     }),
   )
   const nameChange = update(
     emailChange.model,
     Message.GotRegistrationMessage({
-      message: registrationForm.changed('name', { value: 'New person' }),
+      message: registrationForm.changed('name', 'New person'),
     }),
   )
-  const secondSubmit = update(nameChange.model, Message.SubmittedRegistration())
+  const ageChange = update(
+    nameChange.model,
+    Message.GotRegistrationMessage({
+      message: registrationForm.changed('age', '30'),
+    }),
+  )
+  const secondSubmit = update(ageChange.model, Message.SubmittedRegistration())
   const secondValidation = update(
     secondSubmit.model,
     Message.GotRegistrationMessage({
@@ -125,13 +195,13 @@ test('a late completion after reset cannot settle a newer submission', () => {
       Message.GotRegistrationMessage({
         message: registrationForm.Message.CompletedSubmit({
           token: { generation: 1 },
-          result: Result.succeed(undefined),
+          result: Result.succeed('person@example.com'),
         }),
       }),
     ),
     Command.expectNone(),
     model(model =>
-      expect(registrationForm.submission(model.registration)).toEqual({
+      expect(registrationForm.submission(model.registration)).toMatchObject({
         _tag: 'Submitting',
         token: { generation: 2 },
       }),
@@ -140,7 +210,7 @@ test('a late completion after reset cannot settle a newer submission', () => {
       Message.GotRegistrationMessage({
         message: registrationForm.Message.CompletedSubmit({
           token: { generation: 2 },
-          result: Result.succeed(undefined),
+          result: Result.succeed('person@example.com'),
         }),
       }),
     ),
@@ -208,7 +278,7 @@ test('reused field definitions leave the edit Form independent', () => {
     given(profileValidation.model),
     message(Message.ClickedResetProfile()),
     model(model => {
-      expect(profileForm.values(model.profile)).toEqual({
+      expect(profileForm.inputs(model.profile)).toEqual({
         email: 'reader@example.com',
         displayName: 'Reader',
         topics: [],
@@ -222,7 +292,7 @@ test('reused field definitions leave the edit Form independent', () => {
       Message.GotRegistrationMessage({
         message: registrationForm.Message.CompletedSubmit({
           token: { generation: 1 },
-          result: Result.succeed(undefined),
+          result: Result.succeed('person@example.com'),
         }),
       }),
     ),
@@ -252,6 +322,7 @@ test('profile topic clicks derive each replacement from the current Model and ca
           displayName: 'Reader',
           topics: ['Effect', 'Foldkit'],
         },
+        context: { profileId: 'profile-1' },
         token: { generation: 1 },
       }),
     ),
@@ -262,6 +333,7 @@ test('profile topic clicks derive each replacement from the current Model and ca
           displayName: 'Reader',
           topics: ['Effect', 'Foldkit'],
         },
+        context: { profileId: 'profile-1' },
         token: { generation: 1 },
       }),
       profileForm.Message.CompletedSubmit({
@@ -271,11 +343,11 @@ test('profile topic clicks derive each replacement from the current Model and ca
     ),
     message(Message.ClickedProfileTopic({ topic: 'Effect' })),
     model(model =>
-      expect(profileForm.values(model.profile).topics).toEqual(['Foldkit']),
+      expect(profileForm.inputs(model.profile).topics).toEqual(['Foldkit']),
     ),
     message(Message.ClickedResetProfile()),
     model(model =>
-      expect(profileForm.values(model.profile).topics).toEqual([]),
+      expect(profileForm.inputs(model.profile).topics).toEqual([]),
     ),
   )
 })

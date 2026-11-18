@@ -13,15 +13,15 @@ class CheckAge extends Context.Service<
   { check: (value: number) => ReadonlyArray<string> }
 >()('CheckAge') {}
 
-const text = Form.field({ schema: Schema.String, initial: { value: '' } })
+const text = Form.field({ schema: Schema.String, initial: '' })
 const username = Form.field({
   schema: Schema.String,
-  initial: { value: '' },
+  initial: '',
   validate: value => Effect.map(CheckUsername, service => service.check(value)),
 })
 const age = Form.field({
-  schema: Schema.NumberFromString,
-  initial: { value: 18 },
+  schema: Schema.FiniteFromString,
+  initial: '18',
   validate: value => Effect.map(CheckAge, service => service.check(value)),
 })
 
@@ -29,12 +29,12 @@ it('exposes the supplied validator and omits absent validators', () => {
   const validate = (value: string) => Effect.succeed(value ? [] : ['Required'])
   const checked = Form.field({
     schema: Schema.String,
-    initial: { value: '' },
+    initial: '',
     validate,
   })
   const unchecked = Form.field({
     schema: Schema.String,
-    initial: { value: '' },
+    initial: '',
     validate: undefined,
   })
 
@@ -51,7 +51,7 @@ it('retains service requirements across mixed fields', () => {
   })
   const change = registration.update(
     registration.init(),
-    registration.changed('username', { value: 'taken' }),
+    registration.changed('username', 'taken'),
   )
   const maybeCommand = Array.head(change.commands ?? [])
   if (Option.isNone(maybeCommand)) {
@@ -81,7 +81,7 @@ it('retains service requirements across mixed fields', () => {
 
   const ageChange = registration.update(
     completed.model,
-    registration.changed('age', { value: 21 }),
+    registration.changed('age', '21'),
   )
   const validateAge = Option.getOrThrow(Array.head(ageChange.commands ?? []))
   const ageCompleted = registration.update(
@@ -112,15 +112,12 @@ it('invokes the validator only when its Command executes and reports typed failu
     fields: {
       username: Form.field({
         schema: Schema.String,
-        initial: { value: '' },
+        initial: '',
         validate,
       }),
     },
   })
-  const change = form.update(
-    form.init(),
-    form.changed('username', { value: 'next' }),
-  )
+  const change = form.update(form.init(), form.changed('username', 'next'))
 
   expect(validate).not.toHaveBeenCalled()
 

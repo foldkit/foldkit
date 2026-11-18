@@ -4,7 +4,7 @@ import { expectTypeOf } from 'vitest'
 import * as Form from './index.js'
 
 const fieldNameChecks = () => {
-  const text = Form.field({ schema: Schema.String, initial: { value: '' } })
+  const text = Form.field({ schema: Schema.String, initial: '' })
   const symbolName = Symbol('field')
   const symbolFields = { text, [symbolName]: text }
   const numericFields = { text, 0: text }
@@ -42,10 +42,10 @@ class SaveRegistration extends Context.Service<
 >()('SaveRegistration') {}
 
 const validatorPresenceChecks = () => {
-  const text = Form.field({ schema: Schema.String, initial: { value: '' } })
+  const text = Form.field({ schema: Schema.String, initial: '' })
   const username = Form.field({
     schema: Schema.String,
-    initial: { value: '' },
+    initial: '',
     validate: value =>
       Effect.map(ValidateUsername, service => service.check(value)),
   })
@@ -56,7 +56,7 @@ const validatorPresenceChecks = () => {
   Effect.runSync(username.validator('hello'))
   Form.field({
     schema: Schema.NumberFromString,
-    initial: { value: 1 },
+    initial: '1',
     // @ts-expect-error A transformed field's validator receives the decoded value.
     validate: (value: string) => Effect.succeed([value]),
   })
@@ -68,7 +68,7 @@ const validatorPresenceChecks = () => {
   })
   const formChange = registration.update(
     registration.init(),
-    registration.changed('username', { value: 'next' }),
+    registration.changed('username', 'next'),
   )
   for (const validateField of formChange.commands ?? []) {
     // @ts-expect-error Synchronous fields do not erase another field's service requirements.
@@ -100,7 +100,7 @@ const validatorPresenceChecks = () => {
 
   Form.field({
     schema: Schema.String,
-    initial: { value: '' },
+    initial: '',
     // @ts-expect-error Validation triggers are capitalized literals.
     validateOn: 'blur',
   })
@@ -112,11 +112,11 @@ const inferredFieldTypes = () => {
     name: 'InferredFields',
     submit: { error: Schema.String, execute: () => Effect.void },
     fields: {
-      email: Form.field({ schema: Schema.String, initial: { value: '' } }),
-      age: Form.field({ schema: Schema.Number, initial: { value: 18 } }),
+      email: Form.field({ schema: Schema.String, initial: '' }),
+      age: Form.field({ schema: Schema.Number, initial: 18 }),
       accepted: Form.field({
         schema: Schema.Boolean,
-        initial: { value: false },
+        initial: false,
       }),
     },
   })
@@ -128,16 +128,16 @@ const inferredFieldTypes = () => {
 
   const withoutValidator = Form.field({
     schema: Schema.String,
-    initial: { value: '' },
+    initial: '',
   })
   const undefinedValidator = Form.field({
     schema: Schema.String,
-    initial: { value: '' },
+    initial: '',
     validate: undefined,
   })
   const age = Form.field({
     schema: Schema.NumberFromString,
-    initial: { value: 18 },
+    initial: '18',
     validate: value => Effect.succeed(value > 0 ? [] : ['Positive only']),
   })
   expectTypeOf(withoutValidator.validator).toEqualTypeOf<undefined>()
@@ -166,10 +166,7 @@ const dynamicValidatorTypes = (
     submit: { error: Schema.String, execute: () => Effect.void },
     fields: { username: definition },
   })
-  const change = form.update(
-    form.init(),
-    form.changed('username', { value: 'next' }),
-  )
+  const change = form.update(form.init(), form.changed('username', 'next'))
   for (const validateField of change.commands ?? []) {
     expectTypeOf<
       Effect.Services<typeof validateField.effect>
@@ -182,9 +179,9 @@ const registration = Form.define({
   name: 'RegistrationTypes',
   submit: { error: Schema.String, execute: () => Effect.void },
   fields: {
-    email: Form.field({ schema: Schema.String, initial: { value: '' } }),
-    age: Form.field({ schema: Schema.Number, initial: { value: 18 } }),
-    accepted: Form.field({ schema: Schema.Boolean, initial: { value: false } }),
+    email: Form.field({ schema: Schema.String, initial: '' }),
+    age: Form.field({ schema: Schema.Number, initial: 18 }),
+    accepted: Form.field({ schema: Schema.Boolean, initial: false }),
   },
 })
 
@@ -192,16 +189,59 @@ const scalarFieldTypeChecks = (
   name: 'email' | 'age',
   value: string | number,
 ) => {
-  // @ts-expect-error A number field rejects a string.
-  registration.changed('age', { value: '21' })
-  // @ts-expect-error A union name cannot be paired with an uncorrelated value.
-  registration.changed(name, { value })
+  // @ts-expect-error A number field rejects a string input.
+  registration.changed('age', '21')
+  // @ts-expect-error A union name cannot be paired with an uncorrelated input.
+  registration.changed(name, value)
   // @ts-expect-error Unknown names are rejected.
-  registration.changed('other', { value: 'x' })
-  // @ts-expect-error Initial follows the codec rather than widening it.
-  Form.field({ schema: Schema.Number, initial: { value: '18' } })
+  registration.changed('other', 'x')
+  // @ts-expect-error Initial follows the codec's encoded side rather than widening it.
+  Form.field({ schema: Schema.Number, initial: '18' })
+  // @ts-expect-error Initial is the input, not a wrapper around it.
+  Form.field({ schema: Schema.String, initial: { value: '' } })
 }
 void scalarFieldTypeChecks
+
+const encodedInputTypeChecks = () => {
+  const age = Form.field({ schema: Schema.NumberFromString, initial: '' })
+  const ages = Form.define({
+    name: 'EncodedInputs',
+    submit: { execute: () => Effect.void },
+    fields: { age },
+  })
+  ages.changed('age', '12a')
+  // @ts-expect-error A transformed field changes with its encoded input.
+  ages.changed('age', 12)
+  // @ts-expect-error A transformed field's initial input is encoded.
+  Form.field({ schema: Schema.NumberFromString, initial: 18 })
+  ages.init({ age: 12 })
+  // @ts-expect-error Overrides are decoded values, not inputs.
+  ages.init({ age: '12' })
+  expectTypeOf(ages.inputs(ages.init())).toEqualTypeOf<{
+    readonly age: string
+  }>()
+  expectTypeOf<Form.Values<typeof ages>>().toEqualTypeOf<{
+    readonly age: number
+  }>()
+  expectTypeOf<
+    Form.FormInputs<{ age: typeof Schema.NumberFromString }>
+  >().toEqualTypeOf<{ readonly age: string }>()
+  const view = ages.field(ages.init(), 'age')
+  expectTypeOf(view.input).toEqualTypeOf<string>()
+  expectTypeOf(view.maybeValue).toEqualTypeOf<Option.Option<number>>()
+  expectTypeOf(view.meta).toEqualTypeOf<
+    Readonly<{
+      isTouched: boolean
+      isBlurred: boolean
+      isEdited: boolean
+      isDefaultValue: boolean
+    }>
+  >()
+  ages.Message.ChangedField({ change: { name: 'age', input: '12a' } })
+  // @ts-expect-error The public Message constructor carries the encoded input.
+  ages.Message.ChangedField({ change: { name: 'age', input: 12 } })
+}
+void encodedInputTypeChecks
 
 class TestService extends Context.Service<
   TestService,
@@ -224,7 +264,7 @@ const literalForm = Form.define({
   fields: {
     choice: Form.field({
       schema: Schema.Literals(['Yes', 'No']),
-      initial: { value: 'Yes' },
+      initial: 'Yes',
     }),
   },
 })
@@ -240,23 +280,28 @@ const schemaAndOverrideTypeChecks = () => {
   }
   void selectedValues
   registration.Message.ChangedField({
-    // @ts-expect-error The public Message constructor preserves the field/value pairing.
-    change: { name: 'age', input: { value: '21' } },
+    // @ts-expect-error The public Message constructor preserves the field/input pairing.
+    change: { name: 'age', input: '21' },
   })
   // @ts-expect-error Decoding services cannot run in synchronous Form transitions.
-  Form.field({ schema: serviceful, initial: { value: '' } })
+  Form.field({ schema: serviceful, initial: '' })
   // @ts-expect-error Encoding services cannot run in synchronous Form schemas.
-  Form.field({ schema: Schema.flip(serviceful), initial: { value: '' } })
+  Form.field({ schema: Schema.flip(serviceful), initial: '' })
   Form.field({
     // @ts-expect-error An optional key is not a field codec.
     schema: Schema.optionalKey(Schema.String),
-    initial: { value: '' },
+    initial: '',
+  })
+  Form.field({
+    // @ts-expect-error A codec whose encoded side is an optional key has no input to store.
+    schema: Schema.OptionFromOptionalKey(Schema.String),
+    initial: '',
   })
   // @ts-expect-error Override types follow each field's decoded codec type.
-  registration.init({ age: { value: '21' } })
-  // @ts-expect-error Unknown overrides are rejected even through a variable.
-  registration.init({ email: { value: '' }, extra: { value: '' } })
-  const overrides = { email: { value: '' }, extra: { value: '' } }
+  registration.init({ age: '21' })
+  // @ts-expect-error Unknown overrides are rejected.
+  registration.init({ email: '', extra: '' })
+  const overrides = { email: '', extra: '' }
   // @ts-expect-error Unknown overrides are rejected even through a variable.
   registration.init(overrides)
 }
@@ -267,40 +312,40 @@ const optionalInputTypeChecks = () => {
     name: 'PresenceTypes',
     submit: { error: Schema.String, execute: () => Effect.void },
     fields: {
-      count: Form.field({ schema: Schema.Number, initial: { value: 0 } }),
+      count: Form.field({ schema: Schema.Number, initial: 0 }),
       selected: Form.field({
-        schema: Schema.OptionFromOptionalKey(Schema.String),
-        initial: { value: Option.none() },
+        schema: Schema.OptionFromNullOr(Schema.String),
+        initial: null,
       }),
     },
   })
-  form.changed('selected', { value: Option.none() })
-  form.Message.ChangedField({
-    change: { name: 'selected', input: { value: Option.some('Ada') } },
-  })
-  // @ts-expect-error Required decoded keys cannot be cleared.
-  form.changed('count', {})
-  // @ts-expect-error Optional encoded keys do not imply optional decoded keys.
-  form.changed('selected', {})
-  // @ts-expect-error Option values preserve their payload type.
-  form.changed('selected', { value: 1 })
-  // @ts-expect-error Initial inputs preserve required decoded keys.
-  Form.field({ schema: Schema.Number, initial: {} })
-  // @ts-expect-error Public constructors preserve required decoded keys.
-  form.Message.ChangedField({ change: { name: 'count', input: {} } })
-  const overrides = { selected: { value: Option.none() }, extra: {} }
+  form.changed('selected', null)
+  form.changed('selected', 'Ada')
+  form.Message.ChangedField({ change: { name: 'selected', input: 'Ada' } })
+  form.init({ selected: Option.some('Ada') })
+  expectTypeOf<Form.Values<typeof form>['selected']>().toEqualTypeOf<
+    Option.Option<string>
+  >()
+  // @ts-expect-error Required inputs cannot be cleared.
+  form.changed('count', undefined)
+  // @ts-expect-error The input is the encoded side, not an Option.
+  form.changed('selected', Option.none())
+  // @ts-expect-error Encoded inputs preserve their payload type.
+  form.changed('selected', 1)
+  // @ts-expect-error Overrides of an Option field take an Option.
+  form.init({ selected: null })
+  // @ts-expect-error Public constructors preserve required inputs.
+  form.Message.ChangedField({ change: { name: 'count' } })
+  const overrides = { selected: Option.none(), extra: 1 }
   // @ts-expect-error Unknown override keys are rejected through variables.
   form.init(overrides)
 }
 void optionalInputTypeChecks
 
 const decodedUndefinedTypeChecks = () => {
-  const text = Form.field({
-    schema: Schema.String,
-    initial: { value: 'Default' },
-  })
+  const text = Form.field({ schema: Schema.String, initial: 'Default' })
   // @ts-expect-error A string field requires a string value.
-  text.initialize({ value: undefined })
+  text.initialize(undefined)
 }
 void decodedUndefinedTypeChecks
 
@@ -313,7 +358,7 @@ const submissionTypes = () => {
   const fields = {
     username: Form.field({
       schema: Schema.String,
-      initial: { value: '' },
+      initial: '',
       validate: value =>
         Effect.map(ValidateUsername, service => service.check(value)),
     }),
@@ -362,17 +407,37 @@ const submissionTypes = () => {
   expectTypeOf(typed.Submission.Failed({ error: 'Unavailable' })).toEqualTypeOf<
     Readonly<{ _tag: 'Failed'; error: string }>
   >()
-  expectTypeOf(dataOnly.Submission.Type).toEqualTypeOf<
-    Form.Submission<number, never>
+  expectTypeOf<Form.Submission<typeof dataOnly>>().toEqualTypeOf<
+    typeof dataOnly.Submission.Type
   >()
-  expectTypeOf(errorOnly.Submission.Type).toEqualTypeOf<
-    Form.Submission<void, string>
+  expectTypeOf<
+    Extract<Form.Submission<typeof dataOnly>, { _tag: 'Succeeded' }>['data']
+  >().toEqualTypeOf<number>()
+  expectTypeOf<
+    Extract<Form.Submission<typeof dataOnly>, { _tag: 'Failed' }>['error']
+  >().toEqualTypeOf<never>()
+  expectTypeOf<
+    Extract<Form.Submission<typeof errorOnly>, { _tag: 'Succeeded' }>['data']
+  >().toEqualTypeOf<void>()
+  expectTypeOf<
+    Extract<Form.Submission<typeof errorOnly>, { _tag: 'Failed' }>['error']
+  >().toEqualTypeOf<string>()
+  expectTypeOf<
+    Extract<Form.Submission<typeof omitted>, { _tag: 'Succeeded' }>['data']
+  >().toEqualTypeOf<void>()
+  expectTypeOf<
+    Extract<Form.Submission<typeof omitted>, { _tag: 'Failed' }>['error']
+  >().toEqualTypeOf<never>()
+  expectTypeOf<Form.OutMessage<typeof typed>>().toEqualTypeOf<
+    | Readonly<{ _tag: 'SucceededSubmit'; data: number }>
+    | Readonly<{ _tag: 'FailedSubmit'; error: string }>
   >()
-  expectTypeOf(omitted.Submission.Type).toEqualTypeOf<
-    Form.Submission<void, never>
-  >()
+  expectTypeOf(
+    typed.update(typed.init(), typed.blurred('username')).outMessage,
+  ).toEqualTypeOf<Form.OutMessage<typeof typed> | undefined>()
   const submit = typed.Submit({
     values: { username: 'Ada' },
+    context: undefined,
     token: { generation: 1 },
   })
   expectTypeOf<
@@ -402,10 +467,8 @@ const submissionTypes = () => {
       ValidateUsername | SaveProfile
     >()
   }
-  for (const command of lifted.fold(
-    parent,
-    typed.changed('username', { value: 'Ada' }),
-  ).commands ?? []) {
+  for (const command of lifted.fold(parent, typed.changed('username', 'Ada'))
+    .commands ?? []) {
     expectTypeOf<Effect.Services<typeof command.effect>>().toEqualTypeOf<
       ValidateUsername | SaveProfile
     >()
@@ -416,8 +479,12 @@ const submissionTypes = () => {
   typed.Submission.Failed({ error: 2 })
   // @ts-expect-error Success data is required by its constructor.
   typed.Submission.Succeeded({})
-  // @ts-expect-error Submit values retain each field's decoded type.
-  typed.Submit({ values: { username: 2 }, token: { generation: 1 } })
+  typed.Submit({
+    // @ts-expect-error Submit values retain each field's decoded type.
+    values: { username: 2 },
+    context: undefined,
+    token: { generation: 1 },
+  })
   typed.Message.CompletedSubmit({
     token: { generation: 1 },
     // @ts-expect-error Completion Messages require the decoded success type.
@@ -439,7 +506,7 @@ void submissionTypes
 
 const submissionConfigChecks = () => {
   const fields = {
-    username: Form.field({ schema: Schema.String, initial: { value: '' } }),
+    username: Form.field({ schema: Schema.String, initial: '' }),
   }
   // @ts-expect-error Every Form requires a submission configuration.
   Form.define({ name: 'MissingSubmission', fields })
@@ -550,3 +617,84 @@ const submissionConfigChecks = () => {
   Form.define(servicefulErrorEncodingConfig)
 }
 void submissionConfigChecks
+
+class CurrentUser extends Context.Service<
+  CurrentUser,
+  { readonly id: string }
+>()('CurrentUser') {}
+
+const contextTypes = () => {
+  const fields = {
+    title: Form.field({ schema: Schema.String, initial: '' }),
+  }
+  const RecordContext = Schema.Struct({ recordId: Schema.String })
+  const editing = Form.define({
+    name: 'EditRecord',
+    fields,
+    submit: {
+      context: RecordContext,
+      execute: (values, context) => {
+        expectTypeOf(values).toEqualTypeOf<{ readonly title: string }>()
+        expectTypeOf(context).toEqualTypeOf<{ readonly recordId: string }>()
+        return Effect.asVoid(CurrentUser)
+      },
+    },
+  })
+  const model = editing.init()
+  editing.submit(model, { recordId: 'record-1' })
+  // @ts-expect-error A Form with a context codec requires the context.
+  editing.submit(model)
+  // @ts-expect-error The context follows its codec.
+  editing.submit(model, { recordId: 1 })
+  const submit = editing.Submit({
+    values: { title: '' },
+    context: { recordId: 'record-1' },
+    token: { generation: 1 },
+  })
+  expectTypeOf<
+    Effect.Services<typeof submit.effect>
+  >().toEqualTypeOf<CurrentUser>()
+
+  const Parent = Schema.Struct({ form: editing.Model })
+  const lifted = editing.lift({
+    parentField: 'form',
+    toParentMessage: (message: typeof editing.Message.Type) => ({ message }),
+  })
+  const parent = Parent.make({ form: model })
+  lifted.submit(parent, { recordId: 'record-1' })
+  // @ts-expect-error The lifted submit requires the context too.
+  lifted.submit(parent)
+
+  const plain = Form.define({
+    name: 'NoContext',
+    fields,
+    submit: {
+      execute: (_values, context) => {
+        expectTypeOf(context).toEqualTypeOf<void>()
+        return Effect.void
+      },
+    },
+  })
+  plain.submit(plain.init())
+  // @ts-expect-error A Form without a context codec takes no context.
+  plain.submit(plain.init(), { recordId: 'record-1' })
+
+  Form.define({
+    name: 'WrongContext',
+    fields,
+    submit: {
+      context: RecordContext,
+      // @ts-expect-error Execution receives the decoded context type.
+      execute: (_values, context: { readonly recordId: number }) =>
+        Effect.succeed(context).pipe(Effect.asVoid),
+    },
+  })
+  const servicefulContextConfig = {
+    name: 'ServicefulContext',
+    fields,
+    submit: { context: serviceful, execute: () => Effect.void },
+  }
+  // @ts-expect-error Context codecs must decode without services.
+  Form.define(servicefulContextConfig)
+}
+void contextTypes

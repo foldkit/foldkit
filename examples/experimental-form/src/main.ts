@@ -1,20 +1,51 @@
-import { Array, Duration, Effect, Schema } from 'effect'
+import { Array, Duration, Effect, Schema, SchemaTransformation } from 'effect'
 import { Runtime, Update } from 'foldkit'
 import { Form } from 'foldkit/experimental'
 import { makeRules } from 'foldkit/fieldValidation'
 import { type Attribute, Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import { defineTaggedUnion } from 'foldkit/schema'
+import { modifyFields } from 'foldkit/struct'
 
 import { emailField } from './fields'
 
 // SUBMISSION
 
 const SUBMISSION_DELAY_MS = 500
-const submitEmail = (email: string): Effect.Effect<void, string> =>
+const TAKEN_EMAIL = 'taken@example.com'
+const UNAVAILABLE_EMAIL = 'down@example.com'
+const MINIMUM_AGE = 13
+
+export const RegistrationRejection = defineTaggedUnion({
+  EmailTaken: {},
+  RegistrationUnavailable: {},
+})
+type RegistrationRejection = typeof RegistrationRejection.Type
+
+const registerPerson = (
+  email: string,
+): Effect.Effect<string, RegistrationRejection> =>
   Effect.gen(function* () {
     yield* Effect.sleep(Duration.millis(SUBMISSION_DELAY_MS))
-    if (email === 'taken@example.com') {
-      return yield* Effect.fail('This email is already registered')
+    if (email === TAKEN_EMAIL) {
+      return yield* Effect.fail(RegistrationRejection.EmailTaken())
+    }
+    if (email === UNAVAILABLE_EMAIL) {
+      return yield* Effect.fail(RegistrationRejection.RegistrationUnavailable())
+    }
+    return email
+  })
+
+const saveProfile = (
+  profileId: string,
+  profile: Readonly<{ email: string }>,
+): Effect.Effect<void, string> =>
+  Effect.gen(function* () {
+    yield* Effect.sleep(Duration.millis(SUBMISSION_DELAY_MS))
+    if (profile.email === TAKEN_EMAIL) {
+      return yield* Effect.fail(
+        `Profile ${profileId} cannot use an email that is already registered`,
+      )
     }
   })
 
@@ -23,31 +54,54 @@ const submitEmail = (email: string): Effect.Effect<void, string> =>
 const Topic = Schema.Literals(['Foldkit', 'Effect', 'Accessibility'])
 type Topic = typeof Topic.Type
 
+const AgeInput = Schema.String.check(
+  Schema.isNonEmpty({ message: 'Enter your age' }),
+).pipe(
+  Schema.decodeTo(
+    Schema.Finite.annotate({ message: 'Enter a number' }),
+    SchemaTransformation.numberFromString,
+  ),
+)
+
 export const registrationForm = Form.define({
   name: 'Registration',
   fields: {
     email: emailField,
     name: Form.field({
       schema: Schema.String,
-      initial: { value: '' },
+      initial: '',
       rules: makeRules({
         required: 'Enter your name',
       }),
     }),
+    age: Form.field({
+      schema: AgeInput,
+      initial: '',
+      rules: makeRules<number>({
+        rules: [
+          [age => age >= MINIMUM_AGE, `You must be at least ${MINIMUM_AGE}`],
+        ],
+      }),
+    }),
   },
   submit: {
-    error: Schema.String,
-    execute: ({ email }) => submitEmail(email),
+    data: Schema.String,
+    error: RegistrationRejection,
+    execute: ({ email }) => registerPerson(email),
+    toFieldErrors: RegistrationRejection.match({
+      EmailTaken: () => ({ email: 'This email is already registered' }),
+      RegistrationUnavailable: () => ({}),
+    }),
   },
 })
 export const profileForm = Form.define({
   name: 'Profile',
   fields: {
     email: emailField,
-    topics: Form.field({ schema: Schema.Array(Topic), initial: { value: [] } }),
+    topics: Form.field({ schema: Schema.Array(Topic), initial: [] }),
     displayName: Form.field({
       schema: Schema.String,
-      initial: { value: '' },
+      initial: '',
       rules: makeRules({
         required: 'Enter a display name',
       }),
@@ -55,11 +109,14 @@ export const profileForm = Form.define({
   },
   submit: {
     error: Schema.String,
-    execute: ({ email }) => submitEmail(email),
+    context: Schema.Struct({ profileId: Schema.String }),
+    execute: (profile, { profileId }) => saveProfile(profileId, profile),
   },
 })
 export const Model = Schema.Struct({
   registration: registrationForm.Model,
+  registeredEmails: Schema.Array(Schema.String),
+  profileId: Schema.String,
   profile: profileForm.Model,
 })
 export type Model = typeof Model.Type
@@ -82,18 +139,34 @@ export type Message = typeof Message.Type
 export const init: Runtime.ApplicationInit<Model, Message> = () => ({
   model: Model.make({
     registration: registrationForm.init(),
+    registeredEmails: [],
+    profileId: 'profile-1',
     profile: profileForm.init({
-      email: { value: 'reader@example.com' },
-      displayName: { value: 'Reader' },
+      email: 'reader@example.com',
+      displayName: 'Reader',
     }),
   }),
 })
 
 // UPDATE
 
+const foldRegistrationOutMessage = registrationForm.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  SucceededSubmit:
+    ({ data }) =>
+    stepModel => ({
+      model: modifyFields(stepModel, {
+        registeredEmails: Array.append(data),
+      }),
+    }),
+  FailedSubmit: () => stepModel => ({ model: stepModel }),
+})
+
 const registration = registrationForm.lift<Model, Message>({
   parentField: 'registration',
   toParentMessage: message => Message.GotRegistrationMessage({ message }),
+  foldOutMessage: foldRegistrationOutMessage,
 })
 const profile = profileForm.lift<Model, Message>({
   parentField: 'profile',
@@ -105,28 +178,32 @@ export const update = (model: Model, message: Message) =>
     GotProfileMessage: ({ message }) => profile.fold(model, message),
     SubmittedRegistration: () => registration.submit(model),
     ClickedProfileTopic: ({ topic }) => {
-      const topics = profileForm.field(model.profile, 'topics').value
+      const topics = profileForm.field(model.profile, 'topics').input
       const nextTopics = topics.includes(topic)
         ? Array.filter(topics, selectedTopic => selectedTopic !== topic)
         : Array.append(topics, topic)
 
-      return profile.fold(
-        model,
-        profileForm.changed('topics', { value: nextTopics }),
-      )
+      return profile.fold(model, profileForm.changed('topics', nextTopics))
     },
-    SubmittedProfile: () => profile.submit(model),
+    SubmittedProfile: () =>
+      profile.submit(model, { profileId: model.profileId }),
     ClickedResetRegistration: () => registration.reset(model),
     ClickedResetProfile: () => profile.reset(model),
   })
 
 // VIEW
 
+type TextFieldView = Readonly<{
+  input: string
+  errors: ReadonlyArray<string>
+  meta: Readonly<{ isEdited: boolean }>
+}>
+
 const textField = (
   h: HtmlBuilder<Message>,
   id: string,
   label: string,
-  field: Form.FieldView<typeof Schema.String>,
+  field: TextFieldView,
   attrs: ReadonlyArray<Attribute<Message>>,
 ): Html =>
   h.div(
@@ -136,7 +213,7 @@ const textField = (
       h.input([
         h.Id(id),
         h.Type('text'),
-        h.Value(field.value),
+        h.Value(field.input),
         h.Class('w-full rounded border border-slate-300 px-3 py-2'),
         ...attrs,
       ]),
@@ -145,26 +222,78 @@ const textField = (
       ),
       h.p(
         [h.Class('text-xs text-slate-500')],
-        [field.meta.isDirty ? 'Edited' : 'Pristine'],
+        [field.meta.isEdited ? 'Edited' : 'Pristine'],
       ),
     ],
   )
-const feedback = (
+const status = (h: HtmlBuilder<Message>, text: string): Html =>
+  h.p([h.Role('status')], [text])
+const successStatus = (h: HtmlBuilder<Message>): Html =>
+  h.p([h.Role('status'), h.Class('text-green-700')], ['Saved'])
+const failureStatus = (h: HtmlBuilder<Message>, text: string): Html =>
+  h.p([h.Role('status'), h.Class('text-red-700')], [text])
+
+const registrationFeedback = (
   h: HtmlBuilder<Message>,
-  submission: Form.Submission<void, string>,
+  submission: Form.Submission<typeof registrationForm>,
 ): Html =>
   registrationForm.Submission.match<Html>(submission, {
-    Idle: () => h.p([h.Role('status')], ['Ready']),
-    Validating: () => h.p([h.Role('status')], ['Checking fields…']),
-    Submitting: () => h.p([h.Role('status')], ['Saving…']),
-    Succeeded: () =>
-      h.p([h.Role('status'), h.Class('text-green-700')], ['Saved']),
+    Idle: () => status(h, 'Ready'),
+    Validating: () => status(h, 'Checking fields…'),
+    Submitting: () => status(h, 'Saving…'),
+    Succeeded: () => successStatus(h),
     Failed: ({ error }) =>
-      h.p([h.Role('status'), h.Class('text-red-700')], [error]),
+      RegistrationRejection.match<Html>(error, {
+        EmailTaken: () => failureStatus(h, 'Fix the highlighted field'),
+        RegistrationUnavailable: () =>
+          failureStatus(h, 'Registration is unavailable. Try again later.'),
+      }),
   })
+const profileFeedback = (
+  h: HtmlBuilder<Message>,
+  submission: Form.Submission<typeof profileForm>,
+): Html =>
+  profileForm.Submission.match<Html>(submission, {
+    Idle: () => status(h, 'Ready'),
+    Validating: () => status(h, 'Checking fields…'),
+    Submitting: () => status(h, 'Saving…'),
+    Succeeded: () => successStatus(h),
+    Failed: ({ error }) => failureStatus(h, error),
+  })
+const registrationInput = (
+  h: HtmlBuilder<Message>,
+  name: 'email' | 'name' | 'age',
+): ReadonlyArray<Attribute<Message>> => [
+  h.OnInput(input =>
+    Message.GotRegistrationMessage({
+      message: registrationForm.changed(name, input),
+    }),
+  ),
+  h.OnBlur(
+    Message.GotRegistrationMessage({
+      message: registrationForm.blurred(name),
+    }),
+  ),
+]
+const profileInput = (
+  h: HtmlBuilder<Message>,
+  name: 'email' | 'displayName',
+): ReadonlyArray<Attribute<Message>> => [
+  h.OnInput(input =>
+    Message.GotProfileMessage({
+      message: profileForm.changed(name, input),
+    }),
+  ),
+  h.OnBlur(
+    Message.GotProfileMessage({
+      message: profileForm.blurred(name),
+    }),
+  ),
+]
 const registrationView = (model: Model, h: HtmlBuilder<Message>): Html => {
   const email = registrationForm.field(model.registration, 'email')
   const name = registrationForm.field(model.registration, 'name')
+  const age = registrationForm.field(model.registration, 'age')
   const submission = registrationForm.submission(model.registration)
   return h.section(
     [
@@ -176,30 +305,27 @@ const registrationView = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.form(
         [h.OnSubmit(Message.SubmittedRegistration()), h.Class('space-y-4')],
         [
-          textField(h, 'registration-email', 'Registration email', email, [
-            h.OnInput(value =>
-              Message.GotRegistrationMessage({
-                message: registrationForm.changed('email', { value }),
-              }),
-            ),
-            h.OnBlur(
-              Message.GotRegistrationMessage({
-                message: registrationForm.blurred('email'),
-              }),
-            ),
-          ]),
-          textField(h, 'registration-name', 'Your name', name, [
-            h.OnInput(value =>
-              Message.GotRegistrationMessage({
-                message: registrationForm.changed('name', { value }),
-              }),
-            ),
-            h.OnBlur(
-              Message.GotRegistrationMessage({
-                message: registrationForm.blurred('name'),
-              }),
-            ),
-          ]),
+          textField(
+            h,
+            'registration-email',
+            'Registration email',
+            email,
+            registrationInput(h, 'email'),
+          ),
+          textField(
+            h,
+            'registration-name',
+            'Your name',
+            name,
+            registrationInput(h, 'name'),
+          ),
+          textField(
+            h,
+            'registration-age',
+            'Your age',
+            age,
+            registrationInput(h, 'age'),
+          ),
           h.button(
             [
               h.Type('submit'),
@@ -221,10 +347,19 @@ const registrationView = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
         ],
       ),
-      feedback(h, submission),
+      registrationFeedback(h, submission),
       h.p(
         [h.Class('text-sm')],
         [`Attempts: ${registrationForm.submitCount(model.registration)}`],
+      ),
+      h.p(
+        [h.Class('text-sm')],
+        [
+          `Registered: ${Array.match(model.registeredEmails, {
+            onEmpty: () => 'nobody yet',
+            onNonEmpty: emails => Array.join(emails, ', '),
+          })}`,
+        ],
       ),
     ],
   )
@@ -244,30 +379,20 @@ const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.form(
         [h.OnSubmit(Message.SubmittedProfile()), h.Class('space-y-4')],
         [
-          textField(h, 'profile-email', 'Profile email', email, [
-            h.OnInput(value =>
-              Message.GotProfileMessage({
-                message: profileForm.changed('email', { value }),
-              }),
-            ),
-            h.OnBlur(
-              Message.GotProfileMessage({
-                message: profileForm.blurred('email'),
-              }),
-            ),
-          ]),
-          textField(h, 'profile-name', 'Display name', displayName, [
-            h.OnInput(value =>
-              Message.GotProfileMessage({
-                message: profileForm.changed('displayName', { value }),
-              }),
-            ),
-            h.OnBlur(
-              Message.GotProfileMessage({
-                message: profileForm.blurred('displayName'),
-              }),
-            ),
-          ]),
+          textField(
+            h,
+            'profile-email',
+            'Profile email',
+            email,
+            profileInput(h, 'email'),
+          ),
+          textField(
+            h,
+            'profile-name',
+            'Display name',
+            displayName,
+            profileInput(h, 'displayName'),
+          ),
           h.fieldset(
             [h.Class('space-y-2')],
             [
@@ -283,7 +408,7 @@ const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
                     h.input([
                       h.Id(`profile-topic-${topic}`),
                       h.Type('checkbox'),
-                      h.Checked(topics.value.includes(topic)),
+                      h.Checked(topics.input.includes(topic)),
                       h.OnClick(Message.ClickedProfileTopic({ topic })),
                     ]),
                     topic,
@@ -313,7 +438,7 @@ const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
         ],
       ),
-      feedback(h, submission),
+      profileFeedback(h, submission),
       h.p(
         [h.Class('text-sm')],
         [`Attempts: ${profileForm.submitCount(model.profile)}`],
@@ -333,7 +458,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           h.p(
             [],
             [
-              'Two independent Forms reuse an email field. Profile topics use an array field with ordinary checkboxes. Try blocked@example.com to see async validation, or taken@example.com to see a submission failure. Reset while saving to ignore the late result.',
+              'Two independent Forms reuse an email field. The age field keeps whatever you type and shows an error until it reads as a number. Profile topics use an array field with ordinary checkboxes. Try blocked@example.com to see async validation, taken@example.com to see a server error on the email field, or down@example.com to see a form-level failure. Reset while saving to ignore the late result.',
             ],
           ),
           registrationView(model, h),

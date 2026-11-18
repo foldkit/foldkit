@@ -1,23 +1,31 @@
-import { Array, Effect, Option, Result, Schema } from 'effect'
+import {
+  Array,
+  Effect,
+  Option,
+  Result,
+  Schema,
+  SchemaTransformation,
+} from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import * as FieldValidation from '../../fieldValidation/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { defineTaggedUnion } from '../../schema/index.js'
 import { modifyFields } from '../../struct/index.js'
+import type * as Update from '../../update/index.js'
 import * as Form from './form.js'
 
 const [isEmail] = FieldValidation.Rule.email('Invalid email')
 const [isLongEnough] = FieldValidation.Rule.minLength(8, 'Too short')
 
-const email = Form.field({ schema: Schema.String, initial: { value: '' } })
+const email = Form.field({ schema: Schema.String, initial: '' })
 const registration = Form.define({
   name: 'Registration',
   submit: { error: Schema.String, execute: () => Effect.void },
   fields: {
     email,
-    age: Form.field({ schema: Schema.Number, initial: { value: 18 } }),
-    accepted: Form.field({ schema: Schema.Boolean, initial: { value: false } }),
+    age: Form.field({ schema: Schema.Number, initial: 18 }),
+    accepted: Form.field({ schema: Schema.Boolean, initial: false }),
   },
 })
 
@@ -26,7 +34,7 @@ describe('Form codec inference', () => {
     expect(() =>
       Schema.decodeUnknownSync(registration.Message)({
         _tag: 'ChangedField',
-        change: { name: 'age', input: { value: '21' } },
+        change: { name: 'age', input: '21' },
       }),
     ).toThrow()
   })
@@ -40,7 +48,7 @@ const edit = Form.define({
 
 const requiredEmail = Form.field({
   schema: Schema.String,
-  initial: { value: '' },
+  initial: '',
   validateOn: 'Blur',
   rules: FieldValidation.makeRules({
     required: 'Enter email',
@@ -57,14 +65,14 @@ const validated = Form.define({
     email: requiredEmail,
     age: Form.field({
       schema: Schema.Number,
-      initial: { value: 18 },
+      initial: 18,
       rules: FieldValidation.makeRules<number>({
         rules: [[age => age >= 18, 'Must be an adult']],
       }),
     }),
     accepted: Form.field({
       schema: Schema.Boolean,
-      initial: { value: false },
+      initial: false,
       rules: FieldValidation.makeRules<boolean>({
         rules: [[accepted => accepted, 'Accept terms']],
       }),
@@ -75,57 +83,157 @@ const validated = Form.define({
 describe('initialization and codecs', () => {
   it('captures initialization overrides and isolates reused definitions', () => {
     const initial = registration.init({
-      email: { value: 'edited@example.com' },
+      email: 'edited@example.com',
     })
     const changed = registration.update(
       initial,
-      registration.changed('email', { value: 'new@example.com' }),
+      registration.changed('email', 'new@example.com'),
     )
     const reverted = registration.update(
       changed.model,
-      registration.changed('email', { value: 'edited@example.com' }),
+      registration.changed('email', 'edited@example.com'),
     )
 
     expect(registration.field(reverted.model, 'email').meta).toEqual({
       isTouched: true,
       isBlurred: false,
-      isDirty: true,
+      isEdited: true,
       isDefaultValue: true,
     })
 
     expect(
-      registration.values(registration.reset(changed.model).model).email,
+      registration.inputs(registration.reset(changed.model).model).email,
     ).toBe('edited@example.com')
-    expect(edit.values(edit.init()).email).toBe('')
+    expect(edit.inputs(edit.init()).email).toBe('')
   })
 
-  it('supports transformed scalar codecs in Models and Messages', () => {
+  it('stores a typed field as its input and encodes decoded overrides', () => {
     const numeric = Form.define({
       name: 'Numeric',
       submit: { error: Schema.String, execute: () => Effect.void },
       fields: {
-        count: Form.field({
-          schema: Schema.NumberFromString,
-          initial: { value: 3 },
-        }),
+        count: Form.field({ schema: Schema.FiniteFromString, initial: '3' }),
       },
     })
-    const initial = numeric.init({ count: { value: 4 } })
+    const initial = numeric.init({ count: 4 })
+
+    expect(initial.fields.count.input).toBe('4')
+    expect(initial.fields.count.defaultInput).toBe('4')
+    expect(numeric.field(initial, 'count').maybeValue).toEqual(Option.some(4))
+    expect(numeric.inputs(numeric.init())).toEqual({ count: '3' })
+
     const encoded = Schema.encodeSync(numeric.Model)(initial)
-    expect(encoded.fields.count.defaultInput.value).toBe('4')
     expect(Schema.decodeSync(numeric.Model)(encoded)).toEqual(initial)
-    const message = numeric.changed('count', { value: 5 })
+
+    const message = numeric.changed('count', '5')
     expect(Schema.encodeSync(numeric.Message)(message)).toEqual({
       _tag: 'ChangedField',
-      change: { name: 'count', input: { value: '5' } },
+      change: { name: 'count', input: '5' },
     })
-
     expect(
       Schema.decodeSync(numeric.Message)({
         _tag: 'ChangedField',
-        change: { name: 'count', input: { value: '6' } },
+        change: { name: 'count', input: '6' },
       }),
-    ).toEqual(numeric.changed('count', { value: 6 }))
+    ).toEqual(numeric.changed('count', '6'))
+  })
+
+  it('holds input its Schema rejects and shows the decode error', () => {
+    const numeric = Form.define({
+      name: 'Typed',
+      submit: { error: Schema.String, execute: () => Effect.void },
+      fields: {
+        count: Form.field({ schema: Schema.FiniteFromString, initial: '' }),
+        age: Form.field({
+          schema: Schema.FiniteFromString.annotate({
+            message: 'Enter a number',
+          }),
+          initial: '',
+        }),
+      },
+    })
+    const countChange = numeric.update(
+      numeric.init(),
+      numeric.changed('count', '12a'),
+    )
+    const count = numeric.field(countChange.model, 'count')
+
+    expect(count.input).toBe('12a')
+    expect(count.maybeValue).toEqual(Option.none())
+    expect(count.errors).toEqual(['Expected a finite number'])
+
+    const ageChange = numeric.update(
+      countChange.model,
+      numeric.changed('age', '12a'),
+    )
+
+    expect(numeric.field(ageChange.model, 'age').errors).toEqual([
+      'Enter a number',
+    ])
+
+    const correction = numeric.update(
+      ageChange.model,
+      numeric.changed('age', '42'),
+    )
+    const age = numeric.field(correction.model, 'age')
+
+    expect(age.errors).toEqual([])
+    expect(age.maybeValue).toEqual(Option.some(42))
+  })
+
+  it('stores input that fails checks on the Schema encoded side', () => {
+    const AgeInput = Schema.String.check(
+      Schema.isNonEmpty({ message: 'Enter your age' }),
+    ).pipe(
+      Schema.decodeTo(
+        Schema.Finite.annotate({ message: 'Enter a number' }),
+        SchemaTransformation.numberFromString,
+      ),
+    )
+    const checked = Form.define({
+      name: 'EncodedChecks',
+      submit: { error: Schema.String, execute: () => Effect.void },
+      fields: {
+        age: Form.field({ schema: AgeInput, initial: '' }),
+        tags: Form.field({
+          schema: Schema.Array(Schema.NonEmptyString),
+          initial: [],
+        }),
+      },
+    })
+    const Parent = Schema.Struct({ form: checked.Model })
+    const initial = Parent.make({ form: checked.init() }).form
+    const ageChange = checked.update(initial, checked.changed('age', ''))
+    const tagsChange = checked.update(
+      ageChange.model,
+      checked.changed('tags', ['']),
+    )
+
+    expect(checked.field(ageChange.model, 'age').errors).toEqual([
+      'Enter your age',
+    ])
+    expect(checked.inputs(tagsChange.model)).toEqual({ age: '', tags: [''] })
+
+    const Json = Schema.toCodecJson(checked.Model)
+    const json = Schema.encodeSync(Json)(tagsChange.model)
+
+    expect(Schema.decodeSync(Json)(json)).toEqual(tagsChange.model)
+    expect(
+      Schema.decodeSync(checked.Message)({
+        _tag: 'ChangedField',
+        change: { name: 'age', input: '' },
+      }),
+    ).toEqual(checked.changed('age', ''))
+
+    expect(checked.inputs(checked.init({ tags: [''] }))).toEqual({
+      age: '',
+      tags: [''],
+    })
+    expect(
+      checked.inputs(
+        checked.reinitialize(tagsChange.model, { tags: ['', 'ok'] }).model,
+      ),
+    ).toEqual({ age: '', tags: ['', 'ok'] })
   })
 
   it('constructs special field names as own properties', () => {
@@ -137,11 +245,8 @@ describe('initialization and codecs', () => {
     const initial = special.init()
     expect(Object.hasOwn(initial.fields, '__proto__')).toBe(true)
     expect(
-      special.values(
-        special.update(
-          initial,
-          special.changed('__proto__', { value: 'value' }),
-        ).model,
+      special.inputs(
+        special.update(initial, special.changed('__proto__', 'value')).model,
       ),
     ).toEqual({ ['__proto__']: 'value', constructor: '', toString: '' })
   })
@@ -151,7 +256,7 @@ describe('field validation', () => {
   it('validates on the configured triggers and clears feedback for a changed blur field', () => {
     const emailChange = validated.update(
       validated.init(),
-      validated.changed('email', { value: 'bad' }),
+      validated.changed('email', 'bad'),
     )
 
     expect(validated.field(emailChange.model, 'email').errors).toEqual([])
@@ -168,14 +273,14 @@ describe('field validation', () => {
 
     const emailCorrection = validated.update(
       emailBlur.model,
-      validated.changed('email', { value: 'good@example.com' }),
+      validated.changed('email', 'good@example.com'),
     )
 
     expect(validated.field(emailCorrection.model, 'email').errors).toEqual([])
 
     const ageChange = validated.update(
       emailCorrection.model,
-      validated.changed('age', { value: 10 }),
+      validated.changed('age', 10),
     )
 
     expect(validated.field(ageChange.model, 'age').errors).toEqual([
@@ -183,7 +288,7 @@ describe('field validation', () => {
     ])
     const boolChange = validated.update(
       ageChange.model,
-      validated.changed('accepted', { value: false }),
+      validated.changed('accepted', false),
     )
 
     expect(validated.field(boolChange.model, 'accepted').errors).toEqual([
@@ -191,33 +296,27 @@ describe('field validation', () => {
     ])
   })
 
-  it('compares numeric defaults with Schema equivalence independently of dirty history', () => {
+  it('compares numeric defaults with Schema equivalence independently of edit history', () => {
     const numeric = Form.define({
       name: 'Equality',
       submit: { error: Schema.String, execute: () => Effect.void },
       fields: {
-        value: Form.field({ schema: Schema.Number, initial: { value: NaN } }),
-        zero: Form.field({ schema: Schema.Number, initial: { value: 0 } }),
+        value: Form.field({ schema: Schema.Number, initial: NaN }),
+        zero: Form.field({ schema: Schema.Number, initial: 0 }),
       },
     })
     const initial = numeric.init()
     expect(numeric.field(initial, 'value').meta.isDefaultValue).toBe(true)
 
-    const changed = numeric.update(
-      initial,
-      numeric.changed('zero', { value: -0 }),
-    )
+    const changed = numeric.update(initial, numeric.changed('zero', -0))
 
     expect(numeric.field(changed.model, 'zero').meta.isDefaultValue).toBe(true)
 
-    const reverted = numeric.update(
-      changed.model,
-      numeric.changed('zero', { value: 0 }),
-    )
+    const reverted = numeric.update(changed.model, numeric.changed('zero', 0))
 
     expect(numeric.field(reverted.model, 'zero').meta.isDefaultValue).toBe(true)
-    expect(numeric.field(reverted.model, 'zero').meta.isDirty).toBe(true)
-    expect(numeric.field(initial, 'zero').meta.isDirty).toBe(false)
+    expect(numeric.field(reverted.model, 'zero').meta.isEdited).toBe(true)
+    expect(numeric.field(initial, 'zero').meta.isEdited).toBe(false)
   })
 
   it('turns a field validation Effect into a Command and ignores a stale result', () => {
@@ -227,7 +326,7 @@ describe('field validation', () => {
       fields: {
         username: Form.field({
           schema: Schema.String,
-          initial: { value: '' },
+          initial: '',
           rules: FieldValidation.makeRules({ required: 'Required' }),
           validate: value => Effect.succeed(value === 'taken' ? ['Taken'] : []),
         }),
@@ -235,7 +334,7 @@ describe('field validation', () => {
     })
     const changed = checked.update(
       checked.init(),
-      checked.changed('username', { value: 'taken' }),
+      checked.changed('username', 'taken'),
     )
 
     expect(changed.model.fields.username.validation._tag).toBe('Validating')
@@ -253,7 +352,7 @@ describe('field validation', () => {
 
     const replaced = checked.update(
       changed.model,
-      checked.changed('username', { value: 'open' }),
+      checked.changed('username', 'open'),
     )
     const ignored = checked.update(
       replaced.model,
@@ -265,7 +364,7 @@ describe('field validation', () => {
 
     const empty = checked.update(
       checked.init(),
-      checked.changed('username', { value: '' }),
+      checked.changed('username', ''),
     )
 
     expect(empty.commands).toEqual([])
@@ -289,7 +388,7 @@ describe('submission', () => {
 
     const badEmail = validated.update(
       formSubmit.model,
-      validated.changed('email', { value: 'bad' }),
+      validated.changed('email', 'bad'),
     )
     const secondSubmit = validated.submit(badEmail.model)
 
@@ -302,7 +401,7 @@ describe('submission', () => {
 
   it('captures values, blocks duplicate pending submissions, and preserves pending state during edits', () => {
     const initial = registration.init({
-      email: { value: 'original@example.com' },
+      email: 'original@example.com',
     })
 
     const formSubmit = registration.submit(initial)
@@ -314,14 +413,21 @@ describe('submission', () => {
 
     const change = registration.update(
       formSubmit.model,
-      registration.changed('email', { value: 'edited@example.com' }),
+      registration.changed('email', 'edited@example.com'),
     )
 
     expect(change.model.submission).toEqual(formSubmit.model.submission)
+    expect(registration.submission(change.model)).toEqual(
+      registration.Submission.Submitting({
+        token: { generation: 1 },
+        inputs: { email: 'original@example.com', age: 18, accepted: false },
+      }),
+    )
     expect(
       Array.head(formSubmit.commands ?? []).pipe(Option.getOrThrow).args,
     ).toEqual({
       values: { email: 'original@example.com', age: 18, accepted: false },
+      context: undefined,
       token: { generation: 1 },
     })
   })
@@ -379,7 +485,7 @@ describe('submission', () => {
     ).toBe(failed.model)
     const change = registration.update(
       failed.model,
-      registration.changed('email', { value: 'changed' }),
+      registration.changed('email', 'changed'),
     )
 
     expect(change.model.submission._tag).toBe('Idle')
@@ -398,10 +504,8 @@ describe('submission', () => {
 
     expect(succeeded.model.submission._tag).toBe('Succeeded')
     expect(
-      registration.update(
-        succeeded.model,
-        registration.changed('age', { value: 25 }),
-      ).model.submission._tag,
+      registration.update(succeeded.model, registration.changed('age', 25))
+        .model.submission._tag,
     ).toBe('Idle')
   })
 
@@ -412,12 +516,12 @@ describe('submission', () => {
       fields: {
         email: Form.field({
           schema: Schema.String,
-          initial: { value: '' },
+          initial: '',
           rules: FieldValidation.makeRules({
             rules: [[isEmail, 'Invalid email']],
           }),
         }),
-        note: Form.field({ schema: Schema.String, initial: { value: '' } }),
+        note: Form.field({ schema: Schema.String, initial: '' }),
       },
     })
 
@@ -427,36 +531,38 @@ describe('submission', () => {
     expect(optional.field(submitted.model, 'email').errors).toEqual([])
     expect(
       Array.head(submitted.commands ?? []).pipe(Option.getOrThrow).args,
-    ).toEqual({ values: { email: '', note: '' }, token: { generation: 1 } })
+    ).toEqual({
+      values: { email: '', note: '' },
+      context: undefined,
+      token: { generation: 1 },
+    })
   })
 })
 
 describe('reset and reinitialize', () => {
   it('resets captured defaults, interaction, validation, submission feedback, and attempt count', () => {
     const initial = validated.init({
-      email: { value: 'default@example.com' },
-      accepted: { value: true },
+      email: 'default@example.com',
+      accepted: true,
     })
-    const change = validated.update(
-      initial,
-      validated.changed('email', { value: 'bad' }),
-    )
+    const change = validated.update(initial, validated.changed('email', 'bad'))
     const blur = validated.update(change.model, validated.blurred('email'))
     const formSubmit = validated.submit(blur.model)
     const reset = validated.reset(formSubmit.model)
-    expect(validated.values(reset.model)).toEqual({
+    expect(validated.inputs(reset.model)).toEqual({
       email: 'default@example.com',
       age: 18,
       accepted: true,
     })
 
     expect(validated.field(reset.model, 'email')).toEqual({
-      value: 'default@example.com',
+      input: 'default@example.com',
+      maybeValue: Option.some('default@example.com'),
       errors: [],
       meta: {
         isTouched: false,
         isBlurred: false,
-        isDirty: false,
+        isEdited: false,
         isDefaultValue: true,
       },
     })
@@ -471,7 +577,7 @@ describe('reset and reinitialize', () => {
       generation: firstSubmit.model.generation,
     })
     const reinitialized = registration.reinitialize(firstSubmit.model, {
-      email: { value: 'second@example.com' },
+      email: 'second@example.com',
     })
 
     expect(registration.submitCount(reinitialized.model)).toBe(0)
@@ -479,7 +585,7 @@ describe('reset and reinitialize', () => {
     expect(registration.field(reinitialized.model, 'email').meta).toEqual({
       isTouched: false,
       isBlurred: false,
-      isDirty: false,
+      isEdited: false,
       isDefaultValue: true,
     })
 
@@ -507,11 +613,11 @@ describe('reset and reinitialize', () => {
     expect(secondSubmit.model.generation).toBe(firstToken.generation + 1)
     const changed = registration.update(
       secondSubmit.model,
-      registration.changed('email', { value: 'third@example.com' }),
+      registration.changed('email', 'third@example.com'),
     )
 
     expect(
-      registration.values(registration.reset(changed.model).model).email,
+      registration.inputs(registration.reset(changed.model).model).email,
     ).toBe('second@example.com')
   })
 
@@ -564,12 +670,12 @@ describe('reset and reinitialize', () => {
       }),
     })
     const reinitialized = lifted.reinitialize(initial, {
-      email: { value: 'new@example.com' },
+      email: 'new@example.com',
     })
 
     expect(reinitialized.model.form.recordId).toBe('profile-1')
     expect(Schema.is(Schema.toType(Parent))(reinitialized.model)).toBe(true)
-    expect(registration.values(reinitialized.model.form).email).toBe(
+    expect(registration.inputs(reinitialized.model.form).email).toBe(
       'new@example.com',
     )
   })
@@ -591,13 +697,10 @@ describe('parent lifting', () => {
       toParentMessage: message => ParentMessage.GotFormMessage({ message }),
     })
     const initial = Parent.make({ form: registration.init(), other: 7 })
-    const formChange = lifted.fold(
-      initial,
-      registration.changed('age', { value: 22 }),
-    )
+    const formChange = lifted.fold(initial, registration.changed('age', 22))
 
     expect(formChange.model.other).toBe(7)
-    expect(registration.values(formChange.model.form).age).toBe(22)
+    expect(registration.inputs(formChange.model.form).age).toBe(22)
     const absent = registration.lift<Parent, ParentMessage>({
       read: () => Option.none(),
       write: model => model,
@@ -608,17 +711,96 @@ describe('parent lifting', () => {
 
     expect(absent.reset(initial).model).toBe(initial)
     expect(
-      absent.reinitialize(initial, { email: { value: 'new@example.com' } })
-        .model,
+      absent.reinitialize(initial, { email: 'new@example.com' }).model,
     ).toBe(initial)
     const reinitialized = lifted.reinitialize(initial, {
-      email: { value: 'new@example.com' },
+      email: 'new@example.com',
     })
 
     expect(reinitialized.model.other).toBe(7)
-    expect(registration.values(reinitialized.model.form).email).toBe(
+    expect(registration.inputs(reinitialized.model.form).email).toBe(
       'new@example.com',
     )
+  })
+
+  it('folds accepted submission results into the parent through foldOutMessage', () => {
+    const saving = Form.define({
+      name: 'Saving',
+      fields: { email },
+      submit: {
+        data: Schema.Number,
+        error: Schema.String,
+        execute: () => Effect.succeed(7),
+      },
+    })
+    const Parent = Schema.Struct({
+      form: saving.Model,
+      maybeSavedId: Schema.Option(Schema.Number),
+      maybeFailure: Schema.Option(Schema.String),
+    })
+    type Parent = typeof Parent.Type
+    const ParentMessage = defineMessageUnion({
+      GotFormMessage: { message: saving.Message },
+    })
+    type ParentMessage = typeof ParentMessage.Type
+    const lifted = saving.lift<Parent, ParentMessage>({
+      parentField: 'form',
+      toParentMessage: message => ParentMessage.GotFormMessage({ message }),
+      foldOutMessage: saving.OutMessage.match<
+        Update.Step<Parent, ParentMessage>
+      >({
+        SucceededSubmit:
+          ({ data }) =>
+          stepModel => ({
+            model: modifyFields(stepModel, {
+              maybeSavedId: () => Option.some(data),
+            }),
+          }),
+        FailedSubmit:
+          ({ error }) =>
+          stepModel => ({
+            model: modifyFields(stepModel, {
+              maybeFailure: () => Option.some(error),
+            }),
+          }),
+      }),
+    })
+    const initial = Parent.make({
+      form: saving.init(),
+      maybeSavedId: Option.none(),
+      maybeFailure: Option.none(),
+    })
+    const submitted = lifted.submit(initial)
+    const token = { generation: submitted.model.form.generation }
+    const succeeded = lifted.fold(
+      submitted.model,
+      saving.Message.CompletedSubmit({ token, result: Result.succeed(7) }),
+    )
+    const failed = lifted.fold(
+      submitted.model,
+      saving.Message.CompletedSubmit({ token, result: Result.fail('Taken') }),
+    )
+    const stale = lifted.fold(
+      succeeded.model,
+      saving.Message.CompletedSubmit({ token, result: Result.fail('Taken') }),
+    )
+
+    expect(succeeded.model.maybeSavedId).toEqual(Option.some(7))
+    expect(saving.submission(succeeded.model.form)._tag).toBe('Succeeded')
+    expect(failed.model.maybeFailure).toEqual(Option.some('Taken'))
+    expect(stale.model).toBe(succeeded.model)
+
+    const unfolded = saving.lift<Parent, ParentMessage>({
+      parentField: 'form',
+      toParentMessage: message => ParentMessage.GotFormMessage({ message }),
+    })
+    const ignored = unfolded.fold(
+      submitted.model,
+      saving.Message.CompletedSubmit({ token, result: Result.succeed(7) }),
+    )
+
+    expect(ignored.model.maybeSavedId).toEqual(Option.none())
+    expect(saving.submission(ignored.model.form)._tag).toBe('Succeeded')
   })
 
   it('adapts inherited lens methods and preserves their receiver in every lifted operation', () => {
@@ -660,20 +842,17 @@ describe('parent lifting', () => {
       form: Extended.make({ ...registration.init(), recordId: 'profile-1' }),
     })
     const lifted = registration.lift<Parent, ChildMessage>(new ProfileLens())
-    const formChange = lifted.fold(
-      initial,
-      registration.changed('age', { value: 22 }),
-    )
+    const formChange = lifted.fold(initial, registration.changed('age', 22))
 
-    expect(registration.values(formChange.model.form).age).toBe(22)
+    expect(registration.inputs(formChange.model.form).age).toBe(22)
 
     const formReset = lifted.reset(formChange.model)
-    expect(registration.values(formReset.model.form).age).toBe(18)
+    expect(registration.inputs(formReset.model.form).age).toBe(18)
 
     const formReinitialize = lifted.reinitialize(initial, {
-      age: { value: 30 },
+      age: 30,
     })
-    expect(registration.values(formReinitialize.model.form).age).toBe(30)
+    expect(registration.inputs(formReinitialize.model.form).age).toBe(30)
 
     const formSubmit = lifted.submit(initial)
     const submission = registration.submission(formSubmit.model.form)
@@ -747,11 +926,11 @@ describe('parent lifting', () => {
 
     for (const lifted of [direct, withReaderMetadata]) {
       const reinitialized = lifted.reinitialize(initial, {
-        email: { value: 'new@example.com' },
+        email: 'new@example.com',
       })
 
       expect(Schema.is(Schema.toType(Parent))(reinitialized.model)).toBe(true)
-      expect(registration.values(reinitialized.model.form).email).toBe(
+      expect(registration.inputs(reinitialized.model.form).email).toBe(
         'new@example.com',
       )
     }
@@ -795,7 +974,7 @@ describe('parent lifting', () => {
       }),
     })
     const reinitialized = lifted.reinitialize(saved, {
-      email: { value: 'saved@example.com' },
+      email: 'saved@example.com',
     })
 
     expect(reinitialized.model).toMatchObject({
@@ -804,20 +983,20 @@ describe('parent lifting', () => {
     })
 
     expect(Schema.is(Schema.toType(Parent))(reinitialized.model)).toBe(true)
-    expect(registration.values(reinitialized.model.form).email).toBe(
+    expect(registration.inputs(reinitialized.model.form).email).toBe(
       'saved@example.com',
     )
 
     const draft = Parent.Draft({ form: registration.init() })
     const draftReinitialized = lifted.reinitialize(draft, {
-      email: { value: 'draft@example.com' },
+      email: 'draft@example.com',
     })
 
     expect(draftReinitialized.model._tag).toBe('Draft')
     expect(Schema.is(Schema.toType(Parent))(draftReinitialized.model)).toBe(
       true,
     )
-    expect(registration.values(draftReinitialized.model.form).email).toBe(
+    expect(registration.inputs(draftReinitialized.model.form).email).toBe(
       'draft@example.com',
     )
   })

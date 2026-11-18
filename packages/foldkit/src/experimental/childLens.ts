@@ -66,18 +66,21 @@ export const isParentFieldConfig = <
 > => !Predicate.isFunction(config.read) || !Predicate.isFunction(config.write)
 
 export const parentFieldToLens = <
-  Name extends string,
-  ParentModel extends Record<Name, ChildModel>,
+  ParentModel,
   ParentMessage,
   ChildModel,
   ChildMessage,
 >(
-  config: Readonly<{
-    parentField: Name
-    toParentMessage: (message: ChildMessage) => ParentMessage
-  }>,
+  config: ParentFieldConfig<
+    ParentModel,
+    ParentMessage,
+    ChildModel,
+    ChildMessage
+  >,
 ): FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage> => ({
-  read: model => Option.some(model[config.parentField]),
+  // NOTE: ParentFieldOf admits only fields whose type is exactly ChildModel.
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  read: model => Option.some(model[config.parentField] as ChildModel),
   write: (model, nextChild) => ({ ...model, [config.parentField]: nextChild }),
   toParentMessage: message => config.toParentMessage(message),
 })

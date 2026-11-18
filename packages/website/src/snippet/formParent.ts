@@ -1,15 +1,16 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http'
 import { Http, Update } from 'foldkit'
 import { Form } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
 const RegisteredUser = Schema.Struct({ userId: Schema.String })
 
 export const registrationForm = Form.define({
   name: 'Registration',
   fields: {
-    email: Form.field({ schema: Schema.String, initial: { value: '' } }),
+    email: Form.field({ schema: Schema.String, initial: '' }),
   },
   submit: {
     data: RegisteredUser,
@@ -32,7 +33,10 @@ export const registrationForm = Form.define({
       ),
   },
 })
-export const Model = Schema.Struct({ registration: registrationForm.Model })
+export const Model = Schema.Struct({
+  registration: registrationForm.Model,
+  maybeUserId: Schema.Option(Schema.String),
+})
 export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   GotRegistrationMessage: { message: registrationForm.Message },
@@ -40,12 +44,29 @@ export const Message = defineMessageUnion({
   ClickedReset: {},
 })
 export type Message = typeof Message.Type
+const foldRegistrationOutMessage = registrationForm.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  SucceededSubmit:
+    ({ data }) =>
+    stepModel => ({
+      model: modifyFields(stepModel, {
+        maybeUserId: () => Option.some(data.userId),
+      }),
+    }),
+  FailedSubmit: () => stepModel => ({ model: stepModel }),
+})
+// The parent learns about an accepted result through foldOutMessage
 const registration = registrationForm.lift<Model, Message>({
   parentField: 'registration',
   toParentMessage: message => Message.GotRegistrationMessage({ message }),
+  foldOutMessage: foldRegistrationOutMessage,
 })
 const init = () => ({
-  model: Model.make({ registration: registrationForm.init() }),
+  model: Model.make({
+    registration: registrationForm.init(),
+    maybeUserId: Option.none(),
+  }),
 })
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {

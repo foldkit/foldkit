@@ -11,7 +11,7 @@ const checked = Form.define({
   fields: {
     username: Form.field({
       schema: Schema.String,
-      initial: { value: 'initial' },
+      initial: 'initial',
       validate: value => Effect.succeed(value === 'taken' ? ['Taken'] : []),
     }),
   },
@@ -38,7 +38,7 @@ describe('validation on blur', () => {
       fields: {
         username: Form.field({
           schema: Schema.String,
-          initial: { value: '' },
+          initial: '',
           validateOn: 'Blur',
           validate,
         }),
@@ -46,7 +46,7 @@ describe('validation on blur', () => {
     })
     const change = form.update(
       form.init(),
-      form.changed('username', { value: 'available' }),
+      form.changed('username', 'available'),
     )
     expect(change.commands ?? []).toEqual([])
 
@@ -83,7 +83,7 @@ describe('validation on blur', () => {
       fields: {
         username: Form.field({
           schema: Schema.String,
-          initial: { value: 'taken' },
+          initial: 'taken',
           validateOn: 'Blur',
           validate,
         }),
@@ -110,15 +110,15 @@ describe('field validation identity', () => {
   it('ignores a completion from the first occurrence of a repeated value', () => {
     const firstChange = checked.update(
       checked.init(),
-      checked.changed('username', { value: 'taken' }),
+      checked.changed('username', 'taken'),
     )
     const differentChange = checked.update(
       firstChange.model,
-      checked.changed('username', { value: 'open' }),
+      checked.changed('username', 'open'),
     )
     const repeatedChange = checked.update(
       differentChange.model,
-      checked.changed('username', { value: 'taken' }),
+      checked.changed('username', 'taken'),
     )
     const ignored = checked.update(
       repeatedChange.model,
@@ -138,7 +138,7 @@ describe('field validation identity', () => {
     operation => {
       const firstChange = checked.update(
         checked.init(),
-        checked.changed('username', { value: 'initial' }),
+        checked.changed('username', 'initial'),
       )
       const cleared =
         operation === 'reset'
@@ -150,7 +150,7 @@ describe('field validation identity', () => {
       ).toBe(cleared.model)
       const next = checked.update(
         cleared.model,
-        checked.changed('username', { value: 'initial' }),
+        checked.changed('username', 'initial'),
       )
       expect(
         checked.update(next.model, executeFirstCommand(firstChange.commands))
@@ -171,7 +171,7 @@ describe('field validation identity', () => {
   it('applies a validation completion decoded from JSON', () => {
     const change = checked.update(
       checked.init(),
-      checked.changed('username', { value: 'taken' }),
+      checked.changed('username', 'taken'),
     )
     const completion = executeFirstCommand(change.commands)
     const codec = Schema.toCodecJson(checked.Message)
@@ -191,7 +191,7 @@ const SaveError = Schema.Struct({
 const saved = Form.define({
   name: 'SavedLifecycle',
   fields: {
-    username: Form.field({ schema: Schema.String, initial: { value: 'Ada' } }),
+    username: Form.field({ schema: Schema.String, initial: 'Ada' }),
   },
   submit: {
     data: SaveData,
@@ -211,37 +211,43 @@ describe('submission Commands', () => {
       fields: {
         username: Form.field({
           schema: Schema.String,
-          initial: { value: 'Ada' },
+          initial: 'Ada',
         }),
       },
       submit: { data: Schema.Number, execute },
     })
     const pending = form.submit(form.init())
     expect(execute).not.toHaveBeenCalled()
-    const edited = form.update(
-      pending.model,
-      form.changed('username', { value: 'Grace' }),
-    )
+    const edited = form.update(pending.model, form.changed('username', 'Grace'))
     expect(form.submission(edited.model)._tag).toBe('Submitting')
     const duplicate = form.submit(edited.model)
     expect(duplicate.model).toBe(edited.model)
     expect(duplicate.commands ?? []).toEqual([])
 
     const completion = executeFirstCommand(pending.commands)
-    expect(execute).toHaveBeenCalledExactlyOnceWith({ username: 'Ada' })
+    expect(execute).toHaveBeenCalledExactlyOnceWith(
+      { username: 'Ada' },
+      undefined,
+    )
     const settled = form.update(edited.model, completion)
     expect(form.submission(settled.model)).toEqual(
       form.Submission.Succeeded({ data: 3 }),
     )
-    expect(form.values(settled.model).username).toBe('Grace')
-    expect(form.update(settled.model, completion).model).toBe(settled.model)
+    expect(settled.outMessage).toEqual(
+      form.OutMessage.SucceededSubmit({ data: 3 }),
+    )
+    expect(form.inputs(settled.model).username).toBe('Grace')
+
+    const repeated = form.update(settled.model, completion)
+    expect(repeated.model).toBe(settled.model)
+    expect(repeated.outMessage).toBeUndefined()
   })
 
   it('serializes omitted-data success Messages and Models through JSON', () => {
     const form = Form.define({
       name: 'VoidSubmission',
       fields: {
-        name: Form.field({ schema: Schema.String, initial: { value: 'Ada' } }),
+        name: Form.field({ schema: Schema.String, initial: 'Ada' }),
       },
       submit: { execute: () => Effect.void },
     })
@@ -316,7 +322,7 @@ describe('submission Commands', () => {
       fields: {
         username: Form.field({
           schema: Schema.String,
-          initial: { value: 'Ada' },
+          initial: 'Ada',
         }),
       },
       submit: { error: SaveError, execute },
@@ -334,6 +340,7 @@ describe('submission Commands', () => {
     expect(form.submission(failed.model)).toEqual(
       form.Submission.Failed({ error }),
     )
+    expect(failed.outMessage).toEqual(form.OutMessage.FailedSubmit({ error }))
   })
 
   it.each(['reset', 'reinitialize'])(
@@ -345,10 +352,14 @@ describe('submission Commands', () => {
         operation === 'reset'
           ? saved.reset(first.model)
           : saved.reinitialize(first.model)
-      expect(saved.update(cleared.model, stale).model).toBe(cleared.model)
+      const ignoredAfterClear = saved.update(cleared.model, stale)
+      expect(ignoredAfterClear.model).toBe(cleared.model)
+      expect(ignoredAfterClear.outMessage).toBeUndefined()
       const next = saved.submit(cleared.model)
       expect(next.model.generation).toBe(2)
-      expect(saved.update(next.model, stale).model).toBe(next.model)
+      const ignoredDuringNext = saved.update(next.model, stale)
+      expect(ignoredDuringNext.model).toBe(next.model)
+      expect(ignoredDuringNext.outMessage).toBeUndefined()
       const settled = saved.update(
         next.model,
         executeFirstCommand(next.commands),
@@ -362,7 +373,7 @@ describe('submission validation', () => {
   it('reuses a pending check and returns one Submit Command from its completion', () => {
     const changed = checked.update(
       checked.init(),
-      checked.changed('username', { value: 'open' }),
+      checked.changed('username', 'open'),
     )
     const pending = checked.submit(changed.model)
     expect(checked.submission(pending.model)._tag).toBe('Validating')
@@ -389,12 +400,12 @@ describe('submission validation', () => {
         fields: {
           first: Form.field({
             schema: Schema.String,
-            initial: { value: 'Ada' },
+            initial: 'Ada',
             validate: () => Effect.succeed(errors),
           }),
           second: Form.field({
             schema: Schema.String,
-            initial: { value: 'Lovelace' },
+            initial: 'Lovelace',
             validate: () => Effect.succeed([]),
           }),
         },
@@ -435,7 +446,7 @@ describe('submission validation', () => {
       fields: {
         name: Form.field({
           schema: Schema.String,
-          initial: { value: 'Ada' },
+          initial: 'Ada',
           validate: () => Effect.fail('Check unavailable'),
         }),
       },
@@ -457,7 +468,7 @@ describe('submission validation', () => {
     const pending = checked.submit(checked.init())
     const changed = checked.update(
       pending.model,
-      checked.changed('username', { value: 'open' }),
+      checked.changed('username', 'open'),
     )
     expect(checked.submission(changed.model)._tag).toBe('Idle')
     expect(
@@ -498,10 +509,18 @@ it('matches and resolves a lifted Submit factory in a parent Story', () => {
     Story.given(Parent.make({ form: saved.init() })),
     Story.message(Message.ClickedSubmit()),
     Story.Command.expectHas(
-      saved.Submit({ values: { username: 'Ada' }, token: { generation: 1 } }),
+      saved.Submit({
+        values: { username: 'Ada' },
+        context: undefined,
+        token: { generation: 1 },
+      }),
     ),
     Story.Command.resolve(
-      saved.Submit({ values: { username: 'Ada' }, token: { generation: 1 } }),
+      saved.Submit({
+        values: { username: 'Ada' },
+        context: undefined,
+        token: { generation: 1 },
+      }),
       saved.Message.CompletedSubmit({
         token: { generation: 1 },
         result: Result.succeed(SaveData.make({ id: 7 })),
@@ -513,4 +532,121 @@ it('matches and resolves a lifted Submit factory in a parent Story', () => {
       ),
     ),
   )
+})
+
+describe('submission context', () => {
+  const Record = Schema.Struct({ recordId: Schema.String })
+
+  it('passes the context given to submit to execution', () => {
+    const execute = vi.fn(
+      (values: Readonly<{ name: string }>, record: typeof Record.Type) =>
+        Effect.succeed(`${record.recordId}:${values.name}`),
+    )
+    const form = Form.define({
+      name: 'ContextSubmit',
+      fields: { name: Form.field({ schema: Schema.String, initial: 'Ada' }) },
+      submit: { data: Schema.String, context: Record, execute },
+    })
+    const pending = form.submit(form.init(), { recordId: 'profile-1' })
+    const completion = executeFirstCommand(pending.commands)
+
+    expect(execute).toHaveBeenCalledExactlyOnceWith(
+      { name: 'Ada' },
+      { recordId: 'profile-1' },
+    )
+    expect(form.update(pending.model, completion).outMessage).toEqual(
+      form.OutMessage.SucceededSubmit({ data: 'profile-1:Ada' }),
+    )
+  })
+
+  it('keeps the context while field checks are pending', () => {
+    const form = Form.define({
+      name: 'ContextValidation',
+      fields: {
+        username: Form.field({
+          schema: Schema.String,
+          initial: 'ada',
+          validate: () => Effect.succeed([]),
+        }),
+      },
+      submit: { context: Record, execute: () => Effect.void },
+    })
+    const validating = form.submit(form.init(), { recordId: 'profile-1' })
+
+    expect(form.submission(validating.model)).toEqual(
+      form.Submission.Validating({
+        token: { generation: 1 },
+        context: { recordId: 'profile-1' },
+      }),
+    )
+
+    const checked = form.update(
+      validating.model,
+      executeFirstCommand(validating.commands),
+    )
+
+    expect(
+      Array.head(checked.commands ?? []).pipe(Option.getOrThrow).args,
+    ).toEqual({
+      values: { username: 'ada' },
+      context: { recordId: 'profile-1' },
+      token: { generation: 1 },
+    })
+
+    const codec = Schema.toCodecJson(form.Model)
+    expect(
+      Schema.decodeSync(codec)(Schema.encodeSync(codec)(validating.model)),
+    ).toEqual(validating.model)
+  })
+
+  it('passes the context through a lifted submit', () => {
+    const form = Form.define({
+      name: 'LiftedContext',
+      fields: { name: Form.field({ schema: Schema.String, initial: 'Ada' }) },
+      submit: { context: Record, execute: () => Effect.void },
+    })
+    const Parent = Schema.Struct({ form: form.Model })
+    type Parent = typeof Parent.Type
+    const Message = defineMessageUnion({
+      ClickedSave: {},
+      GotFormMessage: { message: form.Message },
+    })
+    type Message = typeof Message.Type
+    const lifted = form.lift<Parent, Message>({
+      parentField: 'form',
+      toParentMessage: message => Message.GotFormMessage({ message }),
+    })
+    const update = (model: Parent, message: Message) =>
+      Message.match(message, {
+        ClickedSave: () => lifted.submit(model, { recordId: 'profile-1' }),
+        GotFormMessage: ({ message }) => lifted.fold(model, message),
+      })
+
+    Story.story(
+      update,
+      Story.given(Parent.make({ form: form.init() })),
+      Story.message(Message.ClickedSave()),
+      Story.Command.expectHas(
+        form.Submit({
+          values: { name: 'Ada' },
+          context: { recordId: 'profile-1' },
+          token: { generation: 1 },
+        }),
+      ),
+      Story.Command.resolve(
+        form.Submit({
+          values: { name: 'Ada' },
+          context: { recordId: 'profile-1' },
+          token: { generation: 1 },
+        }),
+        form.Message.CompletedSubmit({
+          token: { generation: 1 },
+          result: Result.succeed(undefined),
+        }),
+      ),
+      Story.model(model =>
+        expect(form.submission(model.form)._tag).toBe('Succeeded'),
+      ),
+    )
+  })
 })

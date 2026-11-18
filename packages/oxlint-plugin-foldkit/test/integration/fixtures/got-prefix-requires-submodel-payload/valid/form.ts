@@ -5,12 +5,12 @@ import { defineMessageUnion } from 'foldkit/message'
 
 const registration = Form.define({
   name: 'Registration',
-  fields: { email: Form.field({ schema: Schema.String, initial: { value: '' } }) },
+  fields: { email: Form.field({ schema: Schema.String, initial: '' }) },
   submit: { execute: () => Effect.void },
 })
 const profile = DirectForm.define({
   name: 'Profile',
-  fields: { email: DirectForm.field({ schema: Schema.String, initial: { value: '' } }) },
+  fields: { email: DirectForm.field({ schema: Schema.String, initial: '' }) },
   submit: { execute: () => Effect.void },
 })
 const Message = defineMessageUnion({

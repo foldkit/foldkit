@@ -6,7 +6,7 @@ const EMAIL_CHECK_DELAY_MS = 150
 
 export const emailField = Form.field({
   schema: Schema.String,
-  initial: { value: '' },
+  initial: '',
   validateOn: 'Blur',
   validate: value =>
     Effect.gen(function* () {

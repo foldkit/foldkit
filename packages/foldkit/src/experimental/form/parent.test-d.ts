@@ -15,27 +15,24 @@ type Destination = typeof Destination.Type
 const typed = Form.define({
   name: 'Typed',
   fields: {
-    text: Form.field({ schema: Schema.String, initial: { value: '' } }),
-    count: Form.field({ schema: Schema.Number, initial: { value: 0 } }),
-    topics: Form.field({
-      schema: Schema.Array(Schema.String),
-      initial: { value: [] },
-    }),
+    text: Form.field({ schema: Schema.String, initial: '' }),
+    count: Form.field({ schema: Schema.NumberFromString, initial: '0' }),
+    topics: Form.field({ schema: Schema.Array(Schema.String), initial: [] }),
     selected: Form.field({
       schema: Schema.OptionFromNullOr(Schema.String),
-      initial: { value: Option.none() },
+      initial: null,
     }),
     destination: Form.field({
       schema: Destination,
-      initial: { value: Destination.Nowhere() },
+      initial: Destination.Nowhere(),
     }),
     note: Form.field({
       schema: Schema.UndefinedOr(Schema.String),
-      initial: { value: 'Note' },
+      initial: 'Note',
     }),
     choice: Form.field({
       schema: Schema.Literals(['Yes', 'No']),
-      initial: { value: 'Yes' },
+      initial: 'Yes',
     }),
   },
   submit: {
@@ -54,7 +51,7 @@ const typed = Form.define({
     },
   },
 })
-const Parent = Schema.Struct({ form: typed.Model })
+const Parent = Schema.Struct({ form: typed.Model, savedCount: Schema.Number })
 type Parent = typeof Parent.Type
 const Message = defineMessageUnion({
   GotFormMessage: { message: typed.Message },
@@ -68,16 +65,21 @@ const lifted = typed.lift<Parent, Message>({
 const typeChecks = (
   model: Parent,
   name: 'text' | 'count',
-  value: string | number,
+  input: string | ReadonlyArray<string>,
 ) => {
-  const values: Form.Values<typeof typed> = typed.values(model.form)
-  const number: number = values.count
-  const literal: 'Yes' | 'No' = values.choice
-  void number
-  void literal
-  // @ts-expect-error A number value cannot be assigned to string.
-  const text: string = values.count
-  void text
+  const inputs = typed.inputs(model.form)
+  expectTypeOf(inputs.count).toEqualTypeOf<string>()
+  expectTypeOf(inputs.selected).toEqualTypeOf<string | null>()
+  const values: Form.Values<typeof typed> = {
+    text: '',
+    count: 0,
+    topics: [],
+    selected: Option.none(),
+    destination: Destination.Nowhere(),
+    note: undefined,
+    choice: 'Yes',
+  }
+  void values
   const invalidValues: Form.Values<typeof typed> = {
     text: '',
     count: 0,
@@ -89,19 +91,19 @@ const typeChecks = (
     choice: 'Maybe',
   }
   void invalidValues
-  // @ts-expect-error A field change must carry its value.
-  typed.Message.ChangedField({ change: { name: 'count', input: {} } })
+  // @ts-expect-error A field change must carry its input.
+  typed.Message.ChangedField({ change: { name: 'count' } })
   typed.Message.ChangedField({
-    // @ts-expect-error A numeric field rejects a string in the public constructor.
-    change: { name: 'count', input: { value: '1' } },
+    // @ts-expect-error A transformed field changes with its encoded input.
+    change: { name: 'count', input: 1 },
   })
-  // @ts-expect-error A union name cannot pair with an uncorrelated union value.
-  typed.changed(name, { value })
-  typed.reinitialize(model.form, { count: { value: 2 } })
-  lifted.reinitialize(model, { count: { value: 2 } })
-  // @ts-expect-error Live overrides preserve numeric field types.
-  typed.reinitialize(model.form, { count: { value: '2' } })
-  const unknownOverrides = { count: { value: 2 }, extra: { value: '' } }
+  // @ts-expect-error A union name cannot pair with an uncorrelated union input.
+  typed.changed(name, input)
+  typed.reinitialize(model.form, { count: 2 })
+  lifted.reinitialize(model, { count: 2 })
+  // @ts-expect-error Live overrides are decoded values, not inputs.
+  typed.reinitialize(model.form, { count: '2' })
+  const unknownOverrides = { count: 2, extra: '' }
   // @ts-expect-error Lifted live overrides reject unknown fields through variables.
   lifted.reinitialize(model, unknownOverrides)
   lifted.submit(model)
@@ -127,12 +129,80 @@ const typeChecks = (
     Failed: () => 0,
   })
   expectTypeOf(data).toEqualTypeOf<number>()
+  expectTypeOf(typed.submission(model.form)).toEqualTypeOf<
+    Form.Submission<typeof typed>
+  >()
   typed.Submission.Succeeded({
     // @ts-expect-error Submission state preserves its configured data type.
     data: '2',
   })
 }
 void typeChecks
+
+const outMessageChecks = (
+  model: Parent,
+  message: typeof typed.Message.Type,
+) => {
+  const formUpdate = typed.update(model.form, message)
+  expectTypeOf(formUpdate).toEqualTypeOf<
+    Update.ReturnWithOutMessage<
+      typeof typed.Model.Type,
+      typeof typed.Message.Type,
+      Form.OutMessage<typeof typed>
+    >
+  >()
+  expectTypeOf(
+    typed.OutMessage.SucceededSubmit({ data: 2 }).data,
+  ).toEqualTypeOf<number>()
+  // @ts-expect-error OutMessage payloads preserve the configured data type.
+  typed.OutMessage.SucceededSubmit({ data: '2' })
+  // @ts-expect-error OutMessage payloads preserve the configured error type.
+  typed.OutMessage.FailedSubmit({ error: 2 })
+
+  const reporting = typed.lift<Parent, Message>({
+    parentField: 'form',
+    toParentMessage: message => Message.GotFormMessage({ message }),
+    foldOutMessage: typed.OutMessage.match<Update.Step<Parent, Message>>({
+      SucceededSubmit:
+        ({ data }) =>
+        stepModel => ({
+          model: modifyFields(stepModel, { savedCount: () => data }),
+        }),
+      FailedSubmit: () => stepModel => ({ model: stepModel }),
+    }),
+  })
+  expectTypeOf(reporting.fold(model, message)).toEqualTypeOf<
+    Update.Return<Parent, Message>
+  >()
+
+  typed.lift<Parent, Message>({
+    parentField: 'form',
+    toParentMessage: message => Message.GotFormMessage({ message }),
+    foldOutMessage: (outMessage, { liftCommand }) => {
+      expectTypeOf(outMessage).toEqualTypeOf<Form.OutMessage<typeof typed>>()
+      void liftCommand
+      return stepModel => ({ model: stepModel })
+    },
+  })
+  const wrongStepConfig = {
+    parentField: 'form' as const,
+    toParentMessage: (message: typeof typed.Message.Type) =>
+      Message.GotFormMessage({ message }),
+    foldOutMessage: () => () => ({ model: 1 }),
+  }
+  // @ts-expect-error The OutMessage Step returns the parent Model.
+  typed.lift<Parent, Message>(wrongStepConfig)
+  typed.lift<Parent, Message>({
+    read: model => Option.some(model.form),
+    write: (model, nextForm) => modifyFields(model, { form: () => nextForm }),
+    toParentMessage: message => Message.GotFormMessage({ message }),
+    foldOutMessage: typed.OutMessage.match<Update.Step<Parent, Message>>({
+      SucceededSubmit: () => stepModel => ({ model: stepModel }),
+      FailedSubmit: () => stepModel => ({ model: stepModel }),
+    }),
+  })
+}
+void outMessageChecks
 
 class SaveService extends Context.Service<
   SaveService,
@@ -142,7 +212,7 @@ class SaveService extends Context.Service<
 const compoundTypeChecks = (
   model: Parent,
   name: 'topics' | 'selected',
-  value: ReadonlyArray<string> | Option.Option<string>,
+  input: ReadonlyArray<string> | string,
 ) => {
   const codecs: Form.FieldSchemas = {
     topics: Schema.Array(Schema.String),
@@ -152,47 +222,51 @@ const compoundTypeChecks = (
   const codec: Form.FieldSchema = Schema.Array(Schema.String)
   void codecs
   void codec
-  expectTypeOf(typed.field(model.form, 'topics').value).toEqualTypeOf<
+  expectTypeOf(typed.field(model.form, 'topics').input).toEqualTypeOf<
     ReadonlyArray<string>
   >()
-  expectTypeOf(typed.values(model.form).selected).toEqualTypeOf<
-    Option.Option<string>
+  expectTypeOf(typed.field(model.form, 'selected').input).toEqualTypeOf<
+    string | null
   >()
-  expectTypeOf(
-    typed.values(model.form).destination,
-  ).toEqualTypeOf<Destination>()
-  typed.changed('topics', { value: ['Effect'] })
-  typed.changed('selected', { value: Option.some('Effect') })
-  typed.changed('destination', { value: Destination.City({ name: 'Paris' }) })
+  expectTypeOf(typed.field(model.form, 'selected').maybeValue).toEqualTypeOf<
+    Option.Option<Option.Option<string>>
+  >()
+  expectTypeOf(typed.field(model.form, 'destination').maybeValue).toEqualTypeOf<
+    Option.Option<Destination>
+  >()
+  typed.changed('topics', ['Effect'])
+  typed.changed('selected', 'Effect')
+  typed.changed('selected', null)
+  typed.changed('destination', Destination.City({ name: 'Paris' }))
   typed.Message.ChangedField({
-    change: { name: 'topics', input: { value: ['Effect'] } },
+    change: { name: 'topics', input: ['Effect'] },
   })
   typed.Message.ChangedField({
-    change: { name: 'selected', input: { value: Option.none() } },
+    change: { name: 'selected', input: null },
   })
   typed.Message.ChangedField({
-    change: { name: 'destination', input: { value: Destination.Nowhere() } },
+    change: { name: 'destination', input: Destination.Nowhere() },
   })
   typed.Message.ChangedField({
-    change: { name: 'note', input: { value: undefined } },
+    change: { name: 'note', input: undefined },
   })
   typed.init({
-    topics: { value: ['Effect'] },
-    selected: { value: Option.none() },
-    destination: { value: Destination.Nowhere() },
-    note: { value: undefined },
+    topics: ['Effect'],
+    selected: Option.none(),
+    destination: Destination.Nowhere(),
+    note: undefined,
   })
   typed.reinitialize(model.form, {
-    topics: { value: ['Effect'] },
-    selected: { value: Option.some('Effect') },
-    destination: { value: Destination.City({ name: 'Paris' }) },
+    topics: ['Effect'],
+    selected: Option.some('Effect'),
+    destination: Destination.City({ name: 'Paris' }),
   })
   lifted.reinitialize(model, {
-    topics: { value: [] },
-    selected: { value: Option.none() },
-    destination: { value: Destination.Nowhere() },
+    topics: [],
+    selected: Option.none(),
+    destination: Destination.Nowhere(),
   })
-  lifted.fold(model, typed.changed('topics', { value: ['Effect'] }))
+  lifted.fold(model, typed.changed('topics', ['Effect']))
   const submit = typed.submit(model.form)
   expectTypeOf(submit).toEqualTypeOf<
     Update.Return<typeof typed.Model.Type, typeof typed.Message.Type>
@@ -200,44 +274,41 @@ const compoundTypeChecks = (
   expectTypeOf(lifted.submit(model)).toEqualTypeOf<
     Update.Return<Parent, Message>
   >()
-  // @ts-expect-error Array members follow the decoded codec.
-  typed.changed('topics', { value: [1] })
-  // @ts-expect-error An Option cannot change the array field.
-  typed.changed('topics', { value: Option.none() })
-  // @ts-expect-error A tagged value cannot change the Option field.
-  typed.changed('selected', { value: Destination.Nowhere() })
-  // @ts-expect-error A union name cannot pair with an uncorrelated compound value.
-  typed.changed(name, { value })
+  // @ts-expect-error Array members follow the encoded codec.
+  typed.changed('topics', [1])
+  // @ts-expect-error An Option is not the input of an array field.
+  typed.changed('topics', Option.none())
+  // @ts-expect-error The input of an Option field is its encoded side.
+  typed.changed('selected', Option.some('Effect'))
+  // @ts-expect-error A union name cannot pair with an uncorrelated compound input.
+  typed.changed(name, input)
   typed.Message.ChangedField({
-    // @ts-expect-error Compound Message payloads preserve field/value correlation.
-    change: { name: 'destination', input: { value: ['Paris'] } },
+    // @ts-expect-error Compound Message payloads preserve field/input correlation.
+    change: { name: 'destination', input: ['Paris'] },
   })
-  // @ts-expect-error A field whose type includes undefined still requires a value property.
-  typed.Message.ChangedField({ change: { name: 'note', input: {} } })
-  // @ts-expect-error Array initial values preserve member types.
-  Form.field({ schema: Schema.Array(Schema.String), initial: { value: [1] } })
+  // @ts-expect-error A field whose type includes undefined still requires an input property.
+  typed.Message.ChangedField({ change: { name: 'note' } })
+  // @ts-expect-error Array initial inputs preserve member types.
+  Form.field({ schema: Schema.Array(Schema.String), initial: [1] })
   Form.field({
-    schema: Schema.Option(Schema.String),
-    // @ts-expect-error Option initial values preserve the wrapped type.
-    initial: { value: Option.some(1) },
+    schema: Schema.OptionFromNullOr(Schema.String),
+    // @ts-expect-error Option initial inputs are the encoded side.
+    initial: Option.some('Ada'),
   })
   Form.field({
     schema: Destination,
-    // @ts-expect-error Tagged initial values preserve their payload type.
-    initial: { value: { _tag: 'City', name: 1 } },
+    // @ts-expect-error Tagged initial inputs preserve their payload type.
+    initial: { _tag: 'City', name: 1 },
   })
   // @ts-expect-error Compound override types preserve array members.
-  typed.init({ topics: { value: [1] } })
+  typed.init({ topics: [1] })
   // @ts-expect-error Compound live overrides preserve Option payloads.
-  typed.reinitialize(model.form, { selected: { value: Option.some(1) } })
+  typed.reinitialize(model.form, { selected: Option.some(1) })
   lifted.reinitialize(model, {
     // @ts-expect-error Lifted overrides preserve tagged payloads.
-    destination: { value: { _tag: 'City', name: 1 } },
+    destination: { _tag: 'City', name: 1 },
   })
-  const unknownOverrides = {
-    topics: { value: ['Effect'] },
-    extra: { value: [] },
-  }
+  const unknownOverrides = { topics: ['Effect'], extra: [] }
   // @ts-expect-error Compound override variables reject unknown fields.
   typed.init(unknownOverrides)
   // @ts-expect-error Lifted compound override variables reject unknown fields.
@@ -408,26 +479,23 @@ const genericOperations = <C extends Form.FieldSchemas>(
   name: keyof C & string,
 ) => {
   const formUpdate = form.update(model, message)
-  const values: Form.FormValues<C> = form.values(formUpdate.model)
+  const inputs: Form.FormInputs<C> = form.inputs(formUpdate.model)
   const view: Form.FieldView<C[typeof name]> = form.field(model, name)
   const formReset = form.reset(formUpdate.model)
   const formReinitialize = form.reinitialize(formReset.model)
   const formSubmit = form.submit(formReinitialize.model)
   form.submission(formSubmit.model)
   form.submitCount(formSubmit.model)
-  return { values, view }
+  return { inputs, view }
 }
 void genericOperations
 
 const concreteModelTypeChecks = (model: typeof typed.Model.Type) => {
   expectTypeOf(typed.init()).toEqualTypeOf<typeof typed.Model.Type>()
-  const formUpdate = typed.update(
-    model,
-    typed.changed('text', { value: 'Next' }),
-  )
+  const formUpdate = typed.update(model, typed.changed('text', 'Next'))
   expectTypeOf(formUpdate.model).toEqualTypeOf<typeof typed.Model.Type>()
-  typed.values(typed.Model.make(formUpdate.model))
-  typed.values(Schema.decodeUnknownSync(typed.Model)(model))
+  typed.inputs(typed.Model.make(formUpdate.model))
+  typed.inputs(Schema.decodeUnknownSync(typed.Model)(model))
 }
 void concreteModelTypeChecks
 
@@ -445,17 +513,17 @@ const servicefulForm = Form.define({
   fields: {
     username: Form.field({
       schema: Schema.String,
-      initial: { value: 'initial' },
+      initial: 'initial',
       validate: () => Effect.map(UsernameValidation, service => service.errors),
     }),
     age: Form.field({
       schema: Schema.NumberFromString,
-      initial: { value: 18 },
+      initial: '18',
       validate: () => Effect.map(AgeValidation, service => service.errors),
     }),
     choice: Form.field({
       schema: Schema.Literals(['Yes', 'No']),
-      initial: { value: 'Yes' },
+      initial: 'Yes',
     }),
   },
   submit: {
@@ -484,16 +552,22 @@ const serviceful = servicefulForm.lift<ServicefulParent, ServicefulMessage>({
 const validatorRequirementChecks = (model: ServicefulParent) => {
   const formUpdate = servicefulForm.update(
     model.form,
-    servicefulForm.changed('username', { value: 'next' }),
+    servicefulForm.changed('username', 'next'),
   )
   expectTypeOf(formUpdate).toEqualTypeOf<
-    Update.Return<
+    Update.ReturnWithOutMessage<
       typeof servicefulForm.Model.Type,
       typeof servicefulForm.Message.Type,
+      Form.OutMessage<typeof servicefulForm>,
       UsernameValidation | AgeValidation | SaveService
     >
   >()
-  expectTypeOf(servicefulForm.values(model.form)).toEqualTypeOf<{
+  expectTypeOf(servicefulForm.inputs(model.form)).toEqualTypeOf<{
+    readonly username: string
+    readonly age: string
+    readonly choice: 'Yes' | 'No'
+  }>()
+  expectTypeOf<Form.Values<typeof servicefulForm>>().toEqualTypeOf<{
     readonly username: string
     readonly age: number
     readonly choice: 'Yes' | 'No'
@@ -550,7 +624,8 @@ const validatorRequirementChecks = (model: ServicefulParent) => {
     >
   >()
   const submit = servicefulForm.Submit({
-    values: servicefulForm.values(model.form),
+    values: { username: 'next', age: 18, choice: 'Yes' },
+    context: undefined,
     token: { generation: 1 },
   })
   expectTypeOf(submit.effect).toEqualTypeOf<
@@ -569,9 +644,9 @@ const validatorRequirementChecks = (model: ServicefulParent) => {
     data: { id: 'record' },
   })
   expectTypeOf(succeeded.data).toEqualTypeOf<{ readonly id: string }>()
-  // @ts-expect-error The transformed field accepts decoded numeric input.
-  servicefulForm.changed('age', { value: '18' })
+  // @ts-expect-error The transformed field accepts its encoded string input.
+  servicefulForm.changed('age', 18)
   // @ts-expect-error The literal field preserves its allowed values.
-  servicefulForm.changed('choice', { value: 'Maybe' })
+  servicefulForm.changed('choice', 'Maybe')
 }
 void validatorRequirementChecks

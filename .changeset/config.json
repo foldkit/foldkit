@@ -1,11 +1,6 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@4.0.0/schema.json",
-  "changelog": [
-    "@changesets/changelog-github",
-    {
-      "repo": "foldkit/foldkit"
-    }
-  ],
+  "changelog": ["@changesets/changelog-github", { "repo": "foldkit/foldkit" }],
   "commit": false,
   "fixed": [["foldkit", "@foldkit/ui", "@foldkit/devtools"]],
   "linked": [],

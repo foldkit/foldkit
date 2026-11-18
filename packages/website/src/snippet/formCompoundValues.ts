@@ -1,4 +1,4 @@
-import { Array, Effect, Option, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
 import { Http } from 'foldkit'
 import { Form } from 'foldkit/experimental'
@@ -14,15 +14,14 @@ const preferencesForm = Form.define({
   fields: {
     topics: Form.field({
       schema: Schema.Array(Schema.String),
-      initial: { value: [] },
+      initial: [],
       rules: makeRules<ReadonlyArray<string>>({
         required: 'Choose a topic',
-        isEmpty: Array.isReadonlyArrayEmpty,
       }),
     }),
     selected: Form.field({
       schema: Schema.OptionFromNullOr(Schema.String),
-      initial: { value: Option.none() },
+      initial: null,
       rules: makeRules<Option.Option<string>>({
         required: 'Choose an item',
         isEmpty: Option.isNone,
@@ -30,26 +29,17 @@ const preferencesForm = Form.define({
     }),
     location: Form.field({
       schema: Location,
-      initial: { value: Location.Unspecified() },
-    }),
-    nickname: Form.field({
-      schema: Schema.OptionFromOptionalKey(Schema.String),
-      initial: { value: Option.none() },
+      initial: Location.Unspecified(),
     }),
   },
   submit: {
     error: Schema.String,
-    execute: ({ topics, selected, location, nickname }) =>
+    execute: ({ topics, selected, location }) =>
       Effect.gen(function* () {
         const client = yield* HttpClient.HttpClient
         const request = yield* HttpClientRequest.bodyJson(
           HttpClientRequest.post('/api/preferences'),
-          {
-            topics,
-            selected: Option.getOrNull(selected),
-            location,
-            nickname: Option.getOrNull(nickname),
-          },
+          { topics, selected: Option.getOrNull(selected), location },
         )
         yield* HttpClient.filterStatusOk(client).execute(request)
       }).pipe(
@@ -58,22 +48,12 @@ const preferencesForm = Form.define({
       ),
   },
 })
-const preferencesModel = preferencesForm.init({
-  topics: { value: ['Foldkit'] },
-})
+const preferencesModel = preferencesForm.init({ topics: ['Foldkit'] })
 const topicsChange = preferencesForm.update(
   preferencesModel,
-  preferencesForm.changed('topics', { value: ['Foldkit', 'Effect'] }),
+  preferencesForm.changed('topics', ['Foldkit', 'Effect']),
 )
 const selectedChange = preferencesForm.update(
   topicsChange.model,
-  preferencesForm.changed('selected', { value: Option.some('Effect') }),
-)
-const nicknameChange = preferencesForm.update(
-  selectedChange.model,
-  preferencesForm.changed('nickname', { value: Option.some('Reader') }),
-)
-const nicknameClear = preferencesForm.update(
-  nicknameChange.model,
-  preferencesForm.changed('nickname', { value: Option.none() }),
+  preferencesForm.changed('selected', 'Effect'),
 )

@@ -31,6 +31,7 @@ test('ordinary inputs submit through the Form Command and render success', () =>
     given(init().model),
     type(role('textbox', { name: 'Registration email' }), 'person@example.com'),
     type(role('textbox', { name: 'Your name' }), 'Person'),
+    type(role('textbox', { name: 'Your age' }), '30'),
     click(role('button', { name: 'Register' })),
     Command.resolve(
       registrationForm.ValidateField.email,
@@ -41,10 +42,11 @@ test('ordinary inputs submit through the Form Command and render success', () =>
       registrationForm.Submit,
       registrationForm.Message.CompletedSubmit({
         token: { generation: 1 },
-        result: Result.succeed(undefined),
+        result: Result.succeed('person@example.com'),
       }),
     ),
     expect(text('Saved')).toExist(),
+    expect(text('Registered: person@example.com')).toExist(),
   )
 })
 
@@ -56,6 +58,20 @@ test('invalid submission shows untouched required-field errors', () => {
     Command.expectNone(),
     expect(text('Enter an email address')).toExist(),
     expect(text('Enter your name')).toExist(),
+    expect(text('Enter your age')).toExist(),
+  )
+})
+
+test('the age field keeps typed text and reports it until it reads as a number', () => {
+  scene(
+    { update, view },
+    given(init().model),
+    type(role('textbox', { name: 'Your age' }), '12a'),
+    expect(role('textbox', { name: 'Your age' })).toHaveValue('12a'),
+    expect(text('Enter a number')).toExist(),
+    type(role('textbox', { name: 'Your age' }), '9'),
+    expect(text('Enter a number')).not.toExist(),
+    expect(text('You must be at least 13')).toExist(),
   )
 })
 
@@ -138,6 +154,7 @@ test('profile checkboxes replace the array field and reset its captured defaults
           displayName: 'Reader',
           topics: ['Effect', 'Foldkit'],
         },
+        context: { profileId: 'profile-1' },
         token: { generation: 1 },
       }),
     ),

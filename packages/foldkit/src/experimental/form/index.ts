@@ -1,18 +1,21 @@
 export { define, field } from './form.js'
 export type {
   Submission,
-  FieldInput,
+  FieldErrors,
   FieldSchemas,
   FieldSchema,
   FieldConfig,
   FieldDefinition,
   FieldView,
+  FoldOutMessage,
   FormDefinition,
   FormLens,
   FormValues,
   FormInputs,
   LiftedForm,
+  OutMessage,
   ParentFieldConfig,
+  SubmitArgs,
   ValidationTrigger,
   Values,
 } from './form.js'

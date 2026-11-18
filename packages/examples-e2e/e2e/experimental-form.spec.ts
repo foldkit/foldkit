@@ -14,16 +14,23 @@ test('validates, submits, and restores edit defaults', async ({ page }) => {
   ).toBeVisible()
   await page.getByLabel('Registration email').fill('person@example.com')
   await page.getByLabel('Your name').fill('Person')
+  await page.getByLabel('Your age').fill('30')
   await page.getByRole('button', { name: 'Register', exact: true }).click()
   await expect(
     page
       .getByRole('region', { name: 'Registration' })
       .getByText('Saved', { exact: true }),
   ).toBeVisible()
+  await expect(
+    page.getByText('Registered: person@example.com', { exact: true }),
+  ).toBeVisible()
   await page.getByLabel('Profile email').fill('taken@example.com')
   await page.getByRole('button', { name: 'Save profile', exact: true }).click()
   await expect(
-    page.getByText('This email is already registered', { exact: true }),
+    page.getByText(
+      'Profile profile-1 cannot use an email that is already registered',
+      { exact: true },
+    ),
   ).toBeVisible()
   await page.getByRole('button', { name: 'Reset profile', exact: true }).click()
   await expect(page.getByLabel('Profile email')).toHaveValue(
@@ -60,6 +67,7 @@ test('continues a single submit after async validation and blocks rejected email
   const registration = page.getByRole('region', { name: 'Registration' })
   await page.getByLabel('Registration email').fill('blocked@example.com')
   await page.getByLabel('Your name').fill('Person')
+  await page.getByLabel('Your age').fill('30')
   await registration
     .getByRole('button', { name: 'Register', exact: true })
     .click()
@@ -74,4 +82,31 @@ test('continues a single submit after async validation and blocks rejected email
     .getByRole('button', { name: 'Register', exact: true })
     .click()
   await expect(registration.getByText('Saved', { exact: true })).toBeVisible()
+})
+
+test('shows a taken email on the email field until it is edited', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const registration = page.getByRole('region', { name: 'Registration' })
+  await page.getByLabel('Registration email').fill('taken@example.com')
+  await page.getByLabel('Your name').fill('Person')
+  await page.getByLabel('Your age').fill('30')
+  await registration
+    .getByRole('button', { name: 'Register', exact: true })
+    .click()
+  await expect(
+    registration.getByText('This email is already registered', {
+      exact: true,
+    }),
+  ).toBeVisible()
+  await expect(
+    registration.getByText('Fix the highlighted field', { exact: true }),
+  ).toBeVisible()
+  await page.getByLabel('Registration email').fill('person@example.com')
+  await expect(
+    registration.getByText('This email is already registered', {
+      exact: true,
+    }),
+  ).not.toBeVisible()
 })

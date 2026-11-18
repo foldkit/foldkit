@@ -16,7 +16,7 @@ const preferences = Form.define({
   fields: {
     topics: Form.field({
       schema: Schema.Array(Schema.String),
-      initial: { value: ['Foldkit'] },
+      initial: ['Foldkit'],
       validateOn: 'Blur',
       rules: FieldValidation.makeRules<ReadonlyArray<string>>({
         required: 'Choose a topic',
@@ -25,7 +25,7 @@ const preferences = Form.define({
     }),
     selected: Form.field({
       schema: Schema.OptionFromNullOr(Schema.String),
-      initial: { value: Option.none() },
+      initial: null,
       rules: FieldValidation.makeRules<Option.Option<string>>({
         required: 'Choose an item',
         isEmpty: Option.isNone,
@@ -33,43 +33,48 @@ const preferences = Form.define({
     }),
     location: Form.field({
       schema: Location,
-      initial: { value: Location.Unspecified() },
+      initial: Location.Unspecified(),
     }),
   },
 })
 
-it('preserves decoded compound values through selectors and Message constructors', () => {
+it('preserves compound inputs through selectors and Message constructors', () => {
   const initial = preferences.init()
-  expectTypeOf(preferences.field(initial, 'topics').value).toEqualTypeOf<
+  expectTypeOf(preferences.field(initial, 'topics').input).toEqualTypeOf<
     ReadonlyArray<string>
   >()
-  expectTypeOf(preferences.values(initial).selected).toEqualTypeOf<
-    Option.Option<string>
+  expectTypeOf(preferences.inputs(initial).selected).toEqualTypeOf<
+    string | null
   >()
-  expectTypeOf(preferences.values(initial).location).toEqualTypeOf<Location>()
+  expectTypeOf(preferences.field(initial, 'selected').maybeValue).toEqualTypeOf<
+    Option.Option<Option.Option<string>>
+  >()
   const topicsChange = preferences.update(
     initial,
-    preferences.changed('topics', { value: ['Effect', 'Foldkit'] }),
+    preferences.changed('topics', ['Effect', 'Foldkit']),
   )
   const selectedChange = preferences.update(
     topicsChange.model,
-    preferences.changed('selected', { value: Option.some('Effect') }),
+    preferences.changed('selected', 'Effect'),
   )
   const locationChange = preferences.update(
     selectedChange.model,
     preferences.Message.ChangedField({
       change: {
         name: 'location',
-        input: { value: Location.Coordinates({ latitude: 48, longitude: 2 }) },
+        input: Location.Coordinates({ latitude: 48, longitude: 2 }),
       },
     }),
   )
 
-  expect(preferences.values(locationChange.model)).toEqual({
+  expect(preferences.inputs(locationChange.model)).toEqual({
     topics: ['Effect', 'Foldkit'],
-    selected: Option.some('Effect'),
+    selected: 'Effect',
     location: Location.Coordinates({ latitude: 48, longitude: 2 }),
   })
+  expect(
+    preferences.field(locationChange.model, 'selected').maybeValue,
+  ).toEqual(Option.some(Option.some('Effect')))
 
   expect(preferences.field(selectedChange.model, 'selected').errors).toEqual([])
 
@@ -80,11 +85,12 @@ it('preserves decoded compound values through selectors and Message constructors
     ),
   ).toEqual(locationChange.model)
   const messages = [
-    preferences.changed('topics', { value: ['Effect'] }),
-    preferences.changed('selected', { value: Option.some('Effect') }),
-    preferences.changed('location', {
-      value: Location.Coordinates({ latitude: 48, longitude: 2 }),
-    }),
+    preferences.changed('topics', ['Effect']),
+    preferences.changed('selected', 'Effect'),
+    preferences.changed(
+      'location',
+      Location.Coordinates({ latitude: 48, longitude: 2 }),
+    ),
   ]
   for (const message of messages) {
     const encodedMessage = Schema.encodeSync(preferences.Message)(message)
@@ -97,38 +103,39 @@ it('preserves decoded compound values through selectors and Message constructors
   expect(() =>
     Schema.decodeUnknownSync(preferences.Message)({
       _tag: 'ChangedField',
-      change: { name: 'topics', input: { value: [1] } },
+      change: { name: 'topics', input: [1] },
     }),
   ).toThrow()
 })
 
 it('uses structural default equality while preserving dirty history', () => {
   const initial = preferences.init({
-    selected: { value: Option.some('Effect') },
-    location: { value: Location.Coordinates({ latitude: 48, longitude: 2 }) },
+    selected: Option.some('Effect'),
+    location: Location.Coordinates({ latitude: 48, longitude: 2 }),
   })
   const topicsChange = preferences.update(
     initial,
-    preferences.changed('topics', { value: ['Other'] }),
+    preferences.changed('topics', ['Other']),
   )
   const topicsReturn = preferences.update(
     topicsChange.model,
-    preferences.changed('topics', { value: ['Foldkit'] }),
+    preferences.changed('topics', ['Foldkit']),
   )
   const selectedChange = preferences.update(
     topicsReturn.model,
-    preferences.changed('selected', { value: Option.some('Effect') }),
+    preferences.changed('selected', 'Effect'),
   )
   const locationChange = preferences.update(
     selectedChange.model,
-    preferences.changed('location', {
-      value: Location.Coordinates({ latitude: 48, longitude: 2 }),
-    }),
+    preferences.changed(
+      'location',
+      Location.Coordinates({ latitude: 48, longitude: 2 }),
+    ),
   )
   for (const name of Struct.keys(locationChange.model.fields)) {
     const field = preferences.field(locationChange.model, name)
     expect(field.meta.isDefaultValue).toBe(true)
-    expect(field.meta.isDirty).toBe(true)
+    expect(field.meta.isEdited).toBe(true)
   }
 })
 
@@ -139,14 +146,9 @@ it('honors decoded Schema equivalence annotations', () => {
   const numeric = Form.define({
     name: 'ExactNumber',
     submit: { error: Schema.String, execute: () => Effect.void },
-    fields: {
-      value: Form.field({ schema: exactNumber, initial: { value: 0 } }),
-    },
+    fields: { value: Form.field({ schema: exactNumber, initial: 0 }) },
   })
-  const changed = numeric.update(
-    numeric.init(),
-    numeric.changed('value', { value: -0 }),
-  )
+  const changed = numeric.update(numeric.init(), numeric.changed('value', -0))
 
   expect(numeric.field(changed.model, 'value').meta.isDefaultValue).toBe(false)
 })
@@ -158,46 +160,46 @@ it('distinguishes omitted overrides from explicit undefined and null values', ()
     fields: {
       note: Form.field({
         schema: Schema.Union([Schema.String, Schema.Undefined, Schema.Null]),
-        initial: { value: 'Configured' },
+        initial: 'Configured',
       }),
     },
   })
 
-  expect(presence.values(presence.init()).note).toBe('Configured')
+  expect(presence.inputs(presence.init()).note).toBe('Configured')
   const undefinedInitial = Form.field({
     schema: Schema.UndefinedOr(Schema.String),
-    initial: { value: undefined },
+    initial: undefined,
   })
 
-  expect(undefinedInitial.initialize().defaultInput.value).toBeUndefined()
-  const explicitNull = presence.init({ note: { value: null } })
+  expect(undefinedInitial.initialize().defaultInput).toBeUndefined()
+  const explicitNull = presence.init({ note: null })
   const nullChange = presence.update(
     explicitNull,
-    presence.changed('note', { value: 'Changed' }),
+    presence.changed('note', 'Changed'),
   )
 
   const nullReset = presence.reset(nullChange.model)
-  expect(presence.values(nullReset.model).note).toBeNull()
-  const explicitUndefined = presence.init({ note: { value: undefined } })
-  expect(presence.values(explicitUndefined).note).toBeUndefined()
+  expect(presence.inputs(nullReset.model).note).toBeNull()
+  const explicitUndefined = presence.init({ note: undefined })
+  expect(presence.inputs(explicitUndefined).note).toBeUndefined()
   const changed = presence.update(
     explicitUndefined,
-    presence.changed('note', { value: null }),
+    presence.changed('note', null),
   )
 
-  expect(presence.values(changed.model).note).toBeNull()
+  expect(presence.inputs(changed.model).note).toBeNull()
   const undefinedReset = presence.reset(changed.model)
-  expect(presence.values(undefinedReset.model).note).toBeUndefined()
+  expect(presence.inputs(undefinedReset.model).note).toBeUndefined()
   const reinitialized = presence.reinitialize(changed.model, {
-    note: { value: undefined },
+    note: undefined,
   })
 
-  expect(presence.values(reinitialized.model).note).toBeUndefined()
+  expect(presence.inputs(reinitialized.model).note).toBeUndefined()
   const configuredDefaults = presence.reinitialize(reinitialized.model)
-  expect(presence.values(configuredDefaults.model).note).toBe('Configured')
-  const undefinedMessage = presence.changed('note', { value: undefined })
+  expect(presence.inputs(configuredDefaults.model).note).toBe('Configured')
+  const undefinedMessage = presence.changed('note', undefined)
   const undefinedChange = presence.update(changed.model, undefinedMessage)
-  expect(presence.values(undefinedChange.model).note).toBeUndefined()
+  expect(presence.inputs(undefinedChange.model).note).toBeUndefined()
   expect(() =>
     Schema.decodeUnknownSync(presence.Message)({
       _tag: 'ChangedField',
@@ -210,7 +212,7 @@ it('validates compound empty values and preserves field and repeated-blur identi
   const initial = preferences.init()
   const topicsChange = preferences.update(
     initial,
-    preferences.changed('topics', { value: [] }),
+    preferences.changed('topics', []),
   )
 
   expect(topicsChange.model.fields.selected).toBe(initial.fields.selected)
@@ -240,14 +242,14 @@ it('validates compound empty values and preserves field and repeated-blur identi
 
 it('captures compound reset defaults and submission snapshots across immutable changes', () => {
   const initial = preferences.init({
-    topics: { value: ['Original'] },
-    selected: { value: Option.some('Item') },
+    topics: ['Original'],
+    selected: Option.some('Item'),
   })
 
   const submitted = preferences.submit(initial)
   const edited = preferences.update(
     submitted.model,
-    preferences.changed('topics', { value: ['Edited'] }),
+    preferences.changed('topics', ['Edited']),
   )
 
   expect(preferences.submit(edited.model).model).toBe(edited.model)
@@ -259,17 +261,18 @@ it('captures compound reset defaults and submission snapshots across immutable c
       selected: Option.some('Item'),
       location: Location.Unspecified(),
     },
+    context: undefined,
     token: { generation: 1 },
   })
 
-  expect(preferences.values(edited.model).topics).toEqual(['Edited'])
-  expect(preferences.values(initial).topics).toEqual(['Original'])
-  expect(preferences.values(initial)).not.toBe(preferences.values(initial))
+  expect(preferences.inputs(edited.model).topics).toEqual(['Edited'])
+  expect(preferences.inputs(initial).topics).toEqual(['Original'])
+  expect(preferences.inputs(initial)).not.toBe(preferences.inputs(initial))
   const reset = preferences.reset(edited.model)
-  expect(preferences.values(reset.model).topics).toEqual(['Original'])
+  expect(preferences.inputs(reset.model).topics).toEqual(['Original'])
   const reinitialized = preferences.reinitialize(reset.model, {
-    topics: { value: ['New'] },
-    selected: { value: Option.some('New') },
+    topics: ['New'],
+    selected: Option.some('New'),
   })
   const newerSubmit = preferences.submit(reinitialized.model)
 
@@ -287,25 +290,25 @@ it('captures compound reset defaults and submission snapshots across immutable c
 
   const newerEdit = preferences.update(
     newerSubmit.model,
-    preferences.changed('topics', { value: [] }),
+    preferences.changed('topics', []),
   )
 
   expect(
-    preferences.values(preferences.reset(newerEdit.model).model).topics,
+    preferences.inputs(preferences.reset(newerEdit.model).model).topics,
   ).toEqual(['New'])
 })
 
-it('preserves untouched compound states without running their codec checks', () => {
+it('keeps untouched compound states and their codec checks idle on unrelated edits', () => {
   const check = vi.fn(() => true)
   const CheckedTopic = Schema.String.check(Schema.makeFilter<string>(check))
   const counted = Form.define({
     name: 'Counted',
     submit: { error: Schema.String, execute: () => Effect.void },
     fields: {
-      text: Form.field({ schema: Schema.String, initial: { value: '' } }),
+      text: Form.field({ schema: Schema.String, initial: '' }),
       topics: Form.field({
         schema: Schema.Array(CheckedTopic),
-        initial: { value: ['Effect', 'Foldkit'] },
+        initial: ['Effect', 'Foldkit'],
         validateOn: 'Blur',
       }),
     },
@@ -314,37 +317,28 @@ it('preserves untouched compound states without running their codec checks', () 
   const topics = initial.fields.topics
   check.mockClear()
 
-  const change = counted.update(
-    initial,
-    counted.changed('text', { value: 'Next' }),
-  )
+  const change = counted.update(initial, counted.changed('text', 'Next'))
+  const blur = counted.update(change.model, counted.blurred('text'))
 
   expect(check).not.toHaveBeenCalled()
   expect(change.model.fields.topics).toBe(topics)
-  expect(counted.values(change.model).topics).toBe(topics.input.value)
-  expect(counted.field(change.model, 'text').value).toBe('Next')
-  expect(counted.field(change.model, 'topics').value).toBe(topics.input.value)
-  expect(check).not.toHaveBeenCalled()
-
-  const blur = counted.update(change.model, counted.blurred('text'))
   expect(blur.model.fields.topics).toBe(topics)
+  expect(counted.inputs(change.model).topics).toBe(topics.input)
+  expect(counted.field(change.model, 'text').input).toBe('Next')
   expect(counted.field(blur.model, 'text').meta.isBlurred).toBe(true)
-  expect(check).not.toHaveBeenCalled()
 })
 
-it('runs current-value rules without decoding compound defaults or values', () => {
-  const check = vi.fn(() => true)
+it('decodes the input before running rules on blur and submit', () => {
   const validateTopic = vi.fn((value: ReadonlyArray<string>) =>
     Array.isReadonlyArrayNonEmpty(value),
   )
-  const CheckedTopic = Schema.String.check(Schema.makeFilter<string>(check))
   const counted = Form.define({
     name: 'CountedRules',
     submit: { error: Schema.String, execute: () => Effect.void },
     fields: {
       topics: Form.field({
-        schema: Schema.Array(CheckedTopic),
-        initial: { value: ['Foldkit'] },
+        schema: Schema.Array(Schema.NonEmptyString),
+        initial: ['Foldkit'],
         validateOn: 'Blur',
         rules: FieldValidation.makeRules<ReadonlyArray<string>>({
           rules: [[validateTopic, 'Choose a topic']],
@@ -353,12 +347,9 @@ it('runs current-value rules without decoding compound defaults or values', () =
     },
   })
   const initial = counted.init()
-  check.mockClear()
-  validateTopic.mockClear()
 
   const blur = counted.update(initial, counted.blurred('topics'))
-  expect(validateTopic).toHaveBeenCalledWith(initial.fields.topics.input.value)
-  expect(check).not.toHaveBeenCalled()
+  expect(validateTopic).toHaveBeenCalledWith(['Foldkit'])
   expect(counted.update(blur.model, counted.blurred('topics')).model).toBe(
     blur.model,
   )
@@ -366,48 +357,56 @@ it('runs current-value rules without decoding compound defaults or values', () =
   validateTopic.mockClear()
   const submit = counted.submit(blur.model)
 
-  expect(validateTopic).toHaveBeenCalledWith(initial.fields.topics.input.value)
+  expect(validateTopic).not.toHaveBeenCalled()
   expect(submit.model.submission._tag).toBe('Submitting')
-  expect(check).not.toHaveBeenCalled()
 
-  const reset = counted.reset(submit.model)
-  expect(counted.values(reset.model).topics).toBe(
-    initial.fields.topics.defaultInput.value,
+  const invalidInput = counted.update(
+    counted.reset(submit.model).model,
+    counted.changed('topics', ['']),
   )
+  validateTopic.mockClear()
+  const invalidSubmit = counted.submit(invalidInput.model)
 
-  expect(counted.field(reset.model, 'topics').meta.isDirty).toBe(false)
-  expect(check).not.toHaveBeenCalled()
+  expect(validateTopic).not.toHaveBeenCalled()
+  expect(counted.field(invalidSubmit.model, 'topics').errors).toHaveLength(1)
+  expect(counted.submission(invalidSubmit.model)._tag).toBe('Idle')
+  expect(counted.field(invalidSubmit.model, 'topics').meta.isEdited).toBe(true)
 })
 
-it('rejects compound values that fail decoded checks at input boundaries', () => {
+it('stores compound input that fails its checks and rejects mismatched shapes at input boundaries', () => {
   const CheckedTopic = Schema.String.check(
-    Schema.makeFilter<string>(value => value !== 'Rejected'),
+    Schema.makeFilter<string>(value => value !== 'Rejected', {
+      message: 'Topic rejected',
+    }),
   )
-  const schema = Schema.Array(CheckedTopic)
-  const topics = Form.field({ schema, initial: { value: ['Foldkit'] } })
+  const topics = Form.field({
+    schema: Schema.Array(CheckedTopic),
+    initial: ['Foldkit'],
+  })
   const checked = Form.define({
     name: 'CheckedInputs',
     submit: { error: Schema.String, execute: () => Effect.void },
     fields: { topics },
   })
   const initial = checked.init()
+  const change = checked.update(
+    initial,
+    checked.changed('topics', ['Rejected']),
+  )
 
-  expect(() => checked.changed('topics', { value: ['Rejected'] })).toThrow()
+  expect(checked.inputs(change.model).topics).toEqual(['Rejected'])
+  expect(checked.field(change.model, 'topics').errors).toEqual([
+    'Topic rejected',
+  ])
+  expect(
+    Schema.decodeSync(checked.Model)(
+      Schema.encodeSync(checked.Model)(change.model),
+    ),
+  ).toEqual(change.model)
   expect(() =>
-    Schema.decodeSync(checked.Message)({
+    Schema.decodeUnknownSync(checked.Message)({
       _tag: 'ChangedField',
-      change: { name: 'topics', input: { value: ['Rejected'] } },
-    }),
-  ).toThrow()
-  expect(() =>
-    Schema.decodeSync(checked.Model)({
-      ...initial,
-      fields: {
-        topics: {
-          ...initial.fields.topics,
-          defaultInput: { value: ['Rejected'] },
-        },
-      },
+      change: { name: 'topics', input: [1] },
     }),
   ).toThrow()
 })

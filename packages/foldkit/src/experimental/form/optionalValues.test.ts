@@ -1,102 +1,116 @@
-import { Array, Effect, Option, Schema } from 'effect'
+import { Array, Effect, Option, Schema, SchemaTransformation } from 'effect'
 import { expect, expectTypeOf, it, vi } from 'vitest'
 
 import * as FieldValidation from '../../fieldValidation/index.js'
 import * as Form from './form.js'
 
-const encodedOptional = Form.define({
-  name: 'EncodedOptional',
+const OptionalText = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Option(Schema.String),
+    SchemaTransformation.transform({
+      decode: text => (text === '' ? Option.none() : Option.some(text)),
+      encode: Option.getOrElse(() => ''),
+    }),
+  ),
+)
+
+const nicknameForm = Form.define({
+  name: 'OptionalText',
   submit: { error: Schema.String, execute: () => Effect.void },
   fields: {
-    nickname: Form.field({
-      schema: Schema.OptionFromOptionalKey(Schema.String),
-      initial: { value: Option.none() },
-    }),
+    nickname: Form.field({ schema: OptionalText, initial: '' }),
   },
 })
 
-it('stores Option values and encodes None as a missing key', () => {
-  const initial = encodedOptional.init()
-  expectTypeOf(encodedOptional.values(initial)).toEqualTypeOf<{
-    readonly nickname: Option.Option<string>
-  }>()
-  expect(encodedOptional.values(initial)).toEqual({
-    nickname: Option.none(),
-  })
+it('decodes blank text input as None and stores the text the control holds', () => {
+  const initial = nicknameForm.init()
 
-  expect(
-    Schema.encodeSync(encodedOptional.Model)(initial).fields.nickname.input,
-  ).toEqual({})
+  expectTypeOf(nicknameForm.inputs(initial).nickname).toEqualTypeOf<string>()
+  expectTypeOf(
+    nicknameForm.field(initial, 'nickname').maybeValue,
+  ).toEqualTypeOf<Option.Option<Option.Option<string>>>()
+  expect(nicknameForm.field(initial, 'nickname').maybeValue).toEqual(
+    Option.some(Option.none()),
+  )
 
-  const change = encodedOptional.update(
+  const change = nicknameForm.update(
     initial,
-    encodedOptional.changed('nickname', { value: Option.some('Ada') }),
+    nicknameForm.changed('nickname', 'Ada'),
   )
 
-  expect(encodedOptional.values(change.model)).toEqual({
-    nickname: Option.some('Ada'),
-  })
+  expect(nicknameForm.inputs(change.model)).toEqual({ nickname: 'Ada' })
+  expect(nicknameForm.field(change.model, 'nickname').maybeValue).toEqual(
+    Option.some(Option.some('Ada')),
+  )
+  expect(nicknameForm.field(change.model, 'nickname').meta.isDefaultValue).toBe(
+    false,
+  )
 
-  expect(
-    Schema.encodeSync(encodedOptional.Model)(change.model).fields.nickname
-      .input,
-  ).toEqual({ value: 'Ada' })
-  expect(
-    encodedOptional.field(change.model, 'nickname').meta.isDefaultValue,
-  ).toBe(false)
-
-  const clear = encodedOptional.update(
+  const clear = nicknameForm.update(
     change.model,
-    encodedOptional.changed('nickname', { value: Option.none() }),
+    nicknameForm.changed('nickname', ''),
   )
 
-  expect(encodedOptional.values(clear.model)).toEqual({
-    nickname: Option.none(),
-  })
-
-  expect(encodedOptional.field(clear.model, 'nickname').meta).toEqual({
+  expect(nicknameForm.field(clear.model, 'nickname').meta).toEqual({
     isTouched: true,
     isBlurred: false,
-    isDirty: true,
+    isEdited: true,
     isDefaultValue: true,
   })
-  const encoded = Schema.encodeSync(encodedOptional.Model)(clear.model)
-  expect(Schema.decodeSync(encodedOptional.Model)(encoded)).toEqual(clear.model)
+
+  const json = Schema.toCodecJson(nicknameForm.Model)
+  expect(Schema.decodeSync(json)(Schema.encodeSync(json)(clear.model))).toEqual(
+    clear.model,
+  )
 })
 
-it('uses configured defaults for omitted overrides and captures explicit Option values', () => {
+it('submits the decoded Option value', () => {
+  const blank = nicknameForm.submit(nicknameForm.init())
+  const filled = nicknameForm.submit(
+    nicknameForm.init({ nickname: Option.some('Ada') }),
+  )
+
+  expect(Array.head(blank.commands ?? []).pipe(Option.getOrThrow).args).toEqual(
+    {
+      values: { nickname: Option.none() },
+      context: undefined,
+      token: { generation: 1 },
+    },
+  )
+  expect(
+    Array.head(filled.commands ?? []).pipe(Option.getOrThrow).args,
+  ).toEqual({
+    values: { nickname: Option.some('Ada') },
+    context: undefined,
+    token: { generation: 1 },
+  })
+})
+
+it('encodes Option overrides into inputs and uses configured defaults for omitted overrides', () => {
   const form = Form.define({
     name: 'OptionalDefault',
     submit: { error: Schema.String, execute: () => Effect.void },
     fields: {
-      name: Form.field({
-        schema: Schema.OptionFromOptionalKey(Schema.String),
-        initial: { value: Option.some('Ada') },
-      }),
+      name: Form.field({ schema: OptionalText, initial: 'Ada' }),
     },
   })
 
-  expect(form.values(form.init())).toEqual({ name: Option.some('Ada') })
-  const initial = form.init({ name: { value: Option.none() } })
-  expect(form.values(initial)).toEqual({ name: Option.none() })
-  const change = form.update(
-    initial,
-    form.changed('name', { value: Option.some('Grace') }),
-  )
+  expect(form.inputs(form.init())).toEqual({ name: 'Ada' })
 
+  const initial = form.init({ name: Option.none() })
+  expect(form.inputs(initial)).toEqual({ name: '' })
+
+  const change = form.update(initial, form.changed('name', 'Grace'))
   const reset = form.reset(change.model)
-  expect(form.values(reset.model)).toEqual({
-    name: Option.none(),
-  })
-  const reinitialize = form.reinitialize(change.model, {
-    name: { value: Option.none() },
-  })
+  expect(form.inputs(reset.model)).toEqual({ name: '' })
 
-  expect(form.values(reinitialize.model)).toEqual({ name: Option.none() })
-  const configuredDefaults = form.reinitialize(reinitialize.model)
-  expect(form.values(configuredDefaults.model)).toEqual({
-    name: Option.some('Ada'),
+  const reinitialize = form.reinitialize(change.model, {
+    name: Option.some('Lin'),
   })
+  expect(form.inputs(reinitialize.model)).toEqual({ name: 'Lin' })
+
+  const configuredDefaults = form.reinitialize(reinitialize.model)
+  expect(form.inputs(configuredDefaults.model)).toEqual({ name: 'Ada' })
 })
 
 it('requires an Option value and submits Some', () => {
@@ -107,7 +121,7 @@ it('requires an Option value and submits Some', () => {
     fields: {
       age: Form.field({
         schema: Schema.OptionFromNullOr(Schema.Number),
-        initial: { value: Option.none() },
+        initial: null,
         rules: FieldValidation.makeRules<Option.Option<number>>({
           required: 'Enter an age',
           isEmpty,
@@ -122,10 +136,7 @@ it('requires an Option value and submits Some', () => {
   expect(required.field(invalid.model, 'age').errors).toEqual(['Enter an age'])
   expect(invalid.commands ?? []).toEqual([])
 
-  const change = required.update(
-    invalid.model,
-    required.changed('age', { value: Option.some(0) }),
-  )
+  const change = required.update(invalid.model, required.changed('age', 0))
 
   expect(isEmpty).toHaveBeenCalledWith(Option.some(0))
   const submit = required.submit(change.model)
@@ -133,22 +144,23 @@ it('requires an Option value and submits Some', () => {
   expect(required.submission(submit.model)._tag).toBe('Submitting')
   expect(
     Array.head(submit.commands ?? []).pipe(Option.getOrThrow).args,
-  ).toEqual({ values: { age: Option.some(0) }, token: { generation: 2 } })
+  ).toEqual({
+    values: { age: Option.some(0) },
+    context: undefined,
+    token: { generation: 2 },
+  })
 })
 
-it('rejects missing required decoded keys in inputs and encoded Messages', () => {
+it('rejects missing or mistyped inputs in change Messages', () => {
   const form = Form.define({
     name: 'RequiredNumber',
     submit: { error: Schema.String, execute: () => Effect.void },
     fields: {
-      age: Form.field({
-        schema: Schema.NumberFromString,
-        initial: { value: 0 },
-      }),
+      age: Form.field({ schema: Schema.FiniteFromString, initial: '0' }),
     },
   })
 
-  expect(() => Reflect.apply(form.changed, undefined, ['age', {}])).toThrow()
+  expect(() => Reflect.apply(form.changed, undefined, ['age', 12])).toThrow()
   expect(() =>
     Schema.decodeUnknownSync(form.Message)({
       _tag: 'ChangedField',
@@ -156,9 +168,9 @@ it('rejects missing required decoded keys in inputs and encoded Messages', () =>
     }),
   ).toThrow()
   expect(() =>
-    Schema.decodeUnknownSync(encodedOptional.Message)({
+    Schema.decodeUnknownSync(form.Message)({
       _tag: 'ChangedField',
-      change: { name: 'nickname' },
+      change: { name: 'age' },
     }),
   ).toThrow()
 })
