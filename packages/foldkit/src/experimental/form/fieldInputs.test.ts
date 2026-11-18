@@ -87,7 +87,7 @@ describe('input that fails encoded-side checks', () => {
     ])
   })
 
-  it('lets a parent Model Schema construct a Form holding that input', () => {
+  it('lets a parent Model Schema build a Form that holds that input', () => {
     const Parent = Schema.Struct({ form: checked.Model })
 
     expect(() => Parent.make({ form: checked.init() })).not.toThrow()
@@ -325,7 +325,7 @@ describe('overrides', () => {
 })
 
 describe('field names', () => {
-  it('stores fields named like Object prototype members as own fields', () => {
+  it('stores fields named like Object prototype members', () => {
     const text = Form.field({ schema: Schema.String, initial: '' })
     const special = Form.define({
       name: 'Special',
@@ -352,7 +352,7 @@ describe('field metadata', () => {
     fields: { email: Form.field({ schema: Schema.String, initial: '' }) },
   })
 
-  it('starts with a pristine field at its default', () => {
+  it('starts a field untouched, unedited, and at its default', () => {
     expect(contact.fieldView(contact.init(), 'email').meta).toEqual({
       isTouched: false,
       isBlurred: false,

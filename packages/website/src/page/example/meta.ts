@@ -133,7 +133,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'experimental-form',
     title: 'Experimental Form',
     description:
-      'Two independent Forms share a field definition, validate on change and blur, show a server error on a field, pass a profile id to submission, and reset a profile Form to its saved values.',
+      'A registration Form and a profile Form that share an email field, validate on change and on blur, show a server error on the email field, pass the profile id to the save, and reset the profile to its saved values.',
     difficulty: 'Intermediate',
     tags: ['Validation', 'Submodels'],
     hasRouting: false,

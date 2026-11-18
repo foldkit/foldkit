@@ -61,7 +61,7 @@ describe('submission attempts', () => {
     expect(profile.Submit.name).toBe('SubmitProfile')
   })
 
-  it('returns one Submit Command with the decoded values when every field is valid', () => {
+  it('returns one Submit Command with the decoded values when every field passes', () => {
     const attempt = profile.submit(profile.init())
 
     expect(profile.submission(attempt.model)._tag).toBe('Submitting')
@@ -171,7 +171,7 @@ describe('attempts with asynchronous checks', () => {
   })
 
   it.each([{ errors: [] }, { errors: ['Taken'] }])(
-    'decides the attempt only after every check completes, with errors $errors',
+    'settles the attempt only after every check completes, with errors $errors',
     ({ errors }) => {
       const pair = Form.define({
         name: 'Pair',
@@ -296,7 +296,7 @@ describe('submission results', () => {
     )
   })
 
-  it('ignores a result that arrives after the attempt settled', () => {
+  it('ignores a second result for an attempt that already settled', () => {
     const attempt = profile.submit(profile.init())
     const settled = profile.update(
       attempt.model,

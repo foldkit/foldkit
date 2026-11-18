@@ -23,12 +23,10 @@ import { modifyFields } from '../../struct/index.js'
 import * as Update from '../../update/index.js'
 import * as ChildLens from './lens.js'
 
-/** A Schema codec for a field. Its `Encoded` side is the input the control
- * produces, such as the text of an `<input>`, and its `Type` side is the
- * domain value that rules, async validation, and submission receive. The codec
- * must decode and encode synchronously without services, and both sides must
- * be immutable, serializable Model data. Form stores each input in a required
- * property, so codecs with an optional key on either side are not supported.
+/** The Schema for one field. It decodes what the control holds, its `Encoded`
+ * side such as an input's text, into the value the app uses, its `Type` side.
+ * It must run synchronously without services, and both sides must be plain,
+ * immutable data. Schemas with an optional key on either side aren't supported.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -37,8 +35,7 @@ export type FieldSchema = Schema.Codec<unknown, unknown, never, never> & {
   readonly '~encoded.optionality': 'required'
 }
 
-/** Schemas indexed by a Form's field names. Used to describe generic Form
- * definitions and their values.
+/** Field Schemas by field name.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -71,9 +68,9 @@ const withChecksDisabled = (
   options: SchemaAST.ParseOptions,
 ): SchemaAST.ParseOptions => ({ ...options, disableChecks: true })
 
-// NOTE: a field holds whatever the control produces, including input its
-// Schema rejects, so the stored input keeps the encoded shape and skips the
-// encoded side's checks. Decoding the input applies them.
+// NOTE: a field holds whatever the control produces, even input its Schema
+// rejects, so the stored input skips the Schema's checks. Decoding applies
+// them.
 const UncheckedInput = <S extends FieldSchema>(schema: S) =>
   Schema.declareConstructor<S['Encoded'], S['Encoded']>()(
     [Schema.toEncoded(schema)],
@@ -151,7 +148,7 @@ type Validator<S extends FieldSchema, R> = (
 
 type ValidationMode = 'FirstError' | 'AllErrors'
 
-/** When a field runs its validation: after each change or after blur.
+/** When a field is checked: after each change, or when it loses focus.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -164,10 +161,9 @@ type FieldConfigBase<S extends FieldSchema> = Readonly<{
   rules?: FieldValidation.Rules<NoInfer<S['Type']>>
 }>
 
-/** Field configuration with an optional asynchronous validator. `initial` is
- * the control's input, the Schema's `Encoded` side. Rules and the validator
- * receive the decoded value. The validator's services become requirements of
- * the Form's validation Commands.
+/** Options for {@link field}. `initial` is what the control starts with.
+ * `rules` and `validate` receive the decoded value. Services that `validate`
+ * needs become requirements of the Form's Commands.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -181,18 +177,18 @@ type Check<S extends FieldSchema> = Readonly<{
 
 type FieldDefinitionBase<S extends FieldSchema> = Readonly<{
   schema: S
-  /** The Schema for a live field's input, validation, and interaction state. */
+  /** Schema of the field's state in the Form Model. */
   State: ReturnType<typeof FieldState<S>>
-  /** The Schema for a field's validation status. */
+  /** Schema of the field's validation status. */
   Status: FieldStatusUnion<S>
   inputEquivalence: Equivalence.Equivalence<S['Encoded']>
   statusEquivalence: Equivalence.Equivalence<FieldStatus<S>>
   initialize: (maybeValue: Option.Option<S['Type']>) => FieldState<S>
-  /** Decodes an input. Returns the value or the Schema's error messages. */
+  /** Decodes an input into the value, or into the Schema's error messages. */
   decode: (
     input: S['Encoded'],
   ) => Result.Result<S['Type'], Array.NonEmptyReadonlyArray<string>>
-  /** Decodes an input and checks the value against synchronous rules. */
+  /** Decodes an input and runs the rules on the value. */
   check: (input: S['Encoded'], mode: ValidationMode) => Check<S>
   validateOn: ValidationTrigger
 }>
@@ -205,9 +201,8 @@ type FieldDefinitionWithValidator<
 type FieldDefinitionWithoutValidator<S extends FieldSchema> =
   FieldDefinitionBase<S> & Readonly<{ validator?: never }>
 
-/** Reusable field configuration created by {@link field}. Each Form instance
- * stores its own input and validation state. The validator is present only
- * when asynchronous validation was supplied.
+/** A field made by {@link field}. Reuse it in several Forms; each Form keeps its
+ * own state for it.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -225,12 +220,12 @@ const toIssueMessages = (
     onNonEmpty: issues => Array.map(issues, ({ message }) => message),
   })
 
-/** Defines a field's Schema, initial input, and validation. Reuse the
- * definition in multiple Forms to share field configuration.
+/** Defines a field: its Schema, initial input, and validation. Reuse it in
+ * several Forms.
  *
- * Validation decodes the input with the Schema first. A decode failure shows
- * the Schema's messages as the field's errors. A decoded value then runs
- * through `rules`, and `validate` runs only after both pass.
+ * Validation decodes the input first, and a failure shows the Schema's
+ * messages. Then `rules` run on the value, and `validate` runs only if both
+ * pass.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -326,10 +321,9 @@ export function field<S extends FieldSchema, R = never>(
   }
 }
 
-/** The input, decoded value, errors, and interaction metadata returned by a
- * Form's field selector. Render `input` in the control. `maybeValue` holds
- * the decoded value when the input decodes, whether or not rules pass.
- * `meta.isTouched` is true once the field was edited or blurred.
+/** What a view needs to render a field. Put `input` in the control.
+ * `maybeValue` is the decoded value whenever the input decodes, even if a rule
+ * fails. `meta.isTouched` turns true once the field is edited or blurred.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -393,15 +387,15 @@ const mapFields = <
     definition: FieldDefinition<Schemas[Name], FieldRequirements>,
   ) => Output[Name],
 ): Output =>
-  // NOTE: Record.map loses the per-key value types, so this boundary recovers
-  // the record that build fills with one Output[Name] per field name.
+  // NOTE: Record.map loses the per-key types; each entry is build's result for
+  // that field name.
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   EffectRecord.map(fields, (definition, name) =>
     build(name, definition),
   ) as unknown as Output
 
-/** Decoded field values indexed by name. Submission execution receives them,
- * and `init` and `reinitialize` take a partial record of them as overrides.
+/** Decoded field values by name. `execute` receives them, and `init` and
+ * `reinitialize` take some of them as overrides.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -412,8 +406,7 @@ export type FormValues<Schemas extends FieldSchemas> = Schema.Struct.View<
   never
 >
 
-/** Field inputs indexed by name: what each control holds, the `Encoded` side
- * of each field's Schema.
+/** Field inputs by name: what each control holds.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -558,8 +551,8 @@ type SubmissionUnion<Schemas extends FieldSchemas, A, E, Context> = ReturnType<
   typeof Submission<A, A, E, E, Context, Context, FormInputs<Schemas>>
 >
 
-/** The submission lifecycle of one Form definition, with its typed success
- * data and errors: `Form.Submission<typeof contactForm>`.
+/** A Form's submission state, with its typed success data and error:
+ * `Form.Submission<typeof contactForm>`.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -567,8 +560,7 @@ export type Submission<
   Definition extends Readonly<{ Submission: Readonly<{ Type: unknown }> }>,
 > = Definition['Submission']['Type']
 
-/** The decoded values one Form definition's submission receives:
- * `Form.Values<typeof contactForm>`.
+/** The decoded values a Form submits: `Form.Values<typeof contactForm>`.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -576,8 +568,8 @@ export type Values<
   Definition extends Readonly<{ Values: Readonly<{ Type: unknown }> }>,
 > = Definition['Values']['Type']
 
-/** The OutMessage one Form definition's update returns when it accepts a
- * submission result: `Form.OutMessage<typeof contactForm>`.
+/** The OutMessage a Form's update returns for each submission result it
+ * accepts: `Form.OutMessage<typeof contactForm>`.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -585,9 +577,8 @@ export type OutMessage<
   Definition extends Readonly<{ OutMessage: Readonly<{ Type: unknown }> }>,
 > = Definition['OutMessage']['Type']
 
-/** Error messages for some of a Form's fields, indexed by field name. Returned
- * by `submit.toFieldErrors` to show a submission error on the fields it
- * concerns.
+/** Error messages for some fields, by field name. `submit.toFieldErrors`
+ * returns them to show a submission error on the fields it's about.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -650,8 +641,8 @@ type ChangeArgs<Schemas extends FieldSchemas> = {
   ]
 }[keyof Schemas & string]
 
-/** The arguments `submit` takes after the Form Model: none when the Form has
- * no `submit.context` Schema, or the context value when it has one.
+/** What `submit` takes after the Model: nothing, or the context value when the
+ * Form has a `submit.context` Schema.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -678,8 +669,8 @@ type FormOutMessage<A, AI, E, EI> = ReturnType<
 type Overrides<Schemas extends FieldSchemas, Given> = Given &
   Record<Exclude<keyof Given, keyof Schemas>, never>
 
-/** Folds a Form's OutMessage into the parent as a Step. The Step receives the
- * parent Model with the Form already written back.
+/** Folds a Form's OutMessage into the parent. The Step receives the parent
+ * Model with the Form already updated.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -707,9 +698,9 @@ type FoldOutMessageConfig<
   >
 }>
 
-/** Form operations lifted to a parent Model and Message. `fold` is a dual
- * {@link Update.Fold}; `reset`, `reinitialize`, and `submit` return Steps, so
- * they compose with `Update.combine`.
+/** A Form's operations on the parent Model and Message. `fold` works like
+ * {@link Update.Fold}. `reset`, `reinitialize`, and `submit` return Steps,
+ * so they compose with `Update.combine`.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -724,29 +715,28 @@ export type LiftedForm<
   EI = E,
   Context = void,
 > = Readonly<{
-  /** Applies a child Message, maps validation and submission Commands to
-   * parent Messages, and runs `foldOutMessage` when the Form accepts a
-   * submission result. */
+  /** Applies a Form Message, wraps its Commands for the parent, and runs
+   * `foldOutMessage` for each submission result the Form accepts. */
   fold: Update.Fold<
     ParentModel,
     ParentMessage,
     FormMessage<Schemas, A, AI, E, EI>['Type'],
     Requirements
   >
-  /** Restores defaults and clears interaction and submission state, preserving generations. */
+  /** Restores the defaults and clears errors, interaction, and submission state. */
   reset: Update.Step<ParentModel, ParentMessage>
-  /** Replaces defaults and clears interaction and submission state, preserving generations. */
+  /** Replaces the defaults, then resets. */
   reinitialize: <Given extends Partial<FormValues<Schemas>>>(
     overrides?: Overrides<Schemas, Given>,
   ) => Update.Step<ParentModel, ParentMessage>
-  /** Checks every field and returns validation or submission Commands for a new attempt. */
+  /** Returns the next Model and Commands for a new attempt: field checks, or
+   * the submission when every field passes without an async check. */
   submit: (
     ...args: SubmitArgs<Context>
   ) => Update.Step<ParentModel, ParentMessage, Requirements>
 }>
 
-/** A Form's Schemas, selectors, and update functions. Submission is owned by
- * the Form and configured when the definition is created.
+/** A Form: its Schemas, Message constructors, selectors, and update operations.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -762,7 +752,7 @@ export interface FormDefinition<
   FieldRequirements = never,
   Name extends string = string,
 > {
-  /** The Schema for field state and submission state. */
+  /** Schema of the Form Model. */
   readonly Model: FormModelSchema<
     Schemas,
     A,
@@ -772,11 +762,11 @@ export interface FormDefinition<
     Context,
     ContextEncoded
   >
-  /** The Schema for field changes, blur events, and validation and submission completions. */
+  /** Schema of the Form's Messages. */
   readonly Message: FormMessage<Schemas, A, AI, E, EI>
-  /** The Schema for the submission results the Form reports to its parent. */
+  /** Schema of the submission results the Form reports to its parent. */
   readonly OutMessage: FormOutMessage<A, AI, E, EI>
-  /** The submission union for this definition. */
+  /** The submission state union, with `match` and `isAnyOf`. */
   readonly Submission: ReturnType<
     typeof Submission<
       A,
@@ -788,10 +778,10 @@ export interface FormDefinition<
       FormInputs<Schemas>
     >
   >
-  /** The Schema that decodes field inputs into the values submission receives. */
+  /** Schema that decodes field inputs into the submitted values. */
   readonly Values: Schema.Codec<FormValues<Schemas>, FormInputs<Schemas>>
-  /** Submission Command factory for Story and Scene matching. Start attempts
-   * through submit so the Model and generation advance together. */
+  /** The submission Command, for matching in Story and Scene tests. Start
+   * attempts with `submit`, which keeps the Model in step with the Command. */
   readonly Submit: Command.CommandDefinitionWithArgs<
     `Submit${Name}`,
     {
@@ -808,7 +798,7 @@ export interface FormDefinition<
       SubmitRequirements
     >
   >
-  /** Per-field validation Command factories for Story and Scene matching. */
+  /** Each field's check Command, for matching in Story and Scene tests. */
   readonly ValidateField: ValidateFieldCommands<
     Schemas,
     Extract<
@@ -818,37 +808,38 @@ export interface FormDefinition<
     FieldRequirements,
     Name
   >
-  /** Creates clean state. Overrides are decoded values. Form encodes them into
-   * inputs, and they become reset defaults. Use reset or reinitialize to
-   * replace a live instance and preserve request generations. */
+  /** Creates a Form Model. Overrides are decoded values and become the defaults.
+   * To replace a live Form, use `reset` or `reinitialize` instead, so a late
+   * result from before can't be mistaken for a new one. */
   readonly init: <Given extends Partial<FormValues<Schemas>>>(
     overrides?: Overrides<Schemas, Given>,
   ) => FormState<Schemas, A, E, Context>
-  /** Creates a change Message from a field's input. */
+  /** Creates the Message for a field's new input. */
   readonly changed: (
     ...args: ChangeArgs<Schemas>
   ) => FormMessage<Schemas, A, AI, E, EI>['Type']
-  /** Creates a blur Message for a field. */
+  /** Creates the Message for a field losing focus. */
   readonly blurred: (
     name: keyof Schemas & string,
   ) => FormMessage<Schemas, A, AI, E, EI>['Type']
-  /** Returns the input of every field, indexed by name. */
+  /** Returns every field's input. */
   readonly inputs: (
     model: FormState<Schemas, A, E, Context>,
   ) => FormInputs<Schemas>
-  /** Returns a field's input, decoded value, errors, and interaction metadata. */
+  /** Returns what a view needs to render a field. */
   readonly fieldView: <FieldName extends keyof Schemas & string>(
     model: FormState<Schemas, A, E, Context>,
     name: FieldName,
   ) => FieldView<Schemas[FieldName]>
-  /** Returns the submission state, including typed success data or error. */
+  /** Returns the submission state. */
   readonly submission: (
     model: FormState<Schemas, A, E, Context>,
   ) => SubmissionUnion<Schemas, A, E, Context>['Type']
-  /** Returns attempts since init, reset, or reinitialize. Pending repeated submits are ignored. */
+  /** Returns the submit attempts since init, reset, or reinitialize. A submit
+   * while one is pending isn't counted. */
   readonly submitCount: (model: FormState<Schemas, A, E, Context>) => number
-  /** Applies a Message and returns validation or submission Commands. Returns
-   * an OutMessage when it accepts a submission result. */
+  /** Applies a Form Message. Returns an OutMessage for each submission result
+   * it accepts. */
   readonly update: (
     model: FormState<Schemas, A, E, Context>,
     message: FormMessage<Schemas, A, AI, E, EI>['Type'],
@@ -858,14 +849,14 @@ export interface FormDefinition<
     FormOutMessage<A, AI, E, EI>['Type'],
     SubmitRequirements | FieldRequirements
   >
-  /** Restores defaults and clears interaction and submission state, preserving generations. */
+  /** Restores the defaults and clears errors, interaction, and submission state. */
   readonly reset: (
     model: FormState<Schemas, A, E, Context>,
   ) => Update.Return<
     FormState<Schemas, A, E, Context>,
     FormMessage<Schemas, A, AI, E, EI>['Type']
   >
-  /** Replaces defaults and clears interaction and submission state, preserving generations. */
+  /** Replaces the defaults, then resets. */
   readonly reinitialize: <Given extends Partial<FormValues<Schemas>>>(
     model: FormState<Schemas, A, E, Context>,
     overrides?: Overrides<Schemas, Given>,
@@ -873,11 +864,11 @@ export interface FormDefinition<
     FormState<Schemas, A, E, Context>,
     FormMessage<Schemas, A, AI, E, EI>['Type']
   >
-  /** Checks all fields for a new attempt. Validation completions automatically
-   * return the Submit Command when every field is valid. Invalid attempts
-   * return to Idle after all checks finish. Repeated pending submits are
-   * ignored. When the Form has a `submit.context` Schema, pass the context
-   * value after the Model. */
+  /** Checks every field for a new attempt. When every check passes, Form
+   * returns the Submit Command, from `submit` itself or from the update that
+   * folds the last async check. If any check fails, the attempt goes back to
+   * Idle. A submit while one is pending does nothing. When the Form has a
+   * `submit.context` Schema, pass the context after the Model. */
   readonly submit: (
     model: FormState<Schemas, A, E, Context>,
     ...args: SubmitArgs<Context>
@@ -886,8 +877,8 @@ export interface FormDefinition<
     FormMessage<Schemas, A, AI, E, EI>['Type'],
     SubmitRequirements | FieldRequirements
   >
-  /** Lifts Form operations through a required parent field or a child lens.
-   * `foldOutMessage` folds each accepted submission result into the parent. */
+  /** Adapts the Form to a parent, through a parent field or a lens.
+   * `foldOutMessage` handles each submission result the Form accepts. */
   readonly lift: {
     <ParentModel, ParentMessage>(
       config: ParentFieldConfig<
@@ -984,24 +975,19 @@ type SubmitEffectFor<SubmitEffect, A, E> = SubmitEffect &
     : never) &
   ([Effect.Error<NoInfer<SubmitEffect>>] extends [NoInfer<E>] ? unknown : never)
 
-/** Creates a Form definition from named fields and submission execution.
+/** Defines a Form from its fields and its submission.
  *
- * - Supply a `data` codec when execution returns success data, and an `error`
- *   codec when execution can fail.
- * - Supply a `context` codec when execution needs a value the Form doesn't
- *   hold, such as the id of the record being edited. `submit` then takes that
- *   value after the Model, and execution receives it after the values.
- * - Supply `toFieldErrors` to show a typed submission error on the fields it
- *   concerns.
+ * - `name` names its Commands: `Submit<Name>`, and `Validate<Name><Field>`
+ *   for each field. Pick a name that can't run together with another Form's
+ *   name and field. Field names that differ only in the case of their first
+ *   letter throw.
+ * - `submit.execute` receives the decoded values and returns an Effect.
+ * - Add `data` when it succeeds with a value, `error` when it can fail, and
+ *   `context` when it needs a value the Form doesn't hold, such as the id of
+ *   the record being edited. `submit` then takes that value.
+ * - Add `toFieldErrors` to show a typed error on the fields it's about.
  *
- * `name` names the Form's Commands: `Submit<Name>` and, for each field,
- * `Validate<Name><Field>` with the field name's first letter capitalized. Give
- * each Form a name that doesn't run into another Form's name and field. Field
- * names that differ only in the case of their first letter throw.
- *
- * Every codec must decode and encode without services. Its init operation
- * creates an instance. Its lift operation adapts Form Messages to a parent
- * update handler.
+ * Every codec must run without services.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -1091,9 +1077,9 @@ export function define<
     )
   }
 
-  // NOTE: an omitted data codec means execution succeeds with void, and an
-  // omitted context codec means submit takes no context. The public signature
-  // defaults A and Context to void in those cases.
+  // NOTE: without a data codec execution returns void, and without a context
+  // codec submit takes none. The public signature defaults A and Context to
+  // void to match.
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   const data = (config.submit.data ?? Schema.Void) as Schema.Codec<A, AI>
   const error: Schema.Codec<E, EI> = config.submit.error ?? Schema.Never
@@ -1521,8 +1507,8 @@ export function define<
   const collectValidValues = (
     model: Model,
   ): Option.Option<FormValues<Schemas>> =>
-    // NOTE: Option.all over Record.map loses the per-key value types; each
-    // entry is the decoded value of the field with that name.
+    // NOTE: Option.all over Record.map loses the per-key types; each entry is
+    // that field's decoded value.
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     Option.all(
       EffectRecord.map(model.fields, ({ validation }) =>
@@ -1569,8 +1555,8 @@ export function define<
       return { model }
     }
 
-    // NOTE: SubmitArgs<Context> is empty exactly when Context is void, so an absent
-    // argument stands for the void context.
+    // NOTE: SubmitArgs<Context> is empty only when Context is void, so a
+    // missing argument is the void context.
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const submitContext = Array.head(args).pipe(
       Option.getOrUndefined,
@@ -1695,18 +1681,17 @@ export function define<
   return definition
 }
 
-/** Callbacks that read and replace a child Form in a parent Model and wrap its
- * Messages. Used by lift when the child is optional, nested, or selected from
- * a collection. Cannot be combined with parentField.
+/** Functions that read the Form from the parent Model, write it back, and wrap
+ * its Messages. Use a lens when the Form is optional, nested, or one of many.
+ * Don't combine it with `parentField`.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
 export type FormLens<ParentModel, ParentMessage, ChildModel, ChildMessage> =
   ChildLens.FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage>
 
-/** A parent field and Message wrapper supplied to lift. The field must always
- * contain a complete Form Model and accept its replacement. For optional or
- * nested Forms, use {@link FormLens} instead.
+/** Lifts a Form stored in one parent field. The field must always hold a
+ * whole Form Model. For an optional or nested Form, use {@link FormLens}.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */

@@ -60,7 +60,7 @@ const foldRegistrationOutMessage = registrationForm.OutMessage.match<
   FailedSubmit: () => stepModel => ({ model: stepModel }),
 })
 
-// The parent learns about an accepted result through foldOutMessage
+// foldOutMessage is where the parent reacts to a submission result
 const registration = registrationForm.lift<Model, Message>({
   parentField: 'registration',
   toParentMessage: message => Message.GotRegistrationMessage({ message }),

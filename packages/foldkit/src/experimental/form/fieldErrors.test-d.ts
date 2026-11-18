@@ -15,7 +15,7 @@ const fieldErrorChecks = () => {
     fields: { email },
     submit: {
       execute: () => Effect.void,
-      // @ts-expect-error toFieldErrors needs an error codec
+      // @ts-expect-error toFieldErrors needs an error codec.
       toFieldErrors: () => ({ email: 'Taken' }),
     },
   })

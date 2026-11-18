@@ -114,7 +114,7 @@ describe('submission errors mapped to fields', () => {
     expect(signup.submission(resubmit.model)._tag).toBe('Submitting')
   })
 
-  it('leaves a field whose input changed while the submission was pending', () => {
+  it('leaves a field alone when its input changed while the submission was pending', () => {
     const attempt = signup.submit(signup.init())
     const change = signup.update(
       attempt.model,
@@ -128,7 +128,7 @@ describe('submission errors mapped to fields', () => {
     expect(signup.fieldView(rejection.model, 'invite').errors).toEqual([])
   })
 
-  it('maps an error to a field whose input changed back to the sent input', () => {
+  it('maps an error to a field whose input changed back to what was sent', () => {
     const attempt = signup.submit(signup.init())
     const away = signup.update(
       attempt.model,
@@ -142,7 +142,7 @@ describe('submission errors mapped to fields', () => {
     ])
   })
 
-  it('compares a typed field by the input it sent, not its decoded value', () => {
+  it('compares a typed field by its sent input, not its decoded value', () => {
     const quantity = Form.define({
       name: 'Quantity',
       fields: {
@@ -241,7 +241,7 @@ describe('submission errors mapped to fields', () => {
     expect(contact.fieldView(rejection.model, 'email').errors).toEqual([])
   })
 
-  it('reads messages only for field names the mapping returns', () => {
+  it('uses only the messages the mapping returns, not inherited properties', () => {
     const special = Form.define({
       name: 'SpecialRejection',
       fields: {

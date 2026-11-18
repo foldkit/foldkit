@@ -82,7 +82,7 @@ const liftedOperationTypes = (model: Parent, message: ProfileMessage) => {
   // @ts-expect-error Lifted overrides are decoded values, not inputs.
   lifted.reinitialize({ count: '2' })
   const unknownOverrides = { count: 2, extra: '' }
-  // @ts-expect-error Lifted overrides reject unknown fields through variables.
+  // @ts-expect-error Lifted overrides reject unknown fields, even through a variable.
   lifted.reinitialize(unknownOverrides)
   // @ts-expect-error A Form without a context codec takes no context.
   lifted.submit({ recordId: 'record-1' })
@@ -188,7 +188,7 @@ const parentFieldTypeChecks = () => {
     foldOutMessage: ignoreOutMessage<typeof WiderParent.Type>(),
   })
   profile.lift<typeof UnionParent.Type, Message>({
-    // @ts-expect-error Every union member must be readable as the Form Model.
+    // @ts-expect-error Every member of a union parent field must be a Form Model.
     parentField: 'form',
     toParentMessage,
     foldOutMessage: ignoreOutMessage<typeof UnionParent.Type>(),
@@ -200,7 +200,7 @@ const parentFieldTypeChecks = () => {
     foldOutMessage: ignoreOutMessage<typeof NarrowerParent.Type>(),
   })
   profile.lift<ExtendedParent, Message>({
-    // @ts-expect-error A Form Model written back lacks the extra parent data.
+    // @ts-expect-error Writing a Form Model back would drop the parent's extra data.
     parentField: 'form',
     toParentMessage,
     foldOutMessage: ignoreOutMessage<ExtendedParent>(),

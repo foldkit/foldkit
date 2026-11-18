@@ -131,7 +131,7 @@ describe('lifting through a parent field', () => {
     ).toEqual(['SubmitRegistration'])
   })
 
-  it('treats a parentField config with undefined read and write as a direct field', () => {
+  it('treats a parentField config with undefined read and write as a parent field', () => {
     const direct = registration.lift<Parent, ParentMessage>({
       parentField: 'registration',
       read: undefined,
@@ -212,7 +212,7 @@ describe('lifting through a lens', () => {
     },
   )
 
-  it('calls inherited lens methods with the lens as their receiver', () => {
+  it('calls class lens methods with the lens as `this`', () => {
     class ProfileLens implements Form.FormLens<
       ExtendedParent,
       ParentMessage,

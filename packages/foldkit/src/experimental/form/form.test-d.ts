@@ -23,7 +23,7 @@ const fieldNameChecks = () => {
     submit: { error: Schema.String, execute: () => Effect.void },
     fields: numericFields,
   }
-  // @ts-expect-error Numeric field names cannot be addressed by string-keyed operations.
+  // @ts-expect-error Operations take field names as strings, so numeric names can't be used.
   Form.define(numericFieldsConfig)
   Form.define({
     name: 'StringFields',
@@ -52,9 +52,9 @@ const validatorPresenceChecks = () => {
       Effect.map(ValidateUsername, service => service.check(value)),
   })
 
-  // @ts-expect-error A field without asynchronous validation has no callable validator.
+  // @ts-expect-error A field without `validate` has no validator to call.
   text.validator('hello')
-  // @ts-expect-error A supplied validator retains its required services.
+  // @ts-expect-error A validator keeps the services it needs.
   Effect.runSync(username.validator('hello'))
   Form.field({
     schema: Schema.NumberFromString,
@@ -73,7 +73,7 @@ const validatorPresenceChecks = () => {
     registration.changed('username', 'next'),
   )
   for (const validateField of formChange.commands ?? []) {
-    // @ts-expect-error Synchronous fields do not erase another field's service requirements.
+    // @ts-expect-error A field without a validator doesn't drop another field's services.
     Effect.runSync(validateField.effect)
   }
 
@@ -85,9 +85,9 @@ const validatorPresenceChecks = () => {
   expectTypeOf(
     validateUsername.name,
   ).toEqualTypeOf<'ValidateValidatorRequirementsUsername'>()
-  // @ts-expect-error A field's validation Command retains its validator's services.
+  // @ts-expect-error A field's check Command keeps its validator's services.
   Effect.runSync(validateUsername.effect)
-  // @ts-expect-error A validation Command takes the field's decoded value.
+  // @ts-expect-error A check Command takes the field's decoded value.
   registration.ValidateField.username({ value: 1, generation: 1 })
 
   const savingRegistration = Form.define({
@@ -196,11 +196,11 @@ const scalarFieldTypeChecks = (
 ) => {
   // @ts-expect-error A number field rejects a string input.
   registration.changed('age', '21')
-  // @ts-expect-error A union name cannot be paired with an uncorrelated input.
+  // @ts-expect-error A field name must be paired with that field's input.
   registration.changed(name, value)
   // @ts-expect-error Unknown names are rejected.
   registration.changed('other', 'x')
-  // @ts-expect-error Initial follows the codec's encoded side rather than widening it.
+  // @ts-expect-error initial must match the Schema's encoded side.
   Form.field({ schema: Schema.Number, initial: '18' })
 }
 void scalarFieldTypeChecks
@@ -238,7 +238,7 @@ const encodedInputTypeChecks = () => {
     }>
   >()
   ages.Message.ChangedField({ change: { name: 'age', input: '12a' } })
-  // @ts-expect-error The public Message constructor carries the encoded input.
+  // @ts-expect-error The change Message carries the encoded input.
   ages.Message.ChangedField({ change: { name: 'age', input: 12 } })
 }
 void encodedInputTypeChecks
@@ -269,23 +269,23 @@ const literalForm = Form.define({
   },
 })
 const schemaAndOverrideTypeChecks = () => {
-  // @ts-expect-error Values preserve literal codecs.
+  // @ts-expect-error Values keep literal types.
   const literalValues: Form.Values<typeof literalForm> = { choice: 'Maybe' }
   void literalValues
   const selectedValues: Form.Values<typeof registration> = {
     email: '',
-    // @ts-expect-error Selected values preserve per-field number types.
+    // @ts-expect-error Each field keeps its own value type.
     age: '1',
     accepted: false,
   }
   void selectedValues
   registration.Message.ChangedField({
-    // @ts-expect-error The public Message constructor preserves the field/input pairing.
+    // @ts-expect-error The change Message keeps each field paired with its input.
     change: { name: 'age', input: '21' },
   })
-  // @ts-expect-error Decoding services cannot run in synchronous Form transitions.
+  // @ts-expect-error A field Schema can't need services to decode.
   Form.field({ schema: serviceful, initial: '' })
-  // @ts-expect-error Encoding services cannot run in synchronous Form schemas.
+  // @ts-expect-error A field Schema can't need services to encode.
   Form.field({ schema: Schema.flip(serviceful), initial: '' })
   Form.field({
     // @ts-expect-error An optional key is not a field codec.
@@ -293,11 +293,11 @@ const schemaAndOverrideTypeChecks = () => {
     initial: '',
   })
   Form.field({
-    // @ts-expect-error A codec whose encoded side is an optional key has no input to store.
+    // @ts-expect-error A Schema whose encoded side is an optional key has no input to store.
     schema: Schema.OptionFromOptionalKey(Schema.String),
     initial: '',
   })
-  // @ts-expect-error Override types follow each field's decoded codec type.
+  // @ts-expect-error Each override has its field's decoded type.
   registration.init({ age: '21' })
   // @ts-expect-error Unknown overrides are rejected.
   registration.init({ email: '', extra: '' })
@@ -328,11 +328,11 @@ const optionalInputTypeChecks = () => {
   >()
   // @ts-expect-error The input is the encoded side, not an Option.
   form.changed('selected', Option.none())
-  // @ts-expect-error Encoded inputs preserve their payload type.
+  // @ts-expect-error An input keeps its payload type.
   form.changed('selected', 1)
   // @ts-expect-error Overrides of an Option field take an Option.
   form.init({ selected: null })
-  // @ts-expect-error Public constructors preserve required inputs.
+  // @ts-expect-error A change Message requires an input.
   form.Message.ChangedField({ change: { name: 'count' } })
   const overrides = { selected: Option.none(), extra: 1 }
   // @ts-expect-error Unknown override keys are rejected through variables.
@@ -443,33 +443,33 @@ const submissionTypes = () => {
       >()
     }
   }
-  // @ts-expect-error Success constructors require the decoded data type.
+  // @ts-expect-error Succeeded requires the decoded data type.
   typed.Submission.Succeeded({ data: '2' })
-  // @ts-expect-error Failure constructors require the decoded error type.
+  // @ts-expect-error Failed requires the decoded error type.
   typed.Submission.Failed({ error: 2 })
-  // @ts-expect-error Success data is required by its constructor.
+  // @ts-expect-error Succeeded requires data.
   typed.Submission.Succeeded({})
   typed.Submit({
-    // @ts-expect-error Submit values retain each field's decoded type.
+    // @ts-expect-error Submit values keep each field's decoded type.
     values: { username: 2 },
     context: undefined,
     generation: 1,
   })
   typed.Message.CompletedSubmit({
     generation: 1,
-    // @ts-expect-error Completion Messages require the decoded success type.
+    // @ts-expect-error CompletedSubmit requires the decoded data type.
     result: Result.succeed('2'),
   })
   typed.Message.CompletedSubmit({
     generation: 1,
-    // @ts-expect-error Completion Messages require the decoded error type.
+    // @ts-expect-error CompletedSubmit requires the decoded error type.
     result: Result.fail(2),
   })
-  // @ts-expect-error Omitted error codecs expose no error payload.
+  // @ts-expect-error Without an error codec, a submission can't fail with an error.
   dataOnly.Submission.Failed({ error: 'Unavailable' })
-  // @ts-expect-error Omitted data codecs accept only void success.
+  // @ts-expect-error Without a data codec, a submission succeeds with void.
   errorOnly.Submission.Succeeded({ data: 2 })
-  // @ts-expect-error Submit services cannot run without the required service.
+  // @ts-expect-error The Submit Command needs the services execute uses.
   Effect.runSync(submit.effect)
 }
 void submissionTypes
@@ -538,7 +538,7 @@ const submissionConfigChecks = () => {
       execute: () => Effect.succeed('2'),
     },
   }
-  // @ts-expect-error Supplying both codecs preserves the success type.
+  // @ts-expect-error With both codecs, data must match the data codec.
   Form.define(wrongDataWithErrorConfig)
   const wrongErrorWithDataConfig = {
     name: 'WrongErrorWithData',
@@ -549,7 +549,7 @@ const submissionConfigChecks = () => {
       execute: () => Effect.fail(2),
     },
   }
-  // @ts-expect-error Supplying both codecs preserves the error type.
+  // @ts-expect-error With both codecs, errors must match the error codec.
   Form.define(wrongErrorWithDataConfig)
   const servicefulDataConfig = {
     name: 'ServicefulData',
@@ -685,15 +685,15 @@ const compoundInputTypeChecks = (model: typeof compound.Model.Type) => {
     compound.fieldView(model, 'destination').maybeValue,
   ).toEqualTypeOf<Option.Option<Destination>>()
   compound.changed('destination', Destination.City({ name: 'Paris' }))
-  // @ts-expect-error Array members follow the encoded codec.
+  // @ts-expect-error Array members follow the encoded Schema.
   compound.changed('topics', [1])
   compound.Message.ChangedField({
-    // @ts-expect-error Tagged inputs preserve their payload type.
+    // @ts-expect-error A tagged input keeps its payload type.
     change: { name: 'destination', input: { _tag: 'City', name: 1 } },
   })
-  // @ts-expect-error Array initial inputs preserve member types.
+  // @ts-expect-error An array initial input keeps its member types.
   Form.field({ schema: Schema.Array(Schema.String), initial: [1] })
-  // @ts-expect-error Compound overrides preserve array members.
+  // @ts-expect-error An array override keeps its member types.
   compound.init({ topics: [1] })
 }
 void compoundInputTypeChecks

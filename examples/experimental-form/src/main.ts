@@ -487,7 +487,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           h.p(
             [],
             [
-              'Two independent Forms reuse an email field. The age field holds text like 12a and shows an error until it reads as a number. Profile topics use an array field with ordinary checkboxes. Try blocked@example.com to see async validation, taken@example.com to see a server error on the email field, or down@example.com to see a form-level failure. Reset while saving to ignore the late result.',
+              'Two Forms share one email field definition. Try blocked@example.com for the async email check, taken@example.com for a server error on the email field, or down@example.com for an error on the whole form. Type 12a as an age to see a typed field keep your text. Reset while saving and the late result is ignored.',
             ],
           ),
           registrationView(model, h),
