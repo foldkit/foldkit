@@ -1,4 +1,4 @@
-import { Effect, Option, Schema, SchemaTransformation } from 'effect'
+import { Effect, Option, Schema, SchemaTransformation, String } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
 import { Http } from 'foldkit'
 import { Form } from 'foldkit/experimental'
@@ -19,7 +19,8 @@ const OptionalText = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Option(Schema.String),
     SchemaTransformation.transform({
-      decode: text => (text === '' ? Option.none() : Option.some(text)),
+      decode: text =>
+        String.isEmpty(text) ? Option.none() : Option.some(text),
       encode: Option.getOrElse(() => ''),
     }),
   ),

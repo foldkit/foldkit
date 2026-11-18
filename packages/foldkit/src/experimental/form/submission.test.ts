@@ -61,7 +61,7 @@ describe('submission attempts', () => {
     expect(profileForm.Submit.name).toBe('SubmitProfile')
   })
 
-  it('returns one Submit Command with the decoded values when every field passes', () => {
+  it('returns one Submit Command with the field values when every field passes', () => {
     const attempt = profileForm.submit(profileForm.init())
 
     expect(profileForm.submission(attempt.model)._tag).toBe('Submitting')
@@ -182,52 +182,61 @@ describe('attempts with asynchronous checks', () => {
     )
   })
 
-  it.each([{ errors: [] }, { errors: ['Taken'] }])(
-    'settles the attempt only after every check completes, with errors $errors',
-    ({ errors }) => {
-      const pairForm = Form.define({
-        name: 'Pair',
-        submit: { error: Schema.String, execute: () => Effect.void },
-        fields: {
-          first: Form.field({
-            schema: Schema.String,
-            initial: 'Ada',
-            validate: () => Effect.succeed(errors),
-          }),
-          second: Form.field({
-            schema: Schema.String,
-            initial: 'Lovelace',
-            validate: () => Effect.succeed([]),
-          }),
-        },
-      })
-      const attempt = pairForm.submit(pairForm.init())
-      const firstChecked = pairForm.update(
-        attempt.model,
-        pairForm.Message.CompletedValidateField({
-          name: 'first',
-          generation: 1,
-          result: Result.succeed(errors),
-        }),
-      )
-      const bothChecked = pairForm.update(
-        firstChecked.model,
-        pairForm.Message.CompletedValidateField({
-          name: 'second',
-          generation: 1,
-          result: Result.succeed([]),
-        }),
-      )
-
-      expect(pairForm.submission(firstChecked.model)._tag).toBe('Validating')
-      expect(pairForm.submission(bothChecked.model)._tag).toBe(
-        Array.isArrayEmpty(errors) ? 'Submitting' : 'Idle',
-      )
-      expect(bothChecked.commands ?? []).toHaveLength(
-        Array.isArrayEmpty(errors) ? 1 : 0,
-      )
+  const pairForm = Form.define({
+    name: 'Pair',
+    submit: { error: Schema.String, execute: () => Effect.void },
+    fields: {
+      first: Form.field({
+        schema: Schema.String,
+        initial: 'Ada',
+        validate: () => Effect.succeed([]),
+      }),
+      second: Form.field({
+        schema: Schema.String,
+        initial: 'Lovelace',
+        validate: () => Effect.succeed([]),
+      }),
     },
-  )
+  })
+
+  const completeBothChecks = (firstErrors: ReadonlyArray<string>) => {
+    const attempt = pairForm.submit(pairForm.init())
+    const firstValidation = pairForm.update(
+      attempt.model,
+      pairForm.Message.CompletedValidateField({
+        name: 'first',
+        generation: 1,
+        result: Result.succeed(firstErrors),
+      }),
+    )
+    const secondValidation = pairForm.update(
+      firstValidation.model,
+      pairForm.Message.CompletedValidateField({
+        name: 'second',
+        generation: 1,
+        result: Result.succeed([]),
+      }),
+    )
+
+    return { firstValidation, secondValidation }
+  }
+
+  it('sends the Submit Command once the last check passes', () => {
+    const { firstValidation, secondValidation } = completeBothChecks([])
+
+    expect(pairForm.submission(firstValidation.model)._tag).toBe('Validating')
+    expect(pairForm.submission(secondValidation.model)._tag).toBe('Submitting')
+    expect(secondValidation.commands?.map(command => command.name)).toEqual([
+      'SubmitPair',
+    ])
+  })
+
+  it('returns to Idle without a Command when a check fails', () => {
+    const { secondValidation } = completeBothChecks(['Taken'])
+
+    expect(pairForm.submission(secondValidation.model)._tag).toBe('Idle')
+    expect(secondValidation.commands ?? []).toEqual([])
+  })
 
   it('cancels a Validating attempt when a field changes', () => {
     const attempt = checkedUsernameForm.submit(checkedUsernameForm.init())

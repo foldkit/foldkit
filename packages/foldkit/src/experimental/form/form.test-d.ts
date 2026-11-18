@@ -52,8 +52,6 @@ const validatorPresenceChecks = () => {
       Effect.map(UsernameValidator, service => service.check(value)),
   })
 
-  // @ts-expect-error A field without `validate` has no validator to call.
-  textField.validate('hello')
   // @ts-expect-error A validator keeps the services it needs.
   Effect.runSync(usernameField.validate('hello'))
   Form.field({
@@ -459,8 +457,6 @@ const submissionTypes = () => {
       >()
     }
   }
-  // @ts-expect-error Succeeded requires the decoded data type.
-  typedForm.Submission.Succeeded({ data: '2' })
   // @ts-expect-error Failed requires the decoded error type.
   typedForm.Submission.Failed({ error: 2 })
   // @ts-expect-error Succeeded requires data.
@@ -738,6 +734,27 @@ const genericOperations = <Schemas extends Form.FieldSchemas>(
 }
 void genericOperations
 
+const mixedValidationForm = Form.define({
+  name: 'MixedValidation',
+  fields: {
+    username: Form.field({
+      schema: Schema.String,
+      initial: '',
+      validate: () => Effect.succeed([]),
+    }),
+    nickname: Form.field({ schema: Schema.String, initial: '' }),
+  },
+  submit: { execute: () => Effect.void },
+})
+const genericOperationsOnConcreteForm = () =>
+  genericOperations(
+    mixedValidationForm,
+    mixedValidationForm.init(),
+    mixedValidationForm.blurred('nickname'),
+    'nickname',
+  )
+void genericOperationsOnConcreteForm
+
 const concreteModelTypeChecks = (model: typeof compoundForm.Model.Type) => {
   expectTypeOf(compoundForm.init()).toEqualTypeOf<
     typeof compoundForm.Model.Type
@@ -774,11 +791,15 @@ const schemaParameterChecks = () => {
       { readonly title: typeof Schema.String },
       typeof SavedId,
       typeof Schema.String,
-      Schema.Struct<{ readonly recordId: typeof Schema.String }>
+      Schema.Struct<{ readonly recordId: typeof Schema.String }>,
+      never,
+      never,
+      'Saving',
+      never
     >
   >()
   savingForm.Submission.Succeeded({ data: 1 })
-  // @ts-expect-error Succeeded takes the decoded data, a number
+  // @ts-expect-error Succeeded takes the decoded data, a number.
   savingForm.Submission.Succeeded({ data: '1' })
 }
 void schemaParameterChecks
@@ -798,3 +819,25 @@ const messageConstructorChecks = () => {
   >()
 }
 void messageConstructorChecks
+
+const validateFieldChecks = () => {
+  const checkedForm = Form.define({
+    name: 'Checked',
+    fields: {
+      username: Form.field({
+        schema: Schema.String,
+        initial: '',
+        validate: () => Effect.succeed([]),
+      }),
+      nickname: Form.field({ schema: Schema.String, initial: '' }),
+    },
+    submit: { execute: () => Effect.void },
+  })
+
+  expectTypeOf(
+    checkedForm.ValidateField.username.name,
+  ).toEqualTypeOf<'ValidateCheckedUsername'>()
+  // @ts-expect-error A field without `validate` has no check Command.
+  void checkedForm.ValidateField.nickname
+}
+void validateFieldChecks

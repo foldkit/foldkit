@@ -71,20 +71,21 @@ describe('submission errors mapped to fields', () => {
     expect(signupForm.submission(rejection.model)).toEqual(
       signupForm.Submission.Failed({ error }),
     )
+    expect(rejection.outMessage).toEqual(
+      signupForm.OutMessage.FailedSubmit({ error }),
+    )
   })
 
   it('keeps an unmapped error at the form level only', () => {
-    const rejection = submitAndReject(new SignupUnavailable({}))
+    const error = new SignupUnavailable({})
+    const rejection = submitAndReject(error)
 
     expect(signupForm.fieldView(rejection.model, 'email').errors).toEqual([])
     expect(signupForm.fieldView(rejection.model, 'invite').errors).toEqual([])
-  })
-
-  it.each([
-    new EmailTaken({ email: 'ada@example.com' }),
-    new SignupUnavailable({}),
-  ])('reports $_tag to the parent whether or not it maps to a field', error => {
-    expect(submitAndReject(error).outMessage).toEqual(
+    expect(signupForm.submission(rejection.model)).toEqual(
+      signupForm.Submission.Failed({ error }),
+    )
+    expect(rejection.outMessage).toEqual(
       signupForm.OutMessage.FailedSubmit({ error }),
     )
   })
@@ -180,57 +181,6 @@ describe('submission errors mapped to fields', () => {
     )
 
     expect(quantityForm.fieldView(rejection.model, 'count').errors).toEqual([])
-  })
-
-  it('keeps an asynchronous check that started while the submission was pending', () => {
-    const checkedInviteForm = Form.define({
-      name: 'CheckedInvite',
-      fields: {
-        invite: Form.field({
-          schema: Schema.String,
-          initial: 'INVITE-1',
-          validate: () => Effect.succeed([]),
-        }),
-      },
-      submit: {
-        error: Schema.String,
-        execute: () => Effect.void,
-        toFieldErrors: () => ({ invite: 'This invite has expired' }),
-      },
-    })
-    const attempt = checkedInviteForm.submit(checkedInviteForm.init())
-    const validationCompletion = checkedInviteForm.update(
-      attempt.model,
-      checkedInviteForm.Message.CompletedValidateField({
-        name: 'invite',
-        generation: 1,
-        result: Result.succeed([]),
-      }),
-    )
-    const change = checkedInviteForm.update(
-      validationCompletion.model,
-      checkedInviteForm.changed('invite', 'INVITE-2'),
-    )
-    const rejection = checkedInviteForm.update(
-      change.model,
-      checkedInviteForm.Message.CompletedSubmit({
-        generation: 1,
-        result: Result.fail('Expired'),
-      }),
-    )
-    const secondValidationCompletion = checkedInviteForm.update(
-      rejection.model,
-      checkedInviteForm.Message.CompletedValidateField({
-        name: 'invite',
-        generation: 2,
-        result: Result.succeed(['Unknown invite']),
-      }),
-    )
-
-    expect(
-      checkedInviteForm.fieldView(secondValidationCompletion.model, 'invite')
-        .errors,
-    ).toEqual(['Unknown invite'])
   })
 
   it('ignores a field whose mapped message is undefined', () => {

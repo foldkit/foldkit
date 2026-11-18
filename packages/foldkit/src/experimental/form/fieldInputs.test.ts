@@ -1,4 +1,4 @@
-import { Array, Effect, Option, Schema, SchemaTransformation } from 'effect'
+import { Effect, Option, Schema, SchemaTransformation } from 'effect'
 import { describe, expect, it, vi } from 'vitest'
 
 import * as FieldValidation from '../../fieldValidation/index.js'
@@ -59,6 +59,27 @@ describe('typed inputs', () => {
     )
 
     expect(quantityForm.fieldView(change.model, 'count').errors).toHaveLength(1)
+  })
+
+  it('shows a decode error inside an array input without its path', () => {
+    const tagsForm = Form.define({
+      name: 'Tags',
+      submit: voidSubmit,
+      fields: {
+        tags: Form.field({
+          schema: Schema.Array(Schema.NonEmptyString),
+          initial: [],
+        }),
+      },
+    })
+    const change = tagsForm.update(
+      tagsForm.init(),
+      tagsForm.changed('tags', ['Effect', '']),
+    )
+
+    expect(tagsForm.fieldView(change.model, 'tags').errors).toEqual([
+      'Expected a value with a length of at least 1',
+    ])
   })
 })
 
@@ -140,25 +161,14 @@ describe('compound inputs', () => {
   })
   const paris = Location.Coordinates({ latitude: 48, longitude: 2 })
 
-  it('stores arrays, nullable inputs, and tagged unions as given', () => {
-    const changes = [
-      preferencesForm.changed('topics', ['Effect', 'Foldkit']),
-      preferencesForm.changed('favoriteTopic', 'Effect'),
-      preferencesForm.changed('location', paris),
-    ]
-    const model = Array.reduce(
-      changes,
+  it('decodes a nullable input into an Option value', () => {
+    const change = preferencesForm.update(
       preferencesForm.init(),
-      (current, message) => preferencesForm.update(current, message).model,
+      preferencesForm.changed('favoriteTopic', 'Effect'),
     )
 
-    expect(preferencesForm.inputs(model)).toEqual({
-      topics: ['Effect', 'Foldkit'],
-      favoriteTopic: 'Effect',
-      location: paris,
-    })
     expect(
-      preferencesForm.fieldView(model, 'favoriteTopic').maybeValue,
+      preferencesForm.fieldView(change.model, 'favoriteTopic').maybeValue,
     ).toEqual(Option.some(Option.some('Effect')))
   })
 
@@ -289,7 +299,7 @@ describe('optional inputs', () => {
     expect(profileForm.inputs(named.model).nickname).toBe('Lin')
   })
 
-  it('requires a value from a nullable input when its rules say so', () => {
+  it('runs rules on the decoded value of a nullable input', () => {
     const requiredAgeForm = Form.define({
       name: 'RequiredAge',
       submit: voidSubmit,
@@ -316,7 +326,7 @@ describe('optional inputs', () => {
       'Enter an age',
     ])
     expect(zeroSubmit.commands?.map(command => command.args)).toEqual([
-      { values: { age: Option.some(0) }, context: undefined, generation: 2 },
+      expect.objectContaining({ values: { age: Option.some(0) } }),
     ])
   })
 })

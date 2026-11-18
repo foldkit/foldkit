@@ -51,16 +51,16 @@ Use [Field Validation](/core/field-validation) directly when you need something 
 Validation has three optional parts:
 
 - `rules` from `FieldValidation.makeRules` check the value right away.
-- `validate` is an Effect for checks that need a service or a network request. It returns error messages and runs only after `rules` pass. If the Effect fails, its error string becomes the field's error.
+- `validate` is an Effect for checks that need a service or a network request. It returns error messages and runs only after `rules` pass, and only for a non-empty value when the field has no `required` rule. If the Effect fails, its error string becomes the field's error.
 - `validateOn` is `'Change'` (the default) or `'Blur'`. A `'Blur'` field clears its errors when the input changes and checks again on blur.
 
-A change or blur shows the first rule that fails. Submitting checks every field, whatever its `validateOn`, and shows every rule that fails.
+A change or blur shows the first rule that fails. Submitting checks every field, whatever its `validateOn`, and shows every rule that fails. A later blur keeps those errors. A `'Blur'` field is checked on blur when it hasn't been checked since its last change, or when its rules pass but `validate` reported errors or failed, which runs `validate` again.
 
 ### Define the Form
 
 `Form.define` takes a `name`, the `fields`, and a `submit` configuration, covered in [Configure Submission](#configure-submission).
 
-The `name` names the Form's Commands, which DevTools and test failures show. With `name: 'Registration'`, the submission Command is `SubmitRegistration` and the email field's check is `ValidateRegistrationEmail`. Two field names that differ only in the case of their first letter, such as `userName` and `UserName`, would produce the same Command name, so `Form.define` throws for them. Also pick a `name` that can't run together with another Form's name and field into the same Command name.
+The `name` names the Form's Commands, which DevTools and test failures show. With `name: 'Registration'`, the submission Command is `SubmitRegistration` and the email field's check is `ValidateRegistrationEmail`. Two field names that differ only in the case of their first letter, such as `userName` and `UserName`, would produce the same Command name, so `Form.define` throws for them. Choose names so that no two Forms produce the same Command name. For example, a `Sign` Form with an `upEmail` field and a `SignUp` Form with an `email` field both produce `ValidateSignUpEmail`.
 
 `Form.Values<typeof registrationForm>` is the type of the values the submission receives. Name the Form's Model and Message types with `typeof registrationForm.Model.Type` and `typeof registrationForm.Message.Type`.
 
@@ -104,7 +104,7 @@ An input can be a compound value when the control produces one. The snippet belo
 
 ::Snippet{name="formCompoundValues" label="Array, nullable, and tagged union inputs"}
 
-An array field has one set of errors and `meta`, and a change replaces the whole array.
+An array field has one set of errors and `meta`. To change part of it, send `changed` with the whole new array. In the example app, a checkbox click sends `ClickedProfileTopic`, and the parent adds or removes that topic before folding `profileForm.changed('topics', nextTopics)`.
 
 ## Connect the Form to Its Parent
 
@@ -136,9 +136,17 @@ When Form accepts a submission result, its update returns an OutMessage:
 
 `foldOutMessage` is required. A parent with nothing to do still names each variant and returns the Model unchanged, as `foldProfileOutMessage` does in [Pass Context to Submission](#pass-context-to-submission).
 
+### Report Results From a Submodel
+
+When the Form lives inside a Submodel that reports to its own parent, pass the Submodel's OutMessage type as the third type argument to `lift`. Each `foldOutMessage` branch can then return the Submodel's OutMessage, and the lifted `fold` returns it.
+
+::Snippet{name="formParentOutMessage" label="A Submodel that reports a successful sign-up"}
+
+To pass a Form OutMessage up unchanged, add `toParentOutMessage`. It receives each Form OutMessage and returns the Submodel's OutMessage, or `undefined` to stop it at the Submodel.
+
 ### Optional and Nested Forms
 
-`parentField` only works when the parent field always holds a Form Model. When the Form is optional, nested, or one of several, pass a lens instead: `lift({ read, write, toParentMessage, foldOutMessage })`, as with [`Update.foldChild`](/core/submodel#fold-child). When `read` returns `None`, every lifted operation leaves the parent unchanged and returns no Commands.
+`parentField` accepts only a parent field whose type is exactly the Form's Model. When the Form is optional, nested, or one of several, pass a lens instead: `lift({ read, write, toParentMessage, foldOutMessage })`, as with [`Update.foldChild`](/core/submodel#fold-child). When `read` returns `None`, every lifted operation leaves the parent unchanged and returns no Commands.
 
 If the lens points at an object that holds the Form Model's fields plus other fields, such as a record id, `write` must copy the other fields back. `reinitialize` passes `write` a fresh Form Model without them. Keeping that data in a separate parent field avoids the problem.
 
@@ -161,7 +169,7 @@ Some submissions need a value that isn't a field, such as the id of the record b
 
 ::Snippet{name="formContext" label="Submission that needs the record id"}
 
-The submission uses the value passed to `submit`, even if field checks are still running.
+Form keeps the context with the attempt. If async field checks delay the submission, `execute` receives the context from the `submit` call that started the attempt.
 
 ### Show Submission Errors on Fields
 
@@ -169,7 +177,7 @@ A server can reject a submission because of one field, such as an email that is 
 
 ::Snippet{name="formFieldErrors" label="Typed submission errors mapped to fields"}
 
-The submission is still `Failed` with the typed error, so the parent can show a message above the form too. Return `{}` for an error that isn't about one field.
+The submission also becomes `Failed` with the typed error, so the parent can show a message above the form too. Return `{}` for an error that isn't about one field.
 
 A mapped message shows in that field's `errors`:
 
@@ -190,7 +198,7 @@ When the last check's result arrives, `fold` returns the `Submit` Command. The p
 
 When the `Submit` result arrives, the submission becomes `Succeeded` with the typed data or `Failed` with the typed error. Read it with `submission(model)` and match it with `registrationForm.Submission.match`. `Form.Submission<typeof registrationForm>` is its type.
 
-While the submission is `Validating` or `Submitting`, another submit does nothing. Editing a field while `Validating` cancels the attempt. Editing a field while `Submitting` doesn't, because the values were already sent. Editing after `Succeeded` or `Failed` returns the submission to `Idle`.
+While the submission is `Validating` or `Submitting`, another submit does nothing. Editing a field while `Validating` cancels the attempt: the submission returns to `Idle` and the person submits again. Editing a field while `Submitting` doesn't, because the values were already sent. Editing after `Succeeded` or `Failed` returns the submission to `Idle`.
 
 ### Stale Results
 
@@ -215,7 +223,7 @@ Render from the Form's selectors, not from its Model:
 - `submission(model)` returns the submission state.
 - `submitCount(model)` returns the number of attempts since the Form was built, reset, or reinitialized.
 
-::Snippet{name="formView" label="Rendering a Form with ordinary input events"}
+::Snippet{name="formView" label="Form fields rendered with input and blur events"}
 
 Render `input` in the control and send each new input with `changed`. Send `blurred(name)` when the control loses focus; a `validateOn: 'Blur'` field is checked then. `maybeValue` is `Some` whenever the input decodes, even when `rules` reject it, and `None` when it doesn't.
 
@@ -226,11 +234,9 @@ Render `input` in the control and send each new input with `changed`. Send `blur
 - `isTouched` is true when the field is edited or blurred.
 - `isDefaultInput` is true when the input equals the default, comparing arrays and records by content.
 
-To change part of a compound input, send `changed` with the whole new input. In the example app, a checkbox click sends `ClickedProfileTopic`, and the parent adds or removes that topic before folding `profileForm.changed('topics', nextTopics)`.
-
 ## Test Form Commands
 
-Story and Scene tests can match and resolve `registrationForm.Submit` and `registrationForm.ValidateField.<field>` without running their Effects. `Submit` takes the decoded `values`, the `context`, and the attempt's `generation`. A `ValidateField` Command takes the field's `value` and the check's `generation`.
+Story and Scene tests can match and resolve `registrationForm.Submit` and `registrationForm.ValidateField.<field>` without running their Effects. `Submit` takes the decoded `values`, the `context`, and the attempt's `generation`. `ValidateField` has a Command for each field with a `validate` Effect. It takes the field's `value` and the check's `generation`.
 
 Start these Commands with `submit` and field changes, not by calling them directly. A direct call skips the Form update, so Form isn't waiting for its result and ignores it.
 

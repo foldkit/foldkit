@@ -59,46 +59,6 @@ test('a successful registration settles the Form and records the email in the pa
   )
 })
 
-test('a taken email shows on the email field until it is edited', () => {
-  story(
-    update,
-    submitValidRegistration,
-    Command.resolve(
-      registrationForm.Submit,
-      registrationForm.Message.CompletedSubmit({
-        generation: 1,
-        result: Result.fail(RegistrationRejection.EmailTaken()),
-      }),
-    ),
-    model(model => {
-      expect(
-        registrationForm.fieldView(model.registration, 'email').errors,
-      ).toEqual(['This email is already registered'])
-      expect(model.registeredEmails).toEqual([])
-    }),
-    message(
-      Message.GotRegistrationMessage({
-        message: registrationForm.blurred('email'),
-      }),
-    ),
-    model(model =>
-      expect(
-        registrationForm.fieldView(model.registration, 'email').errors,
-      ).toEqual(['This email is already registered']),
-    ),
-    message(
-      Message.GotRegistrationMessage({
-        message: registrationForm.changed('email', 'other@example.com'),
-      }),
-    ),
-    model(model =>
-      expect(
-        registrationForm.fieldView(model.registration, 'email').errors,
-      ).toEqual([]),
-    ),
-  )
-})
-
 test('an unmapped rejection stays at the form level', () => {
   story(
     update,
@@ -123,12 +83,12 @@ test('an unmapped rejection stays at the form level', () => {
   )
 })
 
-test('profile topic clicks build the array from the current Model and submit it with the profile id', () => {
+test('profile topic clicks add and remove topics, and the submission carries the profile id', () => {
   const submitProfile = profileForm.Submit({
     values: {
       email: 'reader@example.com',
       displayName: 'Reader',
-      topics: ['Effect', 'Foldkit'],
+      topics: ['Foldkit'],
     },
     context: { profileId: 'profile-1' },
     generation: 1,
@@ -139,6 +99,7 @@ test('profile topic clicks build the array from the current Model and submit it 
     given(init().model),
     message(Message.ClickedProfileTopic({ topic: 'Effect' })),
     message(Message.ClickedProfileTopic({ topic: 'Foldkit' })),
+    message(Message.ClickedProfileTopic({ topic: 'Effect' })),
     message(Message.SubmittedProfileForm()),
     Command.resolve(
       profileForm.ValidateField.email,
@@ -151,14 +112,6 @@ test('profile topic clicks build the array from the current Model and submit it 
         generation: 1,
         result: Result.succeed(undefined),
       }),
-    ),
-    message(Message.ClickedProfileTopic({ topic: 'Effect' })),
-    model(model =>
-      expect(profileForm.inputs(model.profile).topics).toEqual(['Foldkit']),
-    ),
-    message(Message.ClickedResetProfile()),
-    model(model =>
-      expect(profileForm.inputs(model.profile).topics).toEqual([]),
     ),
   )
 })

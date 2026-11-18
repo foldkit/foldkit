@@ -74,6 +74,8 @@ test('a taken email shows on the email field until the email changes', () => {
     expect(
       role('textbox', { name: 'Registration email' }),
     ).toHaveAccessibleDescription('This email is already registered'),
+    blur(role('textbox', { name: 'Registration email' })),
+    expect(text('This email is already registered')).toExist(),
     type(role('textbox', { name: 'Registration email' }), 'other@example.com'),
     expect(text('This email is already registered')).not.toExist(),
   )
@@ -130,7 +132,7 @@ test('failure feedback clears after editing and reset restores edit defaults', (
   )
 })
 
-test('reset clears pending submission feedback', () => {
+test('reset clears the saving status', () => {
   const profileSubmit = update(init().model, Message.SubmittedProfileForm())
   const profileValidation = update(
     profileSubmit.model,
@@ -145,7 +147,7 @@ test('reset clears pending submission feedback', () => {
     expect(text('Saving…')).toExist(),
     click(role('button', { name: 'Reset profile' })),
     expect(text('Saving…')).not.toExist(),
-    expect(text('Saved')).not.toExist(),
+    expect(text('Ready')).toExist(),
   )
 })
 

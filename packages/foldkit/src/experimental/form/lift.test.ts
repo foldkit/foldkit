@@ -132,6 +132,13 @@ describe('lifting through a parent field', () => {
     expect(
       reinitializeThenSubmit.commands?.map(command => command.name),
     ).toEqual(['SubmitRegistration'])
+    expect(
+      reinitializeThenSubmit.commands?.map(command => command.args),
+    ).toEqual([
+      expect.objectContaining({
+        values: { email: 'ada@example.com', age: 18 },
+      }),
+    ])
   })
 
   it('treats a parentField config with undefined read and write as a parent field', () => {
@@ -172,7 +179,10 @@ describe('lifting through a lens', () => {
 
   it.each([
     { label: 'no parentField', parentField: undefined },
-    { label: 'an erased parentField', parentField: 'registration' },
+    {
+      label: 'a parentField alongside read and write',
+      parentField: 'registration',
+    },
   ])(
     'uses read and write and keeps the data write adds, given $label',
     ({ parentField }) => {
@@ -319,7 +329,7 @@ describe('lifted submit with context', () => {
     generation: 1,
   })
 
-  it('passes the context to the Submit Command it returns', () => {
+  it('passes the context to the Submit Command and settles the attempt', () => {
     Story.story(
       update,
       Story.given(EditingParent.make({ editing: editingForm.init() })),
@@ -336,5 +346,79 @@ describe('lifted submit with context', () => {
         expect(editingForm.submission(parent.editing)._tag).toBe('Succeeded'),
       ),
     )
+  })
+})
+
+describe('lifting into a parent Submodel', () => {
+  const RegistrationOutMessage = defineMessageUnion({
+    Registered: { id: Schema.Number },
+    RegistrationFailed: { reason: Schema.String },
+  })
+  type RegistrationOutMessage = typeof RegistrationOutMessage.Type
+
+  const derivingRegistration = registrationForm.lift<
+    Parent,
+    ParentMessage,
+    RegistrationOutMessage
+  >({
+    parentField: 'registration',
+    toParentMessage,
+    foldOutMessage: registrationForm.OutMessage.match<
+      Update.StepWithOutMessage<Parent, ParentMessage, RegistrationOutMessage>
+    >({
+      SucceededSubmit:
+        ({ data }) =>
+        stepModel => ({
+          model: stepModel,
+          outMessage: RegistrationOutMessage.Registered({ id: data }),
+        }),
+      FailedSubmit: () => stepModel => ({ model: stepModel }),
+    }),
+  })
+
+  const forwardingRegistration = registrationForm.lift<
+    Parent,
+    ParentMessage,
+    RegistrationOutMessage
+  >({
+    parentField: 'registration',
+    toParentMessage,
+    foldOutMessage: foldRegistrationOutMessage<Parent>(),
+    toParentOutMessage: registrationForm.OutMessage.match<
+      RegistrationOutMessage | undefined
+    >({
+      SucceededSubmit: () => undefined,
+      FailedSubmit: ({ error }) =>
+        RegistrationOutMessage.RegistrationFailed({ reason: error }),
+    }),
+  })
+
+  const settle = (
+    lifted: typeof derivingRegistration,
+    result: Result.Result<number, string>,
+  ) =>
+    lifted.fold(
+      lifted.submit()(initialParent).model,
+      registrationForm.Message.CompletedSubmit({ generation: 1, result }),
+    )
+
+  it('returns the parent OutMessage that foldOutMessage derives', () => {
+    expect(settle(derivingRegistration, Result.succeed(7)).outMessage).toEqual(
+      RegistrationOutMessage.Registered({ id: 7 }),
+    )
+  })
+
+  it('forwards Form OutMessages through toParentOutMessage', () => {
+    expect(
+      settle(forwardingRegistration, Result.fail('Registration is closed'))
+        .outMessage,
+    ).toEqual(
+      RegistrationOutMessage.RegistrationFailed({
+        reason: 'Registration is closed',
+      }),
+    )
+    expect(
+      settle(forwardingRegistration, Result.succeed(7)).outMessage,
+    ).toBeUndefined()
   })
 })

@@ -117,6 +117,44 @@ const foldOutMessageTypes = () => {
 }
 void foldOutMessageTypes
 
+const parentOutMessageTypes = (model: Parent, message: ProfileMessage) => {
+  const ParentOutMessage = defineMessageUnion({ SavedProfile: {} })
+  type ParentOutMessage = typeof ParentOutMessage.Type
+  const submodelProfile = profileForm.lift<Parent, Message, ParentOutMessage>({
+    parentField: 'form',
+    toParentMessage,
+    foldOutMessage: profileForm.OutMessage.match<
+      Update.StepWithOutMessage<Parent, Message, ParentOutMessage>
+    >({
+      SucceededSubmit: () => stepModel => ({
+        model: stepModel,
+        outMessage: ParentOutMessage.SavedProfile(),
+      }),
+      FailedSubmit: () => stepModel => ({ model: stepModel }),
+    }),
+  })
+
+  expectTypeOf(submodelProfile.fold(model, message)).toEqualTypeOf<
+    Update.ReturnWithOutMessage<Parent, Message, ParentOutMessage, Requirements>
+  >()
+  const plainReturn: Update.Return<Parent, Message, Requirements> =
+    profile.fold(model, message)
+  void plainReturn
+  const savedProfileStep = () => (stepModel: Parent) => ({
+    model: stepModel,
+    outMessage: ParentOutMessage.SavedProfile(),
+  })
+  const formField: 'form' = 'form'
+  const savedProfileConfig = {
+    parentField: formField,
+    toParentMessage,
+    foldOutMessage: savedProfileStep,
+  }
+  // @ts-expect-error Without a parent OutMessage type, the Step returns none.
+  profileForm.lift<Parent, Message>(savedProfileConfig)
+}
+void parentOutMessageTypes
+
 const contextTypes = () => {
   const RecordContext = Schema.Struct({ recordId: Schema.String })
   const editingForm = Form.define({

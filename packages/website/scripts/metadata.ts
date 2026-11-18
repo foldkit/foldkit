@@ -226,7 +226,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreForm: core(
     'Form',
-    'Manage field values, validation, and submission in a reusable Submodel built from Schema-backed fields.',
+    'Manage field inputs, validation, and submission in a reusable Submodel built from Schema-backed fields.',
   ),
   CoreQuery: core(
     'Query',

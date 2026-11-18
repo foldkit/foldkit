@@ -9,6 +9,12 @@ const voidSubmit = { error: Schema.String, execute: () => Effect.void }
 const firstCommand = <Command>(commands: ReadonlyArray<Command> | undefined) =>
   Array.head(commands ?? []).pipe(Option.getOrThrow)
 
+const CheckArgs = Schema.Struct({ generation: Schema.Number })
+
+const checkGeneration = (
+  commands: ReadonlyArray<Readonly<{ args?: unknown }>> | undefined,
+) => Schema.decodeUnknownSync(CheckArgs)(firstCommand(commands).args).generation
+
 const [isEmail] = FieldValidation.Rule.email('Invalid email')
 const [isLongEnough] = FieldValidation.Rule.minLength(8, 'Too short')
 
@@ -36,6 +42,58 @@ const accountForm = Form.define({
       }),
     }),
   },
+})
+
+const checkedUsernameForm = Form.define({
+  name: 'Checked',
+  submit: voidSubmit,
+  fields: {
+    username: Form.field({
+      schema: Schema.String,
+      initial: '',
+      rules: FieldValidation.makeRules({ required: 'Required' }),
+      validate: value => Effect.succeed(value === 'taken' ? ['Taken'] : []),
+    }),
+  },
+})
+
+const completedValidateUsername = (
+  generation: number,
+  errors: ReadonlyArray<string>,
+) =>
+  checkedUsernameForm.Message.CompletedValidateField({
+    name: 'username',
+    generation,
+    result: Result.succeed(errors),
+  })
+
+describe('Command names', () => {
+  it('names each validation Command after the Form and field', () => {
+    expect(checkedUsernameForm.ValidateField.username.name).toBe(
+      'ValidateCheckedUsername',
+    )
+  })
+
+  it('has a validation Command only for fields with a validate Effect', () => {
+    expect(Object.keys(accountForm.ValidateField)).toEqual([])
+    expect(Object.keys(checkedUsernameForm.ValidateField)).toEqual(['username'])
+  })
+
+  it('throws when two field names would give their validation Commands the same name', () => {
+    expect(() =>
+      Form.define({
+        name: 'Account',
+        submit: { execute: () => Effect.void },
+        fields: {
+          email: Form.field({ schema: Schema.String, initial: '' }),
+          userName: Form.field({ schema: Schema.String, initial: '' }),
+          UserName: Form.field({ schema: Schema.String, initial: '' }),
+        },
+      }),
+    ).toThrow(
+      'Form "Account" has field names that differ only in the case of their first letter, so their validation Commands would share a name: userName, UserName',
+    )
+  })
 })
 
 describe('validation triggers', () => {
@@ -93,50 +151,35 @@ describe('validation triggers', () => {
       'Too short',
     ])
   })
+
+  it('keeps every failing rule when a Blur field is blurred after submit', () => {
+    const change = accountForm.update(
+      accountForm.init(),
+      accountForm.changed('email', 'x'),
+    )
+    const attempt = accountForm.submit(change.model)
+    const blur = accountForm.update(attempt.model, accountForm.blurred('email'))
+
+    expect(accountForm.fieldView(blur.model, 'email').errors).toEqual([
+      'Invalid email',
+      'Too short',
+    ])
+  })
+
+  it('does not check a Change field on blur', () => {
+    const blur = checkedUsernameForm.update(
+      checkedUsernameForm.init(),
+      checkedUsernameForm.blurred('username'),
+    )
+
+    expect(
+      checkedUsernameForm.fieldView(blur.model, 'username').errors,
+    ).toEqual([])
+    expect(blur.commands ?? []).toEqual([])
+  })
 })
 
 describe('asynchronous checks', () => {
-  const checkedUsernameForm = Form.define({
-    name: 'Checked',
-    submit: voidSubmit,
-    fields: {
-      username: Form.field({
-        schema: Schema.String,
-        initial: '',
-        rules: FieldValidation.makeRules({ required: 'Required' }),
-        validate: value => Effect.succeed(value === 'taken' ? ['Taken'] : []),
-      }),
-    },
-  })
-  const completedValidateUsername = (
-    generation: number,
-    errors: ReadonlyArray<string>,
-  ) =>
-    checkedUsernameForm.Message.CompletedValidateField({
-      name: 'username',
-      generation,
-      result: Result.succeed(errors),
-    })
-
-  it('names each validation Command after the Form and field', () => {
-    expect(checkedUsernameForm.ValidateField.username.name).toBe(
-      'ValidateCheckedUsername',
-    )
-  })
-
-  it('throws when two field names would give their validation Commands the same name', () => {
-    expect(() =>
-      Form.define({
-        name: 'Account',
-        submit: { execute: () => Effect.void },
-        fields: {
-          userName: Form.field({ schema: Schema.String, initial: '' }),
-          UserName: Form.field({ schema: Schema.String, initial: '' }),
-        },
-      }),
-    ).toThrow('Form "Account" has field names that differ only')
-  })
-
   it('returns a validation Command for a value that passes its rules', () => {
     const change = checkedUsernameForm.update(
       checkedUsernameForm.init(),
@@ -198,6 +241,26 @@ describe('asynchronous checks', () => {
     ).toBe(thirdChange.model)
   })
 
+  it('ignores a pending check after a change that fails the rules', () => {
+    const change = checkedUsernameForm.update(
+      checkedUsernameForm.init(),
+      checkedUsernameForm.changed('username', 'taken'),
+    )
+    const clear = checkedUsernameForm.update(
+      change.model,
+      checkedUsernameForm.changed('username', ''),
+    )
+    const validationCompletion = checkedUsernameForm.update(
+      clear.model,
+      completedValidateUsername(checkGeneration(change.commands), []),
+    )
+
+    expect(
+      checkedUsernameForm.fieldView(validationCompletion.model, 'username')
+        .errors,
+    ).toEqual(['Required'])
+  })
+
   it.each(['reset', 'reinitialize'])(
     'ignores a check that started before %s',
     operation => {
@@ -214,18 +277,24 @@ describe('asynchronous checks', () => {
         checkedUsernameForm.changed('username', 'taken'),
       )
 
+      const currentGeneration = checkGeneration(changeAfterClear.commands)
+      const currentCompletion = checkedUsernameForm.update(
+        changeAfterClear.model,
+        completedValidateUsername(currentGeneration, ['Taken']),
+      )
+
       expect(
         checkedUsernameForm.update(
           changeAfterClear.model,
-          completedValidateUsername(1, ['Taken']),
+          completedValidateUsername(checkGeneration(change.commands), [
+            'Taken',
+          ]),
         ).model,
       ).toBe(changeAfterClear.model)
       expect(
-        checkedUsernameForm.update(
-          changeAfterClear.model,
-          completedValidateUsername(2, ['Taken']),
-        ).model,
-      ).not.toBe(changeAfterClear.model)
+        checkedUsernameForm.fieldView(currentCompletion.model, 'username')
+          .errors,
+      ).toEqual(['Taken'])
     },
   )
 
@@ -323,24 +392,20 @@ describe('asynchronous checks', () => {
 })
 
 describe('checks on blur', () => {
-  const makeBlurCheckedForm = (
-    validate: (value: string) => Effect.Effect<ReadonlyArray<string>, string>,
-  ) =>
-    Form.define({
-      name: 'BlurChecked',
-      submit: voidSubmit,
-      fields: {
-        username: Form.field({
-          schema: Schema.String,
-          initial: 'ada',
-          validateOn: 'Blur',
-          validate,
-        }),
-      },
-    })
+  const blurCheckedForm = Form.define({
+    name: 'BlurChecked',
+    submit: voidSubmit,
+    fields: {
+      username: Form.field({
+        schema: Schema.String,
+        initial: 'ada',
+        validateOn: 'Blur',
+        validate: () => Effect.succeed([]),
+      }),
+    },
+  })
 
   it('reuses a pending check on a repeated blur', () => {
-    const blurCheckedForm = makeBlurCheckedForm(() => Effect.succeed([]))
     const blur = blurCheckedForm.update(
       blurCheckedForm.init(),
       blurCheckedForm.blurred('username'),
@@ -356,7 +421,6 @@ describe('checks on blur', () => {
   })
 
   it('reuses a successful check on the next blur', () => {
-    const blurCheckedForm = makeBlurCheckedForm(() => Effect.succeed([]))
     const blur = blurCheckedForm.update(
       blurCheckedForm.init(),
       blurCheckedForm.blurred('username'),
@@ -379,7 +443,6 @@ describe('checks on blur', () => {
   })
 
   it('checks a failed input again on the next blur', () => {
-    const blurCheckedForm = makeBlurCheckedForm(() => Effect.succeed(['Taken']))
     const blur = blurCheckedForm.update(
       blurCheckedForm.init(),
       blurCheckedForm.blurred('username'),
