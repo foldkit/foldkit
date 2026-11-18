@@ -435,7 +435,7 @@ export type FormInputs<Schemas extends FieldSchemas> = Schema.Struct.View<
   never
 >
 
-const ValuesSchema = <Schemas extends FieldSchemas, FieldRequirements>(
+const makeValuesSchema = <Schemas extends FieldSchemas, FieldRequirements>(
   fields: FieldDefinitions<Schemas, FieldRequirements>,
 ) =>
   Schema.make<Schema.Codec<FormValues<Schemas>, FormInputs<Schemas>>>(
@@ -448,7 +448,7 @@ const ValuesSchema = <Schemas extends FieldSchemas, FieldRequirements>(
     ).ast,
   )
 
-const InputsSchema = <Schemas extends FieldSchemas, FieldRequirements>(
+const makeInputsSchema = <Schemas extends FieldSchemas, FieldRequirements>(
   fields: FieldDefinitions<Schemas, FieldRequirements>,
 ) =>
   Schema.make<
@@ -1201,8 +1201,8 @@ export function define<
   >
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
-  const Values = ValuesSchema(fieldDefinitions)
-  const Inputs = InputsSchema(fieldDefinitions)
+  const Values = makeValuesSchema(fieldDefinitions)
+  const Inputs = makeInputsSchema(fieldDefinitions)
   const SubmissionSchema = Submission(data, error, context, Inputs)
 
   const Model = FormModel(fieldDefinitions, SubmissionSchema).annotate({
