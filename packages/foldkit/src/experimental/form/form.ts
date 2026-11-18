@@ -341,14 +341,18 @@ export function field<S extends FieldSchema, R = never>(
   }
 }
 
-/** A field Schema for a control that holds `null` until the person picks a
- * value, such as a select with an empty option. The input is the Schema's
- * input or `null`, and the value is the Schema's value. A `null` input fails
- * with `message`.
+/** A field Schema for a required value from a control that holds `null` until
+ * the person chooses, such as a select with an empty option. The input is
+ * `schema`'s input or `null`, and the value is `schema`'s value. A `null`
+ * input fails with `message`. For a choice the person may leave empty, use
+ * `Schema.OptionFromNullOr` instead.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
-export const picked = <S extends FieldSchema>(schema: S, message: string) =>
+export const RequiredFromNullOr = <S extends FieldSchema>(
+  schema: S,
+  message: string,
+) =>
   Schema.NullOr(schema).pipe(
     Schema.decodeTo(
       Schema.toType(schema),
@@ -359,7 +363,7 @@ export const picked = <S extends FieldSchema>(schema: S, message: string) =>
                 new SchemaIssue.InvalidValue({ message }, input, options),
               )
             : Effect.succeed(input),
-        encode: (pickedValue: S['Type']) => Effect.succeed(pickedValue),
+        encode: (value: S['Type']) => Effect.succeed(value),
       }),
     ),
   )

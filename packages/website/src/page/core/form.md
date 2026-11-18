@@ -10,7 +10,7 @@ Form ships from `foldkit/experimental` and `foldkit/experimental/form`. Its name
 - validation on change, on blur, and with an async email check
 - an age field that keeps text like `12a` and shows an error until it reads as a number
 - a list of topics rendered as checkboxes
-- a required select built with `Form.picked`
+- a required select built with `Form.RequiredFromNullOr`
 - two checkboxes that change together in one Message
 - a server error shown on the email field
 - a parent that records each successful registration
@@ -101,9 +101,9 @@ Field Schemas must decode and encode synchronously, without services, and both s
 
 An input can be a compound value when the control produces one. The snippet below has four:
 
-- `experienceLevel` comes from a select that holds `null` until the person picks a level. `Form.picked(ExperienceLevel, message)` makes a Schema whose input is a level or `null` and whose value is a level, so `execute` receives the picked level. A `null` input shows `message` as the field's error.
+- `experienceLevel` comes from a select that holds `null` until the person chooses a level. `Form.RequiredFromNullOr(ExperienceLevel, message)` makes a Schema whose input is a level or `null` and whose value is a level, so `execute` receives a level. A `null` input shows `message` as the field's error.
 - `topics` is the list of checked boxes. A required array field treats `[]` as empty.
-- `favoriteTopic` comes from a select whose "none" option produces `null`. `Schema.OptionFromNullOr` turns it into an `Option`, so its rules set `isEmpty` to `Option.isNone`. Use this when "none" is an answer the submission accepts, and `Form.picked` when the person must choose.
+- `favoriteTopic` comes from a select whose "none" option produces `null`. `Schema.OptionFromNullOr` turns it into an `Option`, so its rules set `isEmpty` to `Option.isNone`. Use `Schema.OptionFromNullOr` when "none" is an answer the submission accepts, and `Form.RequiredFromNullOr` when the person must choose.
 - `meetupLocation` comes from a map picker that produces `Unspecified` or `Coordinates`.
 
 ::Snippet{name="formCompoundValues" label="Array, nullable, and tagged union inputs"}

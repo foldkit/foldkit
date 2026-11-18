@@ -440,14 +440,14 @@ describe('field metadata', () => {
   })
 })
 
-describe('picked inputs', () => {
+describe('RequiredFromNullOr', () => {
   const Role = Schema.Literals(['Admin', 'Member'])
   const roleForm = Form.define({
     name: 'RoleChoice',
     submit: voidSubmit,
     fields: {
       role: Form.field({
-        schema: Form.picked(Role, 'Choose a role'),
+        schema: Form.RequiredFromNullOr(Role, 'Choose a role'),
         initial: null,
       }),
     },
@@ -462,7 +462,7 @@ describe('picked inputs', () => {
     expect(roleForm.submission(attempt.model)._tag).toBe('Idle')
   })
 
-  it('decodes a picked input into the value', () => {
+  it('decodes a non-null input into the value', () => {
     const change = roleForm.update(
       roleForm.init(),
       roleForm.changed('role', 'Admin'),
@@ -474,7 +474,7 @@ describe('picked inputs', () => {
     })
   })
 
-  it('submits the picked value', () => {
+  it('submits the decoded value', () => {
     const change = roleForm.update(
       roleForm.init(),
       roleForm.changed('role', 'Member'),
@@ -486,19 +486,19 @@ describe('picked inputs', () => {
     ])
   })
 
-  it('encodes a value override into the picked input', () => {
+  it('encodes a value override into the input', () => {
     expect(roleForm.inputs(roleForm.init({ role: 'Member' })).role).toBe(
       'Member',
     )
   })
 
-  it('decodes a picked input whose input and value differ', () => {
+  it('decodes an input whose Schema has a different input and value', () => {
     const countForm = Form.define({
-      name: 'PickedCount',
+      name: 'RequiredCount',
       submit: voidSubmit,
       fields: {
         count: Form.field({
-          schema: Form.picked(
+          schema: Form.RequiredFromNullOr(
             Schema.FiniteFromString.annotate({ message: 'Enter a number' }),
             'Choose a count',
           ),
@@ -517,16 +517,16 @@ describe('picked inputs', () => {
     ])
   })
 
-  it('checks the inner Schema of a picked input', () => {
+  it('checks the inner Schema of a non-null input', () => {
     const LongName = Schema.String.check(
       Schema.isMinLength(3, { message: 'Too short' }),
     )
     const nameForm = Form.define({
-      name: 'PickedName',
+      name: 'RequiredName',
       submit: voidSubmit,
       fields: {
         name: Form.field({
-          schema: Form.picked(LongName, 'Choose a name'),
+          schema: Form.RequiredFromNullOr(LongName, 'Choose a name'),
           initial: null,
         }),
       },

@@ -96,7 +96,7 @@ export const registrationForm = Form.define({
       }),
     }),
     mainTopic: Form.field({
-      schema: Form.picked(Topic, 'Choose a main topic'),
+      schema: Form.RequiredFromNullOr(Topic, 'Choose a main topic'),
       initial: null,
     }),
   },

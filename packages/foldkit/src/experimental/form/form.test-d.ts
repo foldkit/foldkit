@@ -894,9 +894,9 @@ const changedFieldsChecks = () => {
 }
 void changedFieldsChecks
 
-const pickedChecks = () => {
+const requiredFromNullOrChecks = () => {
   const Role = Schema.Literals(['Admin', 'Member'])
-  const roleSchema = Form.picked(Role, 'Choose a role')
+  const roleSchema = Form.RequiredFromNullOr(Role, 'Choose a role')
 
   expectTypeOf<typeof roleSchema.Encoded>().toEqualTypeOf<
     'Admin' | 'Member' | null
@@ -913,10 +913,10 @@ const pickedChecks = () => {
     readonly role: 'Admin' | 'Member'
   }>()
   roleForm.init({ role: 'Admin' })
-  // @ts-expect-error Overrides are picked values, so they can't be null.
+  // @ts-expect-error Overrides are values, so they can't be null.
   roleForm.init({ role: null })
 }
-void pickedChecks
+void requiredFromNullOrChecks
 
 const submissionSelectorChecks = () => {
   const noteForm = Form.define({

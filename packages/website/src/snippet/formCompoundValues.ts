@@ -36,7 +36,10 @@ const preferencesForm = Form.define({
   name: 'Preferences',
   fields: {
     experienceLevel: Form.field({
-      schema: Form.picked(ExperienceLevel, 'Choose your experience level'),
+      schema: Form.RequiredFromNullOr(
+        ExperienceLevel,
+        'Choose your experience level',
+      ),
       initial: null,
     }),
     topics: Form.field({
