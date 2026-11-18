@@ -10,6 +10,8 @@ Form ships from `foldkit/experimental` and `foldkit/experimental/form`. Its name
 - validation on change, on blur, and with an async email check
 - an age field that keeps text like `12a` and shows an error until it reads as a number
 - a list of topics rendered as checkboxes
+- a required select built with `Form.picked`
+- two checkboxes that change together in one Message
 - a server error shown on the email field
 - a parent that records each successful registration
 - a profile save that gets the profile id from the parent
@@ -74,6 +76,7 @@ For a `Schema.String` field they are the same string. For an age field whose Sch
 | -------------------------------- | --------------------------------------------- |
 | `initial` in `Form.field`        | Overrides passed to `init` and `reinitialize` |
 | `changed(name, input)`           | `rules` and `validate`                        |
+| `changedFields(inputs)`          | —                                             |
 | `fieldView(model, name).input`   | `submit.execute`                              |
 | `inputs(model)`                  | `fieldView(model, name).maybeValue`           |
 
@@ -96,10 +99,11 @@ Field Schemas must decode and encode synchronously, without services, and both s
 
 ### Compound Values
 
-An input can be a compound value when the control produces one. The snippet below has three:
+An input can be a compound value when the control produces one. The snippet below has four:
 
+- `experienceLevel` comes from a select that holds `null` until the person picks a level. `Form.picked(ExperienceLevel, message)` makes a Schema whose input is a level or `null` and whose value is a level, so `execute` receives the picked level. A `null` input shows `message` as the field's error.
 - `topics` is the list of checked boxes. A required array field treats `[]` as empty.
-- `favoriteTopic` comes from a select whose "none" option produces `null`. `Schema.OptionFromNullOr` turns it into an `Option`, so its rules set `isEmpty` to `Option.isNone`.
+- `favoriteTopic` comes from a select whose "none" option produces `null`. `Schema.OptionFromNullOr` turns it into an `Option`, so its rules set `isEmpty` to `Option.isNone`. Use this when "none" is an answer the submission accepts, and `Form.picked` when the person must choose.
 - `meetupLocation` comes from a map picker that produces `Unspecified` or `Coordinates`.
 
 ::Snippet{name="formCompoundValues" label="Array, nullable, and tagged union inputs"}
@@ -124,6 +128,8 @@ The lifted Form has four operations:
 - `reinitialize(overrides)` returns a Step that loads new defaults.
 
 `submit`, `reset`, and `reinitialize` return Steps, so they compose with `Update.combine`. Apply one directly with `registration.submit()(model)`.
+
+The Steps that `fold` and `submit` return require the services of the submission Effect and of every field's `validate` Effect. A field Message can send the submission: when the last async check of a `Validating` attempt passes, the update that folds its result returns the `Submit` Command. So a parent Step that folds any Form Message carries those requirements, and the parent's Step type names them.
 
 ### React to Submission Results
 
@@ -150,6 +156,8 @@ To pass a Form OutMessage up unchanged, add `toParentOutMessage`. It receives ea
 
 If the lens points at an object that holds the Form Model's fields plus other fields, such as a record id, `write` must copy the other fields back. `reinitialize` passes `write` a fresh Form Model without them. Keeping that data in a separate parent field avoids the problem.
 
+Store a Form's Model in a parent field that lasts as long as the parent, even while the Form is hidden. Don't keep it inside a union variant that the parent replaces each time a sheet or dialog opens. To load a record when it opens, call `reinitialize`, not `init()`. [Initial Values and Reset](#initial-values-and-reset) explains why.
+
 ## Submit a Form
 
 ### Configure Submission
@@ -163,6 +171,10 @@ If the lens points at an object that holds the Form Model's fields plus other fi
 
 These Schemas must decode and encode synchronously, without services. The Effect and a field's `validate` Effect can require services. The application provides them the same way it provides services to any other Command.
 
+To type a helper that `execute` calls, declare the fields before `Form.define` and use `Form.FieldValues<typeof fields>`. `Form.Values<typeof form>` can't type that helper, because the Form would refer to itself inside its own definition.
+
+::Snippet{name="formFieldValues" label="Values type for a helper that execute calls"}
+
 ### Pass Context to Submission
 
 Some submissions need a value that isn't a field, such as the id of the record being edited. Add a `context` Schema, and `submit` takes that value. `execute` receives it after the field values.
@@ -171,13 +183,17 @@ Some submissions need a value that isn't a field, such as the id of the record b
 
 Form keeps the context with the attempt. If async field checks delay the submission, `execute` receives the context from the `submit` call that started the attempt.
 
+The context stays in the Form Model while the attempt is `Validating`, so it must be data a Model can hold. Keep it small, such as an id instead of the whole record.
+
 ### Show Submission Errors on Fields
 
 A server can reject a submission because of one field, such as an email that is already registered. `toFieldErrors` receives the typed error and returns a message for each field it concerns. TypeScript rejects a key that isn't a field name.
 
 ::Snippet{name="formFieldErrors" label="Typed submission errors mapped to fields"}
 
-The submission also becomes `Failed` with the typed error, so the parent can show a message above the form too. Return `{}` for an error that isn't about one field.
+The submission also becomes `Failed` with the typed error. Return `{}` for an error that isn't about one field.
+
+`formError(model)` returns the error of a `Failed` submission when no field shows it, and `None` otherwise. Render it above the form, so an error that a field already shows doesn't appear twice. An error mapped to a field that changed while the submission was running shows on no field, so `formError` returns it.
 
 A mapped message shows in that field's `errors`:
 
@@ -210,7 +226,7 @@ Fold each Form Message back through the lifted Form that started the work. Two F
 
 `init()` builds a Form from each field's `initial` input. Pass overrides to start from other values, such as an existing record: `init({ email: 'reader@example.com' })`. Fields you leave out use their `initial` input.
 
-`reset` returns every field to its default and clears errors, interaction state, the submission, and the attempt count. `reinitialize(overrides)` loads a different record into an existing Form: it replaces the defaults, then resets.
+`reset` returns every field to its default and clears errors, interaction state, the submission, and the attempt count. `reinitialize(overrides)` loads a different record into an existing Form: it replaces the defaults, then resets. Fields the overrides leave out get their `initial` input, so `reinitialize({})` returns every field to its `initial` input, while `reset` returns to the defaults the Form was built or last reinitialized with.
 
 Use `init` only when building a new parent Model. Replacing a live Form with `init()` forgets which attempts and checks it already started, so a late result from before the replacement could be taken for a new one. `reset` and `reinitialize` remember them.
 
@@ -221,6 +237,8 @@ Render from the Form's selectors, not from its Model:
 - `fieldView(model, name)` returns the field's `input`, `maybeValue`, `errors`, and `meta`.
 - `inputs(model)` returns every field's input by name.
 - `submission(model)` returns the submission state.
+- `isSubmitPending(model)` returns true while the submission is `Validating` or `Submitting`, for example to disable the submit button.
+- `formError(model)` returns the submission error that no field shows, covered in [Show Submission Errors on Fields](#show-submission-errors-on-fields).
 - `submitCount(model)` returns the number of attempts since the Form was built, reset, or reinitialized.
 
 ::Snippet{name="formView" label="Form fields rendered with input and blur events"}
@@ -234,9 +252,15 @@ Render `input` in the control and send each new input with `changed`. Send `blur
 - `isTouched` is true when the field is edited or blurred.
 - `isDefaultInput` is true when the input equals the default, comparing arrays and records by content.
 
+### Change Several Fields
+
+Some controls change more than one field. For example, turning off email updates also turns off the weekly digest. `changedFields` creates one Message with an input for each field it names. Its update marks each of those fields edited, checks each one the way `changed` does, and returns the Commands of every check together. The parent folds one Message instead of one for each field.
+
+::Snippet{name="formChangedFields" label="Two fields changed by one click"}
+
 ## Test Form Commands
 
-Story and Scene tests can match and resolve `registrationForm.Submit` and `registrationForm.ValidateField.<field>` without running their Effects. `Submit` takes the decoded `values`, the `context`, and the attempt's `generation`. `ValidateField` has a Command for each field with a `validate` Effect. It takes the field's `value` and the check's `generation`.
+Story and Scene tests can match and resolve `registrationForm.Submit` and `registrationForm.ValidateField.<field>` without running their Effects. `Submit` takes the decoded `values` and the attempt's `generation`, plus the `context` when the Form has a `context` Schema. `ValidateField` has a Command for each field with a `validate` Effect. It takes the field's `value` and the check's `generation`.
 
 Start these Commands with `submit` and field changes, not by calling them directly. A direct call skips the Form update, so Form isn't waiting for its result and ignores it.
 

@@ -1,10 +1,11 @@
-export { define, field } from './form.js'
+export { define, field, picked } from './form.js'
 export type {
   FieldConfig,
   FieldDefinition,
   FieldErrors,
   FieldSchema,
   FieldSchemas,
+  FieldValues,
   FieldView,
   FoldOutMessage,
   FormDefinition,

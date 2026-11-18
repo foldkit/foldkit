@@ -1,4 +1,4 @@
-import { Effect, Match, Result, Schema } from 'effect'
+import { Effect, Match, Option, Result, Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import * as FieldValidation from '../../fieldValidation/index.js'
@@ -69,8 +69,9 @@ describe('submission errors mapped to fields', () => {
       'ada@example.com is already registered',
     ])
     expect(signupForm.submission(rejection.model)).toEqual(
-      signupForm.Submission.Failed({ error }),
+      signupForm.Submission.Failed({ error, isShownOnFields: true }),
     )
+    expect(signupForm.formError(rejection.model)).toEqual(Option.none())
     expect(rejection.outMessage).toEqual(
       signupForm.OutMessage.FailedSubmit({ error }),
     )
@@ -83,8 +84,9 @@ describe('submission errors mapped to fields', () => {
     expect(signupForm.fieldView(rejection.model, 'email').errors).toEqual([])
     expect(signupForm.fieldView(rejection.model, 'invite').errors).toEqual([])
     expect(signupForm.submission(rejection.model)).toEqual(
-      signupForm.Submission.Failed({ error }),
+      signupForm.Submission.Failed({ error, isShownOnFields: false }),
     )
+    expect(signupForm.formError(rejection.model)).toEqual(Option.some(error))
     expect(rejection.outMessage).toEqual(
       signupForm.OutMessage.FailedSubmit({ error }),
     )
@@ -133,6 +135,21 @@ describe('submission errors mapped to fields', () => {
     )
 
     expect(signupForm.fieldView(rejection.model, 'invite').errors).toEqual([])
+  })
+
+  it('returns a mapped error as the form error when no field shows it', () => {
+    const attempt = signupForm.submit(signupForm.init())
+    const change = signupForm.update(
+      attempt.model,
+      signupForm.changed('invite', 'INVITE-2'),
+    )
+    const error = new InviteExpired({})
+    const rejection = signupForm.update(
+      change.model,
+      completedSubmitFailure(error),
+    )
+
+    expect(signupForm.formError(rejection.model)).toEqual(Option.some(error))
   })
 
   it('maps an error to a field whose input changed back to what was sent', () => {
@@ -231,5 +248,33 @@ describe('submission errors mapped to fields', () => {
     expect(specialForm.fieldView(rejection.model, 'toString').errors).toEqual(
       [],
     )
+  })
+})
+
+describe('form error', () => {
+  it('returns every error of a Form without toFieldErrors', () => {
+    const noteForm = Form.define({
+      name: 'Note',
+      fields: { note: Form.field({ schema: Schema.String, initial: 'Hi' }) },
+      submit: { error: Schema.String, execute: () => Effect.void },
+    })
+    const rejection = noteForm.update(
+      noteForm.submit(noteForm.init()).model,
+      noteForm.Message.CompletedSubmit({
+        generation: 1,
+        result: Result.fail('Unavailable'),
+      }),
+    )
+
+    expect(noteForm.formError(rejection.model)).toEqual(
+      Option.some('Unavailable'),
+    )
+  })
+
+  it('returns None until the submission fails', () => {
+    const attempt = signupForm.submit(signupForm.init())
+
+    expect(signupForm.formError(signupForm.init())).toEqual(Option.none())
+    expect(signupForm.formError(attempt.model)).toEqual(Option.none())
   })
 })

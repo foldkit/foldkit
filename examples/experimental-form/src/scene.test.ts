@@ -2,6 +2,7 @@ import { Result } from 'effect'
 import {
   Command,
   blur,
+  change,
   click,
   expect,
   given,
@@ -33,6 +34,7 @@ test('ordinary inputs submit through the Form Command and render success', () =>
     type(role('textbox', { name: 'Registration email' }), 'person@example.com'),
     type(role('textbox', { name: 'Your name' }), 'Person'),
     type(role('textbox', { name: 'Your age' }), '30'),
+    change(role('combobox', { name: 'Main topic' }), 'Effect'),
     click(role('button', { name: 'Register' })),
     Command.resolve(
       registrationForm.ValidateField.email,
@@ -58,6 +60,7 @@ test('a taken email shows on the email field until the email changes', () => {
     type(role('textbox', { name: 'Registration email' }), 'taken@example.com'),
     type(role('textbox', { name: 'Your name' }), 'Person'),
     type(role('textbox', { name: 'Your age' }), '30'),
+    change(role('combobox', { name: 'Main topic' }), 'Effect'),
     click(role('button', { name: 'Register' })),
     Command.resolve(
       registrationForm.ValidateField.email,
@@ -70,7 +73,8 @@ test('a taken email shows on the email field until the email changes', () => {
         result: Result.fail(RegistrationRejection.EmailTaken()),
       }),
     ),
-    expect(text('Fix the email field')).toExist(),
+    expect(text('Not registered')).toExist(),
+    expect(role('alert')).not.toExist(),
     expect(
       role('textbox', { name: 'Registration email' }),
     ).toHaveAccessibleDescription('This email is already registered'),
@@ -90,6 +94,7 @@ test('invalid submission shows untouched required-field errors', () => {
     expect(text('Enter an email address')).toExist(),
     expect(text('Enter your name')).toExist(),
     expect(text('Enter your age')).toExist(),
+    expect(text('Choose a main topic')).toExist(),
   )
 })
 
@@ -176,5 +181,44 @@ test('profile checkboxes render the array field and reset restores its default',
     click(role('button', { name: 'Reset profile' })),
     expect(role('checkbox', { name: 'Effect' })).not.toBeChecked(),
     expect(role('checkbox', { name: 'Foldkit' })).not.toBeChecked(),
+  )
+})
+
+test('an unavailable registration shows as an alert above the form status', () => {
+  scene(
+    { update, view },
+    given(init().model),
+    type(role('textbox', { name: 'Registration email' }), 'person@example.com'),
+    type(role('textbox', { name: 'Your name' }), 'Person'),
+    type(role('textbox', { name: 'Your age' }), '30'),
+    change(role('combobox', { name: 'Main topic' }), 'Foldkit'),
+    click(role('button', { name: 'Register' })),
+    Command.resolve(
+      registrationForm.ValidateField.email,
+      completedValidateRegistrationEmail(),
+    ),
+    Command.resolve(
+      registrationForm.Submit,
+      registrationForm.Message.CompletedSubmit({
+        generation: 1,
+        result: Result.fail(RegistrationRejection.RegistrationUnavailable()),
+      }),
+    ),
+    expect(role('alert')).toHaveText(
+      'Registration is unavailable. Try again later.',
+    ),
+  )
+})
+
+test('the email checkboxes change together', () => {
+  scene(
+    { update, view },
+    given(init().model),
+    click(role('checkbox', { name: 'Weekly digest' })),
+    expect(role('checkbox', { name: 'Email me updates' })).toBeChecked(),
+    expect(role('checkbox', { name: 'Weekly digest' })).toBeChecked(),
+    click(role('checkbox', { name: 'Email me updates' })),
+    expect(role('checkbox', { name: 'Email me updates' })).not.toBeChecked(),
+    expect(role('checkbox', { name: 'Weekly digest' })).not.toBeChecked(),
   )
 })

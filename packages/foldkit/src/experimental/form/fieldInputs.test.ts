@@ -283,7 +283,6 @@ describe('optional inputs', () => {
     expect(blankSubmit.commands?.map(command => command.args)).toEqual([
       {
         values: { nickname: Option.none() },
-        context: undefined,
         generation: 1,
       },
     ])
@@ -347,7 +346,7 @@ describe('overrides', () => {
     expect(presenceForm.inputs(presenceForm.init()).note).toBe('Configured')
     expect(
       presenceForm.inputs(
-        presenceForm.reinitialize(presenceForm.init({ note: null })).model,
+        presenceForm.reinitialize(presenceForm.init({ note: null }), {}).model,
       ).note,
     ).toBe('Configured')
   })
@@ -438,5 +437,107 @@ describe('field metadata', () => {
       isEdited: false,
       isDefaultInput: true,
     })
+  })
+})
+
+describe('picked inputs', () => {
+  const Role = Schema.Literals(['Admin', 'Member'])
+  const roleForm = Form.define({
+    name: 'RoleChoice',
+    submit: voidSubmit,
+    fields: {
+      role: Form.field({
+        schema: Form.picked(Role, 'Choose a role'),
+        initial: null,
+      }),
+    },
+  })
+
+  it('shows the message for a null input', () => {
+    const attempt = roleForm.submit(roleForm.init())
+
+    expect(roleForm.fieldView(attempt.model, 'role').errors).toEqual([
+      'Choose a role',
+    ])
+    expect(roleForm.submission(attempt.model)._tag).toBe('Idle')
+  })
+
+  it('decodes a picked input into the value', () => {
+    const change = roleForm.update(
+      roleForm.init(),
+      roleForm.changed('role', 'Admin'),
+    )
+
+    expect(roleForm.fieldView(change.model, 'role')).toMatchObject({
+      maybeValue: Option.some('Admin'),
+      errors: [],
+    })
+  })
+
+  it('submits the picked value', () => {
+    const change = roleForm.update(
+      roleForm.init(),
+      roleForm.changed('role', 'Member'),
+    )
+    const attempt = roleForm.submit(change.model)
+
+    expect(attempt.commands?.map(command => command.args)).toEqual([
+      { values: { role: 'Member' }, generation: 1 },
+    ])
+  })
+
+  it('encodes a value override into the picked input', () => {
+    expect(roleForm.inputs(roleForm.init({ role: 'Member' })).role).toBe(
+      'Member',
+    )
+  })
+
+  it('decodes a picked input whose input and value differ', () => {
+    const countForm = Form.define({
+      name: 'PickedCount',
+      submit: voidSubmit,
+      fields: {
+        count: Form.field({
+          schema: Form.picked(
+            Schema.FiniteFromString.annotate({ message: 'Enter a number' }),
+            'Choose a count',
+          ),
+          initial: null,
+        }),
+      },
+    })
+    const change = countForm.update(
+      countForm.init(),
+      countForm.changed('count', '12a'),
+    )
+
+    expect(countForm.inputs(countForm.init({ count: 3 })).count).toBe('3')
+    expect(countForm.fieldView(change.model, 'count').errors).toEqual([
+      'Enter a number',
+    ])
+  })
+
+  it('checks the inner Schema of a picked input', () => {
+    const LongName = Schema.String.check(
+      Schema.isMinLength(3, { message: 'Too short' }),
+    )
+    const nameForm = Form.define({
+      name: 'PickedName',
+      submit: voidSubmit,
+      fields: {
+        name: Form.field({
+          schema: Form.picked(LongName, 'Choose a name'),
+          initial: null,
+        }),
+      },
+    })
+    const change = nameForm.update(
+      nameForm.init(),
+      nameForm.changed('name', 'Al'),
+    )
+
+    expect(nameForm.fieldView(change.model, 'name').errors).toEqual([
+      'Too short',
+    ])
   })
 })

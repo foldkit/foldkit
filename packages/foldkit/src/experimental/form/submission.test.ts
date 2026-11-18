@@ -68,7 +68,6 @@ describe('submission attempts', () => {
     expect(attempt.commands?.map(command => command.args)).toEqual([
       {
         values: { email: 'ada@example.com', accepted: true },
-        context: undefined,
         generation: 1,
       },
     ])
@@ -99,6 +98,30 @@ describe('submission attempts', () => {
     )
 
     expect(profileForm.submitCount(validSubmit.model)).toBe(2)
+  })
+
+  it('reports a submission as pending while Validating or Submitting', () => {
+    const change = checkedUsernameForm.update(
+      checkedUsernameForm.init(),
+      checkedUsernameForm.changed('username', 'grace'),
+    )
+    const validating = checkedUsernameForm.submit(change.model)
+    const submitting = checkedUsernameForm.update(
+      validating.model,
+      completedValidateUsername(1),
+    )
+    const settled = checkedUsernameForm.update(
+      submitting.model,
+      checkedUsernameForm.Message.CompletedSubmit({
+        generation: 1,
+        result: Result.succeed(undefined),
+      }),
+    )
+
+    expect(checkedUsernameForm.isSubmitPending(change.model)).toBe(false)
+    expect(checkedUsernameForm.isSubmitPending(validating.model)).toBe(true)
+    expect(checkedUsernameForm.isSubmitPending(submitting.model)).toBe(true)
+    expect(checkedUsernameForm.isSubmitPending(settled.model)).toBe(false)
   })
 
   it('ignores submit while an attempt is pending', () => {
@@ -323,7 +346,10 @@ describe('submission results', () => {
     )
 
     expect(profileForm.submission(settled.model)).toEqual(
-      profileForm.Submission.Failed({ error: 'Unavailable' }),
+      profileForm.Submission.Failed({
+        error: 'Unavailable',
+        isShownOnFields: false,
+      }),
     )
     expect(settled.outMessage).toEqual(
       profileForm.OutMessage.FailedSubmit({ error: 'Unavailable' }),
@@ -352,7 +378,7 @@ describe('submission results', () => {
       const cleared =
         operation === 'reset'
           ? profileForm.reset(firstSubmit.model)
-          : profileForm.reinitialize(firstSubmit.model)
+          : profileForm.reinitialize(firstSubmit.model, {})
       const secondSubmit = profileForm.submit(cleared.model)
       const stale = profileForm.update(
         secondSubmit.model,
@@ -405,6 +431,38 @@ describe('submission context', () => {
       { name: 'Ada' },
       { recordId: 'profile-1' },
     )
+  })
+
+  it('includes the context in the Submit Command arguments', () => {
+    const editingForm = Form.define({
+      name: 'EditingArgs',
+      fields: { name: Form.field({ schema: Schema.String, initial: 'Ada' }) },
+      submit: { context: RecordContext, execute: () => Effect.void },
+    })
+    const attempt = editingForm.submit(editingForm.init(), {
+      recordId: 'profile-1',
+    })
+
+    expect(attempt.commands?.map(command => command.args)).toEqual([
+      {
+        values: { name: 'Ada' },
+        context: { recordId: 'profile-1' },
+        generation: 1,
+      },
+    ])
+  })
+
+  it('leaves the context out of the Submit Command arguments for a void context Schema', () => {
+    const voidContextForm = Form.define({
+      name: 'VoidContext',
+      fields: { name: Form.field({ schema: Schema.String, initial: 'Ada' }) },
+      submit: { context: Schema.Void, execute: () => Effect.void },
+    })
+    const attempt = voidContextForm.submit(voidContextForm.init())
+
+    expect(attempt.commands?.map(command => command.args)).toEqual([
+      { values: { name: 'Ada' }, generation: 1 },
+    ])
   })
 
   it('keeps the context while field checks are pending', () => {

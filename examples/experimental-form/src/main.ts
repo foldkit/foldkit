@@ -1,4 +1,11 @@
-import { Array, Duration, Effect, Schema, SchemaTransformation } from 'effect'
+import {
+  Array,
+  Duration,
+  Effect,
+  Option,
+  Schema,
+  SchemaTransformation,
+} from 'effect'
 import { Runtime, Update } from 'foldkit'
 import { Form } from 'foldkit/experimental'
 import { makeRules } from 'foldkit/fieldValidation'
@@ -58,6 +65,9 @@ const saveProfile = (
 const Topic = Schema.Literals(['Foldkit', 'Effect', 'Accessibility'])
 type Topic = typeof Topic.Type
 
+const toTopicInput = (value: string): Topic | null =>
+  Option.getOrNull(Schema.decodeUnknownOption(Topic)(value))
+
 const AgeInput = Schema.Trim.check(
   Schema.isNonEmpty({ message: 'Enter your age' }),
 ).pipe(
@@ -85,6 +95,10 @@ export const registrationForm = Form.define({
         rules: [[age => age >= MIN_AGE, `You must be at least ${MIN_AGE}`]],
       }),
     }),
+    mainTopic: Form.field({
+      schema: Form.picked(Topic, 'Choose a main topic'),
+      initial: null,
+    }),
   },
   submit: {
     data: Schema.String,
@@ -102,6 +116,8 @@ export const profileForm = Form.define({
   fields: {
     email: emailField,
     topics: Form.field({ schema: Schema.Array(Topic), initial: [] }),
+    isSubscribed: Form.field({ schema: Schema.Boolean, initial: false }),
+    isDigestEnabled: Form.field({ schema: Schema.Boolean, initial: false }),
     displayName: Form.field({
       schema: Schema.String,
       initial: '',
@@ -133,6 +149,8 @@ export const Message = defineMessageUnion({
   SubmittedRegistrationForm: {},
   SubmittedProfileForm: {},
   ClickedProfileTopic: { topic: Topic },
+  ClickedEmailUpdates: {},
+  ClickedWeeklyDigest: {},
   ClickedResetRegistration: {},
   ClickedResetProfile: {},
 })
@@ -206,6 +224,38 @@ export const update = (model: Model, message: Message) =>
 
       return profile.fold(model, profileForm.changed('topics', nextTopics))
     },
+    ClickedEmailUpdates: () => {
+      const isSubscribed = profileForm.fieldView(
+        model.profile,
+        'isSubscribed',
+      ).input
+
+      return profile.fold(
+        model,
+        isSubscribed
+          ? profileForm.changedFields({
+              isSubscribed: false,
+              isDigestEnabled: false,
+            })
+          : profileForm.changedFields({ isSubscribed: true }),
+      )
+    },
+    ClickedWeeklyDigest: () => {
+      const isDigestEnabled = profileForm.fieldView(
+        model.profile,
+        'isDigestEnabled',
+      ).input
+
+      return profile.fold(
+        model,
+        isDigestEnabled
+          ? profileForm.changedFields({ isDigestEnabled: false })
+          : profileForm.changedFields({
+              isDigestEnabled: true,
+              isSubscribed: true,
+            }),
+      )
+    },
     SubmittedProfileForm: () =>
       profile.submit({ profileId: model.profileId })(model),
     ClickedResetRegistration: () => registration.reset(model),
@@ -274,6 +324,9 @@ const successStatusView = (h: HtmlBuilder<Message>): Html =>
 const failureStatusView = (h: HtmlBuilder<Message>, text: string): Html =>
   h.p([h.Role('status'), h.Class('text-red-700')], [text])
 
+const alertView = (h: HtmlBuilder<Message>, text: string): Html =>
+  h.p([h.Role('alert'), h.Class('text-red-700')], [text])
+
 const registrationFeedbackView = (
   h: HtmlBuilder<Message>,
   submission: Form.Submission<typeof registrationForm>,
@@ -283,13 +336,14 @@ const registrationFeedbackView = (
     Validating: () => statusView(h, 'Checking fields…'),
     Submitting: () => statusView(h, 'Saving…'),
     Succeeded: () => successStatusView(h),
-    Failed: ({ error }) =>
-      RegistrationRejection.match<Html>(error, {
-        EmailTaken: () => failureStatusView(h, 'Fix the email field'),
-        RegistrationUnavailable: () =>
-          failureStatusView(h, 'Registration is unavailable. Try again later.'),
-      }),
+    Failed: () => failureStatusView(h, 'Not registered'),
   })
+
+const registrationErrorText = RegistrationRejection.match({
+  EmailTaken: () => 'This email is already registered',
+  RegistrationUnavailable: () =>
+    'Registration is unavailable. Try again later.',
+})
 
 const profileFeedbackView = (
   h: HtmlBuilder<Message>,
@@ -300,21 +354,72 @@ const profileFeedbackView = (
     Validating: () => statusView(h, 'Checking fields…'),
     Submitting: () => statusView(h, 'Saving…'),
     Succeeded: () => successStatusView(h),
-    Failed: ({ error }) => failureStatusView(h, error),
+    Failed: () => failureStatusView(h, 'Not saved'),
   })
 
-const isRegistrationPending = registrationForm.Submission.isAnyOf([
-  'Validating',
-  'Submitting',
-])
+const topicOptionView = (
+  h: HtmlBuilder<Message>,
+  topic: Topic,
+  selectedTopic: Topic | null,
+): Html =>
+  h.keyed('option')(
+    topic,
+    [h.Value(topic), h.Selected(topic === selectedTopic)],
+    [topic],
+  )
 
-const isProfilePending = profileForm.Submission.isAnyOf([
-  'Validating',
-  'Submitting',
-])
+const mainTopicView = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const mainTopicFieldView = registrationForm.fieldView(
+    model.registration,
+    'mainTopic',
+  )
+  const isInvalid = Array.isReadonlyArrayNonEmpty(mainTopicFieldView.errors)
+
+  return h.div(
+    [h.Class('space-y-1')],
+    [
+      h.label(
+        [h.For('registration-main-topic'), h.Class('block font-medium')],
+        ['Main topic'],
+      ),
+      h.select(
+        [
+          h.Id('registration-main-topic'),
+          h.AriaInvalid(isInvalid),
+          h.AriaDescribedBy('registration-main-topic-errors'),
+          h.Class('w-full rounded border border-slate-300 px-3 py-2'),
+          h.OnChange(value =>
+            toRegistrationMessage(
+              registrationForm.changed('mainTopic', toTopicInput(value)),
+            ),
+          ),
+          h.OnBlur(
+            toRegistrationMessage(registrationForm.blurred('mainTopic')),
+          ),
+        ],
+        [
+          h.option(
+            [h.Value(''), h.Selected(mainTopicFieldView.input === null)],
+            ['Choose a topic'],
+          ),
+          ...Array.map(Topic.literals, topic =>
+            topicOptionView(h, topic, mainTopicFieldView.input),
+          ),
+        ],
+      ),
+      h.div(
+        [h.Id('registration-main-topic-errors')],
+        Array.map(mainTopicFieldView.errors, error =>
+          h.p([h.Class('text-sm text-red-700')], [error]),
+        ),
+      ),
+    ],
+  )
+}
 
 const registrationView = (model: Model, h: HtmlBuilder<Message>): Html => {
   const submission = registrationForm.submission(model.registration)
+  const maybeFormError = registrationForm.formError(model.registration)
 
   return h.section(
     [
@@ -355,10 +460,11 @@ const registrationView = (model: Model, h: HtmlBuilder<Message>): Html => {
               toRegistrationMessage(registrationForm.changed('age', input)),
             onBlur: toRegistrationMessage(registrationForm.blurred('age')),
           }),
+          mainTopicView(model, h),
           h.button(
             [
               h.Type('submit'),
-              h.Disabled(isRegistrationPending(submission)),
+              h.Disabled(registrationForm.isSubmitPending(model.registration)),
               h.Class('rounded bg-indigo-700 px-4 py-2 text-white'),
             ],
             ['Register'],
@@ -374,6 +480,11 @@ const registrationView = (model: Model, h: HtmlBuilder<Message>): Html => {
         ],
       ),
       registrationFeedbackView(h, submission),
+      ...Option.toArray(
+        Option.map(maybeFormError, error =>
+          alertView(h, registrationErrorText(error)),
+        ),
+      ),
       h.p(
         [h.Class('text-sm')],
         [`Attempts: ${registrationForm.submitCount(model.registration)}`],
@@ -410,9 +521,30 @@ const topicCheckboxView = (
     ],
   )
 
+const checkboxView = (
+  h: HtmlBuilder<Message>,
+  id: string,
+  label: string,
+  isChecked: boolean,
+  onClick: Message,
+): Html =>
+  h.label(
+    [h.For(id), h.Class('flex items-center gap-2')],
+    [
+      h.input([
+        h.Id(id),
+        h.Type('checkbox'),
+        h.Checked(isChecked),
+        h.OnClick(onClick),
+      ]),
+      label,
+    ],
+  )
+
 const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
   const topicsFieldView = profileForm.fieldView(model.profile, 'topics')
   const submission = profileForm.submission(model.profile)
+  const maybeFormError = profileForm.formError(model.profile)
 
   return h.section(
     [
@@ -453,10 +585,30 @@ const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
               ),
             ],
           ),
+          h.fieldset(
+            [h.Class('space-y-2')],
+            [
+              h.legend([h.Class('font-medium')], ['Email']),
+              checkboxView(
+                h,
+                'profile-email-updates',
+                'Email me updates',
+                profileForm.fieldView(model.profile, 'isSubscribed').input,
+                Message.ClickedEmailUpdates(),
+              ),
+              checkboxView(
+                h,
+                'profile-weekly-digest',
+                'Weekly digest',
+                profileForm.fieldView(model.profile, 'isDigestEnabled').input,
+                Message.ClickedWeeklyDigest(),
+              ),
+            ],
+          ),
           h.button(
             [
               h.Type('submit'),
-              h.Disabled(isProfilePending(submission)),
+              h.Disabled(profileForm.isSubmitPending(model.profile)),
               h.Class('rounded bg-indigo-700 px-4 py-2 text-white'),
             ],
             ['Save profile'],
@@ -472,6 +624,9 @@ const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
         ],
       ),
       profileFeedbackView(h, submission),
+      ...Option.toArray(
+        Option.map(maybeFormError, error => alertView(h, error)),
+      ),
       h.p(
         [h.Class('text-sm')],
         [`Attempts: ${profileForm.submitCount(model.profile)}`],
@@ -492,7 +647,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           h.p(
             [],
             [
-              'Two Forms share one email field definition. Try blocked@example.com for the async email check, taken@example.com for a server error on the registration email field, or down@example.com for an error on the whole form. Type 12a as an age to see a typed field keep your text. Reset while saving and the late result is ignored.',
+              'Two Forms share one email field definition. Try blocked@example.com for the async email check, taken@example.com for a server error on the registration email field, or down@example.com for an error on the whole form. Type 12a as an age to see a typed field keep your text. Turning off email updates also turns off the weekly digest. Reset while saving and the late result is ignored.',
             ],
           ),
           registrationView(model, h),

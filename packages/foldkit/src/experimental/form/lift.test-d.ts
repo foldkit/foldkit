@@ -292,7 +292,7 @@ const lensTypeChecks = (model: ExtendedParent) => {
     foldOutMessage: foldProfileOutMessage<ExtendedParent>(),
   })
   expectTypeOf(
-    extendedProfile.reinitialize()(model).model.form.recordId,
+    extendedProfile.reinitialize({})(model).model.form.recordId,
   ).toEqualTypeOf<string>()
 
   const parentField: 'form' = 'form'

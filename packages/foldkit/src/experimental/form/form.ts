@@ -3,16 +3,18 @@ import {
   Effect,
   Number,
   Option,
+  Predicate,
   Record,
   Result,
   Schema,
+  SchemaAST,
   SchemaIssue,
   SchemaParser,
   SchemaTransformation,
   String,
   Struct,
 } from 'effect'
-import type { Equivalence, SchemaAST } from 'effect'
+import type { Equivalence } from 'effect'
 import type { Simplify } from 'effect/Types'
 
 import * as Command from '../../command/index.js'
@@ -339,6 +341,29 @@ export function field<S extends FieldSchema, R = never>(
   }
 }
 
+/** A field Schema for a control that holds `null` until the person picks a
+ * value, such as a select with an empty option. The input is the Schema's
+ * input or `null`, and the value is the Schema's value. A `null` input fails
+ * with `message`.
+ *
+ * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
+ */
+export const picked = <S extends FieldSchema>(schema: S, message: string) =>
+  Schema.NullOr(schema).pipe(
+    Schema.decodeTo(
+      Schema.toType(schema),
+      SchemaTransformation.transformEffect({
+        decode: (input: S['Type'] | null, options) =>
+          Predicate.isNull(input)
+            ? Effect.fail(
+                new SchemaIssue.InvalidValue({ message }, input, options),
+              )
+            : Effect.succeed(input),
+        encode: (pickedValue: S['Type']) => Effect.succeed(pickedValue),
+      }),
+    ),
+  )
+
 /** What a view needs to render a field. Put `input` in the control.
  * `maybeValue` is the decoded value whenever the input decodes, even if a rule
  * fails. `meta.isTouched` turns true once the field is edited or blurred.
@@ -423,6 +448,26 @@ export type FormValues<Schemas extends FieldSchemas> = Schema.Struct.View<
   never,
   never
 >
+
+type SchemasOfFields<Fields> = {
+  readonly [Name in keyof Fields & string]: Fields[Name] extends Readonly<{
+    schema: infer S extends FieldSchema
+  }>
+    ? S
+    : never
+}
+
+/** Decoded values by name for a fields object, the values `execute` receives
+ * when the Form uses those fields. Declare the fields before `Form.define` to
+ * type a helper that `execute` calls: `Form.FieldValues<typeof fields>`.
+ * `Form.Values<typeof form>` can't type it, because the Form would refer to
+ * itself inside its own definition.
+ *
+ * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
+ */
+export type FieldValues<
+  Fields extends Readonly<Record<string, Readonly<{ schema: FieldSchema }>>>,
+> = FormValues<SchemasOfFields<Fields>>
 
 /** Field inputs by name: what each control holds.
  *
@@ -531,6 +576,11 @@ function FormMessage<
         Array.map(Struct.keys(Changes), name => Changes[name]),
       ),
     },
+    ChangedFields: {
+      changes: Schema.Array(
+        Schema.Union(Array.map(Struct.keys(Changes), name => Changes[name])),
+      ),
+    },
     BlurredField: { name: Schema.Literals(fieldNames) },
     CompletedSubmit: {
       generation: Schema.Number,
@@ -565,7 +615,7 @@ const Submission = <A, AI, E, EI, Context, ContextEncoded, Inputs>(
     Validating: { generation: Schema.Number, context: toTypedMake(context) },
     Submitting: { generation: Schema.Number, inputs },
     Succeeded: { data: toTypedMake(data) },
-    Failed: { error: toTypedMake(error) },
+    Failed: { error: toTypedMake(error), isShownOnFields: Schema.Boolean },
   })
 
 type SubmissionUnion<Schemas extends FieldSchemas, A, E, Context> = ReturnType<
@@ -687,8 +737,23 @@ type FormOutMessage<A, AI, E, EI> = ReturnType<
   typeof FormOutMessage<A, AI, E, EI>
 >
 
-type Overrides<Schemas extends FieldSchemas, Provided> = Provided &
+type ExactFields<Schemas extends FieldSchemas, Provided> = Provided &
   Record<Exclude<keyof Provided, keyof Schemas>, never>
+
+type SubmitCommandArgs<
+  Schemas extends FieldSchemas,
+  Context,
+  ContextEncoded,
+> = [Context] extends [void]
+  ? {
+      readonly values: Schema.Codec<FormValues<Schemas>, FormInputs<Schemas>>
+      readonly generation: typeof Schema.Number
+    }
+  : {
+      readonly values: Schema.Codec<FormValues<Schemas>, FormInputs<Schemas>>
+      readonly context: Schema.Codec<Context, ContextEncoded>
+      readonly generation: typeof Schema.Number
+    }
 
 /** Folds a Form's OutMessage into the parent. The Step receives the parent
  * Model with the Form already updated. A parent that is itself a Submodel can
@@ -783,9 +848,10 @@ type LiftedFormOf<
   >
   /** Restores the defaults and clears errors, interaction, and submission state. */
   reset: Update.Step<ParentModel, ParentMessage>
-  /** Replaces the defaults, then resets. */
+  /** Replaces the defaults with each field's `initial` input updated by
+   * `overrides`, then resets. Pass `{}` to return to the `initial` inputs. */
   reinitialize: <Provided extends Partial<FormValues<Schemas>>>(
-    overrides?: Overrides<Schemas, Provided>,
+    overrides: ExactFields<Schemas, Provided>,
   ) => Update.Step<ParentModel, ParentMessage>
   /** Returns a Step for a new attempt. Its Commands are the field checks, or
    * the submission when every field passes without an async check. */
@@ -862,15 +928,13 @@ interface FormDefinitionOf<
   >
   /** Schema that decodes field inputs into the submitted values. */
   readonly Values: Schema.Codec<FormValues<Schemas>, FormInputs<Schemas>>
-  /** The submission Command, for matching in Story and Scene tests. Start
-   * attempts with `submit`, which keeps the Model in step with the Command. */
+  /** The submission Command, for matching in Story and Scene tests. It takes
+   * `values` and `generation`, plus `context` when the Form has a
+   * `submit.context` Schema. Start attempts with `submit`, which keeps the
+   * Model in step with the Command. */
   readonly Submit: Command.CommandDefinitionWithArgs<
     `Submit${FormName}`,
-    {
-      readonly values: Schema.Codec<FormValues<Schemas>, FormInputs<Schemas>>
-      readonly context: Schema.Codec<Context, ContextEncoded>
-      readonly generation: typeof Schema.Number
-    },
+    SubmitCommandArgs<Schemas, Context, ContextEncoded>,
     Effect.Effect<
       FormMessage<Schemas, A, AI, E, EI>['CompletedSubmit']['Type'],
       never,
@@ -890,12 +954,18 @@ interface FormDefinitionOf<
    * To replace a live Form, use `reset` or `reinitialize` instead, so a late
    * result from before can't be mistaken for a new one. */
   readonly init: <Provided extends Partial<FormValues<Schemas>>>(
-    overrides?: Overrides<Schemas, Provided>,
+    overrides?: ExactFields<Schemas, Provided>,
   ) => FormModel<Schemas, A, E, Context>
   /** Creates the Message for a field's new input. */
   readonly changed: (
     ...args: ChangeArgs<Schemas>
   ) => FormMessage<Schemas, A, AI, E, EI>['ChangedField']['Type']
+  /** Creates one Message that changes several fields' inputs. Its update
+   * marks each changed field edited and checks it the way `changed` does, and
+   * returns the Commands of every check together. */
+  readonly changedFields: <Provided extends Partial<FormInputs<Schemas>>>(
+    changes: ExactFields<Schemas, Provided>,
+  ) => FormMessage<Schemas, A, AI, E, EI>['ChangedFields']['Type']
   /** Creates the Message for a field losing focus. */
   readonly blurred: (
     name: keyof Schemas & string,
@@ -913,6 +983,16 @@ interface FormDefinitionOf<
   readonly submission: (
     model: FormModel<Schemas, A, E, Context>,
   ) => SubmissionUnion<Schemas, A, E, Context>['Type']
+  /** Returns true while the submission is `Validating` or `Submitting`. */
+  readonly isSubmitPending: (
+    model: FormModel<Schemas, A, E, Context>,
+  ) => boolean
+  /** Returns the error of a `Failed` submission when no field shows it, and
+   * `None` otherwise. A field shows the error when `toFieldErrors` gives it a
+   * message and its input still matches what was sent. */
+  readonly formError: (
+    model: FormModel<Schemas, A, E, Context>,
+  ) => Option.Option<E>
   /** Returns the number of submit attempts since init, reset, or reinitialize.
    * A submit while one is pending isn't counted. */
   readonly submitCount: (model: FormModel<Schemas, A, E, Context>) => number
@@ -934,10 +1014,11 @@ interface FormDefinitionOf<
     FormModel<Schemas, A, E, Context>,
     FormMessage<Schemas, A, AI, E, EI>['Type']
   >
-  /** Replaces the defaults, then resets. */
+  /** Replaces the defaults with each field's `initial` input updated by
+   * `overrides`, then resets. Pass `{}` to return to the `initial` inputs. */
   readonly reinitialize: <Provided extends Partial<FormValues<Schemas>>>(
     model: FormModel<Schemas, A, E, Context>,
-    overrides?: Overrides<Schemas, Provided>,
+    overrides: ExactFields<Schemas, Provided>,
   ) => Update.Return<
     FormModel<Schemas, A, E, Context>,
     FormMessage<Schemas, A, AI, E, EI>['Type']
@@ -1210,15 +1291,82 @@ export function define<
   const Message = FormMessage(fieldDefinitions, data, error)
   const OutMessage = FormOutMessage(data, error)
 
-  const Submit = Command.define(`Submit${config.name}`, {
-    args: { values: Values, context, generation: Schema.Number },
-    messages: [Message.CompletedSubmit],
-    execute: ({ values, context, generation }) =>
-      config.submit.execute(values, context).pipe(
-        Effect.result,
-        Effect.map(result => Message.CompletedSubmit({ generation, result })),
-      ),
-  })
+  const executeSubmit = (
+    values: FormValues<Schemas>,
+    submitContext: Context,
+    generation: number,
+  ) =>
+    config.submit.execute(values, submitContext).pipe(
+      Effect.result,
+      Effect.map(result => Message.CompletedSubmit({ generation, result })),
+    )
+
+  const submitCommandName = `Submit${config.name}`
+
+  type PublicSubmit = FormDefinitionOf<
+    Schemas,
+    A,
+    AI,
+    E,
+    EI,
+    Context,
+    ContextEncoded,
+    SubmitRequirements,
+    FieldRequirements,
+    string,
+    never
+  >['Submit']
+
+  // NOTE: the public type reads whether Submit takes a context from Context,
+  // which is void for a missing, `Schema.Void`, or `Schema.Undefined` context
+  // Schema. The runtime checks the same three cases.
+  const isContextDeclared =
+    config.submit.context !== undefined &&
+    !SchemaAST.isVoid(context.ast) &&
+    !SchemaAST.isUndefined(context.ast)
+
+  const makeSubmitCommand = (): Readonly<{
+    Submit: PublicSubmit
+    toSubmitCommand: (
+      values: FormValues<Schemas>,
+      submitContext: Context,
+      generation: number,
+    ) => Command.Command<Message, never, SubmitRequirements>
+  }> => {
+    if (!isContextDeclared) {
+      const SubmitWithoutContext = Command.define(submitCommandName, {
+        args: { values: Values, generation: Schema.Number },
+        messages: [Message.CompletedSubmit],
+        // NOTE: a Form without a context Schema has a void context.
+        execute: ({ values, generation }) =>
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          executeSubmit(values, undefined as Context, generation),
+      })
+
+      return {
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        Submit: SubmitWithoutContext as unknown as PublicSubmit,
+        toSubmitCommand: (values, _submitContext, generation) =>
+          SubmitWithoutContext({ values, generation }),
+      }
+    } else {
+      const SubmitWithContext = Command.define(submitCommandName, {
+        args: { values: Values, context, generation: Schema.Number },
+        messages: [Message.CompletedSubmit],
+        execute: ({ values, context, generation }) =>
+          executeSubmit(values, context, generation),
+      })
+
+      return {
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        Submit: SubmitWithContext as PublicSubmit,
+        toSubmitCommand: (values, submitContext, generation) =>
+          SubmitWithContext({ values, context: submitContext, generation }),
+      }
+    }
+  }
+
+  const { Submit, toSubmitCommand } = makeSubmitCommand()
 
   type Model = FormModel<Schemas, A, E, Context>
   type Message = typeof Message.Type
@@ -1387,7 +1535,7 @@ export function define<
   })
 
   function init<Provided extends Partial<FormValues<Schemas>>>(
-    overrides?: Overrides<Schemas, Provided>,
+    overrides?: ExactFields<Schemas, Provided>,
   ): Model {
     const fields = mapFields<Schemas, States, FieldRequirements>(
       fieldDefinitions,
@@ -1408,6 +1556,25 @@ export function define<
     ...[name, input]: ChangeArgs<Schemas>
   ): typeof Message.ChangedField.Type =>
     Message.ChangedField({ change: { name, input } })
+
+  type FieldChange = (typeof Message.ChangedField.Type)['change']
+
+  const changedFields = <Provided extends Partial<FormInputs<Schemas>>>(
+    changes: ExactFields<Schemas, Provided>,
+  ): typeof Message.ChangedFields.Type =>
+    Message.ChangedFields({
+      changes: Array.getSomes(
+        Array.map(fieldNames, name =>
+          Option.map(
+            Record.get(changes, name),
+            // NOTE: Record.get loses the per-key type; the input under each
+            // field name is that field's input.
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            input => ({ name, input }) as FieldChange,
+          ),
+        ),
+      ),
+    })
 
   const blurred = (
     name: keyof Schemas & string,
@@ -1447,6 +1614,19 @@ export function define<
 
   const submission = (model: Model) => model.submission
 
+  const isSubmitPending = (model: Model): boolean =>
+    SubmissionSchema.isAnyOf(['Validating', 'Submitting'])(model.submission)
+
+  const formError = (model: Model): Option.Option<E> =>
+    SubmissionSchema.matchOrElse(
+      model.submission,
+      {
+        Failed: ({ error, isShownOnFields }) =>
+          isShownOnFields ? Option.none() : Option.some(error),
+      },
+      () => Option.none(),
+    )
+
   function rejectFields(
     fields: States,
     rejection: E,
@@ -1485,38 +1665,73 @@ export function define<
     )
   }
 
+  const editField = (fields: States, change: FieldChange): States => {
+    const { name } = change
+    const state: FieldState<Schemas[typeof name]> = {
+      ...fields[name],
+      input: change.input,
+      validation: fieldDefinitions[name].Status.NotValidated(),
+      isEdited: true,
+    }
+
+    return replaceField(fields, name, state)
+  }
+
+  const checkChangedField = <FieldName extends keyof Schemas & string>(
+    fields: States,
+    name: FieldName,
+  ): FieldUpdate<Schemas[FieldName]> => {
+    const state: FieldState<Schemas[FieldName]> = fields[name]
+
+    if (fieldDefinitions[name].validateOn === 'Change') {
+      return validateField(name, state, {
+        mode: 'FirstError',
+        isSameInput: false,
+      })
+    } else {
+      return { state, maybeCommand: Option.none() }
+    }
+  }
+
+  function changeFields(
+    model: Model,
+    changes: ReadonlyArray<FieldChange>,
+  ): UpdateReturn {
+    if (Array.isReadonlyArrayEmpty(changes)) {
+      return { model }
+    }
+
+    const editedFields = Array.reduce(changes, model.fields, editField)
+    const changedNames = Array.dedupe(Array.map(changes, ({ name }) => name))
+    const fieldChecks = Array.map(changedNames, name =>
+      checkChangedField(editedFields, name),
+    )
+    const nextFields = Array.reduce(
+      Array.zip(changedNames, fieldChecks),
+      editedFields,
+      (fields, [name, fieldCheck]) =>
+        replaceField(fields, name, fieldCheck.state),
+    )
+    const nextSubmission =
+      model.submission._tag === 'Submitting'
+        ? model.submission
+        : SubmissionSchema.Idle()
+
+    return {
+      model: modifyFields(model, {
+        fields: () => nextFields,
+        submission: () => nextSubmission,
+      }),
+      commands: Array.getSomes(
+        Array.map(fieldChecks, ({ maybeCommand }) => maybeCommand),
+      ),
+    }
+  }
+
   const update = (model: Model, message: Message): UpdateReturn =>
     Message.match<UpdateReturn>(message, {
-      ChangedField({ change }) {
-        const { name } = change
-        const definition = fieldDefinitions[name]
-        const state: FieldState<Schemas[typeof name]> = {
-          ...model.fields[name],
-          input: change.input,
-          validation: definition.Status.NotValidated(),
-          isEdited: true,
-        }
-
-        const fieldChange: FieldUpdate<Schemas[typeof name]> =
-          definition.validateOn === 'Change'
-            ? validateField(name, state, {
-                mode: 'FirstError',
-                isSameInput: false,
-              })
-            : { state, maybeCommand: Option.none() }
-        const nextSubmission =
-          model.submission._tag === 'Submitting'
-            ? model.submission
-            : SubmissionSchema.Idle()
-
-        return {
-          model: modifyFields(model, {
-            fields: fields => replaceField(fields, name, fieldChange.state),
-            submission: () => nextSubmission,
-          }),
-          commands: Option.toArray(fieldChange.maybeCommand),
-        }
-      },
+      ChangedField: ({ change }) => changeFields(model, [change]),
+      ChangedFields: ({ changes }) => changeFields(model, changes),
       BlurredField({ name }) {
         const state: FieldState<Schemas[typeof name]> = model.fields[name]
         const fieldBlur =
@@ -1584,14 +1799,29 @@ export function define<
         const submittedInputs = model.submission.inputs
 
         return Result.match(result, {
-          onFailure: rejection => ({
-            model: modifyFields(model, {
-              fields: fields =>
-                rejectFields(fields, rejection, submittedInputs),
-              submission: () => SubmissionSchema.Failed({ error: rejection }),
-            }),
-            outMessage: OutMessage.FailedSubmit({ error: rejection }),
-          }),
+          onFailure: rejection => {
+            const nextFields = rejectFields(
+              model.fields,
+              rejection,
+              submittedInputs,
+            )
+            const isShownOnFields = Array.some(
+              fieldNames,
+              name => nextFields[name] !== model.fields[name],
+            )
+
+            return {
+              model: modifyFields(model, {
+                fields: () => nextFields,
+                submission: () =>
+                  SubmissionSchema.Failed({
+                    error: rejection,
+                    isShownOnFields,
+                  }),
+              }),
+              outMessage: OutMessage.FailedSubmit({ error: rejection }),
+            }
+          },
           onSuccess: submittedData => ({
             model: modifyFields(model, {
               submission: () =>
@@ -1627,7 +1857,7 @@ export function define<
 
   function reinitialize<Provided extends Partial<FormValues<Schemas>>>(
     model: Model,
-    overrides?: Overrides<Schemas, Provided>,
+    overrides: ExactFields<Schemas, Provided>,
   ): ResetReturn {
     const freshModel = init(overrides)
 
@@ -1687,15 +1917,13 @@ export function define<
           submission: () =>
             SubmissionSchema.Submitting({ generation, inputs: inputs(model) }),
         }),
-        commands: [Submit({ values, context: submitContext, generation })],
+        commands: [toSubmitCommand(values, submitContext, generation)],
       }),
     })
   }
 
   function submit(model: Model, ...args: SubmitArgs<Context>): SubmitReturn {
-    if (
-      SubmissionSchema.isAnyOf(['Submitting', 'Validating'])(model.submission)
-    ) {
+    if (isSubmitPending(model)) {
       return { model }
     }
 
@@ -1759,7 +1987,7 @@ export function define<
             }),
       reset: Update.foldChildStep({ update: reset, ...boundLens }),
       reinitialize: <Provided extends Partial<FormValues<Schemas>>>(
-        overrides?: Overrides<Schemas, Provided>,
+        overrides: ExactFields<Schemas, Provided>,
       ): Update.Step<ParentModel, ParentMessage> =>
         Update.foldChildStep({
           update: (childModel: Model) => reinitialize(childModel, overrides),
@@ -1818,11 +2046,14 @@ export function define<
     ValidateField,
     init,
     changed,
+    changedFields,
     blurred,
     inputs,
     submitCount,
     fieldView,
     submission,
+    isSubmitPending,
+    formError,
     update,
     reset,
     reinitialize,

@@ -10,8 +10,11 @@ const MeetupLocation = defineTaggedUnion({
   Coordinates: { latitude: Schema.Number, longitude: Schema.Number },
 })
 
+const ExperienceLevel = Schema.Literals(['Beginner', 'Intermediate', 'Expert'])
+
 const savePreferences = (
   preferences: Readonly<{
+    experienceLevel: typeof ExperienceLevel.Type
     topics: ReadonlyArray<string>
     favoriteTopic: string | null
     meetupLocation: typeof MeetupLocation.Type
@@ -32,6 +35,10 @@ const savePreferences = (
 const preferencesForm = Form.define({
   name: 'Preferences',
   fields: {
+    experienceLevel: Form.field({
+      schema: Form.picked(ExperienceLevel, 'Choose your experience level'),
+      initial: null,
+    }),
     topics: Form.field({
       schema: Schema.Array(Schema.String),
       initial: [],
@@ -54,8 +61,9 @@ const preferencesForm = Form.define({
   },
   submit: {
     error: Schema.String,
-    execute: ({ topics, favoriteTopic, meetupLocation }) =>
+    execute: ({ experienceLevel, topics, favoriteTopic, meetupLocation }) =>
       savePreferences({
+        experienceLevel,
         topics,
         favoriteTopic: Option.getOrNull(favoriteTopic),
         meetupLocation,

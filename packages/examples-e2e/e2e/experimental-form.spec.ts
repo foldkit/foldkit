@@ -16,6 +16,7 @@ test.describe('experimental-form example', () => {
     await page.getByLabel('Registration email').fill('person@example.com')
     await page.getByLabel('Your name').fill('Person')
     await page.getByLabel('Your age').fill('30')
+    await page.getByLabel('Main topic').selectOption('Effect')
     await page.getByRole('button', { name: 'Register', exact: true }).click()
     await expect(
       page
@@ -85,6 +86,7 @@ test.describe('experimental-form example', () => {
     await page.getByLabel('Registration email').fill('blocked@example.com')
     await page.getByLabel('Your name').fill('Person')
     await page.getByLabel('Your age').fill('30')
+    await page.getByLabel('Main topic').selectOption('Effect')
     await registrationRegion
       .getByRole('button', { name: 'Register', exact: true })
       .click()

@@ -406,8 +406,13 @@ const submissionTypes = () => {
     Readonly<{ _tag: 'Succeeded'; data: number }>
   >()
   expectTypeOf(
-    typedForm.Submission.Failed({ error: 'Unavailable' }),
-  ).toEqualTypeOf<Readonly<{ _tag: 'Failed'; error: string }>>()
+    typedForm.Submission.Failed({
+      error: 'Unavailable',
+      isShownOnFields: false,
+    }),
+  ).toEqualTypeOf<
+    Readonly<{ _tag: 'Failed'; error: string; isShownOnFields: boolean }>
+  >()
   expectTypeOf<
     Extract<Form.Submission<typeof dataOnlyForm>, { _tag: 'Succeeded' }>['data']
   >().toEqualTypeOf<number>()
@@ -439,7 +444,6 @@ const submissionTypes = () => {
   ).toEqualTypeOf<Form.OutMessage<typeof typedForm> | undefined>()
   const submitTyped = typedForm.Submit({
     values: { username: 'Ada' },
-    context: undefined,
     generation: 1,
   })
   expectTypeOf<
@@ -464,7 +468,6 @@ const submissionTypes = () => {
   typedForm.Submit({
     // @ts-expect-error Submit values keep each field's decoded type.
     values: { username: 2 },
-    context: undefined,
     generation: 1,
   })
   typedForm.Message.CompletedSubmit({
@@ -726,7 +729,7 @@ const genericOperations = <Schemas extends Form.FieldSchemas>(
     name,
   )
   const formReset = form.reset(formUpdate.model)
-  const formReinitialize = form.reinitialize(formReset.model)
+  const formReinitialize = form.reinitialize(formReset.model, {})
   const formSubmit = form.submit(formReinitialize.model)
   form.submission(formSubmit.model)
   form.submitCount(formSubmit.model)
@@ -841,3 +844,111 @@ const validateFieldChecks = () => {
   void checkedForm.ValidateField.nickname
 }
 void validateFieldChecks
+
+const fieldValuesChecks = () => {
+  const accountFields = {
+    username: Form.field({ schema: Schema.String, initial: '' }),
+    age: Form.field({ schema: Schema.NumberFromString, initial: '' }),
+  }
+  const toAccountChanges = (
+    recordId: string,
+    values: Form.FieldValues<typeof accountFields>,
+  ) => Effect.succeed(`${recordId}:${values.username}:${values.age}`)
+  const accountForm = Form.define({
+    name: 'Account',
+    fields: accountFields,
+    submit: {
+      data: Schema.String,
+      context: Schema.String,
+      execute: (values, recordId) => toAccountChanges(recordId, values),
+    },
+  })
+
+  expectTypeOf<Form.FieldValues<typeof accountFields>>().toEqualTypeOf<
+    Form.Values<typeof accountForm>
+  >()
+  expectTypeOf<Form.FieldValues<typeof accountFields>>().toEqualTypeOf<{
+    readonly username: string
+    readonly age: number
+  }>()
+}
+void fieldValuesChecks
+
+const changedFieldsChecks = () => {
+  const grantsForm = Form.define({
+    name: 'Grants',
+    fields: {
+      canUse: Form.field({ schema: Schema.Boolean, initial: true }),
+      age: Form.field({ schema: Schema.NumberFromString, initial: '' }),
+    },
+    submit: { execute: () => Effect.void },
+  })
+
+  expectTypeOf(
+    grantsForm.changedFields({ canUse: false, age: '12a' }),
+  ).toEqualTypeOf<(typeof grantsForm.Message)['ChangedFields']['Type']>()
+  // @ts-expect-error Changes are inputs, not decoded values.
+  grantsForm.changedFields({ age: 12 })
+  // @ts-expect-error Changes name fields of the Form.
+  grantsForm.changedFields({ canUse: false, canDelete: false })
+}
+void changedFieldsChecks
+
+const pickedChecks = () => {
+  const Role = Schema.Literals(['Admin', 'Member'])
+  const roleSchema = Form.picked(Role, 'Choose a role')
+
+  expectTypeOf<typeof roleSchema.Encoded>().toEqualTypeOf<
+    'Admin' | 'Member' | null
+  >()
+  expectTypeOf<typeof roleSchema.Type>().toEqualTypeOf<'Admin' | 'Member'>()
+
+  const roleForm = Form.define({
+    name: 'RoleChoice',
+    fields: { role: Form.field({ schema: roleSchema, initial: null }) },
+    submit: { execute: () => Effect.void },
+  })
+
+  expectTypeOf<Form.Values<typeof roleForm>>().toEqualTypeOf<{
+    readonly role: 'Admin' | 'Member'
+  }>()
+  roleForm.init({ role: 'Admin' })
+  // @ts-expect-error Overrides are picked values, so they can't be null.
+  roleForm.init({ role: null })
+}
+void pickedChecks
+
+const submissionSelectorChecks = () => {
+  const noteForm = Form.define({
+    name: 'Note',
+    fields: { note: Form.field({ schema: Schema.String, initial: '' }) },
+    submit: { error: Schema.String, execute: () => Effect.void },
+  })
+  const recordForm = Form.define({
+    name: 'Record',
+    fields: { note: Form.field({ schema: Schema.String, initial: '' }) },
+    submit: {
+      context: Schema.Struct({ recordId: Schema.String }),
+      execute: () => Effect.void,
+    },
+  })
+  const model = noteForm.init()
+
+  expectTypeOf(noteForm.formError(model)).toEqualTypeOf<Option.Option<string>>()
+  expectTypeOf(noteForm.isSubmitPending(model)).toEqualTypeOf<boolean>()
+  noteForm.reinitialize(model, {})
+  // @ts-expect-error reinitialize takes overrides; pass {} for the initial inputs.
+  noteForm.reinitialize(model)
+
+  noteForm.Submit({ values: { note: '' }, generation: 1 })
+  // @ts-expect-error A Form without a context Schema has no Submit context.
+  noteForm.Submit({ values: { note: '' }, context: undefined, generation: 1 })
+  recordForm.Submit({
+    values: { note: '' },
+    context: { recordId: 'record-1' },
+    generation: 1,
+  })
+  // @ts-expect-error A Form with a context Schema needs the Submit context.
+  recordForm.Submit({ values: { note: '' }, generation: 1 })
+}
+void submissionSelectorChecks

@@ -271,7 +271,7 @@ describe('asynchronous checks', () => {
       const cleared =
         operation === 'reset'
           ? checkedUsernameForm.reset(change.model)
-          : checkedUsernameForm.reinitialize(change.model)
+          : checkedUsernameForm.reinitialize(change.model, {})
       const changeAfterClear = checkedUsernameForm.update(
         cleared.model,
         checkedUsernameForm.changed('username', 'taken'),
@@ -460,5 +460,140 @@ describe('checks on blur', () => {
       blurCheckedForm.update(failed.model, blurCheckedForm.blurred('username'))
         .commands,
     ).toHaveLength(1)
+  })
+})
+
+describe('changing several fields', () => {
+  const grantsForm = Form.define({
+    name: 'Grants',
+    submit: voidSubmit,
+    fields: {
+      canUse: Form.field({ schema: Schema.Boolean, initial: true }),
+      canDelete: Form.field({
+        schema: Schema.Boolean,
+        initial: true,
+        rules: FieldValidation.makeRules<boolean>({
+          rules: [[canDelete => canDelete, 'Deletion stays on']],
+        }),
+      }),
+      title: Form.field({
+        schema: Schema.String,
+        initial: '',
+        validateOn: 'Blur',
+        rules: FieldValidation.makeRules({ required: 'Enter a title' }),
+      }),
+      owner: Form.field({
+        schema: Schema.String,
+        initial: 'ada',
+        validate: () => Effect.succeed([]),
+      }),
+    },
+  })
+
+  it('applies every change and checks each changed Change field', () => {
+    const change = grantsForm.update(
+      grantsForm.init(),
+      grantsForm.changedFields({ canUse: false, canDelete: false }),
+    )
+
+    expect(grantsForm.inputs(change.model)).toEqual({
+      canUse: false,
+      canDelete: false,
+      title: '',
+      owner: 'ada',
+    })
+    expect(grantsForm.fieldView(change.model, 'canUse')).toMatchObject({
+      maybeValue: Option.some(false),
+      meta: { isEdited: true },
+    })
+    expect(grantsForm.fieldView(change.model, 'canDelete')).toMatchObject({
+      errors: ['Deletion stays on'],
+      meta: { isEdited: true },
+    })
+    expect(grantsForm.fieldView(change.model, 'owner').meta.isEdited).toBe(
+      false,
+    )
+  })
+
+  it('waits for blur before checking a changed Blur field', () => {
+    const change = grantsForm.update(
+      grantsForm.init(),
+      grantsForm.changedFields({ canUse: false, title: '' }),
+    )
+    const blur = grantsForm.update(change.model, grantsForm.blurred('title'))
+
+    expect(grantsForm.fieldView(change.model, 'title').errors).toEqual([])
+    expect(grantsForm.fieldView(blur.model, 'title').errors).toEqual([
+      'Enter a title',
+    ])
+  })
+
+  it('returns the check Command of each changed field with a validate Effect', () => {
+    const change = grantsForm.update(
+      grantsForm.init(),
+      grantsForm.changedFields({ canUse: false, owner: 'grace' }),
+    )
+
+    expect(change.commands?.map(command => command.args)).toEqual([
+      { value: 'grace', generation: 1 },
+    ])
+  })
+
+  it('checks a repeated field once with its last input', () => {
+    const change = grantsForm.update(
+      grantsForm.init(),
+      grantsForm.Message.ChangedFields({
+        changes: [
+          { name: 'owner', input: 'grace' },
+          { name: 'owner', input: 'linus' },
+        ],
+      }),
+    )
+
+    expect(grantsForm.inputs(change.model).owner).toBe('linus')
+    expect(change.commands?.map(command => command.args)).toEqual([
+      { value: 'linus', generation: 1 },
+    ])
+  })
+
+  it('keeps a pending submission and returns a settled one to Idle', () => {
+    const attempt = grantsForm.submit(
+      grantsForm.init({ title: 'Editor', owner: '' }),
+    )
+    const changeWhileSubmitting = grantsForm.update(
+      attempt.model,
+      grantsForm.changedFields({ canUse: false, canDelete: false }),
+    )
+    const rejection = grantsForm.update(
+      attempt.model,
+      grantsForm.Message.CompletedSubmit({
+        generation: 1,
+        result: Result.fail('Unavailable'),
+      }),
+    )
+    const changeAfterFailure = grantsForm.update(
+      rejection.model,
+      grantsForm.changedFields({ canUse: false, canDelete: false }),
+    )
+
+    expect(grantsForm.submission(attempt.model)._tag).toBe('Submitting')
+    expect(grantsForm.submission(changeWhileSubmitting.model)._tag).toBe(
+      'Submitting',
+    )
+    expect(grantsForm.formError(rejection.model)).toEqual(
+      Option.some('Unavailable'),
+    )
+    expect(grantsForm.submission(changeAfterFailure.model)._tag).toBe('Idle')
+    expect(grantsForm.formError(changeAfterFailure.model)).toEqual(
+      Option.none(),
+    )
+  })
+
+  it('leaves the Model unchanged when no field changes', () => {
+    const initialModel = grantsForm.init()
+    const change = grantsForm.update(initialModel, grantsForm.changedFields({}))
+
+    expect(change.model).toBe(initialModel)
+    expect(change.commands ?? []).toEqual([])
   })
 })
