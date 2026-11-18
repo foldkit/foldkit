@@ -3,14 +3,19 @@ import { type Document, type HtmlBuilder } from 'foldkit/html'
 
 import { Message, type Model, registrationForm } from './formParent'
 
+const isPending = registrationForm.Submission.isAnyOf([
+  'Validating',
+  'Submitting',
+])
+
 const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const email = registrationForm.field(model.registration, 'email')
+  const email = registrationForm.fieldView(model.registration, 'email')
   const submission = registrationForm.submission(model.registration)
 
   return {
     title: 'Registration',
     body: h.form(
-      [h.OnSubmit(Message.SubmittedRegistration())],
+      [h.OnSubmit(Message.SubmittedRegistrationForm())],
       [
         h.label([h.For('email')], ['Email']),
         h.input([
@@ -29,14 +34,12 @@ const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         ]),
         ...Array.map(email.errors, error => h.p([], [error])),
         h.button(
-          [
-            h.Type('submit'),
-            h.Disabled(
-              submission._tag === 'Validating' ||
-                submission._tag === 'Submitting',
-            ),
-          ],
+          [h.Type('submit'), h.Disabled(isPending(submission))],
           ['Register'],
+        ),
+        h.button(
+          [h.Type('button'), h.OnClick(Message.ClickedResetRegistration())],
+          ['Reset'],
         ),
         h.p(
           [h.Role('status')],

@@ -19,6 +19,7 @@ const saveProfile = (
     Effect.mapError(() => 'Could not save the profile'),
     Effect.provide(Http.layer),
   )
+
 const profileForm = Form.define({
   name: 'Profile',
   fields: {
@@ -30,24 +31,36 @@ const profileForm = Form.define({
     execute: (profile, { profileId }) => saveProfile(profileId, profile),
   },
 })
+
 const Model = Schema.Struct({
   profileId: Schema.String,
   profile: profileForm.Model,
 })
 type Model = typeof Model.Type
+
 const Message = defineMessageUnion({
   GotProfileMessage: { message: profileForm.Message },
-  SubmittedProfile: {},
+  SubmittedProfileForm: {},
 })
 type Message = typeof Message.Type
+
+const foldProfileOutMessage = profileForm.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  SucceededSubmit: () => stepModel => ({ model: stepModel }),
+  FailedSubmit: () => stepModel => ({ model: stepModel }),
+})
+
 const profile = profileForm.lift<Model, Message>({
   parentField: 'profile',
   toParentMessage: message => Message.GotProfileMessage({ message }),
+  foldOutMessage: foldProfileOutMessage,
 })
+
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     GotProfileMessage: ({ message }) => profile.fold(model, message),
     // The parent supplies the context the Form doesn't hold
-    SubmittedProfile: () =>
-      profile.submit(model, { profileId: model.profileId }),
+    SubmittedProfileForm: () =>
+      profile.submit({ profileId: model.profileId })(model),
   })

@@ -8,6 +8,10 @@ export const emailField = Form.field({
   schema: Schema.String,
   initial: '',
   validateOn: 'Blur',
+  rules: makeRules({
+    required: 'Enter an email address',
+    rules: [Rule.email('Enter a valid email address')],
+  }),
   validate: value =>
     Effect.gen(function* () {
       yield* Effect.sleep(Duration.millis(EMAIL_CHECK_DELAY_MS))
@@ -15,8 +19,4 @@ export const emailField = Form.field({
         ? ['This email cannot be used']
         : []
     }),
-  rules: makeRules({
-    required: 'Enter an email address',
-    rules: [Rule.email('Enter a valid email address')],
-  }),
 })

@@ -13,6 +13,7 @@ const emailField = Form.field({
     rules: [Rule.email('Enter a valid email')],
   }),
 })
+
 const saveAccount = (path: string, account: Readonly<{ email: string }>) =>
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
@@ -25,6 +26,7 @@ const saveAccount = (path: string, account: Readonly<{ email: string }>) =>
     Effect.mapError(() => 'Could not save your account'),
     Effect.provide(Http.layer),
   )
+
 const registrationForm = Form.define({
   name: 'Registration',
   fields: {
@@ -40,6 +42,7 @@ const registrationForm = Form.define({
     execute: values => saveAccount('/api/register', values),
   },
 })
+
 const profileForm = Form.define({
   name: 'Profile',
   fields: { email: emailField },
@@ -48,5 +51,5 @@ const profileForm = Form.define({
     execute: values => saveAccount('/api/profile', values),
   },
 })
+
 type RegistrationValues = Form.Values<typeof registrationForm>
-const profileModel = profileForm.init({ email: 'reader@example.com' })

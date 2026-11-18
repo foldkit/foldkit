@@ -1,6 +1,6 @@
 import { Option, Predicate } from 'effect'
 
-import type * as Update from '../update/index.js'
+import type * as Update from '../../update/index.js'
 
 export type FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage> =
   Pick<

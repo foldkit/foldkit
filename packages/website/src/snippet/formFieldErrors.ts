@@ -46,7 +46,7 @@ const signUp = (values: Readonly<{ email: string; invite: string }>) =>
     Effect.provide(Http.layer),
   )
 
-export const signupForm = Form.define({
+const signupForm = Form.define({
   name: 'Signup',
   fields: {
     email: Form.field({ schema: Schema.String, initial: '' }),

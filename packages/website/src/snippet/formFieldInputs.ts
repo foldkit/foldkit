@@ -1,8 +1,10 @@
 import { Effect, Option, Schema, SchemaTransformation } from 'effect'
+import { HttpClient, HttpClientRequest } from 'effect/http'
+import { Http } from 'foldkit'
 import { Form } from 'foldkit/experimental'
 import { makeRules } from 'foldkit/fieldValidation'
 
-const AgeInput = Schema.String.check(
+const AgeInput = Schema.Trim.check(
   Schema.isNonEmpty({ message: 'Enter your age' }),
 ).pipe(
   Schema.decodeTo(
@@ -10,6 +12,7 @@ const AgeInput = Schema.String.check(
     SchemaTransformation.numberFromString,
   ),
 )
+
 const OptionalText = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Option(Schema.String),
@@ -19,6 +22,22 @@ const OptionalText = Schema.String.pipe(
     }),
   ),
 )
+
+const saveMember = (
+  member: Readonly<{ age: number; nickname: string | null }>,
+) =>
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+    const request = yield* HttpClientRequest.bodyJson(
+      HttpClientRequest.post('/api/members'),
+      member,
+    )
+    yield* HttpClient.filterStatusOk(client).execute(request)
+  }).pipe(
+    Effect.mapError(() => 'Could not save the member'),
+    Effect.provide(Http.layer),
+  )
+
 const memberForm = Form.define({
   name: 'Member',
   fields: {
@@ -32,15 +51,17 @@ const memberForm = Form.define({
     nickname: Form.field({ schema: OptionalText, initial: '' }),
   },
   submit: {
-    execute: ({ age, nickname }) =>
-      Effect.log(
-        `Age ${age}, nickname ${Option.getOrElse(nickname, () => '')}`,
-      ),
+    error: Schema.String,
+    execute: ({ age, nickname: maybeNickname }) =>
+      saveMember({ age, nickname: Option.getOrNull(maybeNickname) }),
   },
 })
+
 const memberModel = memberForm.init({ age: 42, nickname: Option.none() })
+
 const ageChange = memberForm.update(
   memberModel,
   memberForm.changed('age', '12a'),
 )
-const age = memberForm.field(ageChange.model, 'age')
+
+const age = memberForm.fieldView(ageChange.model, 'age')

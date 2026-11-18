@@ -5,7 +5,17 @@ Form ships from `foldkit/experimental` and `foldkit/experimental/form`. Its name
 :::
 
 :::Info{label="See it in an app"}
-[Experimental Form](/example-apps/experimental-form) reuses one email field in a registration Form and a profile Form. It shows validation on change and on blur, an async email check, an age field that keeps whatever is typed, a topics array rendered as checkboxes, a server error shown on the email field, a parent that records each successful registration, a profile save that receives the profile id from the parent, a reset during a save, and Story and Scene tests.
+[Experimental Form](/example-apps/experimental-form) is a registration Form and a profile Form that share one email field. It demonstrates:
+
+- validation on change and on blur, and an async email check
+- an age field that holds text like `12a` and shows an error until it reads as a number
+- a topics array rendered as checkboxes
+- a server error shown on the email field
+- a parent that records each successful registration
+- a profile save that receives the profile id from the parent
+- a reset during a save
+- Story and Scene tests
+
 :::
 
 ## Overview
@@ -41,10 +51,14 @@ Use [Field Validation](/core/field-validation) directly when the application nee
 Validation has three optional parts:
 
 - `rules` comes from `FieldValidation.makeRules` and checks the decoded value synchronously.
-- `validate` is an Effect that returns error messages, for checks that need a service or a network request. It runs only after `rules` pass.
+- `validate` is an Effect that returns error messages, for checks that need a service or a network request. It runs only after `rules` pass. If the Effect fails, its error string becomes the field's error.
 - `validateOn` is `'Change'` (the default) or `'Blur'`. A `'Blur'` field clears its errors when the input changes and checks again on blur.
 
-Submitting checks every field, whatever its `validateOn`.
+A change or blur shows the first rule that fails. Submitting checks every field, whatever its `validateOn`, and shows every rule that fails.
+
+### Define the Form
+
+`Form.define` takes a `name`, the `fields` record, and a `submit` configuration, described in [Configure Submission](#configure-submission). The `name` names the Form's Commands. With `name: 'Registration'`, the submission Command is `SubmitRegistration` and the email field's check is `ValidateRegistrationEmail`. Those are the names DevTools and test failures show. Two field names that differ only in the case of their first letter, such as `userName` and `UserName`, would give their checks the same name, so `Form.define` throws for them. Pick a `name` that can't run together with another Form's name and field into the same Command name.
 
 `Form.Values<typeof registrationForm>` is the record of decoded values that the submission Effect receives. Use `typeof registrationForm.Model.Type` and `typeof registrationForm.Message.Type` when you need to name a Form's Model or Message type.
 
@@ -60,8 +74,8 @@ Each operation works with one side or the other:
 | -------------------------------- | --------------------------------------------- |
 | `initial` in `Form.field`        | Overrides passed to `init` and `reinitialize` |
 | `changed(name, input)`           | `rules` and `validate`                        |
-| `field(model, name).input`       | `submit.execute`                              |
-| `inputs(model)`                  | `field(model, name).maybeValue`               |
+| `fieldView(model, name).input`   | `submit.execute`                              |
+| `inputs(model)`                  | `fieldView(model, name).maybeValue`           |
 
 Overrides take decoded values because they usually come from a record the application already holds, such as a saved profile. Form encodes each override with the field's Schema and stores the result as the field's input and its reset default. An override that fails the Schema's checks, such as an empty name loaded from a saved record, is stored as is and shows its error once the field is validated.
 
@@ -73,20 +87,22 @@ Pick a Schema whose `Encoded` side is exactly what the control produces:
 
 ::Snippet{name="formFieldInputs" label="Number and optional text inputs"}
 
-- A required number reads a string that must not be empty, then parses it with `SchemaTransformation.numberFromString`. `Schema.FiniteFromString` alone decodes `''` as `0`, so an empty input would pass as zero.
-- An optional text field decodes `''` as `Option.none()` and any other text as `Option.some(text)`. Encoding turns `None` back into `''`, so `init({ nickname: Option.none() })` shows an empty input.
+- The age input must not be empty or only spaces. `Schema.Trim` trims the text, the `Schema.isNonEmpty` check rejects what is left when it's empty, and `SchemaTransformation.numberFromString` parses the rest. `Schema.FiniteFromString` alone decodes `''` as `0`, so an empty input would pass as zero.
+- The nickname input decodes `''` as `Option.none()` and any other text as `Option.some(text)`. Encoding turns `None` back into `''`, so `init({ nickname: Option.none() })` shows an empty input.
 
-A Schema can check its `Encoded` side, like the `Schema.isNonEmpty` check on the age input. The stored input skips those checks, so the field can hold an empty string. Decoding the input applies them, and their messages become the field's errors.
+The field stores any input of the Schema's `Encoded` type, including one the Schema rejects, such as an empty string for a `Schema.NonEmptyString` field. Decoding the input applies the Schema's checks, and their messages become the field's errors.
 
 Field Schemas become part of the Form's Model and Message Schemas, so they must decode and encode synchronously without services. Both sides must be serializable Model data, so functions and DOM handles can't be field inputs or values. Form stores each input in a required property, so a Schema with an optional key, such as `Schema.OptionFromOptionalKey`, can't be a field Schema.
 
 ### Compound Values
 
-An input can be a compound value when the control produces one, such as the list of checked boxes.
+An input can be a compound value when the control produces one. The snippet below has three:
+
+- `topics` is the list of checked boxes. A required array field uses the default empty check, so `[]` counts as empty.
+- `favoriteTopic` comes from a select whose "none" option produces `null`. `Schema.OptionFromNullOr` decodes it to an `Option`, so its rules set `isEmpty` to `Option.isNone`.
+- `meetupLocation` comes from a map picker that produces `Unspecified` or `Coordinates`.
 
 ::Snippet{name="formCompoundValues" label="Array, nullable, and tagged union inputs"}
-
-For a required `Option` field, set `isEmpty` to `Option.isNone` in its rules. Strings and arrays use the default empty check.
 
 An array field is one input with one set of errors and metadata. A change replaces the whole array.
 
@@ -96,16 +112,22 @@ A field's `validate` Effect and the submission Effect can require services. Form
 
 ## Connect the Form to Its Parent
 
-Put the Form's Model Schema in the parent Model and wrap its Message Schema in a `Got*` Message. `lift` adapts the Form's operations to the parent Model and Message.
+Put the Form's Model Schema in the parent Model and wrap its Message Schema in a `Got*` Message. `lift` adapts the Form's operations to the parent Model and Message. It takes three fields:
+
+- `parentField` names the parent field that always holds this Form's Model.
+- `toParentMessage` wraps each Form Message in the parent's `Got*` Message.
+- `foldOutMessage` folds each submission result into the parent. It's described in [React to Submission Results](#react-to-submission-results).
 
 ::Snippet{name="formParent" label="Submission Effect and parent wiring"}
 
 The lifted Form has four operations:
 
-- `fold` applies a Form Message and returns the parent Model with any Commands mapped to parent Messages.
-- `submit` starts a submission attempt.
-- `reset` restores the Form's defaults.
-- `reinitialize` replaces the Form's defaults and restores them.
+- `fold` applies a Form Message and returns the parent Model with any Commands mapped to parent Messages. Like `Update.foldChild`, it works data-first, `registration.fold(model, message)`, or data-last as a Step.
+- `submit()` returns a Step that checks every field and returns the validation Commands or the `Submit` Command for a new attempt.
+- `reset` is a Step that restores the Form's defaults.
+- `reinitialize(overrides)` returns a Step that replaces the Form's defaults and restores them.
+
+Because `submit`, `reset`, and `reinitialize` return Steps, they compose with `Update.combine`. Apply one to the parent Model directly: `registration.submit()(model)`.
 
 ### React to Submission Results
 
@@ -114,15 +136,17 @@ When Form accepts a submission result, its update returns an OutMessage:
 - `SucceededSubmit` carries the typed `data`.
 - `FailedSubmit` carries the typed `error`.
 
-Pass `foldOutMessage` to `lift` to handle them in the parent, for example to store the new user's id, navigate, or refresh a Query. Match every variant with `form.OutMessage.match`. Each branch returns a Step that receives the parent Model with the Form already written back. Without `foldOutMessage`, `fold` drops the OutMessage, and the parent can still read the result from `submission(model)`.
+`foldOutMessage` handles them in the parent, for example to store the new user's id, navigate, or refresh a Query. Match every variant with `registrationForm.OutMessage.match`. Each branch returns a Step that receives the parent Model with the Form already written back.
+
+`foldOutMessage` is required. A parent that only reads the result from `submission(model)` still names each variant and returns the Model unchanged, as `foldProfileOutMessage` does in [Pass Context to Submission](#pass-context-to-submission).
 
 Form returns an OutMessage only for a result it accepts. A result from an attempt that a reset or a newer attempt replaced changes nothing and returns no OutMessage.
 
 ### Optional and Nested Forms
 
-`parentField` works only when the parent field always holds a complete Form Model. When the Form is optional, nested, or one of several, pass a lens instead: `lift({ read, write, toParentMessage })`. It follows [`Update.foldChild`](/core/submodel#fold-child) and accepts `foldOutMessage` too. When `read` returns `None`, every lifted operation returns the parent Model unchanged and no Commands.
+`parentField` works only when the parent field always holds a complete Form Model. When the Form is optional, nested, or one of several, pass a lens instead: `lift({ read, write, toParentMessage, foldOutMessage })`. It follows [`Update.foldChild`](/core/submodel#fold-child). When `read` returns `None`, every lifted operation returns the parent Model unchanged and no Commands.
 
-When the parent stores extra data next to the Form Model, `write` must keep that data. `reinitialize` hands `write` a brand new Form Model, so a `write` that only copies the Form's fields drops the extra data.
+A lens can point at an object that holds the Form Model's fields together with other fields, such as a record id. In that case `write` must copy those other fields back, because `reinitialize` passes `write` a newly built Form Model without them. Storing extra data in a sibling field of the parent Model avoids this.
 
 ## Submit a Form
 
@@ -139,11 +163,11 @@ Every Schema must decode and encode synchronously without services, like field S
 
 ### Pass Context to Submission
 
-Some submissions need a value that isn't a field, such as the id of the record being edited or the current workspace. Add a `context` Schema, and `submit` takes the context value after the Model. `execute` receives it after the values.
+Some submissions need a value that isn't a field, such as the id of the record being edited or the current workspace. Add a `context` Schema, and `submit` takes the context value. `execute` receives it after the values.
 
 ::Snippet{name="formContext" label="Submission that needs the record id"}
 
-The parent passes the context each time it submits, so the submission always uses the parent's current value. Form keeps the context while field checks are pending and passes it to the `Submit` Command.
+The submission uses the value the parent passed when it called `submit`. Form keeps that value while field checks are pending and passes it to the `Submit` Command.
 
 ### Show Submission Errors on Fields
 
@@ -159,34 +183,34 @@ A mapped message shows in that field's `errors`:
 - It clears when the field's input changes.
 - The next submit checks the field again.
 
-A field the person changed while the submission was pending doesn't receive the message, because it no longer holds the input that was sent.
+A field doesn't receive the message when it holds a different input from the one that was sent, because the person changed it while the submission was pending.
 
 ### The Submission Lifecycle
 
-Call `lifted.submit(parentModel)`, or `form.submit(model)` on the Form Model directly. Submit counts one attempt and checks every field: it decodes the input and runs `rules`. For each field that passes, has a `validate` Effect, and whose current input hasn't already passed or started that check, Form returns a validation Command and the submission is `Validating`.
+Call `registration.submit()(model)` on the lifted Form, or `registrationForm.submit(formModel)` on the Form Model directly. Submit counts one attempt and checks every field: it decodes the input and runs `rules`. For each field that passes, has a `validate` Effect, and whose current input hasn't already passed or started that check, Form returns a validation Command and the submission is `Validating`.
 
 Once no check is pending, Form decides the attempt:
 
 - If any field is invalid, its errors appear and the submission returns to `Idle`. The submission Effect doesn't run.
 - If every field is valid, the submission is `Submitting` and Form returns the `Submit` Command with each field's decoded value.
 
-When a validation Command's result completes the checks, folding it is what returns the `Submit` Command. The parent doesn't submit again.
+When the last pending check's result arrives, `fold` returns the `Submit` Command. The parent doesn't call `submit` again.
 
-Folding the `Submit` result moves the submission to `Succeeded` with the typed data or `Failed` with the typed error, and returns the matching OutMessage. Read the submission with `submission(model)` and match it with `form.Submission.match`. `Form.Submission<typeof registrationForm>` names its type.
+Folding the `Submit` result moves the submission to `Succeeded` with the typed data or `Failed` with the typed error, and returns the matching OutMessage. Read the submission with `submission(model)` and match it with `registrationForm.Submission.match`. `Form.Submission<typeof registrationForm>` names its type.
 
 While the submission is `Validating` or `Submitting`, another submit does nothing. Editing a field while `Validating` cancels the attempt. Editing a field while `Submitting` doesn't: the `Submit` Command already captured the values it sends. Editing after `Succeeded` or `Failed` returns the submission to `Idle`.
 
 ### Stale Results
 
-Each submission attempt and each field check carries a generation number. Form accepts a result only when its generation matches the attempt or check it is waiting for. A result from before a reset, from an older attempt, or from a check that a later edit replaced leaves the Form unchanged. The generations are plain numbers in the Form Model.
+Each submission attempt and each field check carries a generation number. Form accepts a result only when its generation matches the attempt or check it is waiting for. A result from before a reset, from an older attempt, or from a check that a later edit replaced leaves the Form unchanged.
 
-Route every Form Message back through the same lifted Form that started the work. A generation identifies an attempt within one Form slot, not across slots.
+Route every Form Message back through the same lifted Form that started the work. Two lifted Forms built from one definition count generations separately, so a result folded into the wrong one can match an attempt there.
 
 ### Initial Values and Reset
 
-`init()` builds a Form from each field's `initial` input. Pass overrides to start from other values, for example an existing record: `init({ email: 'reader@example.com' })`. Overrides are decoded values that become the Form's defaults, and fields you leave out use their `initial` input.
+`init()` builds a Form from each field's `initial` input. Pass overrides to start from other values, for example an existing record: `init({ email: 'reader@example.com' })`. Fields you leave out use their `initial` input.
 
-`reset` returns every field to its default and clears validation, interaction metadata, the submission, and the attempt count. Use `reinitialize(model, overrides)` to load a different record into a Form that already exists. It replaces the defaults and then resets.
+`reset` returns every field to its default and clears validation, interaction metadata, the submission, and the attempt count. Use `reinitialize(overrides)` to load a different record into a Form that already exists. It replaces the defaults and then resets.
 
 Use `init` only to build a new parent Model. Replacing a live Form with `init()` would restart its generations, so a result from before the replacement could match a new attempt. `reset` and `reinitialize` keep the generations.
 
@@ -194,26 +218,28 @@ Use `init` only to build a new parent Model. Replacing a live Form with `init()`
 
 Render from the Form's selectors rather than from its Model fields:
 
-- `field(model, name)` returns the field's `input`, its decoded `maybeValue`, its `errors`, and `meta`.
+- `fieldView(model, name)` returns the field's `input`, its decoded `maybeValue`, its `errors`, and `meta`.
 - `inputs(model)` returns every field's input, indexed by name.
 - `submission(model)` returns the submission state.
 - `submitCount(model)` returns the number of attempts since the Form was built, reset, or reinitialized.
 
 ::Snippet{name="formView" label="Rendering a Form with ordinary input events"}
 
-Render `input` in the control and send the control's new input with `changed`. `maybeValue` is `Some` whenever the input decodes, even when `rules` reject the value, and `None` when it doesn't decode.
+Render `input` in the control and send the control's new input with `changed`. Send `blurred(name)` when the control loses focus. It sets `meta.isBlurred`, and for a `validateOn: 'Blur'` field it runs validation. `maybeValue` is `Some` whenever the input decodes, even when `rules` reject the value, and `None` when it doesn't decode.
 
 `meta` describes how the person has interacted with the field:
 
-- `isEdited` is true once the field's input has changed. It stays true when the input returns to its default.
+- `isEdited` is true once a change arrives for the field. It stays true when the input returns to its default.
 - `isBlurred` is true once the field has lost focus.
 - `isTouched` is true when the field is edited or blurred.
 - `isDefaultValue` compares the current input with the default, so arrays and records compare by content.
 
-Field inputs are immutable. Change a field by sending a Message with its complete new input, as the topics checkboxes in the example app do.
+Field inputs are immutable. Change a field by folding `changed` with its complete new input. In the example app, a checkbox click sends `ClickedProfileTopic`, and the parent adds or removes that topic from the current array before folding `profileForm.changed('topics', nextTopics)`.
 
 ## Test Form Commands
 
-`form.Submit` and `form.ValidateField.<field>` are public so Story and Scene tests can match and resolve them without running their Effects. The `Submit` Command's arguments are the decoded `values`, the `context`, and the attempt's `token`. Start these Commands through `submit` and field changes rather than calling the definitions directly. Calling them directly skips the Model transition and the generation that lets Form accept the result.
+`registrationForm.Submit` and `registrationForm.ValidateField.<field>` are public so Story and Scene tests can match and resolve them without running their Effects. The `Submit` Command's arguments are the decoded `values`, the `context`, and the attempt's `generation`. A `ValidateField` Command's arguments are the decoded `value` and the check's `generation`.
+
+Start these Commands through `submit` and field changes rather than calling the definitions directly. Calling them directly skips the Model transition and the generation that lets Form accept the result.
 
 The [Experimental Form example](/example-apps/experimental-form) resolves both Commands in its Story and Scene tests.

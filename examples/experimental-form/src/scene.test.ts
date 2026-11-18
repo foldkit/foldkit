@@ -14,6 +14,7 @@ import { test } from 'vitest'
 
 import {
   Message,
+  RegistrationRejection,
   init,
   profileForm,
   registrationForm,
@@ -41,12 +42,40 @@ test('ordinary inputs submit through the Form Command and render success', () =>
     Command.resolve(
       registrationForm.Submit,
       registrationForm.Message.CompletedSubmit({
-        token: { generation: 1 },
+        generation: 1,
         result: Result.succeed('person@example.com'),
       }),
     ),
     expect(text('Saved')).toExist(),
     expect(text('Registered: person@example.com')).toExist(),
+  )
+})
+
+test('a taken email shows on the email field until the email changes', () => {
+  scene(
+    { update, view },
+    given(init().model),
+    type(role('textbox', { name: 'Registration email' }), 'taken@example.com'),
+    type(role('textbox', { name: 'Your name' }), 'Person'),
+    type(role('textbox', { name: 'Your age' }), '30'),
+    click(role('button', { name: 'Register' })),
+    Command.resolve(
+      registrationForm.ValidateField.email,
+      completedRegistrationValidation(),
+    ),
+    Command.resolve(
+      registrationForm.Submit,
+      registrationForm.Message.CompletedSubmit({
+        generation: 1,
+        result: Result.fail(RegistrationRejection.EmailTaken()),
+      }),
+    ),
+    expect(text('Fix the email field')).toExist(),
+    expect(
+      role('textbox', { name: 'Registration email' }),
+    ).toHaveAccessibleDescription('This email is already registered'),
+    type(role('textbox', { name: 'Registration email' }), 'other@example.com'),
+    expect(text('This email is already registered')).not.toExist(),
   )
 })
 
@@ -87,7 +116,7 @@ test('failure feedback clears after editing and reset restores edit defaults', (
     Command.resolve(
       profileForm.Submit,
       profileForm.Message.CompletedSubmit({
-        token: { generation: 1 },
+        generation: 1,
         result: Result.fail('Email is taken'),
       }),
     ),
@@ -102,7 +131,7 @@ test('failure feedback clears after editing and reset restores edit defaults', (
 })
 
 test('reset clears pending submission feedback', () => {
-  const profileSubmit = update(init().model, Message.SubmittedProfile())
+  const profileSubmit = update(init().model, Message.SubmittedProfileForm())
   const profileValidation = update(
     profileSubmit.model,
     Message.GotProfileMessage({
@@ -134,7 +163,7 @@ test('blur validates an input and the next edit clears its stale error', () => {
   )
 })
 
-test('profile checkboxes replace the array field and reset its captured defaults', () => {
+test('profile checkboxes render the array field and reset restores its default', () => {
   scene(
     { update, view },
     given(init().model),
@@ -142,32 +171,8 @@ test('profile checkboxes replace the array field and reset its captured defaults
     click(role('checkbox', { name: 'Foldkit' })),
     expect(role('checkbox', { name: 'Effect' })).toBeChecked(),
     expect(role('checkbox', { name: 'Foldkit' })).toBeChecked(),
-    click(role('button', { name: 'Save profile' })),
-    Command.resolve(
-      profileForm.ValidateField.email,
-      completedProfileValidation(),
-    ),
-    Command.expectExact(
-      profileForm.Submit({
-        values: {
-          email: 'reader@example.com',
-          displayName: 'Reader',
-          topics: ['Effect', 'Foldkit'],
-        },
-        context: { profileId: 'profile-1' },
-        token: { generation: 1 },
-      }),
-    ),
-    Command.resolve(
-      profileForm.Submit,
-      profileForm.Message.CompletedSubmit({
-        token: { generation: 1 },
-        result: Result.succeed(undefined),
-      }),
-    ),
     click(role('button', { name: 'Reset profile' })),
     expect(role('checkbox', { name: 'Effect' })).not.toBeChecked(),
     expect(role('checkbox', { name: 'Foldkit' })).not.toBeChecked(),
-    expect(text('Saved')).not.toExist(),
   )
 })

@@ -33,17 +33,20 @@ export const registrationForm = Form.define({
       ),
   },
 })
+
 export const Model = Schema.Struct({
   registration: registrationForm.Model,
   maybeUserId: Schema.Option(Schema.String),
 })
 export type Model = typeof Model.Type
+
 export const Message = defineMessageUnion({
   GotRegistrationMessage: { message: registrationForm.Message },
-  SubmittedRegistration: {},
-  ClickedReset: {},
+  SubmittedRegistrationForm: {},
+  ClickedResetRegistration: {},
 })
 export type Message = typeof Message.Type
+
 const foldRegistrationOutMessage = registrationForm.OutMessage.match<
   Update.Step<Model, Message>
 >({
@@ -56,21 +59,24 @@ const foldRegistrationOutMessage = registrationForm.OutMessage.match<
     }),
   FailedSubmit: () => stepModel => ({ model: stepModel }),
 })
+
 // The parent learns about an accepted result through foldOutMessage
 const registration = registrationForm.lift<Model, Message>({
   parentField: 'registration',
   toParentMessage: message => Message.GotRegistrationMessage({ message }),
   foldOutMessage: foldRegistrationOutMessage,
 })
+
 const init = () => ({
   model: Model.make({
     registration: registrationForm.init(),
     maybeUserId: Option.none(),
   }),
 })
+
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     GotRegistrationMessage: ({ message }) => registration.fold(model, message),
-    SubmittedRegistration: () => registration.submit(model),
-    ClickedReset: () => registration.reset(model),
+    SubmittedRegistrationForm: () => registration.submit()(model),
+    ClickedResetRegistration: () => registration.reset(model),
   })

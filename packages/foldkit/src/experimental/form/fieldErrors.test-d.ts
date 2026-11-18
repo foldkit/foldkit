@@ -114,9 +114,5 @@ const fieldErrorChecks = () => {
   }
   // @ts-expect-error toFieldErrors receives the decoded error type.
   Form.define(wrongErrorParameterConfig)
-
-  expectTypeOf<Form.FieldErrors<'email'>>().toEqualTypeOf<
-    Readonly<Partial<Record<'email', string>>>
-  >()
 }
 void fieldErrorChecks

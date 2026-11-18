@@ -9,6 +9,7 @@ import {
   SchemaIssue,
   SchemaParser,
   SchemaTransformation,
+  String,
   Struct,
 } from 'effect'
 import type { Equivalence, SchemaAST } from 'effect'
@@ -20,7 +21,7 @@ import { defineMessageUnion } from '../../message/index.js'
 import { defineTaggedUnion } from '../../schema/index.js'
 import { modifyFields } from '../../struct/index.js'
 import * as Update from '../../update/index.js'
-import * as ChildLens from '../childLens.js'
+import * as ChildLens from './lens.js'
 
 /** A Schema codec for a field. Its `Encoded` side is the input the control
  * produces, such as the text of an `<input>`, and its `Type` side is the
@@ -66,16 +67,22 @@ type InputSchema<S extends FieldSchema> = Schema.Codec<
 const toValueSchema = <S extends FieldSchema>(schema: S) =>
   Schema.make<ValueSchema<S>>(schema.ast)
 
-const ignoreChecks = (
+const withChecksDisabled = (
   options: SchemaAST.ParseOptions,
 ): SchemaAST.ParseOptions => ({ ...options, disableChecks: true })
 
+// NOTE: a field holds whatever the control produces, including input its
+// Schema rejects, so the stored input keeps the encoded shape and skips the
+// encoded side's checks. Decoding the input applies them.
 const UncheckedInput = <S extends FieldSchema>(schema: S) =>
   Schema.declareConstructor<S['Encoded'], S['Encoded']>()(
     [Schema.toEncoded(schema)],
     ([encoded]) =>
       (input, _ast, options) =>
-        SchemaParser.decodeUnknownEffect(encoded)(input, ignoreChecks(options)),
+        SchemaParser.decodeUnknownEffect(encoded)(
+          input,
+          withChecksDisabled(options),
+        ),
     {
       expected: 'a field input',
       toEquivalence: ([equivalence]) => equivalence,
@@ -88,12 +95,12 @@ const UncheckedInput = <S extends FieldSchema>(schema: S) =>
             decode: (input, options) =>
               SchemaParser.decodeUnknownEffect(json)(
                 input,
-                ignoreChecks(options),
+                withChecksDisabled(options),
               ),
             encode: (input, options) =>
               SchemaParser.encodeUnknownEffect(json)(
                 input,
-                ignoreChecks(options),
+                withChecksDisabled(options),
               ),
           }),
         )
@@ -101,9 +108,6 @@ const UncheckedInput = <S extends FieldSchema>(schema: S) =>
     },
   )
 
-// NOTE: a field holds whatever the control produces, including input its
-// Schema rejects, so the stored input keeps the encoded shape and skips the
-// encoded side's checks. Decoding the input applies them.
 const toInputSchema = <S extends FieldSchema>(schema: S) =>
   Schema.make<InputSchema<S>>(UncheckedInput(schema).ast)
 
@@ -114,7 +118,7 @@ const FieldStatus = <S extends FieldSchema>(schema: S) => {
 
   return defineTaggedUnion({
     NotValidated: {},
-    Validating: { generation: Schema.Number, value },
+    Validating: { value },
     Valid: { value },
     Invalid: { errors: Errors },
     Rejected: { errors: Errors },
@@ -183,10 +187,7 @@ type FieldDefinitionBase<S extends FieldSchema> = Readonly<{
   Status: FieldStatusUnion<S>
   inputEquivalence: Equivalence.Equivalence<S['Encoded']>
   statusEquivalence: Equivalence.Equivalence<FieldStatus<S>>
-  initialize: {
-    (): FieldState<S>
-    (value: S['Type']): FieldState<S>
-  }
+  initialize: (maybeValue: Option.Option<S['Type']>) => FieldState<S>
   /** Decodes an input. Returns the value or the Schema's error messages. */
   decode: (
     input: S['Encoded'],
@@ -290,10 +291,10 @@ export function field<S extends FieldSchema, R = never>(
         ),
     })
 
-  function initialize(...args: ReadonlyArray<S['Type']>): FieldState<S> {
-    const defaultInput = Array.match(args, {
-      onEmpty: () => config.initial,
-      onNonEmpty: ([value]) => encodeSync(value),
+  const initialize = (maybeValue: Option.Option<S['Type']>): FieldState<S> => {
+    const defaultInput = Option.match(maybeValue, {
+      onNone: () => config.initial,
+      onSome: encodeSync,
     })
 
     return {
@@ -377,7 +378,9 @@ interface StateLambda extends Struct.Lambda {
   readonly '~lambda.out': this['~lambda.in']['State']
 }
 
-const State = Struct.lambda<StateLambda>(definition => definition.State)
+const toFieldStateSchema = Struct.lambda<StateLambda>(
+  definition => definition.State,
+)
 
 const mapFields = <
   Schemas extends FieldSchemas,
@@ -389,19 +392,13 @@ const mapFields = <
     name: Name,
     definition: FieldDefinition<Schemas[Name], FieldRequirements>,
   ) => Output[Name],
-): Output => {
-  const output: Record<string, unknown> = {}
-  for (const name of Struct.keys(fields)) {
-    Object.defineProperty(output, name, {
-      value: build(name, fields[name]),
-      enumerable: true,
-    })
-  }
-
-  // NOTE: Struct.map cannot pass keys to its Lambda, so this boundary recovers the completed record.
+): Output =>
+  // NOTE: Record.map loses the per-key value types, so this boundary recovers
+  // the record that build fills with one Output[Name] per field name.
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return output as Output
-}
+  EffectRecord.map(fields, (definition, name) =>
+    build(name, definition),
+  ) as unknown as Output
 
 /** Decoded field values indexed by name. Submission execution receives them,
  * and `init` and `reinitialize` take a partial record of them as overrides.
@@ -492,8 +489,6 @@ const ValidationResult = Schema.Result(
   Schema.String,
 )
 
-const SubmissionToken = Schema.Struct({ generation: Schema.Number })
-
 type MakeableCodec<T, E> = Schema.Codec<T, E> & {
   readonly '~type.make.in': T
   readonly '~type.make': T
@@ -518,11 +513,13 @@ function FormMessage<
   const names = Struct.keys(fields)
   return defineMessageUnion({
     ChangedField: {
-      change: Schema.Union(Struct.keys(Changes).map(name => Changes[name])),
+      change: Schema.Union(
+        Array.map(Struct.keys(Changes), name => Changes[name]),
+      ),
     },
     BlurredField: { name: Schema.Literals(names) },
     CompletedSubmit: {
-      token: SubmissionToken,
+      generation: Schema.Number,
       result: Schema.Result(data, error),
     },
     CompletedValidateField: {
@@ -543,22 +540,22 @@ function FormOutMessage<A, AI, E, EI>(
   })
 }
 
-const Submission = <A, AI, E, EI, C, CI, Inputs>(
+const Submission = <A, AI, E, EI, Context, ContextEncoded, Inputs>(
   data: Schema.Codec<A, AI>,
   error: Schema.Codec<E, EI>,
-  context: Schema.Codec<C, CI>,
+  context: Schema.Codec<Context, ContextEncoded>,
   inputs: MakeableCodec<Inputs, Inputs>,
 ) =>
   defineTaggedUnion({
     Idle: {},
-    Validating: { token: SubmissionToken, context: toMakeable(context) },
-    Submitting: { token: SubmissionToken, inputs },
+    Validating: { generation: Schema.Number, context: toMakeable(context) },
+    Submitting: { generation: Schema.Number, inputs },
     Succeeded: { data: toMakeable(data) },
     Failed: { error: toMakeable(error) },
   })
 
-type SubmissionUnion<Schemas extends FieldSchemas, A, E, C> = ReturnType<
-  typeof Submission<A, A, E, E, C, C, FormInputs<Schemas>>
+type SubmissionUnion<Schemas extends FieldSchemas, A, E, Context> = ReturnType<
+  typeof Submission<A, A, E, E, Context, Context, FormInputs<Schemas>>
 >
 
 /** The submission lifecycle of one Form definition, with its typed success
@@ -607,12 +604,12 @@ type FieldStates<Schemas extends FieldSchemas> = Readonly<{
   [Name in keyof Schemas & string]: FieldState<Schemas[Name]>
 }>
 
-type FormState<Schemas extends FieldSchemas, A, E, C> = Simplify<
+type FormState<Schemas extends FieldSchemas, A, E, Context> = Simplify<
   Readonly<{
     fields: FieldStates<Schemas>
-    submission: SubmissionUnion<Schemas, A, E, C>['Type']
+    submission: SubmissionUnion<Schemas, A, E, Context>['Type']
     submitCount: number
-    generation: number
+    submissionGeneration: number
   }>
 >
 
@@ -622,20 +619,28 @@ const FormModel = <
   AI,
   E,
   EI,
-  C,
-  CI,
+  Context,
+  ContextEncoded,
   FieldRequirements = never,
 >(
   fields: FieldDefinitions<Schemas, FieldRequirements>,
   submission: ReturnType<
-    typeof Submission<A, AI, E, EI, C, CI, FormInputs<Schemas>>
+    typeof Submission<
+      A,
+      AI,
+      E,
+      EI,
+      Context,
+      ContextEncoded,
+      FormInputs<Schemas>
+    >
   >,
 ) =>
   Schema.Struct({
-    fields: Schema.Struct(Struct.map(fields, State)),
+    fields: Schema.Struct(Struct.map(fields, toFieldStateSchema)),
     submission,
     submitCount: Schema.Number,
-    generation: Schema.Number,
+    submissionGeneration: Schema.Number,
   })
 
 type ChangeArgs<Schemas extends FieldSchemas> = {
@@ -650,9 +655,9 @@ type ChangeArgs<Schemas extends FieldSchemas> = {
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
-export type SubmitArgs<C> = [C] extends [void]
+export type SubmitArgs<Context> = [Context] extends [void]
   ? ReadonlyArray<never>
-  : readonly [C]
+  : readonly [Context]
 
 type FormModelSchema<
   Schemas extends FieldSchemas,
@@ -660,9 +665,9 @@ type FormModelSchema<
   AI,
   E,
   EI,
-  C,
-  CI,
-> = ReturnType<typeof FormModel<Schemas, A, AI, E, EI, C, CI>>
+  Context,
+  ContextEncoded,
+> = ReturnType<typeof FormModel<Schemas, A, AI, E, EI, Context, ContextEncoded>>
 type FormMessage<Schemas extends FieldSchemas, A, AI, E, EI> = ReturnType<
   typeof FormMessage<Schemas, A, AI, E, EI>
 >
@@ -678,19 +683,33 @@ type Overrides<Schemas extends FieldSchemas, Given> = Given &
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
-export type FoldOutMessage<ParentModel, ParentMessage, ChildMessage, Out> = (
-  outMessage: Out,
+export type FoldOutMessage<
+  ParentModel,
+  ParentMessage,
+  ChildMessage,
+  ChildOutMessage,
+> = (
+  outMessage: ChildOutMessage,
   context: Update.FoldContext<ChildMessage, ParentMessage>,
 ) => Update.Step<NoInfer<ParentModel>, ParentMessage>
 
-type FoldOutMessageConfig<ParentModel, ParentMessage, ChildMessage, Out> =
-  Readonly<{
-    foldOutMessage?:
-      | FoldOutMessage<ParentModel, ParentMessage, ChildMessage, Out>
-      | undefined
-  }>
+type FoldOutMessageConfig<
+  ParentModel,
+  ParentMessage,
+  ChildMessage,
+  ChildOutMessage,
+> = Readonly<{
+  foldOutMessage: FoldOutMessage<
+    ParentModel,
+    ParentMessage,
+    ChildMessage,
+    ChildOutMessage
+  >
+}>
 
-/** Form operations lifted to a parent Model and Message.
+/** Form operations lifted to a parent Model and Message. `fold` is a dual
+ * {@link Update.Fold}; `reset`, `reinitialize`, and `submit` return Steps, so
+ * they compose with `Update.combine`.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -703,7 +722,7 @@ export type LiftedForm<
   AI = A,
   E = never,
   EI = E,
-  C = void,
+  Context = void,
 > = Readonly<{
   /** Applies a child Message, maps validation and submission Commands to
    * parent Messages, and runs `foldOutMessage` when the Form accepts a
@@ -718,14 +737,12 @@ export type LiftedForm<
   reset: Update.Step<ParentModel, ParentMessage>
   /** Replaces defaults and clears interaction and submission state, preserving generations. */
   reinitialize: <Given extends Partial<FormValues<Schemas>>>(
-    model: ParentModel,
     overrides?: Overrides<Schemas, Given>,
-  ) => Update.Return<ParentModel, ParentMessage>
+  ) => Update.Step<ParentModel, ParentMessage>
   /** Checks every field and returns validation or submission Commands for a new attempt. */
   submit: (
-    model: ParentModel,
-    ...args: SubmitArgs<C>
-  ) => Update.Return<ParentModel, ParentMessage, Requirements>
+    ...args: SubmitArgs<Context>
+  ) => Update.Step<ParentModel, ParentMessage, Requirements>
 }>
 
 /** A Form's Schemas, selectors, and update functions. Submission is owned by
@@ -735,36 +752,52 @@ export type LiftedForm<
  */
 export interface FormDefinition<
   Schemas extends FieldSchemas,
-  Requirements = never,
   A = void,
   AI = A,
   E = never,
   EI = E,
-  SubmitRequirements = Requirements,
-  FieldRequirements = Requirements,
-  C = void,
-  CI = C,
+  Context = void,
+  ContextEncoded = Context,
+  SubmitRequirements = never,
+  FieldRequirements = never,
+  Name extends string = string,
 > {
   /** The Schema for field state and submission state. */
-  readonly Model: FormModelSchema<Schemas, A, AI, E, EI, C, CI>
+  readonly Model: FormModelSchema<
+    Schemas,
+    A,
+    AI,
+    E,
+    EI,
+    Context,
+    ContextEncoded
+  >
   /** The Schema for field changes, blur events, and validation and submission completions. */
   readonly Message: FormMessage<Schemas, A, AI, E, EI>
   /** The Schema for the submission results the Form reports to its parent. */
   readonly OutMessage: FormOutMessage<A, AI, E, EI>
   /** The submission union for this definition. */
   readonly Submission: ReturnType<
-    typeof Submission<A, AI, E, EI, C, CI, FormInputs<Schemas>>
+    typeof Submission<
+      A,
+      AI,
+      E,
+      EI,
+      Context,
+      ContextEncoded,
+      FormInputs<Schemas>
+    >
   >
   /** The Schema that decodes field inputs into the values submission receives. */
   readonly Values: Schema.Codec<FormValues<Schemas>, FormInputs<Schemas>>
   /** Submission Command factory for Story and Scene matching. Start attempts
-   * through submit so the Model and token advance together. */
+   * through submit so the Model and generation advance together. */
   readonly Submit: Command.CommandDefinitionWithArgs<
-    string,
+    `Submit${Name}`,
     {
       readonly values: Schema.Codec<FormValues<Schemas>, FormInputs<Schemas>>
-      readonly context: Schema.Codec<C, CI>
-      readonly token: typeof SubmissionToken
+      readonly context: Schema.Codec<Context, ContextEncoded>
+      readonly generation: typeof Schema.Number
     },
     Effect.Effect<
       Extract<
@@ -782,14 +815,15 @@ export interface FormDefinition<
       FormMessage<Schemas, A, AI, E, EI>['Type'],
       { _tag: 'CompletedValidateField' }
     >,
-    FieldRequirements
+    FieldRequirements,
+    Name
   >
   /** Creates clean state. Overrides are decoded values. Form encodes them into
    * inputs, and they become reset defaults. Use reset or reinitialize to
    * replace a live instance and preserve request generations. */
   readonly init: <Given extends Partial<FormValues<Schemas>>>(
     overrides?: Overrides<Schemas, Given>,
-  ) => FormState<Schemas, A, E, C>
+  ) => FormState<Schemas, A, E, Context>
   /** Creates a change Message from a field's input. */
   readonly changed: (
     ...args: ChangeArgs<Schemas>
@@ -799,42 +833,44 @@ export interface FormDefinition<
     name: keyof Schemas & string,
   ) => FormMessage<Schemas, A, AI, E, EI>['Type']
   /** Returns the input of every field, indexed by name. */
-  readonly inputs: (model: FormState<Schemas, A, E, C>) => FormInputs<Schemas>
+  readonly inputs: (
+    model: FormState<Schemas, A, E, Context>,
+  ) => FormInputs<Schemas>
   /** Returns a field's input, decoded value, errors, and interaction metadata. */
-  readonly field: <Name extends keyof Schemas & string>(
-    model: FormState<Schemas, A, E, C>,
-    name: Name,
-  ) => FieldView<Schemas[Name]>
+  readonly fieldView: <FieldName extends keyof Schemas & string>(
+    model: FormState<Schemas, A, E, Context>,
+    name: FieldName,
+  ) => FieldView<Schemas[FieldName]>
   /** Returns the submission state, including typed success data or error. */
   readonly submission: (
-    model: FormState<Schemas, A, E, C>,
-  ) => SubmissionUnion<Schemas, A, E, C>['Type']
+    model: FormState<Schemas, A, E, Context>,
+  ) => SubmissionUnion<Schemas, A, E, Context>['Type']
   /** Returns attempts since init, reset, or reinitialize. Pending repeated submits are ignored. */
-  readonly submitCount: (model: FormState<Schemas, A, E, C>) => number
+  readonly submitCount: (model: FormState<Schemas, A, E, Context>) => number
   /** Applies a Message and returns validation or submission Commands. Returns
    * an OutMessage when it accepts a submission result. */
   readonly update: (
-    model: FormState<Schemas, A, E, C>,
+    model: FormState<Schemas, A, E, Context>,
     message: FormMessage<Schemas, A, AI, E, EI>['Type'],
   ) => Update.ReturnWithOutMessage<
-    FormState<Schemas, A, E, C>,
+    FormState<Schemas, A, E, Context>,
     FormMessage<Schemas, A, AI, E, EI>['Type'],
     FormOutMessage<A, AI, E, EI>['Type'],
-    Requirements
+    SubmitRequirements | FieldRequirements
   >
   /** Restores defaults and clears interaction and submission state, preserving generations. */
   readonly reset: (
-    model: FormState<Schemas, A, E, C>,
+    model: FormState<Schemas, A, E, Context>,
   ) => Update.Return<
-    FormState<Schemas, A, E, C>,
+    FormState<Schemas, A, E, Context>,
     FormMessage<Schemas, A, AI, E, EI>['Type']
   >
   /** Replaces defaults and clears interaction and submission state, preserving generations. */
   readonly reinitialize: <Given extends Partial<FormValues<Schemas>>>(
-    model: FormState<Schemas, A, E, C>,
+    model: FormState<Schemas, A, E, Context>,
     overrides?: Overrides<Schemas, Given>,
   ) => Update.Return<
-    FormState<Schemas, A, E, C>,
+    FormState<Schemas, A, E, Context>,
     FormMessage<Schemas, A, AI, E, EI>['Type']
   >
   /** Checks all fields for a new attempt. Validation completions automatically
@@ -843,20 +879,21 @@ export interface FormDefinition<
    * ignored. When the Form has a `submit.context` Schema, pass the context
    * value after the Model. */
   readonly submit: (
-    model: FormState<Schemas, A, E, C>,
-    ...args: SubmitArgs<C>
+    model: FormState<Schemas, A, E, Context>,
+    ...args: SubmitArgs<Context>
   ) => Update.Return<
-    FormState<Schemas, A, E, C>,
+    FormState<Schemas, A, E, Context>,
     FormMessage<Schemas, A, AI, E, EI>['Type'],
-    Requirements
+    SubmitRequirements | FieldRequirements
   >
-  /** Lifts Form operations through a required parent field or a child lens. */
+  /** Lifts Form operations through a required parent field or a child lens.
+   * `foldOutMessage` folds each accepted submission result into the parent. */
   readonly lift: {
     <ParentModel, ParentMessage>(
       config: ParentFieldConfig<
         ParentModel,
         ParentMessage,
-        FormState<Schemas, A, E, C>,
+        FormState<Schemas, A, E, Context>,
         FormMessage<Schemas, A, AI, E, EI>['Type']
       > &
         FoldOutMessageConfig<
@@ -869,18 +906,18 @@ export interface FormDefinition<
       Schemas,
       ParentModel,
       ParentMessage,
-      Requirements,
+      SubmitRequirements | FieldRequirements,
       A,
       AI,
       E,
       EI,
-      C
+      Context
     >
     <ParentModel, ParentMessage>(
       config: FormLens<
         ParentModel,
         ParentMessage,
-        FormState<Schemas, A, E, C>,
+        FormState<Schemas, A, E, Context>,
         FormMessage<Schemas, A, AI, E, EI>['Type']
       > &
         FoldOutMessageConfig<
@@ -893,12 +930,12 @@ export interface FormDefinition<
       Schemas,
       ParentModel,
       ParentMessage,
-      Requirements,
+      SubmitRequirements | FieldRequirements,
       A,
       AI,
       E,
       EI,
-      C
+      Context
     >
   }
 }
@@ -907,8 +944,9 @@ type ValidateFieldCommand<
   S extends FieldSchema,
   CompletedMessage,
   FieldRequirements,
+  CommandName extends string,
 > = Command.CommandDefinitionWithArgs<
-  string,
+  CommandName,
   {
     readonly value: Schema.Codec<S['Type'], S['Encoded']>
     readonly generation: typeof Schema.Number
@@ -920,11 +958,13 @@ type ValidateFieldCommands<
   Schemas extends FieldSchemas,
   CompletedMessage,
   FieldRequirements,
+  Name extends string,
 > = Readonly<{
-  [Name in keyof Schemas & string]: ValidateFieldCommand<
-    Schemas[Name],
+  [FieldName in keyof Schemas & string]: ValidateFieldCommand<
+    Schemas[FieldName],
     CompletedMessage,
-    FieldRequirements
+    FieldRequirements,
+    `Validate${Name}${Capitalize<FieldName>}`
   >
 }>
 
@@ -954,6 +994,11 @@ type SubmitEffectFor<SubmitEffect, A, E> = SubmitEffect &
  * - Supply `toFieldErrors` to show a typed submission error on the fields it
  *   concerns.
  *
+ * `name` names the Form's Commands: `Submit<Name>` and, for each field,
+ * `Validate<Name><Field>` with the field name's first letter capitalized. Give
+ * each Form a name that doesn't run into another Form's name and field. Field
+ * names that differ only in the case of their first letter throw.
+ *
  * Every codec must decode and encode without services. Its init operation
  * creates an instance. Its lift operation adapts Form Messages to a parent
  * update handler.
@@ -961,6 +1006,7 @@ type SubmitEffectFor<SubmitEffect, A, E> = SubmitEffect &
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
 export function define<
+  const Name extends string,
   const Schemas extends FieldSchemas,
   const Fields extends FieldDefinitions<Schemas, unknown>,
   SubmitEffect extends Effect.Effect<NoInfer<A>, NoInfer<E>, unknown>,
@@ -968,22 +1014,22 @@ export function define<
   AI = A,
   E = never,
   EI = E,
-  C = void,
-  CI = C,
+  Context = void,
+  ContextEncoded = Context,
   Returned extends FieldErrors<string> = {},
 >(
   config: Readonly<{
-    name: string
+    name: Name
     fields: Fields &
       FieldDefinitions<Schemas, unknown> &
       Record<Exclude<keyof Fields, string>, never>
     submit: Readonly<{
       data?: Schema.Codec<A, AI, never, never> | undefined
       error?: Schema.Codec<E, EI, never, never> | undefined
-      context?: Schema.Codec<C, CI, never, never> | undefined
+      context?: Schema.Codec<Context, ContextEncoded, never, never> | undefined
       execute: (
         values: NoInfer<FormValues<Schemas>>,
-        context: NoInfer<C>,
+        context: NoInfer<Context>,
       ) => SubmitEffectFor<SubmitEffect, A, E>
       toFieldErrors?: [E] extends [never]
         ? undefined
@@ -996,37 +1042,38 @@ export function define<
   }>,
 ): FormDefinition<
   Schemas,
-  RequirementsOf<Fields> | Effect.Services<SubmitEffect>,
   A,
   AI,
   E,
   EI,
+  Context,
+  ContextEncoded,
   Effect.Services<SubmitEffect>,
   RequirementsOf<Fields>,
-  C,
-  CI
+  Name
 >
 export function define<
+  Name extends string,
   Schemas extends FieldSchemas,
   A,
   AI,
   E,
   EI,
-  C,
-  CI,
+  Context,
+  ContextEncoded,
   FieldRequirements = never,
   SubmitRequirements = never,
 >(
   config: Readonly<{
-    name: string
+    name: Name
     fields: FieldDefinitions<Schemas, FieldRequirements>
     submit: Readonly<{
       data?: Schema.Codec<A, AI, never, never> | undefined
       error?: Schema.Codec<E, EI, never, never> | undefined
-      context?: Schema.Codec<C, CI, never, never> | undefined
+      context?: Schema.Codec<Context, ContextEncoded, never, never> | undefined
       execute: (
         values: NoInfer<FormValues<Schemas>>,
-        context: C,
+        context: Context,
       ) => Effect.Effect<A, E, SubmitRequirements>
       toFieldErrors?:
         | ((error: E) => FieldErrors<keyof Schemas & string>)
@@ -1036,14 +1083,24 @@ export function define<
 ): unknown {
   const definitions = config.fields
   const names = Struct.keys(definitions)
+  const commandFieldNames = Array.map(names, String.capitalize)
+
+  if (Array.dedupe(commandFieldNames).length !== commandFieldNames.length) {
+    throw new Error(
+      `Form "${config.name}" has field names that differ only in the case of their first letter, so their validation Commands would share a name: ${names.join(', ')}`,
+    )
+  }
 
   // NOTE: an omitted data codec means execution succeeds with void, and an
   // omitted context codec means submit takes no context. The public signature
-  // defaults A and C to void in those cases.
+  // defaults A and Context to void in those cases.
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   const data = (config.submit.data ?? Schema.Void) as Schema.Codec<A, AI>
   const error: Schema.Codec<E, EI> = config.submit.error ?? Schema.Never
-  const context = (config.submit.context ?? Schema.Void) as Schema.Codec<C, CI>
+  const context = (config.submit.context ?? Schema.Void) as Schema.Codec<
+    Context,
+    ContextEncoded
+  >
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
   const Values = ValuesSchema(definitions)
@@ -1058,16 +1115,16 @@ export function define<
   const OutMessage = FormOutMessage(data, error)
 
   const Submit = Command.define(`Submit${config.name}`, {
-    args: { values: Values, context, token: SubmissionToken },
+    args: { values: Values, context, generation: Schema.Number },
     messages: [Message.CompletedSubmit],
-    execute: ({ values, context, token }) =>
+    execute: ({ values, context, generation }) =>
       config.submit.execute(values, context).pipe(
         Effect.result,
-        Effect.map(result => Message.CompletedSubmit({ token, result })),
+        Effect.map(result => Message.CompletedSubmit({ generation, result })),
       ),
   })
 
-  type Model = FormState<Schemas, A, E, C>
+  type Model = FormState<Schemas, A, E, Context>
   type Message = typeof Message.Type
   type OutMessage = typeof OutMessage.Type
   type States = FieldStates<Schemas>
@@ -1100,18 +1157,22 @@ export function define<
     { _tag: 'CompletedValidateField' }
   >
 
-  const defineValidateField = <Name extends keyof Schemas & string>(
-    name: Name,
-    definition: FieldDefinition<Schemas[Name], FieldRequirements>,
+  const defineValidateField = <FieldName extends keyof Schemas & string>(
+    name: FieldName,
+    definition: FieldDefinition<Schemas[FieldName], FieldRequirements>,
   ): ValidateFieldCommand<
-    Schemas[Name],
+    Schemas[FieldName],
     CompletedValidateField,
-    FieldRequirements
+    FieldRequirements,
+    `Validate${Name}${Capitalize<FieldName>}`
   > =>
-    Command.define(`Validate${config.name}:${name}`, {
+    Command.define(`Validate${config.name}${String.capitalize(name)}`, {
       args: {
         value: Schema.make<
-          Schema.Codec<Schemas[Name]['Type'], Schemas[Name]['Encoded']>
+          Schema.Codec<
+            Schemas[FieldName]['Type'],
+            Schemas[FieldName]['Encoded']
+          >
         >(definition.schema.ast),
         generation: Schema.Number,
       },
@@ -1130,7 +1191,12 @@ export function define<
 
   const ValidateField = mapFields<
     Schemas,
-    ValidateFieldCommands<Schemas, CompletedValidateField, FieldRequirements>,
+    ValidateFieldCommands<
+      Schemas,
+      CompletedValidateField,
+      FieldRequirements,
+      Name
+    >,
     FieldRequirements
   >(definitions, defineValidateField)
 
@@ -1173,10 +1239,7 @@ export function define<
       state: {
         ...state,
         validationGeneration,
-        validation: definition.Status.Validating({
-          generation: validationGeneration,
-          value: status.value,
-        }),
+        validation: definition.Status.Validating({ value: status.value }),
       },
       maybeCommand: Option.some(
         ValidateField[name]({
@@ -1206,15 +1269,17 @@ export function define<
     const fields = mapFields<Schemas, States, FieldRequirements>(
       definitions,
       (name, definition) =>
-        overrides !== undefined && Object.hasOwn(overrides, name)
-          ? definition.initialize(overrides[name])
-          : definition.initialize(),
+        definition.initialize(
+          overrides === undefined
+            ? Option.none()
+            : EffectRecord.get(overrides, name),
+        ),
     )
     return {
       fields,
       submission: SubmissionState.Idle(),
       submitCount: 0,
-      generation: 0,
+      submissionGeneration: 0,
     }
   }
 
@@ -1227,13 +1292,13 @@ export function define<
   const inputs = (model: Model): FormInputs<Schemas> =>
     Struct.map(model.fields, fieldInputLambda)
 
-  function selectField<Name extends keyof Schemas & string>(
+  function fieldView<FieldName extends keyof Schemas & string>(
     model: Model,
-    name: Name,
-  ): FieldView<Schemas[Name]> {
-    const state: FieldState<Schemas[Name]> = model.fields[name]
+    name: FieldName,
+  ): FieldView<Schemas[FieldName]> {
+    const state: FieldState<Schemas[FieldName]> = model.fields[name]
     const definition = definitions[name]
-    const validation: FieldStatus<Schemas[Name]> = state.validation
+    const validation: FieldStatus<Schemas[FieldName]> = state.validation
 
     return {
       input: state.input,
@@ -1270,7 +1335,7 @@ export function define<
 
     return mapFields<Schemas, States, FieldRequirements>(
       definitions,
-      function (name, definition) {
+      (name, definition) => {
         const state: FieldState<Schemas[typeof name]> = fields[name]
         const maybeMessage = Option.flatMap(
           EffectRecord.get(fieldErrors, name),
@@ -1298,11 +1363,6 @@ export function define<
     Message.match<UpdateReturn>(message, {
       ChangedField({ change }) {
         const { name } = change
-
-        if (!Object.hasOwn(definitions, name)) {
-          return { model }
-        }
-
         const definition = definitions[name]
         const state: FieldState<Schemas[typeof name]> = {
           ...model.fields[name],
@@ -1332,10 +1392,6 @@ export function define<
         }
       },
       BlurredField({ name }) {
-        if (!Object.hasOwn(definitions, name)) {
-          return { model }
-        }
-
         const state: FieldState<Schemas[typeof name]> = model.fields[name]
         const fieldBlur =
           definitions[name].validateOn === 'Blur' &&
@@ -1360,17 +1416,13 @@ export function define<
         }
       },
       CompletedValidateField({ name, generation, result }) {
-        if (!Object.hasOwn(definitions, name)) {
-          return { model }
-        }
-
         const definition = definitions[name]
         const state: FieldState<Schemas[typeof name]> = model.fields[name]
         const pending: FieldStatus<Schemas[typeof name]> = state.validation
 
         if (
           pending._tag !== 'Validating' ||
-          pending.generation !== generation
+          state.validationGeneration !== generation
         ) {
           return { model }
         }
@@ -1391,10 +1443,10 @@ export function define<
 
         return continueSubmit(nextModel)
       },
-      CompletedSubmit({ token, result }) {
+      CompletedSubmit({ generation, result }) {
         if (
           model.submission._tag !== 'Submitting' ||
-          model.submission.token.generation !== token.generation
+          model.submission.generation !== generation
         ) {
           return { model }
         }
@@ -1426,7 +1478,7 @@ export function define<
       fields: () =>
         mapFields<Schemas, States, FieldRequirements>(
           definitions,
-          function (name, definition) {
+          (name, definition) => {
             const state: FieldState<Schemas[typeof name]> = model.fields[name]
 
             return {
@@ -1461,34 +1513,24 @@ export function define<
               validationGeneration: model.fields[name].validationGeneration,
             }
           }),
-        generation: () => model.generation,
+        submissionGeneration: () => model.submissionGeneration,
       }),
     }
   }
 
-  function collectValidValues(
+  const collectValidValues = (
     model: Model,
-  ): Option.Option<FormValues<Schemas>> {
-    const values: Record<string, unknown> = {}
-
-    for (const name of names) {
-      const validation: FieldStatus<Schemas[typeof name]> =
-        model.fields[name].validation
-
-      if (validation._tag !== 'Valid') {
-        return Option.none()
-      }
-
-      Object.defineProperty(values, name, {
-        value: validation.value,
-        enumerable: true,
-      })
-    }
-
-    // NOTE: the loop above assigns one decoded value per field name.
+  ): Option.Option<FormValues<Schemas>> =>
+    // NOTE: Option.all over Record.map loses the per-key value types; each
+    // entry is the decoded value of the field with that name.
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    return Option.some(values as FormValues<Schemas>)
-  }
+    Option.all(
+      EffectRecord.map(model.fields, ({ validation }) =>
+        validation._tag === 'Valid'
+          ? Option.some(validation.value)
+          : Option.none(),
+      ),
+    ) as Option.Option<FormValues<Schemas>>
 
   function continueSubmit(model: Model): UpdateReturn {
     if (
@@ -1501,7 +1543,7 @@ export function define<
       return { model }
     }
 
-    const { token, context: submitContext } = model.submission
+    const { generation, context: submitContext } = model.submission
 
     return Option.match(collectValidValues(model), {
       onNone: () => ({
@@ -1512,14 +1554,14 @@ export function define<
       onSome: values => ({
         model: modifyFields(model, {
           submission: () =>
-            SubmissionState.Submitting({ token, inputs: inputs(model) }),
+            SubmissionState.Submitting({ generation, inputs: inputs(model) }),
         }),
-        commands: [Submit({ values, context: submitContext, token })],
+        commands: [Submit({ values, context: submitContext, generation })],
       }),
     })
   }
 
-  function submit(model: Model, ...args: SubmitArgs<C>): SubmitReturn {
+  function submit(model: Model, ...args: SubmitArgs<Context>): SubmitReturn {
     if (
       model.submission._tag === 'Submitting' ||
       model.submission._tag === 'Validating'
@@ -1527,10 +1569,12 @@ export function define<
       return { model }
     }
 
-    // NOTE: SubmitArgs<C> is empty exactly when C is void, so an absent
+    // NOTE: SubmitArgs<Context> is empty exactly when Context is void, so an absent
     // argument stands for the void context.
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const submitContext = Array.head(args).pipe(Option.getOrUndefined) as C
+    const submitContext = Array.head(args).pipe(
+      Option.getOrUndefined,
+    ) as Context
 
     const steps = mapFields<Schemas, FieldUpdates, FieldRequirements>(
       definitions,
@@ -1541,15 +1585,13 @@ export function define<
         }),
     )
     const formValidation = assembleFieldUpdates(steps)
-    const token = SubmissionToken.make({
-      generation: Number.increment(model.generation),
-    })
+    const generation = Number.increment(model.submissionGeneration)
     const nextModel = modifyFields(model, {
       fields: () => formValidation.fields,
-      generation: () => token.generation,
+      submissionGeneration: () => generation,
       submitCount: Number.increment,
       submission: () =>
-        SubmissionState.Validating({ token, context: submitContext }),
+        SubmissionState.Validating({ generation, context: submitContext }),
     })
     const formContinuation = continueSubmit(nextModel)
 
@@ -1571,35 +1613,21 @@ export function define<
       OutMessage
     >,
   ) {
-    const receiverLens = ChildLens.preserveLensReceiver(lens)
-    const callbacks: FormLens<ParentModel, ParentMessage, Model, Message> = {
-      ...receiverLens,
-      write: (model, nextChild) => {
-        const maybeChild = receiverLens.read(model)
-
-        return Option.isSome(maybeChild) && maybeChild.value === nextChild
-          ? model
-          : receiverLens.write(model, nextChild)
-      },
-    }
-
-    const fold = Update.foldChild({ update, ...callbacks, foldOutMessage })
+    const callbacks = ChildLens.preserveLensReceiver(lens)
 
     return {
-      fold,
+      fold: Update.foldChild({ update, ...callbacks, foldOutMessage }),
       reset: Update.foldChildStep({ update: reset, ...callbacks }),
       reinitialize: <Given extends Partial<FormValues<Schemas>>>(
-        model: ParentModel,
         overrides?: Overrides<Schemas, Given>,
-      ): Update.Return<ParentModel, ParentMessage> =>
+      ): Update.Step<ParentModel, ParentMessage> =>
         Update.foldChildStep({
           update: (childModel: Model) => reinitialize(childModel, overrides),
           ...callbacks,
-        })(model),
+        }),
       submit: (
-        model: ParentModel,
-        ...args: SubmitArgs<C>
-      ): Update.Return<
+        ...args: SubmitArgs<Context>
+      ): Update.Step<
         ParentModel,
         ParentMessage,
         FieldRequirements | SubmitRequirements
@@ -1607,7 +1635,7 @@ export function define<
         Update.foldChildStep({
           update: (childModel: Model) => submit(childModel, ...args),
           ...callbacks,
-        })(model),
+        }),
     }
   }
 
@@ -1622,31 +1650,26 @@ export function define<
   function lift<ParentModel, ParentMessage>(
     config: LiftConfig<ParentModel, ParentMessage>,
   ) {
-    const foldOutMessage: FoldOutMessage<
-      ParentModel,
-      ParentMessage,
-      Message,
-      OutMessage
-    > = config.foldOutMessage ?? (() => stepModel => ({ model: stepModel }))
-
     if (ChildLens.isParentFieldConfig(config)) {
-      return liftFromLens(ChildLens.parentFieldToLens(config), foldOutMessage)
+      return liftFromLens(
+        ChildLens.parentFieldToLens(config),
+        config.foldOutMessage,
+      )
     }
 
-    return liftFromLens(config, foldOutMessage)
+    return liftFromLens(config, config.foldOutMessage)
   }
 
   const definition: FormDefinition<
     Schemas,
-    FieldRequirements | SubmitRequirements,
     A,
     AI,
     E,
     EI,
+    Context,
+    ContextEncoded,
     SubmitRequirements,
-    FieldRequirements,
-    C,
-    CI
+    FieldRequirements
   > = {
     Model,
     Message,
@@ -1660,7 +1683,7 @@ export function define<
     blurred,
     inputs,
     submitCount: (model: Model) => model.submitCount,
-    field: selectField,
+    fieldView,
     submission,
     update,
     reset,
