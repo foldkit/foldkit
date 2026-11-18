@@ -758,3 +758,19 @@ const schemaParameterChecks = () => {
   saving.Submission.Succeeded({ data: '1' })
 }
 void schemaParameterChecks
+
+const messageConstructorChecks = () => {
+  const titled = Form.define({
+    name: 'Titled',
+    fields: { title: Form.field({ schema: Schema.String, initial: '' }) },
+    submit: { execute: () => Effect.void },
+  })
+
+  expectTypeOf(titled.changed('title', 'Draft')).toEqualTypeOf<
+    typeof titled.Message.ChangedField.Type
+  >()
+  expectTypeOf(titled.blurred('title')).toEqualTypeOf<
+    typeof titled.Message.BlurredField.Type
+  >()
+}
+void messageConstructorChecks

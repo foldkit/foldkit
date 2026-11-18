@@ -834,10 +834,7 @@ interface FormDefinitionOf<
       readonly generation: typeof Schema.Number
     },
     Effect.Effect<
-      Extract<
-        FormMessage<Schemas, A, AI, E, EI>['Type'],
-        { _tag: 'CompletedSubmit' }
-      >,
+      FormMessage<Schemas, A, AI, E, EI>['CompletedSubmit']['Type'],
       never,
       SubmitRequirements
     >
@@ -845,10 +842,7 @@ interface FormDefinitionOf<
   /** Each field's check Command, for matching in Story and Scene tests. */
   readonly ValidateField: ValidateFieldCommands<
     Schemas,
-    Extract<
-      FormMessage<Schemas, A, AI, E, EI>['Type'],
-      { _tag: 'CompletedValidateField' }
-    >,
+    FormMessage<Schemas, A, AI, E, EI>['CompletedValidateField']['Type'],
     FieldRequirements,
     Name
   >
@@ -861,11 +855,11 @@ interface FormDefinitionOf<
   /** Creates the Message for a field's new input. */
   readonly changed: (
     ...args: ChangeArgs<Schemas>
-  ) => FormMessage<Schemas, A, AI, E, EI>['Type']
+  ) => FormMessage<Schemas, A, AI, E, EI>['ChangedField']['Type']
   /** Creates the Message for a field losing focus. */
   readonly blurred: (
     name: keyof Schemas & string,
-  ) => FormMessage<Schemas, A, AI, E, EI>['Type']
+  ) => FormMessage<Schemas, A, AI, E, EI>['BlurredField']['Type']
   /** Returns every field's input. */
   readonly inputs: (
     model: FormState<Schemas, A, E, Context>,
@@ -1126,8 +1120,8 @@ export function define<
   }
 
   // NOTE: without a data codec execution returns void, and without a context
-  // codec submit takes none. The public signature defaults A and Context to
-  // void to match.
+  // codec submit takes none. The public signature defaults the data and
+  // context codecs to `Schema.Void` to match.
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   const data = (config.submit.data ?? Schema.Void) as Schema.Codec<A, AI>
   const error: Schema.Codec<E, EI> = config.submit.error ?? Schema.Never
@@ -1186,10 +1180,7 @@ export function define<
     [Name in keyof Schemas & string]: FieldUpdate<Schemas[Name]>
   }>
 
-  type CompletedValidateField = Extract<
-    Message,
-    { _tag: 'CompletedValidateField' }
-  >
+  type CompletedValidateField = typeof Message.CompletedValidateField.Type
 
   const defineValidateField = <FieldName extends keyof Schemas & string>(
     name: FieldName,
@@ -1317,11 +1308,14 @@ export function define<
     }
   }
 
-  const changed = (...[name, input]: ChangeArgs<Schemas>): Message =>
+  const changed = (
+    ...[name, input]: ChangeArgs<Schemas>
+  ): typeof Message.ChangedField.Type =>
     Message.ChangedField({ change: { name, input } })
 
-  const blurred = (name: keyof Schemas & string): Message =>
-    Message.BlurredField({ name })
+  const blurred = (
+    name: keyof Schemas & string,
+  ): typeof Message.BlurredField.Type => Message.BlurredField({ name })
 
   const inputs = (model: Model): FormInputs<Schemas> =>
     Struct.map(model.fields, fieldInputLambda)
