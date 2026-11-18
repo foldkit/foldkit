@@ -41,7 +41,7 @@ export type FieldSchema = Schema.Codec<unknown, unknown, never, never> & {
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
-export type FieldSchemas = Readonly<globalThis.Record<string, FieldSchema>>
+export type FieldSchemas = Readonly<Record<string, FieldSchema>>
 
 type ValueSchema<S extends FieldSchema> = Schema.Codec<
   S['Type'],
@@ -604,15 +604,13 @@ export type OutMessage<
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
 export type FieldErrors<Name extends string> = Readonly<
-  Partial<globalThis.Record<Name, string>>
+  Partial<Record<Name, string>>
 >
 
 type KeysOfUnion<T> = T extends unknown ? keyof T : never
 
 type ExactFieldErrors<Returned, Name extends string> = Returned &
-  Readonly<
-    Partial<globalThis.Record<Exclude<KeysOfUnion<Returned>, Name>, never>>
-  >
+  Readonly<Partial<Record<Exclude<KeysOfUnion<Returned>, Name>, never>>>
 
 type FieldStates<Schemas extends FieldSchemas> = Readonly<{
   [Name in keyof Schemas & string]: FieldState<Schemas[Name]>
@@ -690,7 +688,7 @@ type FormOutMessage<A, AI, E, EI> = ReturnType<
 >
 
 type Overrides<Schemas extends FieldSchemas, Provided> = Provided &
-  globalThis.Record<Exclude<keyof Provided, keyof Schemas>, never>
+  Record<Exclude<keyof Provided, keyof Schemas>, never>
 
 /** Folds a Form's OutMessage into the parent. The Step receives the parent
  * Model with the Form already updated. A parent that is itself a Submodel can
@@ -1111,7 +1109,7 @@ export function define<
     name: FormName
     fields: Fields &
       FieldDefinitions<Schemas, unknown> &
-      globalThis.Record<Exclude<keyof Fields, string>, never>
+      Record<Exclude<keyof Fields, string>, never>
     submit: Readonly<{
       data?: DataSchema | undefined
       error?: ErrorSchema | undefined
@@ -1458,7 +1456,7 @@ export function define<
       return fields
     }
 
-    const fieldErrors: Readonly<globalThis.Record<string, string | undefined>> =
+    const fieldErrors: Readonly<Record<string, string | undefined>> =
       config.submit.toFieldErrors(rejection)
 
     return mapFields<Schemas, States, FieldRequirements>(
