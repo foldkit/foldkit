@@ -487,6 +487,9 @@ type MakeableCodec<T, E> = Schema.Codec<T, E> & {
   readonly '~type.make': T
 }
 
+// NOTE: a generic Codec types its constructor input as unknown, so union
+// constructors built from it would accept any payload. This restates the input
+// as the decoded type.
 const toMakeable = <T, E>(codec: Schema.Codec<T, E>) =>
   Schema.make<MakeableCodec<T, E>>(codec.ast)
 
@@ -709,11 +712,31 @@ export type LiftedForm<
   ParentModel,
   ParentMessage,
   Requirements = never,
-  A = void,
-  AI = A,
-  E = never,
-  EI = E,
-  Context = void,
+  DataSchema extends Schema.Top = typeof Schema.Void,
+  ErrorSchema extends Schema.Top = typeof Schema.Never,
+  ContextSchema extends Schema.Top = typeof Schema.Void,
+> = LiftedFormOf<
+  Schemas,
+  ParentModel,
+  ParentMessage,
+  Requirements,
+  DataSchema['Type'],
+  DataSchema['Encoded'],
+  ErrorSchema['Type'],
+  ErrorSchema['Encoded'],
+  ContextSchema['Type']
+>
+
+type LiftedFormOf<
+  Schemas extends FieldSchemas,
+  ParentModel,
+  ParentMessage,
+  Requirements,
+  A,
+  AI,
+  E,
+  EI,
+  Context,
 > = Readonly<{
   /** Applies a Form Message, wraps its Commands for the parent, and runs
    * `foldOutMessage` for each submission result the Form accepts. */
@@ -742,15 +765,36 @@ export type LiftedForm<
  */
 export interface FormDefinition<
   Schemas extends FieldSchemas,
-  A = void,
-  AI = A,
-  E = never,
-  EI = E,
-  Context = void,
-  ContextEncoded = Context,
+  DataSchema extends Schema.Top = typeof Schema.Void,
+  ErrorSchema extends Schema.Top = typeof Schema.Never,
+  ContextSchema extends Schema.Top = typeof Schema.Void,
   SubmitRequirements = never,
   FieldRequirements = never,
   Name extends string = string,
+> extends FormDefinitionOf<
+  Schemas,
+  DataSchema['Type'],
+  DataSchema['Encoded'],
+  ErrorSchema['Type'],
+  ErrorSchema['Encoded'],
+  ContextSchema['Type'],
+  ContextSchema['Encoded'],
+  SubmitRequirements,
+  FieldRequirements,
+  Name
+> {}
+
+interface FormDefinitionOf<
+  Schemas extends FieldSchemas,
+  A,
+  AI,
+  E,
+  EI,
+  Context,
+  ContextEncoded,
+  SubmitRequirements,
+  FieldRequirements,
+  Name extends string,
 > {
   /** Schema of the Form Model. */
   readonly Model: FormModelSchema<
@@ -893,7 +937,7 @@ export interface FormDefinition<
           FormMessage<Schemas, A, AI, E, EI>['Type'],
           FormOutMessage<A, AI, E, EI>['Type']
         >,
-    ): LiftedForm<
+    ): LiftedFormOf<
       Schemas,
       ParentModel,
       ParentMessage,
@@ -917,7 +961,7 @@ export interface FormDefinition<
           FormMessage<Schemas, A, AI, E, EI>['Type'],
           FormOutMessage<A, AI, E, EI>['Type']
         >,
-    ): LiftedForm<
+    ): LiftedFormOf<
       Schemas,
       ParentModel,
       ParentMessage,
@@ -969,6 +1013,8 @@ type ValidatorRequirements<Definition> = Definition extends {
 
 type RequirementsOf<Fields> = ValidatorRequirements<Fields[keyof Fields]>
 
+type ServiceFreeCodec = Schema.Codec<unknown, unknown, never, never>
+
 type SubmitEffectFor<SubmitEffect, A, E> = SubmitEffect &
   ([Effect.Success<NoInfer<SubmitEffect>>] extends [NoInfer<A>]
     ? unknown
@@ -995,13 +1041,14 @@ export function define<
   const Name extends string,
   const Schemas extends FieldSchemas,
   const Fields extends FieldDefinitions<Schemas, unknown>,
-  SubmitEffect extends Effect.Effect<NoInfer<A>, NoInfer<E>, unknown>,
-  A = void,
-  AI = A,
-  E = never,
-  EI = E,
-  Context = void,
-  ContextEncoded = Context,
+  SubmitEffect extends Effect.Effect<
+    NoInfer<DataSchema['Type']>,
+    NoInfer<ErrorSchema['Type']>,
+    unknown
+  >,
+  DataSchema extends ServiceFreeCodec = typeof Schema.Void,
+  ErrorSchema extends ServiceFreeCodec = typeof Schema.Never,
+  ContextSchema extends ServiceFreeCodec = typeof Schema.Void,
   Returned extends FieldErrors<string> = {},
 >(
   config: Readonly<{
@@ -1010,30 +1057,31 @@ export function define<
       FieldDefinitions<Schemas, unknown> &
       Record<Exclude<keyof Fields, string>, never>
     submit: Readonly<{
-      data?: Schema.Codec<A, AI, never, never> | undefined
-      error?: Schema.Codec<E, EI, never, never> | undefined
-      context?: Schema.Codec<Context, ContextEncoded, never, never> | undefined
+      data?: DataSchema | undefined
+      error?: ErrorSchema | undefined
+      context?: ContextSchema | undefined
       execute: (
         values: NoInfer<FormValues<Schemas>>,
-        context: NoInfer<Context>,
-      ) => SubmitEffectFor<SubmitEffect, A, E>
-      toFieldErrors?: [E] extends [never]
+        context: NoInfer<ContextSchema['Type']>,
+      ) => SubmitEffectFor<
+        SubmitEffect,
+        DataSchema['Type'],
+        ErrorSchema['Type']
+      >
+      toFieldErrors?: [ErrorSchema['Type']] extends [never]
         ? undefined
         :
             | ((
-                error: NoInfer<E>,
+                error: NoInfer<ErrorSchema['Type']>,
               ) => ExactFieldErrors<Returned, NoInfer<keyof Schemas & string>>)
             | undefined
     }>
   }>,
 ): FormDefinition<
   Schemas,
-  A,
-  AI,
-  E,
-  EI,
-  Context,
-  ContextEncoded,
+  DataSchema,
+  ErrorSchema,
+  ContextSchema,
   Effect.Services<SubmitEffect>,
   RequirementsOf<Fields>,
   Name
@@ -1648,12 +1696,9 @@ export function define<
 
   const definition: FormDefinition<
     Schemas,
-    A,
-    AI,
-    E,
-    EI,
-    Context,
-    ContextEncoded,
+    Schema.Codec<A, AI>,
+    Schema.Codec<E, EI>,
+    Schema.Codec<Context, ContextEncoded>,
     SubmitRequirements,
     FieldRequirements
   > = {

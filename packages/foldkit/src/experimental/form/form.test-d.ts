@@ -730,3 +730,31 @@ const concreteModelTypeChecks = (model: typeof compound.Model.Type) => {
   compound.inputs(compound.Model.make(model))
 }
 void concreteModelTypeChecks
+
+const schemaParameterChecks = () => {
+  const SavedId = Schema.NumberFromString
+  const fields = { title: Form.field({ schema: Schema.String, initial: '' }) }
+  const saving = Form.define({
+    name: 'Saving',
+    fields,
+    submit: {
+      data: SavedId,
+      error: Schema.String,
+      context: Schema.Struct({ recordId: Schema.String }),
+      execute: () => Effect.succeed(1),
+    },
+  })
+
+  expectTypeOf(saving).toExtend<
+    Form.FormDefinition<
+      { readonly title: typeof Schema.String },
+      typeof SavedId,
+      typeof Schema.String,
+      Schema.Struct<{ readonly recordId: typeof Schema.String }>
+    >
+  >()
+  saving.Submission.Succeeded({ data: 1 })
+  // @ts-expect-error Succeeded takes the decoded data, a number
+  saving.Submission.Succeeded({ data: '1' })
+}
+void schemaParameterChecks
