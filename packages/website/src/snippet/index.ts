@@ -144,6 +144,8 @@ export { default as routingTransitionMatchRaw } from './routingTransitionMatch.t
 export { default as routingTransitionMatchHighlighted } from './routingTransitionMatch.ts?highlighted'
 export { default as routingExitedStayedRaw } from './routingExitedStayed.ts?raw'
 export { default as routingExitedStayedHighlighted } from './routingExitedStayed.ts?highlighted'
+export { default as routingUrlFragmentsRaw } from './routingUrlFragments.ts?raw'
+export { default as routingUrlFragmentsHighlighted } from './routingUrlFragments.ts?highlighted'
 export { default as keyingBranchingViewsRaw } from './keyingBranchingViews.ts?raw'
 export { default as keyingBranchingViewsHighlighted } from './keyingBranchingViews.ts?highlighted'
 export { default as keyingListItemsRaw } from './keyingListItems.ts?raw'
