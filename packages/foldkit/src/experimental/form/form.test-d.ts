@@ -952,3 +952,102 @@ const submissionSelectorChecks = () => {
   recordForm.Submit({ values: { note: '' }, generation: 1 })
 }
 void submissionSelectorChecks
+
+const fieldsChecks = () => {
+  type TextSchema = Form.FieldSchema & Readonly<{ Encoded: string }>
+
+  const textFieldMessages = <Name extends string, Model, Message>(
+    form: Form.Fields<Record<Name, TextSchema>, Model, Message>,
+    model: Model,
+    name: Name,
+  ) => {
+    const input: string = form.fieldView(model, name).input
+
+    return {
+      change: form.changed(name, `${input}!`),
+      blur: form.blurred(name),
+    }
+  }
+
+  const sharedFields = {
+    email: Form.field({
+      schema: Schema.String,
+      initial: '',
+      validate: () => Effect.succeed([]),
+    }),
+  }
+  type SharedSchemas = Form.FieldSchemasOf<typeof sharedFields>
+
+  const sharedEmail = <Model, Message>(
+    form: Form.Fields<SharedSchemas, Model, Message>,
+    model: Model,
+  ) => form.inputs(model).email
+
+  const signupForm = Form.define({
+    name: 'Signup',
+    fields: {
+      ...sharedFields,
+      age: Form.field({ schema: Schema.NumberFromString, initial: '' }),
+      isAgreed: Form.field({ schema: Schema.Boolean, initial: false }),
+    },
+    submit: {
+      data: Schema.String,
+      error: Schema.String,
+      execute: () => Effect.succeed('saved'),
+    },
+  })
+  const profileForm = Form.define({
+    name: 'Profile',
+    fields: {
+      ...sharedFields,
+      bio: Form.field({ schema: Schema.String, initial: '' }),
+    },
+    submit: {
+      context: Schema.Struct({ profileId: Schema.String }),
+      execute: () => Effect.void,
+    },
+  })
+  type SignupModel = typeof signupForm.Model.Type
+  type SignupMessage = typeof signupForm.Message.Type
+  type ProfileModel = typeof profileForm.Model.Type
+  type ProfileMessage = typeof profileForm.Message.Type
+  type EmailAndAgeSchemas = Readonly<{
+    email: typeof Schema.String
+    age: typeof Schema.NumberFromString
+  }>
+
+  expectTypeOf<SharedSchemas>().toEqualTypeOf<{
+    readonly email: typeof Schema.String
+  }>()
+  expectTypeOf(signupForm).toExtend<
+    Form.Fields<SharedSchemas, SignupModel, SignupMessage>
+  >()
+  expectTypeOf(signupForm).toExtend<
+    Form.Fields<EmailAndAgeSchemas, SignupModel, SignupMessage>
+  >()
+  expectTypeOf(profileForm).not.toExtend<
+    Form.Fields<EmailAndAgeSchemas, ProfileModel, ProfileMessage>
+  >()
+
+  expectTypeOf(
+    textFieldMessages(signupForm, signupForm.init(), 'email'),
+  ).toEqualTypeOf<{ change: SignupMessage; blur: SignupMessage }>()
+  expectTypeOf(
+    textFieldMessages(profileForm, profileForm.init(), 'bio'),
+  ).toEqualTypeOf<{ change: ProfileMessage; blur: ProfileMessage }>()
+  textFieldMessages(signupForm, signupForm.init(), 'age')
+  expectTypeOf(
+    sharedEmail(signupForm, signupForm.init()),
+  ).toEqualTypeOf<string>()
+  expectTypeOf(
+    sharedEmail(profileForm, profileForm.init()),
+  ).toEqualTypeOf<string>()
+
+  // @ts-expect-error A text field helper rejects a field whose input is a boolean.
+  textFieldMessages(signupForm, signupForm.init(), 'isAgreed')
+  // @ts-expect-error A text field helper rejects a name that isn't a field.
+  textFieldMessages(signupForm, signupForm.init(), 'nickname')
+  // @ts-expect-error The Model must belong to the Form passed in.
+  textFieldMessages(signupForm, profileForm.init(), 'email')
+}
+void fieldsChecks

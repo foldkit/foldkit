@@ -453,12 +453,17 @@ export type FormValues<Schemas extends FieldSchemas> = Schema.Struct.View<
   never
 >
 
-type SchemasOfFields<Fields> = {
-  readonly [Name in keyof Fields & string]: Fields[Name] extends Readonly<{
-    schema: infer S extends FieldSchema
-  }>
-    ? S
-    : never
+type AnyFieldDefinitions = Readonly<
+  Record<string, Readonly<{ schema: FieldSchema }>>
+>
+
+/** Field Schemas by name for a fields object: `Form.FieldSchemasOf<typeof
+ * fields>`. Use it to type {@link Fields} for fields that several Forms share.
+ *
+ * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
+ */
+export type FieldSchemasOf<Definitions extends AnyFieldDefinitions> = {
+  readonly [Name in keyof Definitions & string]: Definitions[Name]['schema']
 }
 
 /** Decoded values by name for a fields object, the values `execute` receives
@@ -469,9 +474,9 @@ type SchemasOfFields<Fields> = {
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
-export type FieldValues<
-  Fields extends Readonly<Record<string, Readonly<{ schema: FieldSchema }>>>,
-> = FormValues<SchemasOfFields<Fields>>
+export type FieldValues<Definitions extends AnyFieldDefinitions> = FormValues<
+  FieldSchemasOf<Definitions>
+>
 
 /** Field inputs by name: what each control holds.
  *
@@ -891,6 +896,29 @@ export interface FormDefinition<
   ValidatedFieldName
 > {}
 
+/** A Form's field operations, whatever it submits. Type a view helper's Form
+ * parameter as `Form.Fields<Schemas, Model, Message>` with `Model` and
+ * `Message` generic, so the Form passed in decides them. Any Form whose fields
+ * include `Schemas` fits.
+ *
+ * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
+ */
+export interface Fields<Schemas extends FieldSchemas, Model, Message> {
+  /** The Form's Message Schema. Its `Type` decides the helper's `Message`. */
+  readonly Message: Readonly<{ Type: Message }>
+  /** Returns what a view needs to render a field. */
+  readonly fieldView: <Name extends keyof Schemas & string>(
+    model: Model,
+    name: Name,
+  ) => FieldView<Schemas[Name]>
+  /** Creates the Message for a field's new input. */
+  readonly changed: (...args: ChangeArgs<Schemas>) => Message
+  /** Creates the Message for a field losing focus. */
+  readonly blurred: (name: keyof Schemas & string) => Message
+  /** Returns every field's input. */
+  readonly inputs: (model: Model) => FormInputs<Schemas>
+}
+
 interface FormDefinitionOf<
   Schemas extends FieldSchemas,
   A,
@@ -903,6 +931,10 @@ interface FormDefinitionOf<
   FieldRequirements,
   FormName extends string,
   ValidatedFieldName extends keyof Schemas & string,
+> extends Fields<
+  Schemas,
+  FormModel<Schemas, A, E, Context>,
+  FormMessage<Schemas, A, AI, E, EI>['Type']
 > {
   /** Schema of the Form Model. */
   readonly Model: FormModelSchema<

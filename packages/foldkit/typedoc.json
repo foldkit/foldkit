@@ -10,6 +10,7 @@
   "intentionallyNotExported": [
     "AcquireParams",
     "AnyCommandInstance",
+    "AnyFieldDefinitions",
     "AnySubmodelView",
     "AnyUpdateReturn",
     "BaseApplicationConfig",
@@ -77,7 +78,6 @@
     "LiftedSubscriptions",
     "MachineContextArguments",
     "MachineSchemaFields",
-    "SchemasOfFields",
     "SubmitCommandArgs",
     "ParentFieldOf",
     "TypedMakeCodec",

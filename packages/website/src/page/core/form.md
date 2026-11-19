@@ -258,6 +258,14 @@ Some controls change more than one field. For example, turning off email updates
 
 ::Snippet{name="formChangedFields" label="Two fields changed by one click"}
 
+### Share View Helpers Between Forms
+
+A view helper can take any Form that has the fields it needs, whatever the Form submits. Type its Form parameter as `Form.Fields<Schemas, Model, Message>` and leave `Model` and `Message` generic, so the Form you pass decides them. A Form with more fields than `Schemas` fits.
+
+To require a kind of input, constrain the field's Schema. `Form.FieldSchema & Readonly<{ Encoded: string }>` accepts any field whose input is text, including a number field that reads its value from text. To name the Schemas of a fields object that several Forms share, use `Form.FieldSchemasOf<typeof fields>`.
+
+::Snippet{name="formFieldsHelper" label="A text field helper shared by two Forms"}
+
 ## Test Form Commands
 
 Story and Scene tests can match and resolve `registrationForm.Submit` and `registrationForm.ValidateField.<field>` without running their Effects. `Submit` takes the decoded `values` and the attempt's `generation`, plus the `context` when the Form has a `context` Schema. `ValidateField` has a Command for each field with a `validate` Effect. It takes the field's `value` and the check's `generation`.
