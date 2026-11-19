@@ -177,3 +177,21 @@ test('fewer examples than the cap produce one shard each', () => {
 
   assert.equal(matrix.include.length, 2)
 })
+
+test('shared example client dependencies select every example in bounded shards', () => {
+  const { exampleCount, matrix, shardedSlugs } = planExamplesForFile(
+    'examples/vite.dependencies.ts',
+  )
+
+  assert.equal(exampleCount, allExampleSlugs.length)
+  assert.deepEqual([...shardedSlugs].sort(), allExampleSlugs)
+  assert.equal(new Set(shardedSlugs).size, shardedSlugs.length)
+  assert.equal(
+    matrix.include.length,
+    Math.min(MAX_SHARD_COUNT, allExampleSlugs.length),
+  )
+
+  for (const entry of matrix.include) {
+    assert.notEqual(entry.examples, '', `shard ${entry.shard} is empty`)
+  }
+})

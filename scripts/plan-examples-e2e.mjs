@@ -8,6 +8,7 @@ const ALL_EXAMPLES_FILES = new Set([
   '.github/workflows/examples-e2e.yml',
   '.npmrc',
   'examples/vite.aliases.ts',
+  'examples/vite.dependencies.ts',
   'package.json',
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
