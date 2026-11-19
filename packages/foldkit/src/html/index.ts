@@ -153,7 +153,8 @@ const tagAsFileHandler = <T extends Function>(
   return handler
 }
 
-/** Modifier key state extracted from a `KeyboardEvent`. */
+/** Modifier key state extracted from a `KeyboardEvent`, or from the
+ *  `MouseEvent` of a click that `OnClick` handles with a function. */
 export type KeyboardModifiers = Readonly<{
   shiftKey: boolean
   ctrlKey: boolean
@@ -161,7 +162,9 @@ export type KeyboardModifiers = Readonly<{
   metaKey: boolean
 }>
 
-const keyboardModifiers = (event: KeyboardEvent): KeyboardModifiers => ({
+const keyboardModifiers = (
+  event: KeyboardEvent | MouseEvent,
+): KeyboardModifiers => ({
   shiftKey: event.shiftKey,
   ctrlKey: event.ctrlKey,
   altKey: event.altKey,
@@ -608,7 +611,10 @@ export type Attribute<Message> = Data.TaggedEnum<{
   Popover: { readonly value: string }
   Popovertarget: { readonly value: string }
   Popovertargetaction: { readonly value: string }
-  OnClick: { readonly message: Message; readonly options?: ClickOptions }
+  OnClick: {
+    readonly message: Message | ((modifiers: KeyboardModifiers) => Message)
+    readonly options?: ClickOptions
+  }
   OnDoubleClick: { readonly message: Message }
   OnMouseDown: { readonly message: Message }
   OnMouseUp: { readonly message: Message }
@@ -1668,7 +1674,7 @@ const attributeHandlers: AttributeHandlers = {
     setDataAttr(ctx, 'popovertarget', value),
   Popovertargetaction: ({ value }, ctx: BuildContext) =>
     setDataAttr(ctx, 'popovertargetaction', value),
-  OnClick: ({ message, options }, ctx: BuildContext) =>
+  OnClick: ({ message: messageOrToMessage, options }, ctx: BuildContext) =>
     addDataOn(ctx, 'click', (event: MouseEvent) => {
       if (options?.defaultAction === 'Prevent') {
         event.preventDefault()
@@ -1683,7 +1689,11 @@ const attributeHandlers: AttributeHandlers = {
           focusTarget.focus()
         }
       }
-      ctx.dispatch(message)
+      if (Predicate.isFunction(messageOrToMessage)) {
+        ctx.dispatch(messageOrToMessage(keyboardModifiers(event)))
+      } else {
+        ctx.dispatch(messageOrToMessage)
+      }
     }),
   OnDoubleClick: ({ message }, ctx: BuildContext) =>
     addDataOn(ctx, 'dblclick', () => ctx.dispatch(message)),
@@ -3788,10 +3798,11 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'Popovertargetaction'
     readonly value: string
   }
-  /** Dispatches `message` when the element is clicked. The optional controls
-   *  can synchronously prevent the browser default, stop DOM propagation, and
-   *  focus an existing element before dispatch. Omitted controls preserve the
-   *  existing allow-and-bubble behavior.
+  /** Dispatches `message`, or the Message returned by a `message` function,
+   *  when the element is clicked. The optional controls can synchronously
+   *  prevent the browser default, stop DOM propagation, and focus an existing
+   *  element before dispatch. Omitted controls preserve the existing
+   *  allow-and-bubble behavior.
    *
    *  `propagation: 'Stop'` still lets every click handler registered on the
    *  current element run, matching `Event.stopPropagation()`. It only prevents
@@ -3804,19 +3815,28 @@ type HtmlAttributes<Message> = {
    *  `Dom.focus` Command from update to transfer focus after the real input
    *  mounts.
    *
+   *  Pass a function instead of a Message when the Message depends on the
+   *  modifier keys held during the click. Foldkit calls it with the click's
+   *  `shiftKey`, `ctrlKey`, `altKey`, and `metaKey` after applying the
+   *  controls, then dispatches the returned Message.
+   *
    *  @example
    *  ```typescript
    *  h.OnClick(Message.ClickedExpand(), {
    *    defaultAction: 'Prevent',
    *    propagation: 'Stop',
    *  })
+   *
+   *  h.OnClick(({ metaKey, ctrlKey }) =>
+   *    Message.ClickedItem({ itemId, isExtendingSelection: metaKey || ctrlKey }),
+   *  )
    *  ``` */
   OnClick: (
-    message: Message,
+    message: Message | ((modifiers: KeyboardModifiers) => Message),
     options?: ClickOptions,
   ) => {
     readonly _tag: 'OnClick'
-    readonly message: Message
+    readonly message: Message | ((modifiers: KeyboardModifiers) => Message)
     readonly options?: ClickOptions
   }
   OnDoubleClick: (message: Message) => {
@@ -4967,7 +4987,10 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   Popover: (value: string) => Popover({ value }),
   Popovertarget: (value: string) => Popovertarget({ value }),
   Popovertargetaction: (value: string) => Popovertargetaction({ value }),
-  OnClick: (message: Message, options?: ClickOptions) =>
+  OnClick: (
+    message: Message | ((modifiers: KeyboardModifiers) => Message),
+    options?: ClickOptions,
+  ) =>
     options === undefined
       ? OnClick({ message })
       : OnClick({ message, options }),

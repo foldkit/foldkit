@@ -14,9 +14,9 @@ const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       h.div(
         [h.Class('flex flex-wrap justify-center gap-4')],
         [
-          // OnClick takes a Message, not a callback. The Message doesn't
-          // execute anything. It just declares what should happen on click.
-          // Foldkit dispatches it to your update function.
+          // OnClick takes a Message. The Message doesn't execute anything.
+          // It just declares what should happen on click. Foldkit dispatches
+          // it to your update function.
           h.button(
             [h.OnClick(ClickedDecrement()), h.Class(buttonStyle)],
             ['-'],

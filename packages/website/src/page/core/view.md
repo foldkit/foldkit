@@ -128,11 +128,19 @@ Event attributes return Messages instead of mutating state. Pass a Message direc
 
 ::Snippet{name="eventHandling" label="Event handling"}
 
-`h.OnClick` takes a Message. `h.OnInput` takes a function because the input value becomes part of the Message. Both remain declarative: view reports what happened, and update decides what follows.
+`h.OnClick` takes a Message, or a function of the click's modifier keys (see [Modifier Keys on Clicks](#modifier-keys-on-clicks)). `h.OnInput` takes a function because the input value becomes part of the Message. Both remain declarative: view reports what happened, and update decides what follows.
 
 ### Default Actions and Propagation
 
 Clicks allow the browser default and bubble to ancestors unless you say otherwise. Pass a second argument when the view owns either part of that browser contract. For example, an expand button inside a clickable tree row can use `{ defaultAction: 'Prevent', propagation: 'Stop' }`. The button dispatches its expansion Message without also dispatching the row's selection Message. The controls are independent, so use either one or both.
+
+### Modifier Keys on Clicks
+
+Pass `h.OnClick` a function when the Message depends on the modifier keys held during the click. Foldkit calls it with a `KeyboardModifiers` record of the click's `shiftKey`, `ctrlKey`, `altKey`, and `metaKey` state and dispatches the Message it returns:
+
+::Snippet{name="eventHandlingClickModifiers" label="Modifier keys on a click"}
+
+The Message records what the user did (a click that extends the selection), and update decides what that changes. Foldkit applies the `defaultAction`, `propagation`, and `focusSelector` controls before it calls the function, the same way it applies them before dispatching a Message.
 
 ## Complex Handlers
 

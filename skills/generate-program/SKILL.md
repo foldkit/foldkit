@@ -379,7 +379,7 @@ If a path above doesn't resolve, list the package's `dist/` and find the module.
 For each symbol you'll call, write one line:
 
 ```text
-h: HtmlBuilder<Message> (view parameter, supplied by the runtime): { div, input (VOID), textarea (VALUE-ONLY), button, Class, Href, For, Id, Role, OnClick(Message), OnInput(value=>Message), OnBlur(Message), OnSubmit(Message), keyed, empty, submodel, ... }
+h: HtmlBuilder<Message> (view parameter, supplied by the runtime): { div, input (VOID), textarea (VALUE-ONLY), button, Class, Href, For, Id, Role, OnClick(Message | (modifiers=>Message)), OnInput(value=>Message), OnBlur(Message), OnSubmit(Message), keyed, empty, submodel, ... }
 Route.mapTo(schema)(parser): curried
 pushUrl(path): Effect<void>  // NOT fallible, no Effect.ignore needed
 urlToString(url: Url): string
@@ -414,7 +414,7 @@ Record these in the crib and keep them visible while generating:
 - **`input` and `br` and other void elements take ONLY attributes**: `input([...])`, never `input([...], [])`. `textarea` also takes attributes only; set its content with `h.Value(text)`, never children or `h.InnerHTML`. `button` takes children.
 - **The children argument is optional on elements that accept children.** Omit it when there are none: `div([Class('divider')])`, not `div([Class('divider')], [])`. Attributes stay required, so `div([])` is how an element with neither is written. `keyed` follows the element: `h.keyed('li')(key, [attrs])`, not `h.keyed('li')(key, [attrs], [])`; use `h.keyed('textarea')(key, [h.Value(text)])` without children.
 - **`UrlRequest` tags are `Internal` and `External`**, not `InternalUrl` / `ExternalUrl`.
-- **`OnClick` and `OnSubmit` take a Message directly**, not a `() => Message`. Only `OnInput` takes `(value) => Message` because it needs the input value.
+- **`OnClick` and `OnSubmit` take a Message directly**, not a `() => Message`. `OnClick(() => Message.X())` type-checks because `OnClick` also accepts `(modifiers) => Message`, but pass the Message itself. Use the function form only when the Message reads `shiftKey`, `ctrlKey`, `altKey`, or `metaKey`. `OnInput` takes `(value) => Message` because it needs the input value.
 - **`keyed`, `empty` are properties on the builder `h`** the view receives as its last parameter. They are not top-level exports of `foldkit/html`.
 - **Attribute helpers are specific**: `Value(...)`, `Type(...)`, `Placeholder(...)`, `Href(...)`, `Target(...)`, `Rel(...)`, `Rows(n)`, `Id(...)`, `For(...)`, `Role(...)`, `AriaLabel(...)`. There is no generic `Attr('...', '...')`.
 - **`ApplicationInit<Model, Message, Flags>` has no URL parameter.** For routed apps, use `RoutingApplicationInit<Model, Message, Flags>`: the second arg is `url: Url`.
@@ -591,7 +591,7 @@ For file uploads (resumes, images, attachments):
 - Use `Option.match` for conditional rendering based on Option fields
 - Never key branches. View functions are the differ's identity boundaries; the vite plugin brands each function's return, so switching branches that render through different view functions replaces the subtree. Extract a same-tag inline ternary into named view functions when switching must reset DOM state
 - Delegate complex sections to extracted view functions
-- Wire events to Messages: `h.OnClick(Message.ClickedSubmit())` (a Message directly, not a callback), `h.OnInput(value => Message.UpdatedEmail({ value }))` (a callback that maps the value to a Message)
+- Wire events to Messages: `h.OnClick(Message.ClickedSubmit())` (a Message directly, not a callback, unless it reads the click's modifier keys), `h.OnInput(value => Message.UpdatedEmail({ value }))` (a callback that maps the value to a Message)
 - Use Foldkit UI components when the interaction matches (Dialog for modals, Tabs for tabbed content, etc.)
 
 ### Runtime Wiring

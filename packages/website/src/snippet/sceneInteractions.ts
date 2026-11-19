@@ -16,6 +16,7 @@ import {
 } from 'foldkit/scene'
 
 click(role('button', { name: 'Log out' }))
+click(role('button', { name: 'Banana' }), { metaKey: true })
 doubleClick(role('button', { name: 'Expand' }))
 contextMenu(role('row', { name: 'Quarterly report' }))
 pointerDown(role('button', { name: 'Toggle' }))
