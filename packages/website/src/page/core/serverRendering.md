@@ -135,13 +135,13 @@ Wrap the default renderer to set a default language or add trusted author-owned 
 
 ::Snippet{name="serverRenderingDocument" label="Custom document head"}
 
-The `head` option accepts HTML. Escape request-derived values before interpolating them. The application's language overrides the renderer's default `lang` option.
+The `head` option accepts HTML. Escape request-derived values before interpolating them. The application's language overrides the renderer's default `lang` option. The application's color scheme is written before the `head` markup, and the browser uses the first `<meta name="color-scheme">` it finds, so the application's value also wins over one in the `head` option.
 
 ### Custom HTML templates
 
 For a host that owns an HTML template, `injectIntoTemplate` places the rendered application in its placeholder. The template must contain exactly one `<div id="root"></div>` placeholder with no other attributes or whitespace inside it, and its head must contain exactly one `<title>`. Pass `containerId` when the placeholder uses another id. A missing or duplicate placeholder or title produces an error that names the problem.
 
-The injector also writes the language, text direction, canonical URL, and Open Graph URL into corresponding shell elements. For a Vite development host whose template comes from another build pipeline, omit `clientEntry` and `ssr.build`.
+The injector also writes the language, text direction, color scheme, canonical URL, and Open Graph URL into corresponding shell elements. A template without a `<meta name="color-scheme">` is left unchanged, and the runtime creates that element after boot. Add the element to the template head when the scheme must apply from the first paint. For a Vite development host whose template comes from another build pipeline, omit `clientEntry` and `ssr.build`.
 
 ### Protocol validation
 
@@ -169,7 +169,7 @@ The root stamp must have a nonempty id and name the document's single stamped ro
 
 #### Document ownership
 
-A page-owning `makeApplication` controls the document title, language, text direction, canonical URL, and Open Graph URL. It also installs document-wide navigation listeners. With two applications, the last render would own the metadata and the first listener would handle every link. Render one application per page.
+A page-owning `makeApplication` controls the document title, language, text direction, color scheme, canonical URL, and Open Graph URL. It also installs document-wide navigation listeners. With two applications, the last render would own the metadata and the first listener would handle every link. Render one application per page.
 
 #### Static body output
 
@@ -189,7 +189,7 @@ Rendered markup cannot declare a shadow root through `<template shadowrootmode>`
 
 #### View root elements
 
-A view cannot be rooted at `<html>`, `<head>`, `<body>`, or `<frameset>`. `renderToString` rejects those roots for static and hydratable output because the document parser drops, merges, or replaces them. Root the view at an ordinary element such as `<div>` or `<main>`. Set the title, language, and text direction through the `Document` returned by the view.
+A view cannot be rooted at `<html>`, `<head>`, `<body>`, or `<frameset>`. `renderToString` rejects those roots for static and hydratable output because the document parser drops, merges, or replaces them. Root the view at an ordinary element such as `<div>` or `<main>`. Set the title, language, text direction, and color scheme through the `Document` returned by the view.
 
 ## The hydration handoff
 

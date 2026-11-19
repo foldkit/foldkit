@@ -596,7 +596,7 @@ For file uploads (resumes, images, attachments):
 
 ### Runtime Wiring
 
-- Use `Runtime.makeApplication` for apps that own the page. Add `routing: { onUrlRequest, onUrlChange }` for apps with URL routing. The `view` returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`). Derive `canonical` from the typed route in the Model, never from the address bar. The runtime applies `title`, `lang`, and `dir`. For `canonical` and `ogUrl`, a later omission restores the value recorded before the first client write or removes an element the runtime created. An omitted `ogUrl` uses an explicit `canonical`
+- Use `Runtime.makeApplication` for apps that own the page. Add `routing: { onUrlRequest, onUrlChange }` for apps with URL routing. The `view` returns a `Document` (`{ title, lang?, dir?, colorScheme?, canonical?, ogUrl?, body }`). Derive `canonical` from the typed route in the Model, never from the address bar. The runtime applies `title`, `lang`, and `dir`, and writes `colorScheme` to `<meta name="color-scheme">`. For `colorScheme`, `canonical`, and `ogUrl`, a later omission restores the value recorded before the first client write or removes an element the runtime created. An omitted `ogUrl` uses an explicit `canonical`
 - Use `Runtime.makeElement` for a widget embedded on a page it does not own. The `view` returns `Html` and the runtime never touches the document `<head>` or the `<html>` element. No `routing` config
 - See the With and Without URL Routing section in [architecture.md](architecture.md) for the full pattern
 - Include `ClickedLink` and `ChangedUrl` Messages for programs with routing, with proper `UrlRequest.Internal` / `UrlRequest.External` handling in update

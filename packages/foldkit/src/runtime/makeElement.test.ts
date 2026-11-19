@@ -1,7 +1,12 @@
-import { Effect, Fiber, Number, Schema } from 'effect'
+import { Array, Effect, Fiber, Number, Option, Schema } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { TextDirection, __htmlBuilder } from '../html/index.js'
+import {
+  ColorScheme,
+  type Document,
+  TextDirection,
+  __htmlBuilder,
+} from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
@@ -58,6 +63,93 @@ const localeUpdate = (model: LocaleModel, message: LocaleMessage) =>
     }),
   })
 
+const COLOR_SCHEME_CONTENTS: ReadonlyArray<
+  Readonly<{ colorScheme: ColorScheme; content: string }>
+> = [
+  { colorScheme: 'Normal', content: 'normal' },
+  { colorScheme: 'Light', content: 'light' },
+  { colorScheme: 'Dark', content: 'dark' },
+  { colorScheme: 'LightDark', content: 'light dark' },
+  { colorScheme: 'DarkLight', content: 'dark light' },
+  { colorScheme: 'OnlyLight', content: 'only light' },
+  { colorScheme: 'OnlyDark', content: 'only dark' },
+]
+
+const ColorSchemeModel = Schema.Struct({
+  maybeColorScheme: Schema.Option(ColorScheme),
+  revision: Schema.Number,
+})
+type ColorSchemeModel = typeof ColorSchemeModel.Type
+
+const ColorSchemeMessage = defineMessageUnion({
+  ClickedColorScheme: { colorScheme: ColorScheme },
+  ClickedClearColorScheme: {},
+  ClickedRerender: {},
+})
+type ColorSchemeMessage = typeof ColorSchemeMessage.Type
+
+const colorSchemeH = __htmlBuilder<ColorSchemeMessage>()
+
+const colorSchemeUpdate = (
+  model: ColorSchemeModel,
+  message: ColorSchemeMessage,
+) =>
+  ColorSchemeMessage.match<Update.Return<ColorSchemeModel, ColorSchemeMessage>>(
+    message,
+    {
+      ClickedColorScheme: ({ colorScheme }) => ({
+        model: modifyFields(model, {
+          maybeColorScheme: () => Option.some(colorScheme),
+        }),
+      }),
+      ClickedClearColorScheme: () => ({
+        model: modifyFields(model, { maybeColorScheme: () => Option.none() }),
+      }),
+      ClickedRerender: () => ({
+        model: modifyFields(model, { revision: Number.increment }),
+      }),
+    },
+  )
+
+const colorSchemeView = (model: ColorSchemeModel): Document => ({
+  title: 'Color scheme',
+  ...Option.match(model.maybeColorScheme, {
+    onNone: () => ({}),
+    onSome: colorScheme => ({ colorScheme }),
+  }),
+  body: colorSchemeH.div(
+    [],
+    [
+      ...Array.map(COLOR_SCHEME_CONTENTS, ({ colorScheme }) =>
+        colorSchemeH.button(
+          [
+            colorSchemeH.Id(colorScheme),
+            colorSchemeH.OnClick(
+              ColorSchemeMessage.ClickedColorScheme({ colorScheme }),
+            ),
+          ],
+          [colorScheme],
+        ),
+      ),
+      colorSchemeH.button(
+        [
+          colorSchemeH.Id('clear'),
+          colorSchemeH.OnClick(ColorSchemeMessage.ClickedClearColorScheme()),
+        ],
+        ['clear'],
+      ),
+      colorSchemeH.button(
+        [
+          colorSchemeH.Id('rerender'),
+          colorSchemeH.OnClick(ColorSchemeMessage.ClickedRerender()),
+        ],
+        ['rerender'],
+      ),
+      `state:${Option.getOrElse(model.maybeColorScheme, () => 'None')}-${model.revision}`,
+    ],
+  ),
+})
+
 const HOST_TITLE = 'Host Page Title'
 const HOST_LANG = 'en'
 
@@ -68,6 +160,9 @@ const removeHeadMetadata = (): void => {
     node.remove()
   })
   document.head.querySelectorAll('meta[property="og:url"]').forEach(node => {
+    node.remove()
+  })
+  document.head.querySelectorAll('meta[name="color-scheme"]').forEach(node => {
     node.remove()
   })
 }
@@ -99,10 +194,52 @@ const awaitBodyText = (text: string): Promise<void> =>
     expect(document.body.textContent).toContain(text)
   })
 
+const clickButton = (id: string): void => {
+  const button = document.getElementById(id)
+  if (button === null) {
+    throw new Error(`expected the ${id} button`)
+  }
+  button.click()
+}
+
+const startColorSchemeApplication = (
+  maybeColorScheme: Option.Option<ColorScheme>,
+) =>
+  Effect.runFork(
+    makeApplication({
+      Model: ColorSchemeModel,
+      init: () => ({
+        model: ColorSchemeModel.make({ maybeColorScheme, revision: 0 }),
+      }),
+      update: colorSchemeUpdate,
+      view: colorSchemeView,
+      container,
+    }).start(),
+  )
+
+const colorSchemeMetas = (): ReadonlyArray<Element> =>
+  Array.fromIterable(
+    document.head.querySelectorAll('meta[name="color-scheme"]'),
+  )
+
+const headColorSchemeContents = (): ReadonlyArray<string | null> =>
+  Array.map(colorSchemeMetas(), meta => meta.getAttribute('content'))
+
+const appendServedColorScheme = (
+  name: string,
+  content: string,
+): HTMLMetaElement => {
+  const served = document.createElement('meta')
+  served.setAttribute('name', name)
+  served.setAttribute('content', content)
+  return document.head.appendChild(served)
+}
+
 const expectDocumentUntouched = (): void => {
   expect(document.title).toBe(HOST_TITLE)
   expect(document.head.querySelector('link[rel="canonical"]')).toBeNull()
   expect(document.head.querySelector('meta[property="og:url"]')).toBeNull()
+  expect(document.head.querySelector('meta[name="color-scheme"]')).toBeNull()
   expect(document.documentElement.lang).toBe(HOST_LANG)
   expect(document.documentElement.hasAttribute('dir')).toBe(false)
 }
@@ -232,7 +369,7 @@ describe('makeElement', () => {
 })
 
 describe('makeApplication', () => {
-  it('sets the title without creating omitted canonical metadata', async () => {
+  it('sets the title without creating omitted head metadata', async () => {
     const application = makeApplication({
       Model,
       init: () => ({ model: { label: 'hello' } }),
@@ -249,6 +386,9 @@ describe('makeApplication', () => {
       expect(document.title).toBe('hello')
       expect(document.head.querySelector('link[rel="canonical"]')).toBeNull()
       expect(document.head.querySelector('meta[property="og:url"]')).toBeNull()
+      expect(
+        document.head.querySelector('meta[name="color-scheme"]'),
+      ).toBeNull()
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
     }
@@ -550,6 +690,7 @@ describe('makeApplication', () => {
       update,
       view: model => ({
         title: 'Metadata test',
+        colorScheme: 'Dark',
         canonical: canonicalUrl,
         ogUrl: canonicalUrl,
         body: h.div(
@@ -566,45 +707,60 @@ describe('makeApplication', () => {
       await awaitBodyText('hello')
       const canonical = document.head.querySelector('link[rel="canonical"]')
       const ogUrl = document.head.querySelector('meta[property="og:url"]')
+      const colorScheme = document.head.querySelector(
+        'meta[name="color-scheme"]',
+      )
       const button = document.body.querySelector('button')
       expect(canonical).toBeInstanceOf(HTMLLinkElement)
       expect(ogUrl).toBeInstanceOf(HTMLMetaElement)
+      expect(colorScheme).toBeInstanceOf(HTMLMetaElement)
       expect(button).not.toBeNull()
       if (
         !(canonical instanceof HTMLLinkElement) ||
         !(ogUrl instanceof HTMLMetaElement) ||
+        !(colorScheme instanceof HTMLMetaElement) ||
         button === null
       ) {
         throw new Error('expected application metadata and button')
       }
 
       const querySelectorSpy = vi.spyOn(document.head, 'querySelector')
+      const querySelectorAllSpy = vi.spyOn(document.head, 'querySelectorAll')
       const canonicalGetAttributeSpy = vi.spyOn(canonical, 'getAttribute')
       const ogUrlGetAttributeSpy = vi.spyOn(ogUrl, 'getAttribute')
+      const colorSchemeGetAttributeSpy = vi.spyOn(colorScheme, 'getAttribute')
       const canonicalSetAttributeSpy = vi.spyOn(canonical, 'setAttribute')
       const ogUrlSetAttributeSpy = vi.spyOn(ogUrl, 'setAttribute')
+      const colorSchemeSetAttributeSpy = vi.spyOn(colorScheme, 'setAttribute')
       try {
         button.click()
         await awaitBodyText('world')
 
         expect(querySelectorSpy).not.toHaveBeenCalled()
+        expect(querySelectorAllSpy).not.toHaveBeenCalled()
         expect(canonicalGetAttributeSpy).not.toHaveBeenCalled()
         expect(ogUrlGetAttributeSpy).not.toHaveBeenCalled()
+        expect(colorSchemeGetAttributeSpy).not.toHaveBeenCalled()
         expect(canonicalSetAttributeSpy).not.toHaveBeenCalled()
         expect(ogUrlSetAttributeSpy).not.toHaveBeenCalled()
+        expect(colorSchemeSetAttributeSpy).not.toHaveBeenCalled()
 
         canonical.setAttribute('href', 'https://example.com/changed')
         ogUrl.setAttribute('content', 'https://example.com/changed')
+        colorScheme.setAttribute('content', 'light')
         canonicalSetAttributeSpy.mockClear()
         ogUrlSetAttributeSpy.mockClear()
+        colorSchemeSetAttributeSpy.mockClear()
 
         button.click()
         await vi.waitFor(() => {
           expect(canonical.getAttribute('href')).toBe(canonicalUrl)
           expect(ogUrl.getAttribute('content')).toBe(canonicalUrl)
+          expect(colorScheme.getAttribute('content')).toBe('dark')
         })
 
         expect(querySelectorSpy).not.toHaveBeenCalled()
+        expect(querySelectorAllSpy).not.toHaveBeenCalled()
         expect(canonicalSetAttributeSpy).toHaveBeenCalledWith(
           'href',
           canonicalUrl,
@@ -613,12 +769,19 @@ describe('makeApplication', () => {
           'content',
           canonicalUrl,
         )
+        expect(colorSchemeSetAttributeSpy).toHaveBeenCalledWith(
+          'content',
+          'dark',
+        )
       } finally {
         querySelectorSpy.mockRestore()
+        querySelectorAllSpy.mockRestore()
         canonicalGetAttributeSpy.mockRestore()
         ogUrlGetAttributeSpy.mockRestore()
+        colorSchemeGetAttributeSpy.mockRestore()
         canonicalSetAttributeSpy.mockRestore()
         ogUrlSetAttributeSpy.mockRestore()
+        colorSchemeSetAttributeSpy.mockRestore()
       }
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
@@ -633,6 +796,7 @@ describe('makeApplication', () => {
       update,
       view: model => ({
         title: 'Metadata test',
+        colorScheme: 'Dark',
         canonical: canonicalUrl,
         ogUrl: canonicalUrl,
         body: h.button([h.OnClick(Message.ClickedBump())], [model.label]),
@@ -664,6 +828,7 @@ describe('makeApplication', () => {
             .querySelector('meta[property="og:url"]')
             ?.getAttribute('content'),
         ).toBe(canonicalUrl)
+        expect(headColorSchemeContents()).toEqual(['dark'])
       })
     } finally {
       if (document.head !== originalHead) {
@@ -798,6 +963,179 @@ describe('makeApplication', () => {
       await awaitBodyText('ar-1')
       expect(document.documentElement.lang).toBe('ar')
       expect(document.documentElement.dir).toBe('rtl')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('writes the color scheme to a color-scheme meta and follows the Model', async () => {
+    const fiber = startColorSchemeApplication(Option.some('Dark'))
+
+    try {
+      await awaitBodyText('state:Dark-0')
+      expect(headColorSchemeContents()).toEqual(['dark'])
+
+      clickButton('Light')
+      await awaitBodyText('state:Light-0')
+      expect(headColorSchemeContents()).toEqual(['light'])
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('writes every color scheme as its content value', async () => {
+    const fiber = startColorSchemeApplication(Option.none())
+
+    try {
+      await awaitBodyText('state:None-0')
+
+      for (const { colorScheme, content } of COLOR_SCHEME_CONTENTS) {
+        clickButton(colorScheme)
+        await awaitBodyText(`state:${colorScheme}-0`)
+        expect(headColorSchemeContents()).toEqual([content])
+      }
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('updates a served color-scheme meta in place', async () => {
+    const served = appendServedColorScheme('color-scheme', 'light dark')
+    const fiber = startColorSchemeApplication(Option.some('Dark'))
+
+    try {
+      await awaitBodyText('state:Dark-0')
+      expect(colorSchemeMetas()).toEqual([served])
+      expect(served.getAttribute('content')).toBe('dark')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('restores the served color scheme after a later omission', async () => {
+    const served = appendServedColorScheme('color-scheme', 'light dark')
+    const fiber = startColorSchemeApplication(Option.some('Dark'))
+
+    try {
+      await awaitBodyText('state:Dark-0')
+      expect(served.getAttribute('content')).toBe('dark')
+
+      clickButton('clear')
+      await awaitBodyText('state:None-0')
+      expect(colorSchemeMetas()).toEqual([served])
+      expect(served.getAttribute('content')).toBe('light dark')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('removes a runtime-created color-scheme meta after a later omission', async () => {
+    const fiber = startColorSchemeApplication(Option.some('Dark'))
+
+    try {
+      await awaitBodyText('state:Dark-0')
+      expect(headColorSchemeContents()).toEqual(['dark'])
+
+      clickButton('clear')
+      await awaitBodyText('state:None-0')
+      expect(colorSchemeMetas()).toEqual([])
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('leaves a served color-scheme meta untouched when the view never supplies it', async () => {
+    const served = appendServedColorScheme('color-scheme', 'light dark')
+    const fiber = startColorSchemeApplication(Option.none())
+
+    try {
+      await awaitBodyText('state:None-0')
+      clickButton('rerender')
+      await awaitBodyText('state:None-1')
+
+      expect(colorSchemeMetas()).toEqual([served])
+      expect(served.getAttribute('content')).toBe('light dark')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('reuses a served color-scheme meta whose name differs in case', async () => {
+    const served = appendServedColorScheme('Color-Scheme', 'light')
+    const fiber = startColorSchemeApplication(Option.some('Dark'))
+
+    try {
+      await awaitBodyText('state:Dark-0')
+      expect(document.head.querySelectorAll('meta')).toHaveLength(1)
+      expect(served.getAttribute('name')).toBe('color-scheme')
+      expect(served.getAttribute('content')).toBe('dark')
+    } finally {
+      served.remove()
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('reuses served canonical metadata whose identity differs in case', async () => {
+    const servedUrl = 'https://example.com/served'
+    const canonical = document.createElement('link')
+    canonical.setAttribute('rel', 'Canonical')
+    canonical.setAttribute('href', servedUrl)
+    const ogUrl = document.createElement('meta')
+    ogUrl.setAttribute('property', 'OG:URL')
+    ogUrl.setAttribute('content', servedUrl)
+    document.head.append(canonical, ogUrl)
+    const projectUrl = 'https://example.com/projects/hello'
+    const application = makeApplication({
+      Model,
+      init: () => ({ model: { label: 'hello' } }),
+      update,
+      view: model => ({
+        title: model.label,
+        canonical: projectUrl,
+        body: h.div([], [model.label]),
+      }),
+      container,
+    })
+
+    const fiber = Effect.runFork(application.start())
+
+    try {
+      await awaitBodyText('hello')
+
+      expect(document.head.querySelectorAll('link')).toHaveLength(1)
+      expect(document.head.querySelectorAll('meta')).toHaveLength(1)
+      expect(canonical.getAttribute('rel')).toBe('canonical')
+      expect(canonical.getAttribute('href')).toBe(projectUrl)
+      expect(ogUrl.getAttribute('property')).toBe('og:url')
+      expect(ogUrl.getAttribute('content')).toBe(projectUrl)
+    } finally {
+      canonical.remove()
+      ogUrl.remove()
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('reasserts the color scheme after another script changes its content or name', async () => {
+    const fiber = startColorSchemeApplication(Option.some('Dark'))
+
+    try {
+      await awaitBodyText('state:Dark-0')
+      const colorScheme = Option.getOrThrowWith(
+        Array.head(colorSchemeMetas()),
+        () => new Error('expected the color-scheme meta the runtime created'),
+      )
+
+      colorScheme.setAttribute('content', 'light')
+      clickButton('rerender')
+      await awaitBodyText('state:Dark-1')
+      expect(colorSchemeMetas()).toEqual([colorScheme])
+      expect(colorScheme.getAttribute('content')).toBe('dark')
+
+      colorScheme.setAttribute('name', 'theme-color')
+      clickButton('rerender')
+      await awaitBodyText('state:Dark-2')
+      expect(colorSchemeMetas()).toEqual([colorScheme])
+      expect(colorScheme.getAttribute('content')).toBe('dark')
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
     }

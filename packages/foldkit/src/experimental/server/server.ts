@@ -35,6 +35,7 @@ import {
 import {
   type Document,
   type HtmlBuilder,
+  colorSchemeToContent,
   __htmlBuilder as htmlBuilderFor,
   textDirectionToAttribute,
 } from '../../html/index.js'
@@ -744,8 +745,8 @@ const assertRootIsNotDocumentStructure = (
       'or replaces the body when the rendered markup is spliced into a ' +
       'template, and the served root is not the element the view wrote. This ' +
       'holds for static output too. Root the view at an ordinary element ' +
-      'such as a <div> or <main>, and set the document title, lang, and dir ' +
-      'through the Document the view returns.',
+      'such as a <div> or <main>, and set the document title, lang, dir, and ' +
+      'colorScheme through the Document the view returns.',
   )
 }
 
@@ -1009,9 +1010,11 @@ export { FOLDKIT_APP_ATTRIBUTE, FOLDKIT_FLAGS_ATTRIBUTE }
 const DEFAULT_RUNTIME_ID = 'app'
 
 /** The server render of one request: the body markup and the `Document` head
- *  fields for the document renderer or a custom host's template. Hydratable output
- *  contains a stamped root and, when the application declares Flags, its
- *  payload script. Static output carries no handoff markers.
+ *  fields for the document renderer or a custom host's template. `dir` and
+ *  `colorScheme` hold the lowercase values written to the page, such as `rtl`
+ *  and `light dark`. Hydratable output contains a stamped root and, when the
+ *  application declares Flags, its payload script. Static output carries no
+ *  handoff markers.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
@@ -1020,6 +1023,7 @@ export type RenderedApplication = Readonly<{
   title: string
   lang?: string
   dir?: 'ltr' | 'rtl' | 'auto'
+  colorScheme?: string
   canonical?: string
   ogUrl?: string
 }>
@@ -1358,9 +1362,10 @@ const validateHydrationRoot = (
  *
  * Canonical metadata has no request URL default. The result includes
  * `canonical` only when the view supplies it. It includes `ogUrl` when the view
- * supplies it, or uses an explicit canonical when `ogUrl` is omitted. When a
- * field is absent from the result, `injectIntoTemplate` leaves the
- * corresponding tag in the template unchanged.
+ * supplies it, or uses an explicit canonical when `ogUrl` is omitted. It
+ * includes `colorScheme`, as the `content` of `<meta name="color-scheme">`,
+ * only when the view supplies it. When a field is absent from the result,
+ * `injectIntoTemplate` leaves the corresponding tag in the template unchanged.
  *
  * Derive the canonical URL from the typed route in the Model. `Request.url`
  * gives routing applications the request to parse, but only the application
@@ -1517,6 +1522,9 @@ export function renderToString(
       ...(nextDocument.lang !== undefined ? { lang: nextDocument.lang } : {}),
       ...(nextDocument.dir !== undefined
         ? { dir: textDirectionToAttribute(nextDocument.dir) }
+        : {}),
+      ...(nextDocument.colorScheme !== undefined
+        ? { colorScheme: colorSchemeToContent(nextDocument.colorScheme) }
         : {}),
       ...(nextDocument.canonical !== undefined
         ? { canonical: nextDocument.canonical }

@@ -24,14 +24,15 @@ React functional components can hold local state and run effects through hooks, 
 
 A `makeApplication` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
 
-| Field       | Type                       | Required | What the runtime does with it                                                                                                                  |
-| ----------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `title`     | `string`                   | Yes      | Writes it to `document.title`, so the browser tab tracks the current page.                                                                     |
-| `body`      | `Html`                     | Yes      | Patches it into the application container.                                                                                                     |
-| `lang`      | `string`                   | No       | Writes it to `lang` on `<html>`. An omission leaves the current attribute unchanged.                                                           |
-| `dir`       | `'Ltr' \| 'Rtl' \| 'Auto'` | No       | Writes the lowercase value to `dir` on `<html>`. An omission leaves the current attribute unchanged.                                           |
-| `canonical` | `string`                   | No       | Writes it to `<link rel="canonical">`. An omission restores the value recorded before the first client write or removes a runtime-created tag. |
-| `ogUrl`     | `string`                   | No       | Writes it to `<meta property="og:url">`. An omission uses an explicit `canonical`; otherwise it follows the same restoration rule.             |
+| Field         | Type                       | Required | What the runtime does with it                                                                                                                  |
+| ------------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`       | `string`                   | Yes      | Writes it to `document.title`, so the browser tab tracks the current page.                                                                     |
+| `body`        | `Html`                     | Yes      | Patches it into the application container.                                                                                                     |
+| `lang`        | `string`                   | No       | Writes it to `lang` on `<html>`. An omission leaves the current attribute unchanged.                                                           |
+| `dir`         | `'Ltr' \| 'Rtl' \| 'Auto'` | No       | Writes the lowercase value to `dir` on `<html>`. An omission leaves the current attribute unchanged.                                           |
+| `colorScheme` | `ColorScheme`              | No       | Writes its [`content` value](#color-scheme) to `<meta name="color-scheme">`. An omission follows the same restoration rule as `canonical`.     |
+| `canonical`   | `string`                   | No       | Writes it to `<link rel="canonical">`. An omission restores the value recorded before the first client write or removes a runtime-created tag. |
+| `ogUrl`       | `string`                   | No       | Writes it to `<meta property="og:url">`. An omission uses an explicit `canonical`; otherwise it follows the same restoration rule.             |
 
 Every field is a function of the Model, just like `body`. There is no imperative `setTitle` or separate head-management API. Return the values you want, and the runtime makes the document match after each render.
 
@@ -49,11 +50,35 @@ A `makeElement` view returns `Html` directly. An embedded app does not own the p
 
 #### Omitted Fields
 
-Neither `lang` nor `dir` has a default. If the view omits one, the runtime leaves the current attribute unchanged. An application that never supplies `lang` keeps the value from `index.html`; an application that supplies it for one page and omits it for the next keeps the value from the earlier render. `canonical` and `ogUrl` use a different omission rule.
+Neither `lang` nor `dir` has a default. If the view omits one, the runtime leaves the current attribute unchanged. An application that never supplies `lang` keeps the value from `index.html`; an application that supplies it for one page and omits it for the next keeps the value from the earlier render. `colorScheme`, `canonical`, and `ogUrl` use a different omission rule.
 
 #### Initial HTML
 
 The runtime can only synchronize these fields after the first render. Served HTML still determines what a crawler sees on first paint. If language is known per request, stamp `<html lang>` into the HTML shell and let the runtime keep it current after startup. Use the `Lang` attribute on an individual element when only one passage differs from the page language.
+
+### Color Scheme
+
+`colorScheme` declares which color schemes the page supports. The runtime writes it to `<meta name="color-scheme">`, and the browser uses it to color form controls, scrollbars, and the default page background. Drive it from the Model when visitors can choose between light and dark.
+
+::Snippet{name="documentColorScheme" label="Color scheme from the Model"}
+
+The runtime writes the element after the first render, so a page rendered only on the client first paints with the scheme its served HTML declares. A server render puts the application's scheme in the served HTML, where the browser reads it before any stylesheet loads. To apply a visitor's choice there, read it from a cookie on the server, pass it in Flags, and initialize the Model from those Flags. The runtime keeps the element in sync after hydration.
+
+A `color-scheme` other than `normal` declared on the root element in a stylesheet overrides the meta once that stylesheet loads. On such a page, the Document value only affects what the browser paints before the stylesheet arrives.
+
+`ColorScheme` is a Schema exported by `foldkit/html`. Each value maps to one `content` value:
+
+| Value       | `content`    |
+| ----------- | ------------ |
+| `Normal`    | `normal`     |
+| `Light`     | `light`      |
+| `Dark`      | `dark`       |
+| `LightDark` | `light dark` |
+| `DarkLight` | `dark light` |
+| `OnlyLight` | `only light` |
+| `OnlyDark`  | `only dark`  |
+
+`LightDark` and `DarkLight` support both schemes and prefer the first. `OnlyLight` and `OnlyDark` also stop the browser from forcing another scheme on the page. An omitted `colorScheme` follows the rule for [restoring served metadata](#restoring-served-metadata). After hydration, that rule restores the scheme the server rendered for the request, not the template's default.
 
 ### Canonical and Share URLs
 

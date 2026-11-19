@@ -134,11 +134,11 @@ const toCrashConfig = <Model, Message>(
  * Unlike `makeApplication`, the `view` returns `Html` directly rather than a
  * `Document`, and the runtime never touches the document `<head>`. This lets a
  * Foldkit app be embedded at a node (a widget on a page it does not own)
- * without clobbering the host page's `title`, `canonical`, or `og:url`. Use
- * `makeApplication` when the app owns the page and should manage those tags, and
- * `makeElement` when it is one component among others on a page it does not
- * control. Embedded apps do not own the URL bar, so `makeElement` has no
- * `routing` config.
+ * without clobbering the host page's `title`, `color-scheme`, `canonical`, or
+ * `og:url`. Use `makeApplication` when the app owns the page and should manage
+ * those tags, and `makeElement` when it is one component among others on a page
+ * it does not control. Embedded apps do not own the URL bar, so `makeElement`
+ * has no `routing` config.
  */
 export function makeElement<
   Model,

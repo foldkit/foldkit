@@ -3,6 +3,7 @@ type RenderedApplication = Readonly<{
   title: string
   lang?: string
   dir?: 'ltr' | 'rtl' | 'auto'
+  colorScheme?: string
   canonical?: string
   ogUrl?: string
 }>

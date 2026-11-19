@@ -462,7 +462,7 @@ Runtime.run(application)
 
 ### Scoped to a Node (Embedded Widgets)
 
-`makeApplication` assumes it owns the page. Its `view` returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`), and the runtime manages `document.title`, the `lang` and `dir` attributes on `<html>`, `<link rel="canonical">`, and `<meta property="og:url">`. A widget embedded on a page does not own that metadata.
+`makeApplication` assumes it owns the page. Its `view` returns a `Document` (`{ title, lang?, dir?, colorScheme?, canonical?, ogUrl?, body }`), and the runtime manages `document.title`, the `lang` and `dir` attributes on `<html>`, `<meta name="color-scheme">`, `<link rel="canonical">`, and `<meta property="og:url">`. A widget embedded on a page does not own that metadata.
 
 Use `Runtime.makeElement` instead. Its `view` returns `Html` directly (no title to discard) and the runtime never touches the document `<head>` or the `<html>` element. Everything else (Model, init, update, Commands, Subscriptions, Flags, crash handling) is identical. Embedded apps don't own the URL bar, so `makeElement` has no `routing` config.
 
@@ -491,6 +491,8 @@ If no render supplies `canonical`, the runtime leaves a served `<link rel="canon
 With `makeElement`, the runtime does not manage the title or document metadata.
 
 `lang` and `dir` sync to the `<html>` element, so an app that switches language at runtime drives them from the Model. `dir` is `TextDirection` from `foldkit/html`, a Schema over `'Ltr' | 'Rtl' | 'Auto'` that you can drop straight into a Model `Schema.Struct`, and the runtime writes it as the lowercase attribute value. Both fields are optional and have no default: when a view omits one, the runtime does not touch that attribute, leaving whatever value it currently holds, so a view that never sets it leaves the served HTML in place.
+
+`colorScheme` declares the schemes the page supports. It is `ColorScheme` from `foldkit/html`, a Schema over `'Normal' | 'Light' | 'Dark' | 'LightDark' | 'DarkLight' | 'OnlyLight' | 'OnlyDark'`, and the runtime writes it as the lowercase `content` of `<meta name="color-scheme">` (`LightDark` becomes `light dark`, `OnlyDark` becomes `only dark`). An omission follows the `canonical` rule: restore the recorded served value, or remove an element the runtime created. To serve a visitor's choice on first paint, read it from a cookie on the server, pass it in Flags, and initialize the Model from them; `Server.renderToString` returns it as `colorScheme` and the document renderer writes the meta before any stylesheet.
 
 `onUrlRequest` fires when the user clicks a link. The Message receives a `UrlRequest` (a tagged union from the `Navigation` namespace) which you handle in update by matching on its `_tag`. `onUrlChange` fires when the browser URL changes (back/forward buttons); the handler updates the route from the new URL.
 

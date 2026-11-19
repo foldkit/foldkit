@@ -1,6 +1,7 @@
 export {
   childAttributes,
   ClickOptions,
+  ColorScheme,
   createKeyedLazy,
   createLazy,
   DefaultAction,

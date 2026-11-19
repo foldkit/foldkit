@@ -248,6 +248,62 @@ describe('hydrating boot', () => {
     }
   })
 
+  it('reuses the served color-scheme meta when hydrating', async () => {
+    const colorSchemeView = (model: Model): Document => ({
+      ...view(model),
+      colorScheme: 'Dark',
+    })
+    const rendered = await Effect.runPromise(
+      renderToString(
+        { Flags, init, view: colorSchemeView },
+        { flags: { start: 5 }, buildId: BUILD_ID },
+      ),
+    )
+    expect(rendered.colorScheme).toBe('dark')
+    if (rendered.colorScheme === undefined) {
+      throw new Error('server color scheme is missing')
+    }
+    document.body.innerHTML = rendered.html
+    const serverCount = document.getElementById('count')
+
+    const colorSchemeElement = document.head.appendChild(
+      document.createElement('meta'),
+    )
+    colorSchemeElement.setAttribute('name', 'color-scheme')
+    colorSchemeElement.setAttribute('content', rendered.colorScheme)
+
+    const application = makeApplication({
+      Model,
+      Flags,
+      init,
+      update,
+      view: colorSchemeView,
+      container: nullContainer(),
+    })
+    const fiber = Effect.runFork(
+      __startProgram(application, undefined, 'Hydrate', undefined, BUILD_ID),
+    )
+
+    try {
+      await awaitBodyText('5')
+
+      document
+        .getElementById('bump')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+
+      await awaitBodyText('6')
+      expect(document.getElementById('count')).toBe(serverCount)
+      expect(document.querySelector('[data-foldkit-app]')).toBeNull()
+      expect(
+        document.head.querySelectorAll('meta[name="color-scheme"]'),
+      ).toHaveLength(1)
+      expect(colorSchemeElement.getAttribute('content')).toBe('dark')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+      colorSchemeElement.remove()
+    }
+  })
+
   it('round-trips non-JSON-native Schema values through the flags payload', async () => {
     const OptionalFlags = Schema.Struct({
       maybeStart: Schema.Option(Schema.Number),
