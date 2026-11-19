@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Schema, Struct } from 'effect'
 
 import { taggedStruct } from '../schema/index.js'
 
@@ -180,15 +180,39 @@ export type Shape =
  * field so the schema can describe its own children without a forward
  * declaration cycle.
  */
-const Shape: Schema.Schema<Shape> = Schema.suspend((): Schema.Schema<Shape> =>
+const Shape: Schema.Codec<Shape> = Schema.suspend((): Schema.Codec<Shape> =>
   Schema.Union([Rect, Circle, Path, Text, Group]),
 )
 
-/** Construct a `Group` shape that wraps its children in a transformed scope. */
-export const Group = taggedStruct('Group', {
+const GroupSchema = taggedStruct('Group', {
   shapes: Schema.Array(Shape),
   translate: Schema.optional(Point),
   rotate: Schema.optional(Schema.Number),
   scale: Schema.optional(Point),
   opacity: Schema.optional(Schema.Number),
+})
+
+type GroupFields = Omit<Group, '_tag'>
+
+type GroupConstructor = Omit<typeof GroupSchema, never> & {
+  new (_: never): {}
+  (fields: GroupFields): Group
+}
+
+const constructGroup = (fields: GroupFields): Group => ({
+  _tag: 'Group',
+  ...Struct.pick(fields, ['shapes', 'translate', 'rotate', 'scale', 'opacity']),
+})
+
+/**
+ * Construct a `Group` shape that wraps its children in a transformed scope.
+ *
+ * Calling `Group` keeps `shapes` and the transform values as given instead of
+ * validating them again, so the cost of a call does not grow with the size of
+ * its subtree. Decoding through the Schema, as in
+ * `Schema.decodeUnknownSync(Group)`, validates the whole tree, and so does
+ * `Group.make`. Decode untrusted input that way.
+ */
+export const Group: GroupConstructor = new Proxy(GroupSchema, {
+  apply: (_target, _thisArg, [fields]) => constructGroup(fields),
 })
