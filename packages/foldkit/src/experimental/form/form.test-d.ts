@@ -1051,3 +1051,50 @@ const fieldsChecks = () => {
   textFieldMessages(signupForm, profileForm.init(), 'email')
 }
 void fieldsChecks
+
+const defineFieldsChecks = () => {
+  const usernameField = Form.field({
+    schema: Schema.String,
+    initial: '',
+    validate: value =>
+      Effect.map(UsernameValidator, service => service.check(value)),
+  })
+  const ageField = Form.field({
+    schema: Schema.NumberFromString,
+    initial: '',
+  })
+  const accountFields = Form.defineFields({
+    username: usernameField,
+    age: ageField,
+  })
+  const declaredForm = Form.define({
+    name: 'Declared',
+    fields: accountFields,
+    submit: { execute: () => Effect.void },
+  })
+  const inlineForm = Form.define({
+    name: 'Inline',
+    fields: { username: usernameField, age: ageField },
+    submit: { execute: () => Effect.void },
+  })
+  const validateUsername = declaredForm.ValidateField.username({
+    value: 'ada',
+    generation: 1,
+  })
+
+  expectTypeOf<Form.Values<typeof declaredForm>>().toEqualTypeOf<
+    Form.Values<typeof inlineForm>
+  >()
+  expectTypeOf<
+    Effect.Services<typeof validateUsername.effect>
+  >().toEqualTypeOf<UsernameValidator>()
+  // @ts-expect-error Only a field with `validate` has a check Command.
+  void declaredForm.ValidateField.age
+
+  // @ts-expect-error Every value must be a field.
+  Form.defineFields({ age: ageField, note: 'Not a field' })
+  const symbolName = Symbol('field')
+  // @ts-expect-error Field names must be strings.
+  Form.defineFields({ [symbolName]: usernameField })
+}
+void defineFieldsChecks

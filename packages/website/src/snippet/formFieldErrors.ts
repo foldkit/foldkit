@@ -23,10 +23,10 @@ const SignupError = Schema.Union([EmailTaken, InviteExpired, SignupUnavailable])
 
 const isSignupError = Schema.is(SignupError)
 
-const signupFields = {
+const signupFields = Form.defineFields({
   email: Form.field({ schema: Schema.String, initial: '' }),
   invite: Form.field({ schema: Schema.String, initial: '' }),
-}
+})
 
 const signUp = (values: Form.FieldValues<typeof signupFields>) =>
   Effect.gen(function* () {

@@ -1,4 +1,4 @@
-export { RequiredFromNullOr, define, field } from './form.js'
+export { RequiredFromNullOr, define, defineFields, field } from './form.js'
 export type {
   FieldConfig,
   FieldDefinition,

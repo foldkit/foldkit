@@ -17,6 +17,7 @@ Form also includes:
 - `changedFields`, which changes several fields in one Message
 - `Form.RequiredFromNullOr(schema, message)`, a field Schema for a control that holds `null` until the person chooses
 - `Form.Fields<Schemas, Model, Message>`, which types a view helper that accepts any Form with those fields
+- `Form.defineFields`, which declares fields outside `Form.define`
 - `Form.FieldValues<typeof fields>`, which types a helper that `execute` calls
 - `Form.FieldSchemasOf<typeof fields>`, which names the Schemas of shared fields for `Form.Fields`
 

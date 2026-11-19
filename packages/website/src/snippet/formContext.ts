@@ -4,9 +4,9 @@ import { Http, Update } from 'foldkit'
 import { Form } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
 
-const profileFields = {
+const profileFields = Form.defineFields({
   displayName: Form.field({ schema: Schema.String, initial: '' }),
-}
+})
 
 const saveProfile = (
   profileId: string,

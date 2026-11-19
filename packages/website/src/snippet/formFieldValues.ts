@@ -3,10 +3,10 @@ import { HttpClient, HttpClientRequest } from 'effect/http'
 import { Http } from 'foldkit'
 import { Form } from 'foldkit/experimental'
 
-const accountFields = {
+const accountFields = Form.defineFields({
   username: Form.field({ schema: Schema.String, initial: '' }),
   displayName: Form.field({ schema: Schema.String, initial: '' }),
-}
+})
 
 const toAccountBody = (values: Form.FieldValues<typeof accountFields>) => ({
   username: values.username.toLowerCase(),
