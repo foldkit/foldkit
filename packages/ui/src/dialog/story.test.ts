@@ -65,6 +65,8 @@ const foldDialogOutMessage = OutMessage.match<
       dialogEvents: Array.append(DialogEvent.make('Closed')),
     }),
   }),
+  CompletedClose: () => model => ({ model }),
+  FailedOpen: () => model => ({ model }),
 })
 
 const parentInit: Runtime.ApplicationInit<ParentModel, ParentMessage> = () =>
@@ -410,7 +412,7 @@ describe('Dialog', () => {
           update,
           Story.given(boot({ id: 'test' }).model),
           Story.message(Message.FailedAcquireResources()),
-          Story.expectNoOutMessage(),
+          Story.expectOutMessage(OutMessage.FailedOpen()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
@@ -745,12 +747,12 @@ describe('Dialog', () => {
     })
 
     describe('FailedShowDialog', () => {
-      it('closes the model without emitting Closed or releasing resources', () => {
+      it('closes the model and emits FailedOpen without releasing resources', () => {
         Story.story(
           update,
           Story.given(boot({ id: 'test' }).model),
           Story.message(Message.FailedShowDialog()),
-          Story.expectNoOutMessage(),
+          Story.expectOutMessage(OutMessage.FailedOpen()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
@@ -776,7 +778,7 @@ describe('Dialog', () => {
           update,
           Story.given(enteringModel),
           Story.message(Message.FailedShowDialog()),
-          Story.expectNoOutMessage(),
+          Story.expectOutMessage(OutMessage.FailedOpen()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.animation.transitionState).toBe('Idle')
@@ -804,7 +806,7 @@ describe('Dialog', () => {
           update,
           Story.given(leavingModel),
           Story.message(Message.FailedShowDialog()),
-          Story.expectNoOutMessage(),
+          Story.expectOutMessage(OutMessage.FailedOpen()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.animation.transitionState).toBe('Idle')
