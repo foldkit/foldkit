@@ -22,6 +22,7 @@ import {
   FOLDKIT_MOUNT_KEY,
   FileHandlerSymbol,
   __clearRuntime as clearHtmlRuntime,
+  __createBoundaryRegistry as createHtmlBoundaryRegistry,
   __htmlBuilder as htmlBuilderFor,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
@@ -35,8 +36,14 @@ import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
 import type { MountDefinition } from '../mount/index.js'
 import { Dispatch } from '../runtime/dispatch.js'
+import {
+  type ChildPairingSteps,
+  pairChildren,
+  sameVnode,
+} from '../snabbdom/init.js'
+import { vnode as makeVNode } from '../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../tagName.js'
-import type { VNode } from '../vdom.js'
+import { type VNode, dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
 import type {
   AnyCommand,
   AnyCommandInstance,
@@ -265,6 +272,7 @@ type MountStatus =
 type MountSlotState = Readonly<{
   slot: PendingMount
   status: MountStatus
+  vnode: VNode
 }>
 
 const PENDING: MountStatus = { _tag: 'Pending' }
@@ -295,81 +303,154 @@ type InternalSceneSimulation<
     maybeUnacknowledgedIgnored: Option.Option<IgnoredInteraction>
   }>
 
-const slotKey = ({ name, occurrence }: PendingMount): string =>
-  `${name}#${occurrence}`
+const mountMarkerOf = (node: VNode): FoldkitMountMarker | undefined =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  node.data?.[FOLDKIT_MOUNT_KEY] as FoldkitMountMarker | undefined
 
-const collectRenderedSlots = (vnode: VNode): ReadonlyArray<PendingMount> => {
-  const counts = new Map<string, number>()
-  const slots: Array<PendingMount> = []
-  const walk = (node: VNode): void => {
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const marker = node.data?.[FOLDKIT_MOUNT_KEY] as
-      | FoldkitMountMarker
-      | undefined
-    if (marker !== undefined) {
-      const occurrence = counts.get(marker.name) ?? 0
-      counts.set(marker.name, occurrence + 1)
-      const slotWithArgs: PendingMount =
-        marker.args === undefined
-          ? { name: marker.name, occurrence }
-          : { name: marker.name, args: marker.args, occurrence }
-      slots.push(
-        marker.messageMappers === undefined
-          ? slotWithArgs
-          : { ...slotWithArgs, messageMappers: marker.messageMappers },
-      )
+const slotOfMarker = (
+  marker: FoldkitMountMarker,
+  occurrence: number,
+): PendingMount => {
+  const slotWithArgs: PendingMount =
+    marker.args === undefined
+      ? { name: marker.name, occurrence }
+      : { name: marker.name, args: marker.args, occurrence }
+
+  return marker.messageMappers === undefined
+    ? slotWithArgs
+    : { ...slotWithArgs, messageMappers: marker.messageMappers }
+}
+
+const toPatchedChild = (child: VNode | string): VNode =>
+  Predicate.isString(child)
+    ? makeVNode(undefined, undefined, undefined, child, undefined)
+    : child
+
+const patchedChildrenOf = (node: VNode): Array<VNode> => {
+  if (node.text === undefined) {
+    return Array.map(node.children ?? [], toPatchedChild)
+  } else {
+    return []
+  }
+}
+
+const recordPatchedChildren: ChildPairingSteps<Map<VNode, VNode>> = {
+  patch: (previousByChild, previousChild, child) => {
+    previousByChild.set(child, previousChild)
+  },
+  moveAfter: Function.constVoid,
+  moveBefore: Function.constVoid,
+  createBefore: Function.constVoid,
+  createAfter: Function.constVoid,
+  indexPreviousKeys: Function.constVoid,
+  addRest: Function.constVoid,
+  removeRest: Function.constVoid,
+}
+
+// NOTE: the Runtime starts a Mount only when it inserts an element. A patched
+// element keeps the Mount it was inserted with, even when its `OnMount`
+// changes Definition or is removed, and an `OnMount` added to a patched
+// element never starts.
+const reconcileMountSlots = (
+  previous: ReadonlyArray<MountSlotState>,
+  previousTree: VNode | undefined,
+  rendered: VNode,
+): ReadonlyArray<MountSlotState> => {
+  const liveByVNode = new Map<VNode, MountSlotState>()
+
+  for (const state of previous) {
+    if (state.status._tag !== 'Ended') {
+      liveByVNode.set(state.vnode, state)
     }
-    for (const child of node.children ?? []) {
-      if (typeof child !== 'string') {
-        walk(child)
+  }
+
+  const occurrenceCounts = new Map<string, number>()
+  const carried = new Set<MountSlotState>()
+  const renderedSlots: Array<MountSlotState> = []
+
+  const nextOccurrence = (name: string): number => {
+    const occurrence = occurrenceCounts.get(name) ?? 0
+    occurrenceCounts.set(name, occurrence + 1)
+
+    return occurrence
+  }
+
+  const visitCreated = (node: VNode): void => {
+    const marker = mountMarkerOf(node)
+
+    if (marker !== undefined) {
+      renderedSlots.push({
+        slot: slotOfMarker(marker, nextOccurrence(marker.name)),
+        status: PENDING,
+        vnode: node,
+      })
+    }
+
+    for (const child of patchedChildrenOf(node)) {
+      visitCreated(child)
+    }
+  }
+
+  const visitPatched = (previousNode: VNode, node: VNode): void => {
+    const liveState = liveByVNode.get(previousNode)
+
+    if (liveState !== undefined) {
+      carried.add(liveState)
+      renderedSlots.push({
+        slot: {
+          ...liveState.slot,
+          occurrence: nextOccurrence(liveState.slot.name),
+        },
+        status: liveState.status,
+        vnode: node,
+      })
+    }
+
+    const previousByChild = new Map<VNode, VNode>()
+    const children = patchedChildrenOf(node)
+
+    pairChildren(
+      patchedChildrenOf(previousNode),
+      children,
+      recordPatchedChildren,
+      previousByChild,
+    )
+
+    for (const child of children) {
+      const previousChild = previousByChild.get(child)
+
+      if (previousChild === undefined) {
+        visitCreated(child)
+      } else {
+        visitPatched(previousChild, child)
       }
     }
   }
-  walk(vnode)
-  return slots
-}
 
-const reconcileMountSlots = (
-  previous: ReadonlyArray<MountSlotState>,
-  rendered: VNode,
-): ReadonlyArray<MountSlotState> => {
-  const previousByKey = new Map(
-    Array.map(previous, state => [slotKey(state.slot), state] as const),
-  )
-  const renderedSlots = collectRenderedSlots(rendered)
-  const renderedKeys = new Set(Array.map(renderedSlots, slotKey))
-  const fromRendered = Array.map(renderedSlots, slot => {
-    const existing = previousByKey.get(slotKey(slot))
-    if (existing !== undefined && existing.status._tag !== 'Ended') {
-      return existing
-    }
-    return { slot, status: PENDING }
-  })
-  const fromVanished = pipe(
-    previous,
-    Array.filter(state => !renderedKeys.has(slotKey(state.slot))),
-    Array.map(state => endStatus(state)),
-  )
-  const unacknowledgedRevived = pipe(
+  if (previousTree !== undefined && sameVnode(previousTree, rendered)) {
+    visitPatched(previousTree, rendered)
+  } else {
+    visitCreated(rendered)
+  }
+
+  const ended = pipe(
     previous,
     Array.filter(
       state =>
-        renderedKeys.has(slotKey(state.slot)) &&
-        state.status._tag === 'Ended' &&
-        !state.status.acknowledged,
+        (state.status._tag !== 'Ended' && !carried.has(state)) ||
+        (state.status._tag === 'Ended' && !state.status.acknowledged),
     ),
+    Array.map(endStatus),
   )
-  return Array.appendAll(
-    fromRendered,
-    Array.appendAll(fromVanished, unacknowledgedRevived),
-  )
+
+  return Array.appendAll(renderedSlots, ended)
 }
 
 const endStatus = (state: MountSlotState): MountSlotState => {
   if (state.status._tag === 'Ended') {
     return state
   }
-  return { slot: state.slot, status: ENDED_UNACKNOWLEDGED }
+  return { ...state, status: ENDED_UNACKNOWLEDGED }
 }
 
 const pendingMountsOf = (
@@ -514,10 +595,27 @@ const createCapturingDispatch = (): CapturingDispatch => {
 
 // RENDERING
 
+// NOTE: the Runtime clones every non-memoized VNode that arrives with the
+// `.elm` its previous patch set, so a VNode reused across renders gets a
+// fresh object. Scene never patches, so it marks the previous tree's
+// non-memoized VNodes as already placed in the per-render dedupe set instead.
+const markPreviousRenderVNodes = (node: VNode, seen: Set<object>): void => {
+  if (!memoizedVNodes.has(node)) {
+    seen.add(node)
+  }
+
+  for (const child of node.children ?? []) {
+    if (!Predicate.isString(child)) {
+      markPreviousRenderVNodes(child, seen)
+    }
+  }
+}
+
 const renderView = <Model, Message>(
   viewFn: (model: Model, h: HtmlBuilder<Message>) => Html | Document,
   model: Model,
   dispatch: DispatchService,
+  previousTree: VNode | undefined,
 ): VNode => {
   const sceneContext = Context.make(Dispatch, dispatch).pipe(
     Context.add(MountTracker, {
@@ -525,8 +623,13 @@ const renderView = <Model, Message>(
       ended: () => {},
     }),
   )
+  const boundaryRegistry = createHtmlBoundaryRegistry()
 
-  setHtmlRuntime(dispatch.dispatchSync, sceneContext)
+  if (previousTree !== undefined) {
+    markPreviousRenderVNodes(previousTree, boundaryRegistry.dedupeSeen)
+  }
+
+  setHtmlRuntime(dispatch.dispatchSync, sceneContext, boundaryRegistry)
   let result: Html | Document
   try {
     result = viewFn(model, htmlBuilderFor<Message>())
@@ -544,7 +647,7 @@ const renderView = <Model, Message>(
     )
   }
 
-  return vnode
+  return dedupeSharedVNodes(vnode, boundaryRegistry.dedupeSeen)
 }
 
 const isDocument = (value: Html | Document): value is Document =>
@@ -1116,22 +1219,13 @@ const resolveMount: {
       )
     }
 
-    const resolvedKeys = new Set(
-      Array.map(next.pendingMounts, slot => slotKey(slot)),
-    )
+    const stillPending = new Set(next.pendingMounts)
     const updatedSlots = Array.map(
       internal.mountSlots,
-      (state): MountSlotState => {
-        if (state.status._tag !== 'Pending') {
-          return state
-        }
-        const key = slotKey(state.slot)
-        return resolvedKeys.has(key)
-          ? state
-          : state.slot.name === matcher.name
-            ? { slot: state.slot, status: RESOLVED }
-            : state
-      },
+      (state): MountSlotState =>
+        state.status._tag === 'Pending' && !stillPending.has(state.slot)
+          ? { ...state, status: RESOLVED }
+          : state,
     )
 
     return {
@@ -1189,11 +1283,12 @@ const expectNoMountsStep =
     return simulation
   }
 
-/** Acknowledges that the given Mounts disappeared from the rendered tree.
- *  Required for every Mount that fires and then unmounts during a scene,
- *  whether or not it was resolved first. Without this, the scene throws at
- *  the end of the test for any unacknowledged unmount. Mount matchers may
- *  be Definitions or instances; instances acknowledge a specific args shape. */
+/** Acknowledges that the given Mounts unmounted because their element was
+ *  removed or replaced. Required for every Mount that fires and then unmounts
+ *  during a scene, whether or not it was resolved first. Without this, the
+ *  scene throws at the end of the test for any unacknowledged unmount. Mount
+ *  matchers may be Definitions or instances; instances acknowledge a specific
+ *  args shape. */
 const expectEndedMountsStep =
   (...matchers: ReadonlyArray<MountMatcher>) =>
   <Model, Message, OutMessage = undefined>(
@@ -1215,7 +1310,7 @@ const expectEndedMountsStep =
         onNone: () => updatedSlots.push(state),
         onSome: matchIndex => {
           remaining.splice(matchIndex, 1)
-          updatedSlots.push({ slot: state.slot, status: ENDED_ACKNOWLEDGED })
+          updatedSlots.push({ ...state, status: ENDED_ACKNOWLEDGED })
         },
       })
     }
@@ -1227,7 +1322,7 @@ const expectEndedMountsStep =
             Array.map(matcher => `    ${formatMountMatcher(matcher)}`),
             Array.join('\n'),
           ) +
-          '\n\nUse Scene.Mount.expectEnded only after the Mount has disappeared from the rendered tree.',
+          "\n\nUse Scene.Mount.expectEnded only after the Mount's element has been removed or replaced.",
       )
     }
     return {
@@ -1495,7 +1590,7 @@ export const Mount = {
   expectExact: expectExactMountsStep,
   /** Asserts that there are no pending Mounts. */
   expectNone: expectNoMountsStep,
-  /** Acknowledges Mounts that disappeared from the rendered tree. Required for
+  /** Acknowledges Mounts whose element was removed or replaced. Required for
    *  every Mount that fires and then unmounts during a scene. */
   expectEnded: expectEndedMountsStep,
 } as const
@@ -1780,8 +1875,13 @@ const runSteps = <Model, Message, OutMessage>(
         internal.viewFn,
         internal.model,
         internal.capturingDispatch.dispatch,
+        internal.html,
       )
-      const mountSlots = reconcileMountSlots(internal.mountSlots, html)
+      const mountSlots = reconcileMountSlots(
+        internal.mountSlots,
+        internal.html,
+        html,
+      )
       const mounts = pendingMountsOf(mountSlots)
       return { ...internal, html, mountSlots, mounts } as SceneSimulation<
         Model,
