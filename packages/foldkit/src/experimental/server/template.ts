@@ -6,7 +6,11 @@ import {
   FOLDKIT_APP_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
 } from '../../hydrationMarker.js'
-import { type ParsedFragmentModes, parseFragmentModes } from './fragment.js'
+import {
+  type ParsedFragmentModes,
+  parseFragmentModes,
+  scriptingModesFor,
+} from './fragment.js'
 import { escapeAttributeValue, escapeText } from './serialize.js'
 import {
   type RenderedApplication,
@@ -289,6 +293,8 @@ const assertNeutralInsertionContext = (
 //
 // Both parses run with scripting enabled and disabled, because a `<noscript>`
 // in the rendered markup changes the tree for exactly the visitors it targets.
+// When the template, the markup, and the page they make contain none, the two
+// modes parse identically and the scripting-enabled pass covers both.
 
 const renderedShapes = (
   renderedHtml: string,
@@ -642,7 +648,10 @@ const runtimeIdOf = (
   fragments: ParsedFragmentModes,
 ): string | undefined => {
   const enabled = runtimeIdInMode(renderedHtml, fragments.scripted)
-  const disabled = runtimeIdInMode(renderedHtml, fragments.unscripted)
+  const disabled =
+    fragments.unscripted === fragments.scripted
+      ? enabled
+      : runtimeIdInMode(renderedHtml, fragments.unscripted)
   if (enabled !== disabled) {
     throw new Error(
       '[foldkit] injectIntoTemplate received rendered markup whose root and ' +
@@ -933,7 +942,11 @@ export const injectIntoTemplate = (
   // Checked for every render, hydratable or not. Static markup is placed into a
   // document the same way, and markup the parser drops is lost with no
   // hydration to rebuild it.
-  for (const isScriptingEnabled of [true, false]) {
+  for (const isScriptingEnabled of scriptingModesFor(
+    template,
+    renderedHtml,
+    page,
+  )) {
     const parsedTemplate = isScriptingEnabled
       ? document
       : parse(template, { scriptingEnabled: false })
