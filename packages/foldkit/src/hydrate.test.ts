@@ -2006,6 +2006,59 @@ describe('__hydrateVNode', () => {
     expect(root.defaultChecked).toBe(true)
   })
 
+  it('applies an indeterminate checkbox on hydration, which server HTML cannot express', () => {
+    const checkboxView = () =>
+      h.input([h.Type('checkbox'), h.Indeterminate(true)])
+    const view = buildView(checkboxView)
+    const markup = serializeHydratable(view)
+    expect(markup).not.toContain('indeterminate')
+    const root = mountServerHtml(markup)
+    if (!(root instanceof HTMLInputElement)) {
+      throw new Error('expected an input root')
+    }
+    expect(root.indeterminate).toBe(false)
+
+    buildView(() => hydrateVNode(root, checkboxView()))
+
+    expect(root.indeterminate).toBe(true)
+  })
+
+  it('reasserts an indeterminate checkbox the browser cleared when the view still asks for it', () => {
+    const checkboxView = (isIndeterminate: boolean) =>
+      h.input([h.Type('checkbox'), h.Indeterminate(isIndeterminate)])
+    const container = document.createElement('div')
+    host.appendChild(container)
+    const mixed = buildView(() =>
+      patch(toVNode(container), requireVNode(checkboxView(true))),
+    )
+    const checkbox = elementOf(mixed)
+    if (!(checkbox instanceof HTMLInputElement)) {
+      throw new Error('expected an input')
+    }
+    expect(checkbox.indeterminate).toBe(true)
+
+    checkbox.indeterminate = false
+    const stillMixed = buildView(() =>
+      patch(mixed, requireVNode(checkboxView(true))),
+    )
+    expect(checkbox.indeterminate).toBe(true)
+
+    const settled = buildView(() =>
+      patch(stillMixed, requireVNode(checkboxView(false))),
+    )
+    expect(checkbox.indeterminate).toBe(false)
+
+    const mixedAgain = buildView(() =>
+      patch(settled, requireVNode(checkboxView(true))),
+    )
+    expect(checkbox.indeterminate).toBe(true)
+
+    buildView(() =>
+      patch(mixedAgain, requireVNode(h.input([h.Type('checkbox')]))),
+    )
+    expect(checkbox.indeterminate).toBe(false)
+  })
+
   it('restores unchanged raw selected ownership when a select becomes uncontrolled', () => {
     const controlledView = () =>
       h.select(

@@ -749,6 +749,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnSelect: { readonly message: Message }
   Value: { readonly value: string }
   Checked: { readonly value: boolean }
+  Indeterminate: { readonly value: boolean }
   Selected: { readonly value: boolean }
   Open: { readonly value: boolean }
   Placeholder: { readonly value: string }
@@ -1078,6 +1079,7 @@ const {
   OnSelect,
   Value,
   Checked,
+  Indeterminate,
   Selected,
   Open,
   Placeholder,
@@ -2105,6 +2107,8 @@ const attributeHandlers: AttributeHandlers = {
     updatePropsWithPostpatch(ctx, 'value', value),
   Checked: ({ value }, ctx: BuildContext) =>
     updatePropsWithPostpatch(ctx, 'checked', value),
+  Indeterminate: ({ value }, ctx: BuildContext) =>
+    updatePropsWithPostpatch(ctx, 'indeterminate', value),
   Selected: ({ value }, ctx: BuildContext) =>
     updatePropsWithPostpatch(ctx, 'selected', value),
   Open: ({ value }, ctx: BuildContext) =>
@@ -4219,6 +4223,15 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'Checked'
     readonly value: boolean
   }
+  /** Sets the `indeterminate` property of a checkbox, which displays it as
+   *  mixed, neither checked nor unchecked. The property has no HTML attribute,
+   *  so server rendering omits it and hydration applies it on the client. Like
+   *  `Checked`, it is reasserted after every render, so a click that clears the
+   *  property in the browser yields to the value the view declares. */
+  Indeterminate: (value: boolean) => {
+    readonly _tag: 'Indeterminate'
+    readonly value: boolean
+  }
   Selected: (value: boolean) => {
     readonly _tag: 'Selected'
     readonly value: boolean
@@ -5249,6 +5262,7 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnSelect: (message: Message) => OnSelect({ message }),
   Value: (value: string) => Value({ value }),
   Checked: (value: boolean) => Checked({ value }),
+  Indeterminate: (value: boolean) => Indeterminate({ value }),
   Selected: (value: boolean) => Selected({ value }),
   Open: (value: boolean) => Open({ value }),
   Placeholder: (value: string) => Placeholder({ value }),
