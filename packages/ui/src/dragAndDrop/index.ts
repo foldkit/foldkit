@@ -12,7 +12,12 @@ import {
 } from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
-import { type Attribute, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import {
+  type Attribute,
+  type HtmlBuilder,
+  type KeyboardModifiers,
+  inertHtml as ih,
+} from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -34,6 +39,13 @@ const ScreenPoint = Schema.Struct({
 const ClientPoint = Schema.Struct({
   clientX: Schema.Number,
   clientY: Schema.Number,
+})
+
+const Modifiers = Schema.Struct({
+  shiftKey: Schema.Boolean,
+  ctrlKey: Schema.Boolean,
+  altKey: Schema.Boolean,
+  metaKey: Schema.Boolean,
 })
 
 const DropTarget = Schema.Struct({
@@ -97,7 +109,7 @@ export const Message = defineMessageUnion({
     clientY: Schema.Number,
     maybeDropTarget: Schema.Option(DropTarget),
   },
-  ReleasedPointer: {},
+  ReleasedPointer: { modifiers: Modifiers },
   CancelledDrag: {},
   ActivatedKeyboardDrag: {
     itemId: Schema.String,
@@ -108,7 +120,7 @@ export const Message = defineMessageUnion({
     targetContainerId: Schema.String,
     targetIndex: Schema.Number,
   },
-  ConfirmedKeyboardDrop: {},
+  ConfirmedKeyboardDrop: { modifiers: Modifiers },
   PressedArrowKey: {
     direction: Schema.Literals([
       'Up',
@@ -135,6 +147,7 @@ export const OutMessage = defineMessageUnion({
     fromIndex: Schema.Number,
     toContainerId: Schema.String,
     toIndex: Schema.Number,
+    modifiers: Modifiers,
   },
   Cancelled: {},
 })
@@ -363,7 +376,7 @@ export const update = (model: Model, message: Message) =>
         Match.orElse(() => ({ model })),
       ),
 
-    ReleasedPointer: () =>
+    ReleasedPointer: ({ modifiers }) =>
       Match.value(model.dragState).pipe(
         withUpdateReturn,
         Match.tag('Pending', () => ({
@@ -383,6 +396,7 @@ export const update = (model: Model, message: Message) =>
                 fromIndex: dragging.sourceIndex,
                 toContainerId: dropTarget.containerId,
                 toIndex: dropTarget.index,
+                modifiers,
               }),
             }),
           }),
@@ -441,7 +455,7 @@ export const update = (model: Model, message: Message) =>
         Match.orElse(() => ({ model })),
       ),
 
-    ConfirmedKeyboardDrop: () =>
+    ConfirmedKeyboardDrop: ({ modifiers }) =>
       Match.value(model.dragState).pipe(
         withUpdateReturn,
         Match.tag('KeyboardDragging', keyboardDragging => ({
@@ -453,6 +467,7 @@ export const update = (model: Model, message: Message) =>
             fromIndex: keyboardDragging.sourceIndex,
             toContainerId: keyboardDragging.targetContainerId,
             toIndex: keyboardDragging.targetIndex,
+            modifiers,
           }),
         })),
         Match.orElse(() => ({ model })),
@@ -523,6 +538,18 @@ const resolveDropTarget = (
     return Option.some({ containerId, index: insertionIndex })
   })
 }
+
+const eventModifiers = ({
+  shiftKey,
+  ctrlKey,
+  altKey,
+  metaKey,
+}: KeyboardEvent | PointerEvent): KeyboardModifiers => ({
+  shiftKey,
+  ctrlKey,
+  altKey,
+  metaKey,
+})
 
 const DEFAULT_AUTO_SCROLL_EDGE_PIXELS = 40
 const DEFAULT_AUTO_SCROLL_MAX_SPEED = 15
@@ -602,7 +629,9 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             ),
           ),
           Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
-            Stream.map(() => Message.ReleasedPointer()),
+            Stream.map(event =>
+              Message.ReleasedPointer({ modifiers: eventModifiers(event) }),
+            ),
           ),
         )
 
@@ -661,7 +690,11 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
                   ),
                 ),
                 Match.whenOr(' ', 'Enter', () =>
-                  Option.some(Message.ConfirmedKeyboardDrop()),
+                  Option.some(
+                    Message.ConfirmedKeyboardDrop({
+                      modifiers: eventModifiers(event),
+                    }),
+                  ),
                 ),
                 Match.orElse(key =>
                   Option.map(arrowKeyToDirection(key), direction =>

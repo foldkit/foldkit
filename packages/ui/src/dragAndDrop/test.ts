@@ -18,7 +18,14 @@ export type SettleFocusInput = Readonly<{
  *    Story.given(model),
  *    Story.message(
  *      ParentMessage.GotDragAndDropMessage({
- *        message: DragAndDrop.Message.ConfirmedKeyboardDrop(),
+ *        message: DragAndDrop.Message.ConfirmedKeyboardDrop({
+ *          modifiers: {
+ *            shiftKey: false,
+ *            ctrlKey: false,
+ *            altKey: false,
+ *            metaKey: false,
+ *          },
+ *        }),
  *      }),
  *    ),
  *    DragAndDrop.test.settleFocus({ itemId: 'card-1' }),
