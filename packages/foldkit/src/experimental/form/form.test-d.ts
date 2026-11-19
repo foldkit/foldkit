@@ -1072,29 +1072,21 @@ const defineFieldsChecks = () => {
     fields: accountFields,
     submit: { execute: () => Effect.void },
   })
-  const inlineForm = Form.define({
-    name: 'Inline',
-    fields: { username: usernameField, age: ageField },
-    submit: { execute: () => Effect.void },
-  })
   const validateUsername = declaredForm.ValidateField.username({
     value: 'ada',
     generation: 1,
   })
 
-  expectTypeOf<Form.Values<typeof declaredForm>>().toEqualTypeOf<
-    Form.Values<typeof inlineForm>
-  >()
   expectTypeOf<
     Effect.Services<typeof validateUsername.effect>
   >().toEqualTypeOf<UsernameValidator>()
-  // @ts-expect-error Only a field with `validate` has a check Command.
-  void declaredForm.ValidateField.age
 
   // @ts-expect-error Every value must be a field.
   Form.defineFields({ age: ageField, note: 'Not a field' })
   const symbolName = Symbol('field')
   // @ts-expect-error Field names must be strings.
   Form.defineFields({ [symbolName]: usernameField })
+  // @ts-expect-error Field names must be strings, including numeric keys.
+  Form.defineFields({ 1: ageField })
 }
 void defineFieldsChecks

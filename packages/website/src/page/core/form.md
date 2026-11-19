@@ -49,7 +49,7 @@ For those, use [Field Validation](/core/field-validation) directly.
 
 ::Snippet{name="formDefine" label="Reusable and inline Form fields"}
 
-To declare a Form's fields outside `Form.define`, for example to share them between Forms, wrap them in `Form.defineFields`. It returns the fields unchanged with the types `Form.define` would infer, and reports a value that isn't a field where you declare it.
+To declare a Form's fields outside `Form.define`, for example to share them between Forms, wrap them in `Form.defineFields`. It returns the fields unchanged with the types `Form.define` would infer, and reports a value that isn't a field, or a field name that isn't a string, where you declare the fields. The snippet in [Configure Submission](#configure-submission) declares its fields this way.
 
 Validation has three optional parts:
 

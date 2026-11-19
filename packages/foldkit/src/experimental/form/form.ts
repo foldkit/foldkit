@@ -1182,10 +1182,10 @@ type CheckedSubmitEffect<SubmitEffect, A, E> = SubmitEffect &
     : never) &
   ([Effect.Error<NoInfer<SubmitEffect>>] extends [NoInfer<E>] ? unknown : never)
 
-/** Declares fields outside `Form.define`, to share them between Forms or to
- * type them with `Form.FieldValues` and `Form.FieldSchemasOf`. Returns the
- * fields unchanged, with the types `Form.define` would infer for them, and
- * reports a value that isn't a field where the fields are declared.
+/** Declares a Form's fields outside `Form.define`, for example to share them
+ * between Forms. Returns the fields unchanged, with the types `Form.define`
+ * would infer for them, and reports a value that isn't a field, or a field
+ * name that isn't a string, where the fields are declared.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -1193,7 +1193,9 @@ export const defineFields = <
   const Schemas extends FieldSchemas,
   const Definitions extends FieldDefinitions<Schemas, unknown>,
 >(
-  fields: Definitions & FieldDefinitions<Schemas, unknown>,
+  fields: Definitions &
+    FieldDefinitions<Schemas, unknown> &
+    Record<Exclude<keyof Definitions, string>, never>,
 ): Definitions => fields
 
 /** Defines a Form from its fields and its submission.
