@@ -258,6 +258,98 @@ describe('Tabs', () => {
   })
 
   describe('keyToIndex', () => {
+    it('starts at the last item on ArrowUp when no item is focused', () => {
+      const resolve = keyToIndex('ArrowDown', 'ArrowUp', 4, -1, noneDisabled)
+      expect(resolve('ArrowUp')).toBe(3)
+    })
+
+    it('visits the enabled last item before a disabled penultimate item', () => {
+      const resolve = keyToIndex('ArrowDown', 'ArrowUp', 4, -1, disabledAt(2))
+      expect(resolve('ArrowUp')).toBe(3)
+    })
+
+    it('starts at the last item on ArrowLeft when no item is focused', () => {
+      const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 4, -1, noneDisabled)
+      expect(resolve('ArrowLeft')).toBe(3)
+    })
+
+    it('starts at the second of two items on previous from absent focus', () => {
+      const resolve = keyToIndex('ArrowDown', 'ArrowUp', 2, -1, noneDisabled)
+      expect(resolve('ArrowUp')).toBe(1)
+    })
+
+    it('skips a disabled suffix on previous from absent focus', () => {
+      const resolve = keyToIndex(
+        'ArrowDown',
+        'ArrowUp',
+        4,
+        -1,
+        disabledAt(2, 3),
+      )
+      expect(resolve('ArrowUp')).toBe(1)
+    })
+
+    it('finds the only enabled last item on previous from absent focus', () => {
+      const resolve = keyToIndex(
+        'ArrowDown',
+        'ArrowUp',
+        4,
+        -1,
+        disabledAt(0, 1, 2),
+      )
+      expect(resolve('ArrowUp')).toBe(3)
+    })
+
+    it('finds a single enabled item on previous from absent focus', () => {
+      const resolve = keyToIndex('ArrowDown', 'ArrowUp', 1, -1, noneDisabled)
+      expect(resolve('ArrowUp')).toBe(0)
+    })
+
+    it.each([-1, 2])(
+      'preserves focusedIndex %i on previous when all items are disabled',
+      focusedIndex => {
+        const resolve = keyToIndex(
+          'ArrowDown',
+          'ArrowUp',
+          4,
+          focusedIndex,
+          () => true,
+        )
+        expect(resolve('ArrowUp')).toBe(focusedIndex)
+      },
+    )
+
+    it('wraps backward past disabled items from the first item', () => {
+      const resolve = keyToIndex('ArrowDown', 'ArrowUp', 4, 0, disabledAt(3))
+      expect(resolve('ArrowUp')).toBe(2)
+    })
+
+    it('skips disabled items backward from a focused middle item', () => {
+      const resolve = keyToIndex('ArrowDown', 'ArrowUp', 4, 2, disabledAt(1))
+      expect(resolve('ArrowUp')).toBe(0)
+    })
+
+    it('starts at the first item on next from absent focus', () => {
+      const resolve = keyToIndex('ArrowDown', 'ArrowUp', 4, -1, noneDisabled)
+      expect(resolve('ArrowDown')).toBe(0)
+    })
+
+    it('skips a disabled prefix on next from absent focus', () => {
+      const resolve = keyToIndex(
+        'ArrowDown',
+        'ArrowUp',
+        4,
+        -1,
+        disabledAt(0, 1),
+      )
+      expect(resolve('ArrowDown')).toBe(2)
+    })
+
+    it('preserves absent focus for an unrecognized key', () => {
+      const resolve = keyToIndex('ArrowDown', 'ArrowUp', 4, -1, noneDisabled)
+      expect(resolve('Tab')).toBe(-1)
+    })
+
     it('moves to next tab on next key', () => {
       const resolve = keyToIndex('ArrowRight', 'ArrowLeft', 5, 0, noneDisabled)
       expect(resolve('ArrowRight')).toBe(1)

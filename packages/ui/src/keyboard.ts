@@ -32,7 +32,9 @@ export const keyToIndex = (
   return (key: string): number =>
     Match.value(key).pipe(
       Match.when(nextKey, () => find(focusedIndex + 1, 1)),
-      Match.when(previousKey, () => find(focusedIndex - 1, -1)),
+      Match.when(previousKey, () =>
+        find(focusedIndex === -1 ? itemCount - 1 : focusedIndex - 1, -1),
+      ),
       Match.whenOr('Home', 'PageUp', () => find(0, 1)),
       Match.whenOr('End', 'PageDown', () => find(itemCount - 1, -1)),
       Match.orElse(() => focusedIndex),
