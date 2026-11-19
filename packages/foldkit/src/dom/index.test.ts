@@ -220,6 +220,78 @@ describe('lockScroll', () => {
       expect(document.documentElement.style.overflow).toBe('')
     }),
   )
+
+  const withScrollbarWidth = <A, E>(
+    width: number,
+    effect: Effect.Effect<A, E>,
+  ): Effect.Effect<A, E> =>
+    Effect.acquireUseRelease(
+      Effect.sync(() =>
+        vi
+          .spyOn(document.documentElement, 'clientWidth', 'get')
+          .mockReturnValue(window.innerWidth - width),
+      ),
+      () => effect,
+      clientWidth =>
+        Effect.andThen(
+          unlockScroll,
+          Effect.sync(() => clientWidth.mockRestore()),
+        ),
+    )
+
+  it.effect(
+    'reserves the hidden scrollbar width with a stable gutter instead of padding',
+    () =>
+      withScrollbarWidth(
+        15,
+        Effect.gen(function* () {
+          const { style } = document.documentElement
+
+          yield* lockScroll
+          expect(style.scrollbarGutter).toBe('stable')
+          expect(style.paddingRight).toBe('')
+
+          yield* unlockScroll
+          expect(style.scrollbarGutter).toBe('')
+        }),
+      ),
+  )
+
+  it.effect('adds no space over a root that already has a stable gutter', () =>
+    withScrollbarWidth(
+      15,
+      Effect.acquireUseRelease(
+        Effect.sync(() => {
+          const stableGutter = document.createElement('style')
+          stableGutter.textContent = 'html { scrollbar-gutter: stable; }'
+          document.head.append(stableGutter)
+          return stableGutter
+        }),
+        () =>
+          Effect.gen(function* () {
+            const { style } = document.documentElement
+
+            yield* lockScroll
+            expect(style.scrollbarGutter).toBe('')
+            expect(style.paddingRight).toBe('')
+          }),
+        stableGutter => Effect.sync(() => stableGutter.remove()),
+      ),
+    ),
+  )
+
+  it.effect('adds no space when the scrollbar takes no width', () =>
+    withScrollbarWidth(
+      0,
+      Effect.gen(function* () {
+        const { style } = document.documentElement
+
+        yield* lockScroll
+        expect(style.scrollbarGutter).toBe('')
+        expect(style.paddingRight).toBe('')
+      }),
+    ),
+  )
 })
 
 describe('unlockScroll', () => {
