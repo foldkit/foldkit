@@ -14,7 +14,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { sharedFields } from './fields'
+import { contactFields } from './fields'
 
 // SUBMISSION
 
@@ -80,14 +80,7 @@ const AgeInput = Schema.Trim.check(
 export const registrationForm = Form.define({
   name: 'Registration',
   fields: {
-    ...sharedFields,
-    fullName: Form.field({
-      schema: Schema.String,
-      initial: '',
-      rules: makeRules({
-        required: 'Enter your name',
-      }),
-    }),
+    ...contactFields,
     age: Form.field({
       schema: AgeInput,
       initial: '',
@@ -114,17 +107,10 @@ export const registrationForm = Form.define({
 export const profileForm = Form.define({
   name: 'Profile',
   fields: {
-    ...sharedFields,
+    ...contactFields,
     topics: Form.field({ schema: Schema.Array(Topic), initial: [] }),
     isSubscribed: Form.field({ schema: Schema.Boolean, initial: false }),
     isDigestEnabled: Form.field({ schema: Schema.Boolean, initial: false }),
-    displayName: Form.field({
-      schema: Schema.String,
-      initial: '',
-      rules: makeRules({
-        required: 'Enter a display name',
-      }),
-    }),
   },
   submit: {
     error: Schema.String,
@@ -172,7 +158,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
     profileId: 'profile-1',
     profile: profileForm.init({
       email: 'reader@example.com',
-      displayName: 'Reader',
+      fullName: 'Reader',
     }),
   }),
 })
@@ -563,9 +549,9 @@ const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
           }),
           textInputView(h, {
             ...profileTextInputArgs,
-            name: 'displayName',
+            name: 'fullName',
             id: 'profile-name',
-            label: 'Display name',
+            label: 'Profile name',
           }),
           h.fieldset(
             [h.Class('space-y-2')],
@@ -642,7 +628,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           h.p(
             [],
             [
-              'Both Forms share one email field. Try blocked@example.com for the async check, taken@example.com for a server error on the email field, or down@example.com for an error on the whole form. Type 12a as your age to see the field keep your text, turn off email updates to turn off the digest too, or reset during a save to see the late result ignored.',
+              'Both Forms share the email and name fields. Try blocked@example.com for the async check, taken@example.com for a server error on the email field, or down@example.com for an error on the whole form. Type 12a as your age to see the field keep your text, turn off email updates to turn off the digest too, or reset during a save to see the late result ignored.',
             ],
           ),
           registrationView(model, h),

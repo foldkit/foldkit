@@ -5,7 +5,7 @@ Form ships from `foldkit/experimental` and `foldkit/experimental/form`. Its name
 :::
 
 :::Info{label="See it in an app"}
-[Experimental Form](/example-apps/experimental-form) has a registration Form and a profile Form that share an email field declared with `Form.defineFields`. It shows:
+[Experimental Form](/example-apps/experimental-form) has a registration Form and a profile Form that share email and name fields declared with `Form.defineFields`. It shows:
 
 - validation on change, on blur, and with an async email check
 - an age field that keeps text like `12a` and shows an error until it's a number

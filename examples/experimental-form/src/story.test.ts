@@ -133,7 +133,7 @@ test('profile topic clicks add and remove topics, and the submission carries the
   const submitProfile = profileForm.Submit({
     values: {
       email: 'reader@example.com',
-      displayName: 'Reader',
+      fullName: 'Reader',
       topics: ['Foldkit'],
       isSubscribed: false,
       isDigestEnabled: false,
