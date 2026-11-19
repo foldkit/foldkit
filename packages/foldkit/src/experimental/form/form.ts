@@ -25,12 +25,11 @@ import { modifyFields } from '../../struct/index.js'
 import * as Update from '../../update/index.js'
 import * as Lens from './lens.js'
 
-/** The Schema for one field. It decodes what the control holds, its `Encoded`
- * side such as an input's text, into the value the app uses, its `Type` side.
- * It must run synchronously without services, and both sides must be plain,
- * immutable data. Schemas with an optional key on either side aren't supported.
- * `init` and `reinitialize` encode overrides with it and throw if an override
- * can't be encoded.
+/** The Schema for one field. It decodes the control's input, its `Encoded`
+ * side, into the value the app uses, its `Type` side. It must run
+ * synchronously without services, both sides must be plain immutable data, and
+ * neither side can have an optional key. `init` and `reinitialize` encode
+ * overrides with it and throw if one can't be encoded.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -216,8 +215,8 @@ type FieldDefinitionWithValidator<
 type FieldDefinitionWithoutValidator<S extends FieldSchema> =
   FieldDefinitionBase<S> & Readonly<{ validate?: never }>
 
-/** A field made by {@link field}. Reuse it in several Forms; each Form keeps its
- * own state for it.
+/** A field made by {@link field}. Several Forms can use it, each with its own
+ * state for it.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -235,13 +234,12 @@ const toIssueMessages = (
     onNonEmpty: issues => Array.map(issues, ({ message }) => message),
   })
 
-/** Defines a field: its Schema, initial input, and validation. Reuse it in
- * several Forms.
+/** Defines a field: its Schema, initial input, and validation. One field can
+ * be used in several Forms.
  *
- * Validation decodes the input first, and a failure shows the Schema's
- * messages. Then `rules` run on the value, and `validate` runs only if both
- * pass and the value isn't empty. An empty value in a field without a
- * `required` rule skips `validate`.
+ * Validation decodes the input, runs `rules` on the value, then runs
+ * `validate` if both pass. A decode failure shows the Schema's messages. An
+ * empty value skips `validate` when the field has no `required` rule.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -370,7 +368,7 @@ export const RequiredFromNullOr = <S extends FieldSchema>(
 
 /** What a view needs to render a field. Put `input` in the control.
  * `maybeValue` is the decoded value whenever the input decodes, even if a rule
- * fails. `meta.isTouched` turns true once the field is edited or blurred.
+ * fails.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -457,8 +455,9 @@ type AnyFieldDefinitions = Readonly<
   Record<string, Readonly<{ schema: FieldSchema }>>
 >
 
-/** Field Schemas by name for a fields object: `Form.FieldSchemasOf<typeof
- * fields>`. Use it to type {@link Fields} for fields that several Forms share.
+/** The Schemas of a fields object, by field name:
+ * `Form.FieldSchemasOf<typeof fields>`. Use it with {@link Fields} for fields
+ * that several Forms share.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -466,11 +465,11 @@ export type FieldSchemasOf<Definitions extends AnyFieldDefinitions> = {
   readonly [Name in keyof Definitions & string]: Definitions[Name]['schema']
 }
 
-/** Decoded values by name for a fields object, the values `execute` receives
- * when the Form uses those fields. Declare the fields before `Form.define` to
- * type a helper that `execute` calls: `Form.FieldValues<typeof fields>`.
- * `Form.Values<typeof form>` can't type it, because the Form would refer to
- * itself inside its own definition.
+/** The decoded values of a fields object, by field name:
+ * `Form.FieldValues<typeof fields>`. Declare the fields before `Form.define`
+ * and use it to type a helper that `execute` calls, where
+ * `Form.Values<typeof form>` would make the Form refer to itself in its own
+ * definition.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -896,10 +895,10 @@ export interface FormDefinition<
   ValidatedFieldName
 > {}
 
-/** A Form's field operations, whatever it submits. Type a view helper's Form
- * parameter as `Form.Fields<Schemas, Model, Message>` with `Model` and
- * `Message` generic, so the Form passed in decides them. Any Form whose fields
- * include `Schemas` fits.
+/** A Form's field operations, without what it submits. Type a view helper's
+ * Form parameter with it and keep `Model` and `Message` generic. Any Form whose
+ * fields include `Schemas` fits, and its Model and Message fill those
+ * parameters.
  *
  * @experimental Ships from `foldkit/experimental/form`; expect breaking changes while the API settles.
  */
@@ -986,9 +985,9 @@ interface FormDefinitionOf<
     FormName,
     ValidatedFieldName
   >
-  /** Creates a Form Model. Overrides are decoded values and become the defaults.
-   * To replace a live Form, use `reset` or `reinitialize` instead, so a late
-   * result from before can't be mistaken for a new one. */
+  /** Creates a Form Model. Overrides are decoded values and become the
+   * defaults. To replace a live Form, use `reset` or `reinitialize`, so a late
+   * result from before can't pass for a new one. */
   readonly init: <Provided extends Partial<FormValues<Schemas>>>(
     overrides?: ExactFields<Schemas, Provided>,
   ) => FormModel<Schemas, A, E, Context>
@@ -996,9 +995,8 @@ interface FormDefinitionOf<
   readonly changed: (
     ...args: ChangeArgs<Schemas>
   ) => FormMessage<Schemas, A, AI, E, EI>['ChangedField']['Type']
-  /** Creates one Message that changes several fields' inputs. Its update
-   * marks each changed field edited and checks it the way `changed` does, and
-   * returns the Commands of every check together. */
+  /** Creates one Message that changes several fields' inputs. Each changed
+   * field is marked edited and checked as `changed` would check it. */
   readonly changedFields: <Provided extends Partial<FormInputs<Schemas>>>(
     changes: ExactFields<Schemas, Provided>,
   ) => FormMessage<Schemas, A, AI, E, EI>['ChangedFields']['Type']
@@ -1023,14 +1021,14 @@ interface FormDefinitionOf<
   readonly isSubmitPending: (
     model: FormModel<Schemas, A, E, Context>,
   ) => boolean
-  /** Returns the error of a `Failed` submission when no field shows it, and
-   * `None` otherwise. A field shows the error when `toFieldErrors` gives it a
-   * message and its input still matches what was sent. */
+  /** Returns a `Failed` submission's error when no field shows it. A field
+   * shows it when `toFieldErrors` returns a message for that field and the
+   * field's input still matches what was sent. */
   readonly formError: (
     model: FormModel<Schemas, A, E, Context>,
   ) => Option.Option<E>
-  /** Returns the number of submit attempts since init, reset, or reinitialize.
-   * A submit while one is pending isn't counted. */
+  /** Returns the number of submit attempts since the last `init`, `reset`, or
+   * `reinitialize`. A submit while one is pending doesn't count. */
   readonly submitCount: (model: FormModel<Schemas, A, E, Context>) => number
   /** Applies a Form Message. Returns an OutMessage for each submission result
    * it accepts. */
@@ -1059,13 +1057,12 @@ interface FormDefinitionOf<
     FormModel<Schemas, A, E, Context>,
     FormMessage<Schemas, A, AI, E, EI>['Type']
   >
-  /** Checks every field for a new attempt. When every check passes, Form
+  /** Starts an attempt by checking every field. Once every check passes, Form
    * returns the Submit Command, from `submit` itself or from the update that
-   * folds the last async check. If any check fails, the attempt goes back to
-   * Idle. Editing a field while async checks are pending also returns the
-   * attempt to Idle, and the person submits again. A submit while one is
-   * pending does nothing. When the Form has a `submit.context` Schema, pass
-   * the context after the Model. */
+   * folds the last async check. A failed check, or an edit while async checks
+   * are pending, returns the attempt to Idle. A submit while one is pending
+   * does nothing. When the Form has a `submit.context` Schema, pass the
+   * context after the Model. */
   readonly submit: (
     model: FormModel<Schemas, A, E, Context>,
     ...args: SubmitArgs<Context>
@@ -1074,10 +1071,10 @@ interface FormDefinitionOf<
     FormMessage<Schemas, A, AI, E, EI>['Type'],
     SubmitRequirements | FieldRequirements
   >
-  /** Adapts the Form to a parent, through a parent field or a lens.
-   * `foldOutMessage` handles each submission result the Form accepts. A parent
-   * that is itself a Submodel passes its OutMessage type as the third type
-   * argument, and can forward Form OutMessages with `toParentOutMessage`. */
+  /** Connects the Form to a parent, through a parent field or a lens.
+   * `foldOutMessage` handles each submission result. A parent that is a
+   * Submodel passes its OutMessage type as the third type argument, and can
+   * forward Form OutMessages with `toParentOutMessage`. */
   readonly lift: {
     <ParentModel, ParentMessage, ParentOutMessage = never>(
       config: ParentFieldConfig<
@@ -1195,9 +1192,8 @@ type CheckedSubmitEffect<SubmitEffect, A, E> = SubmitEffect &
 /** Defines a Form from its fields and its submission.
  *
  * - `name` names its Commands: `Submit<Name>`, and `Validate<Name><Field>`
- *   for each field. Pick a name that can't run together with another Form's
- *   name and field. Field names that differ only in the case of their first
- *   letter throw.
+ *   for each field. Pick a name whose Commands can't match another Form's.
+ *   Field names that differ only in the case of their first letter throw.
  * - `submit.execute` receives the decoded values and returns an Effect.
  * - Add `data` when it succeeds with a value, `error` when it can fail, and
  *   `context` when it needs a value the Form doesn't hold, such as the id of

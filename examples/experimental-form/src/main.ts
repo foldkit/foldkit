@@ -647,7 +647,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           h.p(
             [],
             [
-              'Two Forms share one email field definition. Try blocked@example.com for the async email check, taken@example.com for a server error on the registration email field, or down@example.com for an error on the whole form. Type 12a as an age to see a typed field keep your text. Turning off email updates also turns off the weekly digest. Reset while saving and the late result is ignored.',
+              'Both Forms share one email field. Try blocked@example.com for the async check, taken@example.com for a server error on the email field, or down@example.com for an error on the whole form. Type 12a as your age to see the field keep your text, turn off email updates to turn off the digest too, or reset during a save to see the late result ignored.',
             ],
           ),
           registrationView(model, h),
