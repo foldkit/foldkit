@@ -1176,8 +1176,6 @@ type ValidatedFieldNameOf<Fields> = {
 }[keyof Fields] &
   string
 
-type CodecWithoutServices = Schema.Codec<unknown, unknown, never, never>
-
 type CheckedSubmitEffect<SubmitEffect, A, E> = SubmitEffect &
   ([Effect.Success<NoInfer<SubmitEffect>>] extends [NoInfer<A>]
     ? unknown
@@ -1208,9 +1206,9 @@ export function define<
     NoInfer<ErrorSchema['Type']>,
     unknown
   >,
-  DataSchema extends CodecWithoutServices = typeof Schema.Void,
-  ErrorSchema extends CodecWithoutServices = typeof Schema.Never,
-  ContextSchema extends CodecWithoutServices = typeof Schema.Void,
+  DataSchema extends Schema.Codec<unknown, unknown> = typeof Schema.Void,
+  ErrorSchema extends Schema.Codec<unknown, unknown> = typeof Schema.Never,
+  ContextSchema extends Schema.Codec<unknown, unknown> = typeof Schema.Void,
   Returned extends FieldErrors<string> = {},
 >(
   config: Readonly<{

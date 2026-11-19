@@ -22,7 +22,6 @@
     "Child",
     "ChildMessageOf",
     "ChildModelOf",
-    "CodecWithoutServices",
     "CommonRenderOptions",
     "CompatibleResources",
     "CompatibleSubscriptions",
