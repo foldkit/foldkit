@@ -566,6 +566,8 @@ const EVENT_NAMES: Record<string, string> = {
   focusout: 'OnFocusLeave',
   mouseenter: 'OnMouseEnter',
   mouseover: 'OnMouseOver',
+  mouseleave: 'OnMouseLeave',
+  mouseout: 'OnMouseOut',
   keydown:
     'OnKeyDown, OnKeyDownPreventDefault, OnKeyDownSelf, or OnKeyDownSelfPreventDefault',
   pointerdown: 'OnPointerDown',
@@ -2312,6 +2314,29 @@ export const hover =
       onNone: () => 'mouseenter',
       onSome: element =>
         element.data?.on?.['mouseenter'] ? 'mouseenter' : 'mouseover',
+    })
+    return invokeAndCapture(simulation, target, eventName, handler => {
+      handler()
+    })
+  }
+
+/** Simulates the pointer leaving the element matching the target, the
+ *  counterpart to `hover`. Dispatches the `mouseleave` handler, falling back
+ *  to `mouseout`. */
+export const unhover =
+  (target: string | Locator) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const scopedTarget = applyScopeToTarget(internal.scope, target)
+    const { maybeElement } = resolveTarget(internal.html, scopedTarget)
+    const eventName = Option.match(maybeElement, {
+      onNone: () => 'mouseleave',
+      onSome: element =>
+        element.data?.on?.['mouseleave'] || !element.data?.on?.['mouseout']
+          ? 'mouseleave'
+          : 'mouseout',
     })
     return invokeAndCapture(simulation, target, eventName, handler => {
       handler()

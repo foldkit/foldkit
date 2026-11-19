@@ -10,8 +10,9 @@ import type * as Update from '../../update/index.js'
 export const Model = Schema.Struct({
   clicks: Schema.Number,
   doubleClicks: Schema.Number,
-  hovered: Schema.Boolean,
-  focused: Schema.Boolean,
+  isHovered: Schema.Boolean,
+  isBadgeHovered: Schema.Boolean,
+  isFocused: Schema.Boolean,
   changed: Schema.String,
 })
 export type Model = typeof Model.Type
@@ -22,6 +23,9 @@ export const Message = defineMessageUnion({
   ClickedButton: {},
   DoubleClickedButton: {},
   HoveredTarget: {},
+  LeftTarget: {},
+  HoveredBadge: {},
+  LeftBadge: {},
   FocusedInput: {},
   BlurredInput: {},
   ChangedSelect: { value: Schema.String },
@@ -34,8 +38,9 @@ export type Message = typeof Message.Type
 export const initialModel: Model = {
   clicks: 0,
   doubleClicks: 0,
-  hovered: false,
-  focused: false,
+  isHovered: false,
+  isBadgeHovered: false,
+  isFocused: false,
   changed: '',
 }
 
@@ -50,13 +55,22 @@ export const update = (model: Model, message: Message) =>
       model: modifyFields(model, { doubleClicks: Number.increment }),
     }),
     HoveredTarget: () => ({
-      model: modifyFields(model, { hovered: () => true }),
+      model: modifyFields(model, { isHovered: () => true }),
+    }),
+    LeftTarget: () => ({
+      model: modifyFields(model, { isHovered: () => false }),
+    }),
+    HoveredBadge: () => ({
+      model: modifyFields(model, { isBadgeHovered: () => true }),
+    }),
+    LeftBadge: () => ({
+      model: modifyFields(model, { isBadgeHovered: () => false }),
     }),
     FocusedInput: () => ({
-      model: modifyFields(model, { focused: () => true }),
+      model: modifyFields(model, { isFocused: () => true }),
     }),
     BlurredInput: () => ({
-      model: modifyFields(model, { focused: () => false }),
+      model: modifyFields(model, { isFocused: () => false }),
     }),
     ChangedSelect: ({ value }) => ({
       model: modifyFields(model, { changed: () => value }),
@@ -74,9 +88,20 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.OnClick(Message.ClickedButton()),
           h.OnDoubleClick(Message.DoubleClickedButton()),
           h.OnMouseEnter(Message.HoveredTarget()),
+          h.OnMouseLeave(Message.LeftTarget()),
           h.AriaLabel('action'),
         ],
-        [`clicks=${model.clicks} dbl=${model.doubleClicks}`],
+        [
+          `clicks=${model.clicks} dbl=${model.doubleClicks} hovered=${model.isHovered}`,
+        ],
+      ),
+      h.span(
+        [
+          h.OnMouseOver(Message.HoveredBadge()),
+          h.OnMouseOut(Message.LeftBadge()),
+          h.AriaLabel('badge'),
+        ],
+        [`badge hovered=${model.isBadgeHovered}`],
       ),
       h.input([
         h.Role('textbox'),

@@ -32,6 +32,7 @@ import {
   text,
   title,
   type,
+  unhover,
   within,
 } from 'foldkit/scene'
 
@@ -78,6 +79,7 @@ contextMenu(role('row', { name: 'Quarterly report' }))
 pointerDown(role('button', { name: 'Toggle' }))
 pointerUp(role('button', { name: 'Toggle' }))
 hover(role('menuitem', { name: 'File' }))
+unhover(role('menuitem', { name: 'File' }))
 focus(label('Email'))
 blur(label('Email'))
 type(label('Email'), 'alice@example.com')
