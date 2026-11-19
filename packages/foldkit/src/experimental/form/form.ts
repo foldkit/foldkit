@@ -577,18 +577,13 @@ function FormMessage<
   error: Schema.Codec<E, EI>,
 ) {
   const Changes = FieldChanges(fields)
+  const AnyFieldChange = Schema.Union(
+    Array.map(Struct.keys(Changes), name => Changes[name]),
+  )
   const fieldNames = Struct.keys(fields)
   return defineMessageUnion({
-    ChangedField: {
-      change: Schema.Union(
-        Array.map(Struct.keys(Changes), name => Changes[name]),
-      ),
-    },
-    ChangedFields: {
-      changes: Schema.Array(
-        Schema.Union(Array.map(Struct.keys(Changes), name => Changes[name])),
-      ),
-    },
+    ChangedField: { change: AnyFieldChange },
+    ChangedFields: { changes: Schema.Array(AnyFieldChange) },
     BlurredField: { name: Schema.Literals(fieldNames) },
     CompletedSubmit: {
       generation: Schema.Number,

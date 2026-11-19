@@ -217,7 +217,7 @@ export const update = (model: Model, message: Message) =>
     GotProfileMessage: ({ message }) => profile.fold(model, message),
     SubmittedRegistrationForm: () => registration.submit()(model),
     ClickedProfileTopic: ({ topic }) => {
-      const topics = profileForm.fieldView(model.profile, 'topics').input
+      const { topics } = profileForm.inputs(model.profile)
       const nextTopics = topics.includes(topic)
         ? Array.filter(topics, selectedTopic => selectedTopic !== topic)
         : Array.append(topics, topic)
@@ -225,10 +225,7 @@ export const update = (model: Model, message: Message) =>
       return profile.fold(model, profileForm.changed('topics', nextTopics))
     },
     ClickedEmailUpdates: () => {
-      const isSubscribed = profileForm.fieldView(
-        model.profile,
-        'isSubscribed',
-      ).input
+      const { isSubscribed } = profileForm.inputs(model.profile)
 
       return profile.fold(
         model,
@@ -241,10 +238,7 @@ export const update = (model: Model, message: Message) =>
       )
     },
     ClickedWeeklyDigest: () => {
-      const isDigestEnabled = profileForm.fieldView(
-        model.profile,
-        'isDigestEnabled',
-      ).input
+      const { isDigestEnabled } = profileForm.inputs(model.profile)
 
       return profile.fold(
         model,
@@ -264,22 +258,39 @@ export const update = (model: Model, message: Message) =>
 
 // VIEW
 
-type TextFieldArgs = Readonly<{
+const fieldErrorsView = (
+  h: HtmlBuilder<Message>,
+  id: string,
+  errors: ReadonlyArray<string>,
+): Html =>
+  h.div(
+    [h.Id(id)],
+    Array.map(errors, error => h.p([h.Class('text-sm text-red-700')], [error])),
+  )
+
+type TextSchema = Form.FieldSchema & Readonly<{ Encoded: string }>
+
+type TextInputArgs<Name extends string, FormModel, FormMessage> = Readonly<{
+  form: Form.Fields<Record<Name, TextSchema>, FormModel, FormMessage>
+  formModel: FormModel
+  name: Name
+  toParentMessage: (message: FormMessage) => Message
   id: string
   label: string
-  fieldView: Readonly<{
-    input: string
-    errors: ReadonlyArray<string>
-    meta: Readonly<{ isEdited: boolean }>
-  }>
-  onInput: (input: string) => Message
-  onBlur: Message
 }>
 
-const textInputView = (
+const textInputView = <Name extends string, FormModel, FormMessage>(
   h: HtmlBuilder<Message>,
-  { id, label, fieldView, onInput, onBlur }: TextFieldArgs,
+  {
+    form,
+    formModel,
+    name,
+    toParentMessage,
+    id,
+    label,
+  }: TextInputArgs<Name, FormModel, FormMessage>,
 ): Html => {
+  const fieldView = form.fieldView(formModel, name)
   const errorsId = `${id}-errors`
   const isInvalid = Array.isReadonlyArrayNonEmpty(fieldView.errors)
 
@@ -298,15 +309,10 @@ const textInputView = (
             ? 'w-full rounded border border-red-600 px-3 py-2'
             : 'w-full rounded border border-slate-300 px-3 py-2',
         ),
-        h.OnInput(onInput),
-        h.OnBlur(onBlur),
+        h.OnInput(input => toParentMessage(form.changed(name, input))),
+        h.OnBlur(toParentMessage(form.blurred(name))),
       ]),
-      h.div(
-        [h.Id(errorsId)],
-        Array.map(fieldView.errors, error =>
-          h.p([h.Class('text-sm text-red-700')], [error]),
-        ),
-      ),
+      fieldErrorsView(h, errorsId, fieldView.errors),
       h.p(
         [h.Class('text-xs text-slate-500')],
         [fieldView.meta.isEdited ? 'Edited' : 'Not edited yet'],
@@ -373,20 +379,19 @@ const mainTopicView = (model: Model, h: HtmlBuilder<Message>): Html => {
     model.registration,
     'mainTopic',
   )
+  const id = 'registration-main-topic'
+  const errorsId = `${id}-errors`
   const isInvalid = Array.isReadonlyArrayNonEmpty(mainTopicFieldView.errors)
 
   return h.div(
     [h.Class('space-y-1')],
     [
-      h.label(
-        [h.For('registration-main-topic'), h.Class('block font-medium')],
-        ['Main topic'],
-      ),
+      h.label([h.For(id), h.Class('block font-medium')], ['Main topic']),
       h.select(
         [
-          h.Id('registration-main-topic'),
+          h.Id(id),
           h.AriaInvalid(isInvalid),
-          h.AriaDescribedBy('registration-main-topic-errors'),
+          h.AriaDescribedBy(errorsId),
           h.Class('w-full rounded border border-slate-300 px-3 py-2'),
           h.OnChange(value =>
             toRegistrationMessage(
@@ -407,12 +412,7 @@ const mainTopicView = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
         ],
       ),
-      h.div(
-        [h.Id('registration-main-topic-errors')],
-        Array.map(mainTopicFieldView.errors, error =>
-          h.p([h.Class('text-sm text-red-700')], [error]),
-        ),
-      ),
+      fieldErrorsView(h, errorsId, mainTopicFieldView.errors),
     ],
   )
 }
@@ -420,6 +420,11 @@ const mainTopicView = (model: Model, h: HtmlBuilder<Message>): Html => {
 const registrationView = (model: Model, h: HtmlBuilder<Message>): Html => {
   const submission = registrationForm.submission(model.registration)
   const maybeFormError = registrationForm.formError(model.registration)
+  const registrationTextInputArgs = {
+    form: registrationForm,
+    formModel: model.registration,
+    toParentMessage: toRegistrationMessage,
+  }
 
   return h.section(
     [
@@ -432,33 +437,22 @@ const registrationView = (model: Model, h: HtmlBuilder<Message>): Html => {
         [h.OnSubmit(Message.SubmittedRegistrationForm()), h.Class('space-y-4')],
         [
           textInputView(h, {
+            ...registrationTextInputArgs,
+            name: 'email',
             id: 'registration-email',
             label: 'Registration email',
-            fieldView: registrationForm.fieldView(model.registration, 'email'),
-            onInput: input =>
-              toRegistrationMessage(registrationForm.changed('email', input)),
-            onBlur: toRegistrationMessage(registrationForm.blurred('email')),
           }),
           textInputView(h, {
+            ...registrationTextInputArgs,
+            name: 'fullName',
             id: 'registration-name',
             label: 'Your name',
-            fieldView: registrationForm.fieldView(
-              model.registration,
-              'fullName',
-            ),
-            onInput: input =>
-              toRegistrationMessage(
-                registrationForm.changed('fullName', input),
-              ),
-            onBlur: toRegistrationMessage(registrationForm.blurred('fullName')),
           }),
           textInputView(h, {
+            ...registrationTextInputArgs,
+            name: 'age',
             id: 'registration-age',
             label: 'Your age',
-            fieldView: registrationForm.fieldView(model.registration, 'age'),
-            onInput: input =>
-              toRegistrationMessage(registrationForm.changed('age', input)),
-            onBlur: toRegistrationMessage(registrationForm.blurred('age')),
           }),
           mainTopicView(model, h),
           h.button(
@@ -542,9 +536,14 @@ const checkboxView = (
   )
 
 const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const topicsFieldView = profileForm.fieldView(model.profile, 'topics')
+  const profileInputs = profileForm.inputs(model.profile)
   const submission = profileForm.submission(model.profile)
   const maybeFormError = profileForm.formError(model.profile)
+  const profileTextInputArgs = {
+    form: profileForm,
+    formModel: model.profile,
+    toParentMessage: toProfileMessage,
+  }
 
   return h.section(
     [
@@ -557,20 +556,16 @@ const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
         [h.OnSubmit(Message.SubmittedProfileForm()), h.Class('space-y-4')],
         [
           textInputView(h, {
+            ...profileTextInputArgs,
+            name: 'email',
             id: 'profile-email',
             label: 'Profile email',
-            fieldView: profileForm.fieldView(model.profile, 'email'),
-            onInput: input =>
-              toProfileMessage(profileForm.changed('email', input)),
-            onBlur: toProfileMessage(profileForm.blurred('email')),
           }),
           textInputView(h, {
+            ...profileTextInputArgs,
+            name: 'displayName',
             id: 'profile-name',
             label: 'Display name',
-            fieldView: profileForm.fieldView(model.profile, 'displayName'),
-            onInput: input =>
-              toProfileMessage(profileForm.changed('displayName', input)),
-            onBlur: toProfileMessage(profileForm.blurred('displayName')),
           }),
           h.fieldset(
             [h.Class('space-y-2')],
@@ -580,7 +575,7 @@ const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
                 topicCheckboxView(
                   h,
                   topic,
-                  topicsFieldView.input.includes(topic),
+                  profileInputs.topics.includes(topic),
                 ),
               ),
             ],
@@ -593,14 +588,14 @@ const profileView = (model: Model, h: HtmlBuilder<Message>): Html => {
                 h,
                 'profile-email-updates',
                 'Email me updates',
-                profileForm.fieldView(model.profile, 'isSubscribed').input,
+                profileInputs.isSubscribed,
                 Message.ClickedEmailUpdates(),
               ),
               checkboxView(
                 h,
                 'profile-weekly-digest',
                 'Weekly digest',
-                profileForm.fieldView(model.profile, 'isDigestEnabled').input,
+                profileInputs.isDigestEnabled,
                 Message.ClickedWeeklyDigest(),
               ),
             ],
