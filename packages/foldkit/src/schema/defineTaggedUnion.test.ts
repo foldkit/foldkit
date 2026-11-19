@@ -265,12 +265,35 @@ describe('defineTaggedUnion', () => {
       Submission.Failed,
     ])
     expectTypeOf(Submission.members).toEqualTypeOf<
-      ReadonlyArray<
-        | typeof Submission.NotSubmitted
-        | typeof Submission.Submitting
-        | typeof Submission.Failed
-      >
+      readonly [
+        (
+          | typeof Submission.NotSubmitted
+          | typeof Submission.Submitting
+          | typeof Submission.Failed
+        ),
+        ...Array<
+          | typeof Submission.NotSubmitted
+          | typeof Submission.Submitting
+          | typeof Submission.Failed
+        >,
+      ]
     >()
+  })
+
+  it('exposes members as a non-empty list that needs no empty-list branch', () => {
+    const [firstMember] = Submission.members
+
+    expectTypeOf(firstMember).not.toBeUndefined()
+    expect(firstMember).toBe(Submission.NotSubmitted)
+  })
+
+  it('rejects a union with no variants at run time', () => {
+    expect(() => Reflect.apply(defineTaggedUnion, undefined, [{}])).toThrow(
+      'A union must declare at least one variant',
+    )
+    expect(() => Reflect.apply(defineRouteUnion, undefined, [{}])).toThrow(
+      'A union must declare at least one variant',
+    )
   })
 
   it('narrows a value with a per-variant guard', () => {
@@ -392,6 +415,10 @@ describe('defineRouteUnion', () => {
   })
 
   if (false) {
+    // @ts-expect-error A union declares at least one variant
+    defineTaggedUnion({})
+    // @ts-expect-error A Route union declares at least one variant
+    defineRouteUnion({})
     // @ts-expect-error members is reserved by domain unions
     defineTaggedUnion({ members: {} })
     // @ts-expect-error members is reserved by Route unions
