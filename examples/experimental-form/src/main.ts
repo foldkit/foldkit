@@ -14,7 +14,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { emailField } from './fields'
+import { sharedFields } from './fields'
 
 // SUBMISSION
 
@@ -80,7 +80,7 @@ const AgeInput = Schema.Trim.check(
 export const registrationForm = Form.define({
   name: 'Registration',
   fields: {
-    email: emailField,
+    ...sharedFields,
     fullName: Form.field({
       schema: Schema.String,
       initial: '',
@@ -114,7 +114,7 @@ export const registrationForm = Form.define({
 export const profileForm = Form.define({
   name: 'Profile',
   fields: {
-    email: emailField,
+    ...sharedFields,
     topics: Form.field({ schema: Schema.Array(Topic), initial: [] }),
     isSubscribed: Form.field({ schema: Schema.Boolean, initial: false }),
     isDigestEnabled: Form.field({ schema: Schema.Boolean, initial: false }),
