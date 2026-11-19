@@ -1,8 +1,11 @@
-import { Array, Match } from 'effect'
+import { Array, Match, Option } from 'effect'
 
+import { requestImage } from './imageCache.js'
 import type {
   Circle,
   Group,
+  Image,
+  ImageRendering,
   LineCap,
   LineJoin,
   Path,
@@ -43,6 +46,11 @@ const textBaselineForCanvas: Readonly<
   Alphabetic: 'alphabetic',
   Hanging: 'hanging',
   Ideographic: 'ideographic',
+}
+
+const imageSmoothingForCanvas: Readonly<Record<ImageRendering, boolean>> = {
+  Smooth: true,
+  Pixelated: false,
 }
 
 const paintRect =
@@ -142,8 +150,43 @@ const paintText =
     }
   }
 
+const paintImage =
+  (ctx: CanvasRenderingContext2D, onImageLoad: () => void) =>
+  (image: Image): void => {
+    const maybeElement = requestImage(image.src, onImageLoad)
+    if (Option.isNone(maybeElement)) {
+      return
+    }
+
+    if (image.rendering !== undefined) {
+      ctx.imageSmoothingEnabled = imageSmoothingForCanvas[image.rendering]
+    }
+
+    if (image.crop === undefined) {
+      ctx.drawImage(
+        maybeElement.value,
+        image.x,
+        image.y,
+        image.width,
+        image.height,
+      )
+    } else {
+      ctx.drawImage(
+        maybeElement.value,
+        image.crop.x,
+        image.crop.y,
+        image.crop.width,
+        image.crop.height,
+        image.x,
+        image.y,
+        image.width,
+        image.height,
+      )
+    }
+  }
+
 const paintGroup =
-  (ctx: CanvasRenderingContext2D) =>
+  (ctx: CanvasRenderingContext2D, onImageLoad: () => void) =>
   (group: Group): void => {
     if (group.opacity !== undefined) {
       ctx.globalAlpha *= group.opacity
@@ -157,7 +200,7 @@ const paintGroup =
     if (group.scale !== undefined) {
       ctx.scale(group.scale.x, group.scale.y)
     }
-    Array.forEach(group.shapes, paintShape(ctx))
+    Array.forEach(group.shapes, paintShape(ctx, onImageLoad))
   }
 
 /**
@@ -165,9 +208,11 @@ const paintGroup =
  * `ctx.save` / `ctx.restore` so per-shape state mutations (fillStyle,
  * lineWidth, font, transforms applied by `Group`, etc.) cannot leak to
  * sibling shapes. Recurses into `Group` children inside the saved scope.
+ * An `Image` whose source has not loaded draws nothing and calls
+ * `onImageLoad` once the source loads.
  */
 export const paintShape =
-  (ctx: CanvasRenderingContext2D) =>
+  (ctx: CanvasRenderingContext2D, onImageLoad: () => void) =>
   (shape: Shape): void => {
     ctx.save()
     Match.value(shape).pipe(
@@ -176,7 +221,8 @@ export const paintShape =
         Circle: paintCircle(ctx),
         Path: paintPath(ctx),
         Text: paintText(ctx),
-        Group: paintGroup(ctx),
+        Image: paintImage(ctx, onImageLoad),
+        Group: paintGroup(ctx, onImageLoad),
       }),
     )
     ctx.restore()
@@ -184,14 +230,16 @@ export const paintShape =
 
 /**
  * Clear the canvas and paint every shape in `shapes` against the given
- * 2D context. Called by `Canvas.view` on insert and on every postpatch.
+ * 2D context. Called by `Canvas.view` on insert, on every postpatch, and
+ * through `onImageLoad` when an `Image` source the scene uses finishes loading.
  */
 export const paintScene = (
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   shapes: ReadonlyArray<Shape>,
+  onImageLoad: () => void,
 ): void => {
   ctx.clearRect(0, 0, width, height)
-  Array.forEach(shapes, paintShape(ctx))
+  Array.forEach(shapes, paintShape(ctx, onImageLoad))
 }

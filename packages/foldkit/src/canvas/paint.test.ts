@@ -1,4 +1,5 @@
-import { expect, vi } from 'vitest'
+import { Function } from 'effect'
+import { afterEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -7,12 +8,14 @@ import {
   Circle,
   Close,
   Group,
+  Image,
   LineTo,
   MoveTo,
   Path,
   Rect,
   Text,
 } from './shape.js'
+import type { Shape } from './shape.js'
 
 const asCallOrder = (order: number | undefined): number => {
   if (order === undefined) {
@@ -32,6 +35,7 @@ type MockContext = Readonly<{
   textBaseline: () => CanvasTextBaseline
   lineCap: () => CanvasLineCap
   lineJoin: () => CanvasLineJoin
+  imageSmoothingEnabled: () => boolean
   spies: {
     clearRect: ReturnType<typeof vi.fn>
     fillRect: ReturnType<typeof vi.fn>
@@ -52,6 +56,7 @@ type MockContext = Readonly<{
     translate: ReturnType<typeof vi.fn>
     rotate: ReturnType<typeof vi.fn>
     scale: ReturnType<typeof vi.fn>
+    drawImage: ReturnType<typeof vi.fn>
   }
 }>
 
@@ -66,6 +71,7 @@ const makeMockContext = (): MockContext => {
     textBaseline: CanvasTextBaseline
     lineCap: CanvasLineCap
     lineJoin: CanvasLineJoin
+    imageSmoothingEnabled: boolean
   } = {
     fillStyle: 'black',
     strokeStyle: 'black',
@@ -76,6 +82,7 @@ const makeMockContext = (): MockContext => {
     textBaseline: 'alphabetic',
     lineCap: 'butt',
     lineJoin: 'miter',
+    imageSmoothingEnabled: true,
   }
 
   const spies = {
@@ -98,6 +105,7 @@ const makeMockContext = (): MockContext => {
     translate: vi.fn(),
     rotate: vi.fn(),
     scale: vi.fn(),
+    drawImage: vi.fn(),
   }
 
   const ctx = {
@@ -155,6 +163,12 @@ const makeMockContext = (): MockContext => {
     set lineJoin(value: CanvasLineJoin) {
       state.lineJoin = value
     },
+    get imageSmoothingEnabled() {
+      return state.imageSmoothingEnabled
+    },
+    set imageSmoothingEnabled(value: boolean) {
+      state.imageSmoothingEnabled = value
+    },
     ...spies,
   }
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -171,20 +185,28 @@ const makeMockContext = (): MockContext => {
     textBaseline: () => state.textBaseline,
     lineCap: () => state.lineCap,
     lineJoin: () => state.lineJoin,
+    imageSmoothingEnabled: () => state.imageSmoothingEnabled,
     spies,
   }
 }
 
+const paint = (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  shapes: ReadonlyArray<Shape>,
+): void => paintScene(ctx, width, height, shapes, Function.constVoid)
+
 describe('paintScene', () => {
   it('clears the canvas before painting', () => {
     const mock = makeMockContext()
-    paintScene(mock.ctx, 200, 100, [])
+    paint(mock.ctx, 200, 100, [])
     expect(mock.spies.clearRect).toHaveBeenCalledWith(0, 0, 200, 100)
   })
 
   it('fills a Rect with the given color', () => {
     const mock = makeMockContext()
-    paintScene(mock.ctx, 100, 100, [
+    paint(mock.ctx, 100, 100, [
       Rect({ x: 10, y: 20, width: 30, height: 40, fill: 'red' }),
     ])
     expect(mock.spies.fillRect).toHaveBeenCalledWith(10, 20, 30, 40)
@@ -193,7 +215,7 @@ describe('paintScene', () => {
 
   it('strokes a Rect with the given color and lineWidth', () => {
     const mock = makeMockContext()
-    paintScene(mock.ctx, 100, 100, [
+    paint(mock.ctx, 100, 100, [
       Rect({
         x: 0,
         y: 0,
@@ -210,16 +232,14 @@ describe('paintScene', () => {
 
   it('skips draw calls for a Rect with no fill or stroke', () => {
     const mock = makeMockContext()
-    paintScene(mock.ctx, 100, 100, [
-      Rect({ x: 0, y: 0, width: 10, height: 10 }),
-    ])
+    paint(mock.ctx, 100, 100, [Rect({ x: 0, y: 0, width: 10, height: 10 })])
     expect(mock.spies.fillRect).not.toHaveBeenCalled()
     expect(mock.spies.strokeRect).not.toHaveBeenCalled()
   })
 
   it('paints a Circle as an arc with fill', () => {
     const mock = makeMockContext()
-    paintScene(mock.ctx, 100, 100, [
+    paint(mock.ctx, 100, 100, [
       Circle({ x: 50, y: 50, radius: 25, fill: 'green' }),
     ])
     expect(mock.spies.beginPath).toHaveBeenCalled()
@@ -230,7 +250,7 @@ describe('paintScene', () => {
 
   it('walks Path commands in order', () => {
     const mock = makeMockContext()
-    paintScene(mock.ctx, 100, 100, [
+    paint(mock.ctx, 100, 100, [
       Path({
         instructions: [
           MoveTo({ x: 0, y: 0 }),
@@ -251,7 +271,7 @@ describe('paintScene', () => {
 
   it('translates Path lineCap and lineJoin to canvas-API spelling', () => {
     const mock = makeMockContext()
-    paintScene(mock.ctx, 100, 100, [
+    paint(mock.ctx, 100, 100, [
       Path({
         instructions: [MoveTo({ x: 0, y: 0 }), LineTo({ x: 10, y: 0 })],
         stroke: 'black',
@@ -265,7 +285,7 @@ describe('paintScene', () => {
 
   it('paints Text with content, font, and alignment', () => {
     const mock = makeMockContext()
-    paintScene(mock.ctx, 100, 100, [
+    paint(mock.ctx, 100, 100, [
       Text({
         x: 10,
         y: 30,
@@ -284,7 +304,7 @@ describe('paintScene', () => {
 
   it('Group applies translate, rotate, and scale within save/restore', () => {
     const mock = makeMockContext()
-    paintScene(mock.ctx, 100, 100, [
+    paint(mock.ctx, 100, 100, [
       Group({
         translate: { x: 50, y: 50 },
         rotate: Math.PI / 2,
@@ -302,7 +322,7 @@ describe('paintScene', () => {
 
   it('Group multiplies opacity into globalAlpha', () => {
     const mock = makeMockContext()
-    paintScene(mock.ctx, 100, 100, [
+    paint(mock.ctx, 100, 100, [
       Group({
         opacity: 0.5,
         shapes: [Rect({ x: 0, y: 0, width: 1, height: 1, fill: 'red' })],
@@ -314,7 +334,7 @@ describe('paintScene', () => {
 
   it('Group recurses into nested children', () => {
     const mock = makeMockContext()
-    paintScene(mock.ctx, 100, 100, [
+    paint(mock.ctx, 100, 100, [
       Group({
         translate: { x: 10, y: 10 },
         shapes: [
@@ -334,7 +354,7 @@ describe('paintScene', () => {
 
   it('brackets every top-level shape in save/restore so per-shape state cannot leak to siblings', () => {
     const mock = makeMockContext()
-    paintScene(mock.ctx, 100, 100, [
+    paint(mock.ctx, 100, 100, [
       Rect({
         x: 0,
         y: 0,
@@ -364,5 +384,263 @@ describe('paintScene', () => {
     expect(firstRestore).toBeLessThan(secondSave)
     expect(secondSave).toBeLessThan(firstFillRect)
     expect(firstFillRect).toBeLessThan(secondRestore)
+  })
+})
+
+const ONE_PIXEL_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+
+const onePixelPng = (name: string): string =>
+  `data:image/png;name=${name};base64,${ONE_PIXEL_PNG_BASE64}`
+
+const captureCreatedImages = (): ReadonlyArray<HTMLImageElement> => {
+  const images: Array<HTMLImageElement> = []
+  const createElement = document.createElement.bind(document)
+  vi.spyOn(document, 'createElement').mockImplementation(
+    (tagName: string, options?: ElementCreationOptions) => {
+      const element = createElement(tagName, options)
+      if (element instanceof HTMLImageElement) {
+        images.push(element)
+      }
+      return element
+    },
+  )
+  return images
+}
+
+const onlyImage = (
+  images: ReadonlyArray<HTMLImageElement>,
+): HTMLImageElement => {
+  expect(images).toHaveLength(1)
+  const [image] = images
+  if (image === undefined) {
+    throw new Error('expected one created image')
+  }
+  return image
+}
+
+describe('paintScene with Image shapes', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('draws nothing until the source loads, then reports the load once', () => {
+    const images = captureCreatedImages()
+    const mock = makeMockContext()
+    const onImageLoad = vi.fn()
+    const sprite = Image({
+      src: 'https://example.test/not-yet-loaded.png',
+      x: 10,
+      y: 20,
+      width: 32,
+      height: 48,
+    })
+
+    paintScene(mock.ctx, 100, 100, [sprite, sprite], onImageLoad)
+    expect(mock.spies.drawImage).not.toHaveBeenCalled()
+
+    const image = onlyImage(images)
+    expect(image.src).toBe('https://example.test/not-yet-loaded.png')
+
+    image.dispatchEvent(new Event('load'))
+    expect(onImageLoad).toHaveBeenCalledTimes(1)
+
+    paintScene(mock.ctx, 100, 100, [sprite], onImageLoad)
+    expect(mock.spies.drawImage).toHaveBeenCalledExactlyOnceWith(
+      image,
+      10,
+      20,
+      32,
+      48,
+    )
+  })
+
+  it('draws a cropped region of the source for a sprite sheet frame', () => {
+    const images = captureCreatedImages()
+    const mock = makeMockContext()
+    const frame = Image({
+      src: 'https://example.test/sheet.png',
+      x: 40,
+      y: 50,
+      width: 64,
+      height: 64,
+      crop: { x: 16, y: 0, width: 16, height: 16 },
+    })
+
+    paint(mock.ctx, 100, 100, [frame])
+    const image = onlyImage(images)
+    image.dispatchEvent(new Event('load'))
+    paint(mock.ctx, 100, 100, [frame])
+
+    expect(mock.spies.drawImage).toHaveBeenCalledExactlyOnceWith(
+      image,
+      16,
+      0,
+      16,
+      16,
+      40,
+      50,
+      64,
+      64,
+    )
+  })
+
+  it('sets image smoothing from rendering for that shape only', () => {
+    const mock = makeMockContext()
+    const savedSmoothing: Array<boolean> = []
+    mock.spies.save.mockImplementation(() => {
+      savedSmoothing.push(mock.imageSmoothingEnabled())
+    })
+    mock.spies.restore.mockImplementation(() => {
+      mock.ctx.imageSmoothingEnabled = savedSmoothing.pop() ?? true
+    })
+    const smoothingAtDraw: Array<boolean> = []
+    mock.spies.drawImage.mockImplementation(() => {
+      smoothingAtDraw.push(mock.imageSmoothingEnabled())
+    })
+    const sprite = {
+      src: onePixelPng('smoothing'),
+      x: 0,
+      y: 0,
+      width: 8,
+      height: 8,
+    }
+
+    paint(mock.ctx, 100, 100, [
+      Image({ ...sprite, rendering: 'Pixelated' }),
+      Image(sprite),
+      Image({ ...sprite, rendering: 'Smooth' }),
+    ])
+    mock.ctx.imageSmoothingEnabled = false
+    paint(mock.ctx, 100, 100, [Image(sprite)])
+
+    expect(smoothingAtDraw).toEqual([false, true, true, false])
+  })
+
+  it('draws an image inside a Group with the Group transform and opacity applied', () => {
+    const mock = makeMockContext()
+    const alphaAtDraw: Array<number> = []
+    mock.spies.drawImage.mockImplementation(() => {
+      alphaAtDraw.push(mock.globalAlpha())
+    })
+
+    paint(mock.ctx, 100, 100, [
+      Group({
+        translate: { x: 30, y: 40 },
+        opacity: 0.5,
+        shapes: [
+          Image({
+            src: onePixelPng('group'),
+            x: 0,
+            y: 0,
+            width: 4,
+            height: 4,
+          }),
+        ],
+      }),
+    ])
+
+    expect(mock.spies.translate).toHaveBeenCalledWith(30, 40)
+    expect(alphaAtDraw).toEqual([0.5])
+    const translateOrder = asCallOrder(
+      mock.spies.translate.mock.invocationCallOrder[0],
+    )
+    const drawOrder = asCallOrder(
+      mock.spies.drawImage.mock.invocationCallOrder[0],
+    )
+    expect(translateOrder).toBeLessThan(drawOrder)
+  })
+
+  it('loads each src once and notifies every waiting canvas when it loads', () => {
+    const images = captureCreatedImages()
+    const firstCanvas = makeMockContext()
+    const secondCanvas = makeMockContext()
+    const onFirstCanvasImageLoad = vi.fn()
+    const onSecondCanvasImageLoad = vi.fn()
+    const sprite = Image({
+      src: 'https://example.test/shared.png',
+      x: 0,
+      y: 0,
+      width: 16,
+      height: 16,
+    })
+
+    paintScene(firstCanvas.ctx, 100, 100, [sprite], onFirstCanvasImageLoad)
+    paintScene(firstCanvas.ctx, 100, 100, [sprite], onFirstCanvasImageLoad)
+    paintScene(secondCanvas.ctx, 100, 100, [sprite], onSecondCanvasImageLoad)
+    const image = onlyImage(images)
+
+    image.dispatchEvent(new Event('load'))
+    expect(onFirstCanvasImageLoad).toHaveBeenCalledTimes(1)
+    expect(onSecondCanvasImageLoad).toHaveBeenCalledTimes(1)
+
+    paint(firstCanvas.ctx, 100, 100, [sprite])
+    paint(secondCanvas.ctx, 100, 100, [sprite])
+    expect(images).toHaveLength(1)
+    expect(firstCanvas.spies.drawImage).toHaveBeenCalledWith(
+      image,
+      0,
+      0,
+      16,
+      16,
+    )
+    expect(secondCanvas.spies.drawImage).toHaveBeenCalledWith(
+      image,
+      0,
+      0,
+      16,
+      16,
+    )
+  })
+
+  it('draws on the first paint when the source loads while it is requested', () => {
+    const mock = makeMockContext()
+    const onImageLoad = vi.fn()
+
+    paintScene(
+      mock.ctx,
+      100,
+      100,
+      [
+        Image({
+          src: onePixelPng('first-paint'),
+          x: 1,
+          y: 2,
+          width: 3,
+          height: 4,
+        }),
+      ],
+      onImageLoad,
+    )
+
+    expect(mock.spies.drawImage).toHaveBeenCalledWith(
+      expect.any(HTMLImageElement),
+      1,
+      2,
+      3,
+      4,
+    )
+    expect(onImageLoad).not.toHaveBeenCalled()
+  })
+
+  it('draws nothing for a source that fails to load and does not retry it', () => {
+    const images = captureCreatedImages()
+    const mock = makeMockContext()
+    const onImageLoad = vi.fn()
+    const sprite = Image({
+      src: 'https://example.test/missing.png',
+      x: 0,
+      y: 0,
+      width: 16,
+      height: 16,
+    })
+
+    paintScene(mock.ctx, 100, 100, [sprite], onImageLoad)
+    onlyImage(images).dispatchEvent(new Event('error'))
+    paintScene(mock.ctx, 100, 100, [sprite], onImageLoad)
+
+    expect(images).toHaveLength(1)
+    expect(onImageLoad).not.toHaveBeenCalled()
+    expect(mock.spies.drawImage).not.toHaveBeenCalled()
   })
 })

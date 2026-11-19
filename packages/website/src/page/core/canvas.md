@@ -14,9 +14,25 @@ Use Canvas for interfaces whose natural representation is a 2D scene. For exampl
 
 ## Shapes
 
-Canvas has five `Shape` variants: `Rect`, `Circle`, `Path`, `Text`, and `Group`. Each is a Schema-backed constructor.
+Canvas has six `Shape` variants: `Rect`, `Circle`, `Path`, `Text`, `Image`, and `Group`. Each is a Schema-backed constructor.
 
 `Group` applies translation, rotation, scale, or opacity to child shapes. Groups can nest, so transforms compose into a scene graph. `Path` draws a sequence of `MoveTo`, `LineTo`, `QuadTo`, `BezierTo`, and `Close` instructions. Fill, stroke, and line styles stay on the shape that uses them.
+
+## Images
+
+`Image` draws a bitmap, such as a sprite, an icon, a map tile, or a photo, with one `drawImage` call. The shape holds the image's URL as a string, not a loaded image element, so the scene stays plain data like every other shape, and a Model that stores a sprite's `src` stays serializable.
+
+`src` takes anything an `<img>` element accepts: a path, an asset URL imported through Vite, or a data URL. `x`, `y`, `width`, and `height` set the box the image fills, and Foldkit stretches the source to fit it. `crop` selects a region of the source, measured in the source's own pixels, so one sprite sheet can hold every frame of an animation. Inside a `Group`, an `Image` takes the Group's translation, rotation, scale, and opacity like any other shape.
+
+`rendering` controls how the source is sampled when it is drawn at a different size. The canvas default, `'Smooth'`, blends neighboring pixels, which blurs pixel art scaled up. Set `rendering: 'Pixelated'` to keep hard pixel edges. `rendering` applies only to drawing the image onto the canvas. If CSS also scales the `<canvas>` element, set `image-rendering: pixelated` on it too.
+
+::Snippet{name="canvasImage" label="Sprite sheet frame drawn as an Image"}
+
+### Image Loading
+
+Foldkit loads each `src` the first time a scene uses it. Until the image has loaded, the `Image` shape draws nothing. When it finishes loading, every canvas that drew the shape repaints its latest scene, so the image appears without a Message or a Model change. An image that fails to load draws nothing, and Foldkit does not request it again.
+
+Decoded images are shared by every canvas and kept for the life of the page, so a sprite that leaves the scene draws immediately when it comes back. Keep the set of `src` values fixed, such as your app's sprite sheets. A view that builds a new data URL on every frame keeps every one of those images in memory.
 
 ## Animation and Input
 
