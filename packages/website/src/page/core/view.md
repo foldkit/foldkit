@@ -130,6 +130,14 @@ Event attributes return Messages instead of mutating state. Pass a Message direc
 
 `h.OnClick` takes a Message. `h.OnInput` takes a function because the input value becomes part of the Message. Both remain declarative: view reports what happened, and update decides what follows.
 
+### Caret Position
+
+`h.OnInput` passes a second argument, the caret position after the edit, as an `Option<InputSelection>`. Its `selectionStart` and `selectionEnd` are offsets into the value, and they are equal when no text is selected. `InputSelection` is a Schema exported from `foldkit/html`, so a Message can carry it. Read the selection when the meaning of an edit depends on where the caret is. For example: a mention picker looks for the `@word` that ends at the caret, which may sit in the middle of a note.
+
+The selection is `Some` for a `textarea` and for `text`, `search`, `url`, `tel`, and `password` inputs. It is `None` for other input types, such as `email` and `number`, and for a `Contenteditable` host. Moving the caret with the arrow keys or a click dispatches nothing, so the Model holds the caret position from the last edit, not where the caret is now.
+
+::Snippet{name="eventHandlingCaret" label="Mention query at the caret"}
+
 ### Default Actions and Propagation
 
 Clicks allow the browser default and bubble to ancestors unless you say otherwise. Pass a second argument when the view owns either part of that browser contract. For example, an expand button inside a clickable tree row can use `{ defaultAction: 'Prevent', propagation: 'Stop' }`. The button dispatches its expansion Message without also dispatching the row's selection Message. The controls are independent, so use either one or both.

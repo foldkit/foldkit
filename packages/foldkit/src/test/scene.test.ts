@@ -107,6 +107,11 @@ import {
   OutMessage as LogoutOutMessage,
 } from './apps/logoutButton.js'
 import {
+  initialModel as mentionNoteInitialModel,
+  update as mentionNoteUpdate,
+  view as mentionNoteView,
+} from './apps/mentionNote.js'
+import {
   FocusButton,
   MeasurePanel,
   Message as MountPanelMessage,
@@ -2698,6 +2703,67 @@ describe('scene with extra interactions', () => {
       Scene.given(interactionsInitialModel),
       pipe(Scene.label('fruit'), Scene.change('apple')),
     )
+  })
+
+  test('type places the caret at the end of the typed value', () => {
+    Scene.scene(
+      { update: mentionNoteUpdate, view: mentionNoteView },
+      Scene.given(mentionNoteInitialModel),
+      Scene.type(Scene.label('Note'), 'Ask @cen'),
+      Scene.expect(Scene.label('Mention query')).toHaveText('cen'),
+    )
+  })
+
+  test('type passes a given selection to OnInput, data-first or piped', () => {
+    Scene.scene(
+      { update: mentionNoteUpdate, view: mentionNoteView },
+      Scene.given(mentionNoteInitialModel),
+      Scene.type(Scene.label('Note'), 'Ask @cen later', {
+        selectionStart: 8,
+        selectionEnd: 8,
+      }),
+      Scene.expect(Scene.label('Mention query')).toHaveText('cen'),
+      pipe(
+        Scene.label('Note'),
+        Scene.type('Ask @cen later', { selectionStart: 6, selectionEnd: 6 }),
+      ),
+      Scene.expect(Scene.label('Mention query')).toHaveText('c'),
+    )
+  })
+
+  test('type reports no selection for an input type without one', () => {
+    Scene.scene(
+      { update: mentionNoteUpdate, view: mentionNoteView },
+      Scene.given(mentionNoteInitialModel),
+      Scene.type(Scene.label('Quantity'), '42'),
+      Scene.expect(Scene.label('Quantity caret')).toHaveText('None'),
+    )
+  })
+
+  test('type rejects a selection for an input type without one', () => {
+    expect(() =>
+      Scene.scene(
+        { update: mentionNoteUpdate, view: mentionNoteView },
+        Scene.given(mentionNoteInitialModel),
+        Scene.type(Scene.label('Quantity'), '42', {
+          selectionStart: 1,
+          selectionEnd: 1,
+        }),
+      ),
+    ).toThrow('has no text selection')
+  })
+
+  test('type rejects a selection outside the typed value', () => {
+    expect(() =>
+      Scene.scene(
+        { update: mentionNoteUpdate, view: mentionNoteView },
+        Scene.given(mentionNoteInitialModel),
+        Scene.type(Scene.label('Note'), 'Ask', {
+          selectionStart: 2,
+          selectionEnd: 9,
+        }),
+      ),
+    ).toThrow('I cannot place the selection 2 to 9')
   })
 
   test('click still works through the new event-name map', () => {
