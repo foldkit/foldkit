@@ -48,7 +48,7 @@ export type DevToolsOverlay = (
  *
  * Pass `false` to disable DevTools entirely.
  *
- * - `show`: `'Development'` (default) enables in dev mode only, `'Always'` enables in all environments including production.
+ * - `show`: `'Development'` (default) enables in dev mode only, including inside iframes. `'Always'` enables in all environments including production.
  * - `position`: Where the badge and panel appear. Defaults to `'BottomRight'`.
  * - `mode`: `'TimeTravel'` (default) enables full time-travel debugging by installing a paused historical view while the live application continues. `'Inspect'` allows browsing state snapshots without replacing the live view. Pass `{ development, production }` to use different modes per environment. Useful when DevTools is shown in production (`show: 'Always'`) and you want `'TimeTravel'` only in local development.
  * - `banner`: Optional text shown as a banner at the top of the panel.
@@ -115,21 +115,15 @@ export type ResolvedDevToolsConfig = Readonly<{
 
 /** Resolves the DevTools config for this boot, or `Option.none()` when
  *  DevTools is disabled or hidden. `'Development'` visibility requires Vite's
- *  dev server and a top-level window, so an app previewed inside an iframe does
- *  not stack a second panel over its host's. */
+ *  dev server, including when the app runs inside an iframe. */
 export const resolveDevToolsConfig = (
   devTools: DevToolsConfig | undefined,
-): Option.Option<ResolvedDevToolsConfig> => {
-  const isInIframe = window.self !== window.top
-
-  return pipe(
+): Option.Option<ResolvedDevToolsConfig> =>
+  pipe(
     devTools ?? {},
     Option.liftPredicate(config => config !== false),
     Option.filter(config =>
-      isVisible(
-        config.show ?? DEFAULT_DEV_TOOLS_SHOW,
-        !!import.meta.hot && !isInIframe,
-      ),
+      isVisible(config.show ?? DEFAULT_DEV_TOOLS_SHOW, !!import.meta.hot),
     ),
     Option.map(config => ({
       position: config.position ?? DEFAULT_DEV_TOOLS_POSITION,
@@ -138,7 +132,6 @@ export const resolveDevToolsConfig = (
       maybeOverlay: Option.fromNullishOr(registeredDevToolsOverlay),
     })),
   )
-}
 
 /** The Message tags `excludeFromHistory` keeps out of the DevTools history. */
 export const resolveExcludeFromHistoryTags = (

@@ -49,7 +49,7 @@ The `devTools` field accepts an object with the following optional properties, o
 
 ### show
 
-`'Development'` (the default) enables DevTools only in development. `'Always'` enables them in all environments, including production.
+`'Development'` (the default) enables DevTools only in development, including apps running inside iframes. `'Always'` enables them in all environments, including production.
 
 ### position
 
