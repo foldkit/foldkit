@@ -1,15 +1,19 @@
-import { Array, Effect, Predicate } from 'effect'
+import { Array, Effect, Option, Predicate } from 'effect'
 import * as Server from 'foldkit/experimental/server'
 import { readFile } from 'node:fs/promises'
 import type { ServerResponse } from 'node:http'
 import { resolve } from 'node:path'
 import { Readable } from 'node:stream'
-import type {
-  Connect,
-  DevEnvironment,
-  Plugin,
-  ProxyOptions,
-  ViteDevServer,
+import {
+  type Connect,
+  type DevEnvironment,
+  type EnvironmentModuleNode,
+  type Plugin,
+  type ProxyOptions,
+  type TransformResult,
+  type ViteDevServer,
+  isCSSRequest,
+  parseAst,
 } from 'vite'
 
 import { buildIdForCommand } from './buildToken.js'
@@ -266,6 +270,196 @@ const renderDecision = (
   return 'Render'
 }
 
+// DEVELOPMENT STYLES
+
+const STATIC_IMPORT_STATEMENT_TYPES: ReadonlySet<string> = new Set([
+  'ImportDeclaration',
+  'ExportNamedDeclaration',
+  'ExportAllDeclaration',
+])
+
+const VALUE_STYLE_QUERY_PATTERN = /[?&](?:inline|raw|url)\b/
+
+const VITE_ID_PREFIX = '/@id/'
+
+const VITE_NULL_BYTE_PLACEHOLDER = '__x00__'
+
+const HEAD_CLOSE_PATTERN = /<\/head\s*>/i
+
+const ATTRIBUTE_ESCAPE_PATTERN = /[&"<\r]/g
+
+const parseStaticImportSpecifiers = (code: string): ReadonlyArray<string> => {
+  try {
+    return parseAst(code).body.flatMap(statement =>
+      STATIC_IMPORT_STATEMENT_TYPES.has(statement.type) &&
+      'source' in statement &&
+      Predicate.isNotNullish(statement.source) &&
+      Predicate.isString(statement.source.value)
+        ? [statement.source.value]
+        : [],
+    )
+  } catch {
+    return []
+  }
+}
+
+const staticImportSpecifiersByTransform = new WeakMap<
+  TransformResult,
+  ReadonlyArray<string>
+>()
+
+const staticImportSpecifiers = (
+  transformed: TransformResult,
+): ReadonlyArray<string> => {
+  const cached = staticImportSpecifiersByTransform.get(transformed)
+
+  if (cached !== undefined) {
+    return cached
+  }
+
+  const specifiers = parseStaticImportSpecifiers(transformed.code)
+
+  staticImportSpecifiersByTransform.set(transformed, specifiers)
+
+  return specifiers
+}
+
+const toModuleGraphUrl = (specifier: string, base: string): string => {
+  const withoutBase = specifier.startsWith(base)
+    ? `/${specifier.slice(base.length)}`
+    : specifier
+
+  return withoutBase.startsWith(VITE_ID_PREFIX)
+    ? withoutBase
+        .slice(VITE_ID_PREFIX.length)
+        .replace(VITE_NULL_BYTE_PLACEHOLDER, '\0')
+    : withoutBase
+}
+
+const tryPromiseOption = <A>(
+  evaluate: () => Promise<A | null | undefined>,
+): Effect.Effect<Option.Option<A>> =>
+  Effect.tryPromise(evaluate).pipe(
+    Effect.option,
+    Effect.map(Option.flatMap(Option.fromNullishOr)),
+  )
+
+// NOTE: an HTML parser replaces a NUL in an attribute value, so the id of a
+// virtual module, which contains `\0`, could never match the id Vite's client
+// looks up, and the client would add the rules a second time.
+const isAdoptableStyleId = (id: string): boolean => !id.includes('\0')
+
+// NOTE: only static imports count, matching the stylesheets a production build
+// links. Vite's module graph records dynamic imports beside static ones, so the
+// walk reads the import statements from each transformed module instead.
+const collectStaticEntryStylesheets = (
+  environment: DevEnvironment,
+  base: string,
+  entryUrl: string,
+): Effect.Effect<ReadonlyArray<EnvironmentModuleNode>> =>
+  Effect.gen(function* () {
+    const visitedUrls = new Set<string>()
+    const stylesheets: Array<EnvironmentModuleNode> = []
+
+    const visit = (url: string): Effect.Effect<void> =>
+      Effect.gen(function* () {
+        if (visitedUrls.has(url)) {
+          return
+        }
+
+        visitedUrls.add(url)
+
+        const maybeTransformed = yield* tryPromiseOption(() =>
+          environment.transformRequest(url),
+        )
+
+        if (Option.isNone(maybeTransformed)) {
+          return
+        }
+
+        for (const specifier of staticImportSpecifiers(
+          maybeTransformed.value,
+        )) {
+          const maybeImported = yield* tryPromiseOption(() =>
+            environment.moduleGraph.getModuleByUrl(
+              toModuleGraphUrl(specifier, base),
+            ),
+          )
+
+          if (Option.isNone(maybeImported)) {
+            continue
+          }
+
+          const imported = maybeImported.value
+
+          if (!isCSSRequest(imported.url)) {
+            yield* visit(imported.url)
+            continue
+          }
+
+          if (
+            !visitedUrls.has(imported.url) &&
+            !VALUE_STYLE_QUERY_PATTERN.test(imported.url)
+          ) {
+            visitedUrls.add(imported.url)
+            stylesheets.push(imported)
+          }
+        }
+      })
+
+    yield* visit(entryUrl)
+
+    return stylesheets
+  })
+
+const ATTRIBUTE_ESCAPES: Readonly<Record<string, string>> = {
+  '&': '&amp;',
+  '"': '&quot;',
+  '<': '&lt;',
+  '\r': '&#13;',
+}
+
+const escapeAttribute = (value: string): string =>
+  value.replace(
+    ATTRIBUTE_ESCAPE_PATTERN,
+    character => ATTRIBUTE_ESCAPES[character] ?? character,
+  )
+
+// NOTE: when Vite's client starts, it adopts each stylesheet link whose
+// `data-vite-dev-id` matches a stylesheet's module id and adds no `<style>` for
+// it. The client appends any other stylesheet after the adopted ones, so the
+// links stop at the first stylesheet the client cannot adopt to keep the
+// cascade in evaluation order.
+const developmentStylesheetLinks = (
+  stylesheets: ReadonlyArray<EnvironmentModuleNode>,
+): ReadonlyArray<string> => {
+  const links: Array<string> = []
+
+  for (const { id, url } of stylesheets) {
+    if (id === null || !isAdoptableStyleId(id)) {
+      break
+    }
+
+    links.push(
+      `<link rel="stylesheet" href="${escapeAttribute(url)}" data-vite-dev-id="${escapeAttribute(id)}">`,
+    )
+  }
+
+  return links
+}
+
+// NOTE: the links go in before `transformIndexHtml`, where `renderDocument`
+// puts production stylesheets, so tags that HTML hooks append to the head
+// follow them as they follow the production stylesheets.
+const linkDevelopmentStylesheets = (
+  document: string,
+  links: ReadonlyArray<string>,
+): string =>
+  document.replace(
+    HEAD_CLOSE_PATTERN,
+    headClose => `${links.join('')}${headClose}`,
+  )
+
 const renderRequest = (
   server: ViteDevServer,
   options: FoldkitSsrOptions,
@@ -313,7 +507,15 @@ const renderRequest = (
         stylesheets: [],
         modulePreloads: [],
       })
-      const document = loadedModule.renderDocument(result.application, assets)
+      const stylesheets = yield* collectStaticEntryStylesheets(
+        server.environments.client,
+        server.config.base,
+        options.clientEntry,
+      )
+      const document = linkDevelopmentStylesheets(
+        loadedModule.renderDocument(result.application, assets),
+        developmentStylesheetLinks(stylesheets),
+      )
       const transformed = yield* Effect.promise(() =>
         server.transformIndexHtml(pathname, document, route),
       )
