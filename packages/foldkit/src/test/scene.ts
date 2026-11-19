@@ -70,6 +70,7 @@ import {
   formatMatcher,
   formatMountList,
   formatMountMatcher,
+  formatMountMatcherList,
   mountMatches,
   resolveAllExactInternal,
   resolveAllInternal,
@@ -1077,6 +1078,55 @@ const expectNoCommandsStep =
     return simulation
   }
 
+const resolveFirstMatchingMount = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  matcher: MountMatcher,
+  resultMessage: unknown,
+): Option.Option<SceneSimulation<Model, Message, OutMessage>> => {
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
+  const internal = toInternal(simulation)
+
+  return pipe(
+    resolveMountByMatcher(
+      internal as BaseInternal<Model, Message, unknown>,
+      internal.mounts,
+      matcher,
+      resultMessage,
+    ),
+    Option.fromNullishOr,
+    Option.map(next => {
+      const resolvedKeys = new Set(
+        Array.map(next.pendingMounts, slot => slotKey(slot)),
+      )
+      const updatedSlots = Array.map(
+        internal.mountSlots,
+        (state): MountSlotState => {
+          if (state.status._tag !== 'Pending') {
+            return state
+          }
+
+          const isConsumedSlot =
+            !resolvedKeys.has(slotKey(state.slot)) &&
+            state.slot.name === matcher.name
+
+          if (isConsumedSlot) {
+            return { slot: state.slot, status: RESOLVED }
+          } else {
+            return state
+          }
+        },
+      )
+
+      return {
+        ...next.internal,
+        mountSlots: updatedSlots,
+        mounts: next.pendingMounts,
+      } as unknown as SceneSimulation<Model, Message, OutMessage>
+    }),
+  )
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+}
+
 /** Resolves a specific pending Mount with the given result Message. Accepts
  *  either a Mount Definition (matches by name) or a Mount instance produced
  *  by calling a Definition (matches by name + structural-equal args). The
@@ -1098,53 +1148,25 @@ const resolveMount: {
   ) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
-  ): SceneSimulation<Model, Message, OutMessage> => {
-    /* eslint-disable @typescript-eslint/consistent-type-assertions */
-    const internal = toInternal(simulation)
-    const next = resolveMountByMatcher(
-      internal as BaseInternal<Model, Message, unknown>,
-      internal.mounts,
-      matcher,
-      resultMessage,
+  ): SceneSimulation<Model, Message, OutMessage> =>
+    Option.getOrThrowWith(
+      resolveFirstMatchingMount(simulation, matcher, resultMessage),
+      () =>
+        new Error(
+          `I tried to resolve Mount ${formatMountMatcher(matcher)} but it wasn't in the pending Mounts.\n\n` +
+            `Pending Mounts:\n${formatMountList(toInternal(simulation).mounts)}\n\n` +
+            'Make sure the rendered view contains an OnMount with this name and (when matching by instance) matching args.',
+        ),
     )
 
-    if (Predicate.isUndefined(next)) {
-      throw new Error(
-        `I tried to resolve Mount ${formatMountMatcher(matcher)} but it wasn't in the pending Mounts.\n\n` +
-          `Pending Mounts:\n${formatMountList(internal.mounts)}\n\n` +
-          'Make sure the rendered view contains an OnMount with this name and (when matching by instance) matching args.',
-      )
-    }
-
-    const resolvedKeys = new Set(
-      Array.map(next.pendingMounts, slot => slotKey(slot)),
-    )
-    const updatedSlots = Array.map(
-      internal.mountSlots,
-      (state): MountSlotState => {
-        if (state.status._tag !== 'Pending') {
-          return state
-        }
-        const key = slotKey(state.slot)
-        return resolvedKeys.has(key)
-          ? state
-          : state.slot.name === matcher.name
-            ? { slot: state.slot, status: RESOLVED }
-            : state
-      },
-    )
-
-    return {
-      ...next.internal,
-      mountSlots: updatedSlots,
-      mounts: next.pendingMounts,
-    } as unknown as SceneSimulation<Model, Message, OutMessage>
-    /* eslint-enable @typescript-eslint/consistent-type-assertions */
-  }
-
-/** Resolves all listed Mounts with their result Messages. Mounts are resolved
- *  in the order listed; each resolution feeds its Message through update
- *  before the next is resolved. */
+/** Resolves listed Mounts with their result Messages in declaration order.
+ *  Each entry resolves the first matching pending Mount and feeds its Message
+ *  through update before the next entry is tried, so repeated Definition
+ *  entries resolve same-named Mounts one occurrence at a time. An entry that
+ *  matches no pending Mount is skipped and does not carry forward to Mounts
+ *  rendered by later steps. Rendered Mounts left unresolved still fail at the
+ *  next interaction or at the end of the scene. Use `resolveAllExact` when
+ *  every entry must match a pending Mount. */
 const resolveAllMounts =
   <R extends ReadonlyArray<unknown>>(
     ...resolvers: { [K in keyof R]: MountResolver<R[K]> }
@@ -1153,8 +1175,64 @@ const resolveAllMounts =
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> =>
     Array.reduce(resolvers, simulation, (current, [matcher, resultMessage]) =>
-      resolveMount(matcher, resultMessage)(current),
+      Option.getOrElse(
+        resolveFirstMatchingMount(current, matcher, resultMessage),
+        () => current,
+      ),
     )
+
+/** Resolves listed Mounts with their result Messages in declaration order.
+ *  Every entry must match one pending Mount in this call, and no pending
+ *  Mounts may remain unresolved. Entries apply only to this call and never
+ *  carry forward. */
+const resolveAllExactMounts =
+  <R extends ReadonlyArray<unknown>>(
+    ...resolvers: { [K in keyof R]: MountResolver<R[K]> }
+  ) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const initialWalk: Readonly<{
+      simulation: SceneSimulation<Model, Message, OutMessage>
+      unmatchedMatchers: ReadonlyArray<MountMatcher>
+    }> = { simulation, unmatchedMatchers: [] }
+
+    const walk = Array.reduce(
+      resolvers,
+      initialWalk,
+      (current, [matcher, resultMessage]) =>
+        Option.match(
+          resolveFirstMatchingMount(current.simulation, matcher, resultMessage),
+          {
+            onNone: () => ({
+              simulation: current.simulation,
+              unmatchedMatchers: Array.append(
+                current.unmatchedMatchers,
+                matcher,
+              ),
+            }),
+            onSome: nextSimulation => ({
+              simulation: nextSimulation,
+              unmatchedMatchers: current.unmatchedMatchers,
+            }),
+          },
+        ),
+    )
+
+    const pendingMounts = toInternal(walk.simulation).mounts
+
+    if (Array.isReadonlyArrayNonEmpty(walk.unmatchedMatchers)) {
+      throw new Error(
+        `Mount.resolveAllExact expected Mounts that were not pending:\n\n${formatMountMatcherList(
+          walk.unmatchedMatchers,
+        )}\n\nPending Mounts after resolving matches:\n\n${formatMountList(pendingMounts)}`,
+      )
+    }
+
+    assertAllMountsResolved(pendingMounts)
+
+    return walk.simulation
+  }
 
 /** Asserts that every given Mount is among the pending Mounts. Accepts Mount
  *  Definitions (match by name) and Mount instances (match by name + args). */
@@ -1222,11 +1300,7 @@ const expectEndedMountsStep =
     if (Array.isReadonlyArrayNonEmpty(remaining)) {
       throw new Error(
         `I tried to acknowledge ended Mounts but some haven't unmounted:\n\n` +
-          pipe(
-            remaining,
-            Array.map(matcher => `    ${formatMountMatcher(matcher)}`),
-            Array.join('\n'),
-          ) +
+          formatMountMatcherList(remaining) +
           '\n\nUse Scene.Mount.expectEnded only after the Mount has disappeared from the rendered tree.',
       )
     }
@@ -1487,8 +1561,14 @@ export const Command = {
 export const Mount = {
   /** Resolves a specific pending Mount with the given result Message. */
   resolve: resolveMount,
-  /** Resolves all listed Mounts with their result Messages. */
+  /** Resolves listed Mounts in declaration order. Entries that match no
+   *  pending Mount are skipped and never carry forward; rendered Mounts left
+   *  unresolved still fail at the next interaction or the end of the scene. */
   resolveAll: resolveAllMounts,
+  /** Resolves listed Mounts and throws unless every entry matches a pending
+   *  Mount and no pending Mounts remain unresolved. Entries apply only to
+   *  this call and never carry forward. */
+  resolveAllExact: resolveAllExactMounts,
   /** Asserts that every given Mount is among the pending Mounts. */
   expectHas: expectHasMountsStep,
   /** Asserts that the pending Mounts match the given definitions exactly (order-independent, by name). */
