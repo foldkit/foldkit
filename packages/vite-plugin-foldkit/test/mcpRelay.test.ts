@@ -15,6 +15,7 @@ import {
   mkdir,
   readFile,
   readdir,
+  readlink,
   rm,
   symlink,
   writeFile,
@@ -1118,6 +1119,14 @@ describe('DevTools MCP relay discovery', () => {
         url: record.url,
         pid: process.pid,
         startedAt: record.startedAt,
+        ...(process.platform === 'linux'
+          ? {
+              namespaces: {
+                pid: await readlink('/proc/self/ns/pid'),
+                network: await readlink('/proc/self/ns/net'),
+              },
+            }
+          : {}),
       })
     },
     TEST_TIMEOUT,
@@ -1168,6 +1177,42 @@ describe('DevTools MCP relay discovery', () => {
     TEST_TIMEOUT,
   )
 
+  it.skipIf(process.platform !== 'linux')(
+    'keeps the record of a relay in another PID namespace while its port accepts connections when it publishes',
+    async () => {
+      const port = await holdFreePort()
+      const elsewhere: RelayRecord = {
+        version: 1,
+        id: 'elsewhere',
+        root: '/workspace/elsewhere',
+        url: `ws://127.0.0.1:${port}/__foldkit/devtools-mcp?token=elsewhere`,
+        pid: DEAD_PID,
+        startedAt: 1,
+        namespaces: {
+          pid: 'pid:[1]',
+          network: await readlink('/proc/self/ns/net'),
+        },
+      }
+      await writeFile(
+        join(directories.registry, 'elsewhere.json'),
+        JSON.stringify(elsewhere),
+      )
+
+      const server = await startMiddlewareServer({})
+      const record = await waitUntilPublished(server.config.root)
+
+      expect(
+        Array.sort(await readdir(directories.registry), Order.String),
+      ).toStrictEqual(
+        Array.sort(
+          ['elsewhere.json', `${encodeURIComponent(record.id)}.json`],
+          Order.String,
+        ),
+      )
+    },
+    TEST_TIMEOUT,
+  )
+
   it(
     'keeps a record an older relay republishes while a dead one is removed',
     async () => {
@@ -1176,7 +1221,7 @@ describe('DevTools MCP relay discovery', () => {
         version: 1,
         id: 'dead',
         root: '/workspace/legacy',
-        url: 'ws://localhost:9988',
+        url: 'ws://127.0.0.1:1/__foldkit/devtools-mcp?token=dead',
         pid: DEAD_PID,
         startedAt: 1,
       }

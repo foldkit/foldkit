@@ -10,6 +10,7 @@ export {
   RELAY_RECORD_VERSION,
   RELAY_REGISTRY_DIRECTORY_NAME,
   RELAY_REGISTRY_DIRECTORY_VARIABLE,
+  RelayNamespaces,
   RelayRecord,
   Request,
   RequestFrame,

@@ -17,10 +17,12 @@ import type { ChildProcessSpawner } from 'effect/process'
 import {
   RELAY_REGISTRY_DIRECTORY_NAME,
   RELAY_REGISTRY_DIRECTORY_VARIABLE,
+  type RelayNamespaces,
   RelayRecord,
 } from 'foldkit/devtools-protocol'
 import { homedir, tmpdir } from 'node:os'
 
+import { checkRelay, readProcessNamespaces } from './relayLiveness.js'
 import {
   type RelayRegistryTrust,
   relayRegistryTrust,
@@ -61,15 +63,6 @@ const relayRegistryDirectory: Effect.Effect<string, never, Path.Path> =
       )
     })
   }).pipe(Effect.orDie)
-
-const isProcessAlive = (pid: number): boolean => {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    return error instanceof Error && 'code' in error && error.code === 'EPERM'
-  }
-}
 
 const readRecordFile = (
   filePath: string,
@@ -113,17 +106,27 @@ const retireStaleRecord = (
 
 const readLiveRecordFile = (
   filePath: string,
+  maybeOwnNamespaces: Option.Option<RelayNamespaces>,
 ): Effect.Effect<Option.Option<RelayRecord>, never, FileSystem.FileSystem> =>
   Effect.gen(function* () {
     const maybeRecord = yield* readRecordFile(filePath)
 
-    if (Option.isSome(maybeRecord) && !isProcessAlive(maybeRecord.value.pid)) {
-      yield* retireStaleRecord(filePath, maybeRecord.value)
-
-      return Option.none<RelayRecord>()
+    if (Option.isNone(maybeRecord)) {
+      return maybeRecord
     }
 
-    return maybeRecord
+    const record = maybeRecord.value
+    const status = yield* checkRelay(record, maybeOwnNamespaces)
+
+    if (status === 'Gone') {
+      yield* retireStaleRecord(filePath, record)
+
+      return Option.none<RelayRecord>()
+    } else if (status === 'Unreachable') {
+      return Option.none<RelayRecord>()
+    } else {
+      return maybeRecord
+    }
   })
 
 const newestFirst: Order.Order<RelayRecord> = Order.mapInput(
@@ -252,9 +255,13 @@ export const discoverRelays = (
       fileNames,
       String.endsWith(RECORD_FILE_EXTENSION),
     )
+    const maybeOwnNamespaces = yield* readProcessNamespaces
     const records = Array.getSomes(
       yield* Effect.forEach(recordFileNames, recordFileName =>
-        readLiveRecordFile(path.join(directory, recordFileName)),
+        readLiveRecordFile(
+          path.join(directory, recordFileName),
+          maybeOwnNamespaces,
+        ),
       ),
     )
 
