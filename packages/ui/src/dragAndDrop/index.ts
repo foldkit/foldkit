@@ -41,6 +41,14 @@ const DropTarget = Schema.Struct({
   index: Schema.Number,
 })
 
+const Drop = Schema.Struct({
+  itemId: Schema.String,
+  fromContainerId: Schema.String,
+  fromIndex: Schema.Number,
+  toContainerId: Schema.String,
+  toIndex: Schema.Number,
+})
+
 /** Schema for the current pointer or keyboard drag phase. */
 export const DragState = defineTaggedUnion({
   Idle: {},
@@ -129,13 +137,7 @@ export type Message = typeof Message.Type
 
 /** Union of all out-messages the drag-and-drop component can emit to its parent. */
 export const OutMessage = defineMessageUnion({
-  Reordered: {
-    itemId: Schema.String,
-    fromContainerId: Schema.String,
-    fromIndex: Schema.Number,
-    toContainerId: Schema.String,
-    toIndex: Schema.Number,
-  },
+  Reordered: Drop.fields,
   Cancelled: {},
 })
 export type OutMessage = typeof OutMessage.Type
@@ -883,6 +885,32 @@ export const maybeDropTarget = (
       Option.some({
         containerId: keyboardDragging.targetContainerId,
         index: keyboardDragging.targetIndex,
+      }),
+    ),
+    Match.orElse(() => Option.none()),
+  )
+
+/** Returns the drop that ending the drag now would report, with the same fields as `Reordered`. None when no drag is active or the pointer is over no drop container. */
+export const maybeActiveDrop = (
+  model: Model,
+): Option.Option<typeof Drop.Type> =>
+  Match.value(model.dragState).pipe(
+    Match.tag('Dragging', dragging =>
+      Option.map(dragging.maybeDropTarget, dropTarget => ({
+        itemId: dragging.itemId,
+        fromContainerId: dragging.sourceContainerId,
+        fromIndex: dragging.sourceIndex,
+        toContainerId: dropTarget.containerId,
+        toIndex: dropTarget.index,
+      })),
+    ),
+    Match.tag('KeyboardDragging', keyboardDragging =>
+      Option.some({
+        itemId: keyboardDragging.itemId,
+        fromContainerId: keyboardDragging.sourceContainerId,
+        fromIndex: keyboardDragging.sourceIndex,
+        toContainerId: keyboardDragging.targetContainerId,
+        toIndex: keyboardDragging.targetIndex,
       }),
     ),
     Match.orElse(() => Option.none()),
