@@ -4,9 +4,13 @@ import { Http, Update } from 'foldkit'
 import { Form } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
 
+const profileFields = {
+  displayName: Form.field({ schema: Schema.String, initial: '' }),
+}
+
 const saveProfile = (
   profileId: string,
-  profile: Readonly<{ displayName: string }>,
+  profile: Form.FieldValues<typeof profileFields>,
 ) =>
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
@@ -22,9 +26,7 @@ const saveProfile = (
 
 const profileForm = Form.define({
   name: 'Profile',
-  fields: {
-    displayName: Form.field({ schema: Schema.String, initial: '' }),
-  },
+  fields: profileFields,
   submit: {
     error: Schema.String,
     context: Schema.Struct({ profileId: Schema.String }),

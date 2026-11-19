@@ -23,7 +23,12 @@ const SignupError = Schema.Union([EmailTaken, InviteExpired, SignupUnavailable])
 
 const isSignupError = Schema.is(SignupError)
 
-const signUp = (values: Readonly<{ email: string; invite: string }>) =>
+const signupFields = {
+  email: Form.field({ schema: Schema.String, initial: '' }),
+  invite: Form.field({ schema: Schema.String, initial: '' }),
+}
+
+const signUp = (values: Form.FieldValues<typeof signupFields>) =>
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
     const request = yield* HttpClientRequest.bodyJson(
@@ -48,10 +53,7 @@ const signUp = (values: Readonly<{ email: string; invite: string }>) =>
 
 const signupForm = Form.define({
   name: 'Signup',
-  fields: {
-    email: Form.field({ schema: Schema.String, initial: '' }),
-    invite: Form.field({ schema: Schema.String, initial: '' }),
-  },
+  fields: signupFields,
   submit: {
     error: SignupError,
     execute: signUp,
