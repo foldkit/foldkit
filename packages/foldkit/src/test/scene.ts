@@ -30,6 +30,7 @@ import type {
   Html,
   HtmlBuilder,
   KeyboardModifiers,
+  PointerPosition,
 } from '../html/index.js'
 import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
@@ -2032,11 +2033,45 @@ export const doubleClick =
     )
   }
 
+const DEFAULT_POINTER_POSITION: PointerPosition = {
+  clientX: 0,
+  clientY: 0,
+  elementX: 0,
+  elementY: 0,
+  elementWidth: 0,
+  elementHeight: 0,
+}
+
+const simulatedHandlerElement = ({
+  clientX,
+  clientY,
+  elementX,
+  elementY,
+  elementWidth,
+  elementHeight,
+}: PointerPosition) => ({
+  getBoundingClientRect: () => ({
+    left: clientX - elementX,
+    top: clientY - elementY,
+    width: elementWidth,
+    height: elementHeight,
+  }),
+})
+
 /** Simulates a contextmenu event on the element matching the target.
  *  When the element has no contextmenu handler, the event bubbles up to the
- *  nearest ancestor with one, mirroring browser event propagation. */
+ *  nearest ancestor with one, mirroring browser event propagation.
+ *
+ *  `options` sets the `PointerPosition` and `KeyboardModifiers` an
+ *  `OnContextMenu` function receives. Scene does not lay out the view, so
+ *  pass the `element*` values measured against the element whose handler
+ *  runs. Omitted
+ *  numbers are `0` and omitted keys are released. */
 export const contextMenu =
-  (target: string | Locator) =>
+  (
+    target: string | Locator,
+    options?: Readonly<Partial<PointerPosition & KeyboardModifiers>>,
+  ) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> => {
@@ -2055,8 +2090,24 @@ export const contextMenu =
     }
 
     const { value: element } = maybeElement
+
+    const { shiftKey, ctrlKey, altKey, metaKey, ...position } = {
+      ...DEFAULT_KEYBOARD_MODIFIERS,
+      ...DEFAULT_POINTER_POSITION,
+      ...options,
+    }
+
     const invokeHandler = (handler: Function) => {
-      handler({ preventDefault: Function.constVoid })
+      handler({
+        clientX: position.clientX,
+        clientY: position.clientY,
+        shiftKey,
+        ctrlKey,
+        altKey,
+        metaKey,
+        currentTarget: simulatedHandlerElement(position),
+        preventDefault: Function.constVoid,
+      })
     }
 
     if (element.data?.on?.['contextmenu'] !== undefined) {

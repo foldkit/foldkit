@@ -46,6 +46,11 @@ import {
   view as contextMenuView,
 } from './apps/contextMenu.js'
 import {
+  initialModel as contextMenuPositionInitialModel,
+  update as contextMenuPositionUpdate,
+  view as contextMenuPositionView,
+} from './apps/contextMenuPosition.js'
+import {
   Message as CounterMessage,
   FetchCount,
   FetchCountById,
@@ -4499,6 +4504,25 @@ describe('scene with click bubbling', () => {
 })
 
 describe('scene with context menu bubbling', () => {
+  test('contextMenu passes the given position and modifiers to an OnContextMenu function', () => {
+    Scene.scene(
+      { update: contextMenuPositionUpdate, view: contextMenuPositionView },
+      Scene.given(contextMenuPositionInitialModel),
+      Scene.contextMenu(Scene.label('Bar label'), {
+        clientX: 320,
+        clientY: 48,
+        elementX: 250,
+        elementY: 8,
+        elementWidth: 400,
+        elementHeight: 20,
+        shiftKey: true,
+      }),
+      Scene.expect(Scene.role('menu')).toHaveText(
+        'client 320,48 element 250,8 size 400x20 shift true',
+      ),
+    )
+  })
+
   test('contextMenu bubbles from child to an ancestor with a handler', () => {
     Scene.scene(
       { update: contextMenuUpdate, view: contextMenuView },

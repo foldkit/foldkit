@@ -6,6 +6,7 @@ export {
   DefaultAction,
   EventPropagation,
   inertHtml,
+  PointerPosition,
   TextDirection,
 } from './index.js'
 

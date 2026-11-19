@@ -153,7 +153,7 @@ const tagAsFileHandler = <T extends Function>(
   return handler
 }
 
-/** Modifier key state extracted from a `KeyboardEvent`. */
+/** Modifier key state extracted from a `KeyboardEvent` or `MouseEvent`. */
 export type KeyboardModifiers = Readonly<{
   shiftKey: boolean
   ctrlKey: boolean
@@ -161,12 +161,50 @@ export type KeyboardModifiers = Readonly<{
   metaKey: boolean
 }>
 
-const keyboardModifiers = (event: KeyboardEvent): KeyboardModifiers => ({
+const keyboardModifiers = (
+  event: KeyboardEvent | MouseEvent,
+): KeyboardModifiers => ({
   shiftKey: event.shiftKey,
   ctrlKey: event.ctrlKey,
   altKey: event.altKey,
   metaKey: event.metaKey,
 })
+
+/** Where a pointer event landed, in CSS pixels. `clientX` and `clientY` are
+ *  viewport coordinates. `elementX` and `elementY` measure the same point
+ *  from the top-left corner of the element that carries the handler, even
+ *  when the event started on one of its descendants, and `elementWidth` and
+ *  `elementHeight` are that element's rendered size. */
+export const PointerPosition = Schema.Struct({
+  clientX: Schema.Finite,
+  clientY: Schema.Finite,
+  elementX: Schema.Finite,
+  elementY: Schema.Finite,
+  elementWidth: Schema.Finite,
+  elementHeight: Schema.Finite,
+})
+/** Where a pointer event landed, in CSS pixels. `clientX` and `clientY` are
+ *  viewport coordinates. `elementX` and `elementY` measure the same point
+ *  from the top-left corner of the element that carries the handler, even
+ *  when the event started on one of its descendants, and `elementWidth` and
+ *  `elementHeight` are that element's rendered size. */
+export type PointerPosition = typeof PointerPosition.Type
+
+const pointerPosition = (event: MouseEvent): PointerPosition => {
+  const { clientX, clientY } = event
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const handlerElement = event.currentTarget as Element
+  const { left, top, width, height } = handlerElement.getBoundingClientRect()
+
+  return {
+    clientX,
+    clientY,
+    elementX: clientX - left,
+    elementY: clientY - top,
+    elementWidth: width,
+    elementHeight: height,
+  }
+}
 
 const skipImeCompositionKeydown =
   (handle: (event: KeyboardEvent) => void) =>
@@ -719,7 +757,11 @@ export type Attribute<Message> = Data.TaggedEnum<{
     readonly maybeCustomEventMessage: Option.Option<Message>
   }
   OnToggle: { readonly f: (isOpen: boolean) => Message }
-  OnContextMenu: { readonly message: Message }
+  OnContextMenu: {
+    readonly message:
+      | Message
+      | ((position: PointerPosition, modifiers: KeyboardModifiers) => Message)
+  }
   OnDragStart: { readonly message: Message }
   OnDrag: { readonly message: Message }
   OnDragEnd: { readonly message: Message }
@@ -1983,11 +2025,21 @@ const attributeHandlers: AttributeHandlers = {
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         ctx.dispatch(toMessage((event.target as HTMLDetailsElement).open)),
     }),
-  OnContextMenu: ({ message }, ctx: BuildContext) =>
+  OnContextMenu: ({ message: messageOrToMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {
-      contextmenu: (event: Event) => {
+      contextmenu: (event: MouseEvent) => {
         event.preventDefault()
-        ctx.dispatch(message)
+
+        if (Predicate.isFunction(messageOrToMessage)) {
+          ctx.dispatch(
+            messageOrToMessage(
+              pointerPosition(event),
+              keyboardModifiers(event),
+            ),
+          )
+        } else {
+          ctx.dispatch(messageOrToMessage)
+        }
       },
     }),
   OnDragStart: ({ message }, ctx: BuildContext) =>
@@ -4113,9 +4165,29 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnToggle'
     readonly f: (isOpen: boolean) => Message
   }
-  OnContextMenu: (message: Message) => {
+  /** Prevents the browser's context menu and dispatches `message` when the
+   *  element receives a `contextmenu` event, including one opened on a
+   *  descendant. Pass a function to build the Message from the event: Foldkit
+   *  calls it with a `PointerPosition` measured against this element and the
+   *  event's `KeyboardModifiers`.
+   *
+   *  @example
+   *  ```typescript
+   *  h.OnContextMenu(Message.OpenedRowMenu({ rowId }))
+   *
+   *  h.OnContextMenu(({ clientX, clientY }) =>
+   *    Message.OpenedRowMenuAtPointer({ rowId, clientX, clientY }),
+   *  )
+   *  ``` */
+  OnContextMenu: (
+    message:
+      | Message
+      | ((position: PointerPosition, modifiers: KeyboardModifiers) => Message),
+  ) => {
     readonly _tag: 'OnContextMenu'
-    readonly message: Message
+    readonly message:
+      | Message
+      | ((position: PointerPosition, modifiers: KeyboardModifiers) => Message)
   }
   OnDragStart: (message: Message) => {
     readonly _tag: 'OnDragStart'
@@ -5220,7 +5292,11 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
     }),
   OnToggle: (toMessage: (isOpen: boolean) => Message) =>
     OnToggle({ f: toMessage }),
-  OnContextMenu: (message: Message) => OnContextMenu({ message }),
+  OnContextMenu: (
+    message:
+      | Message
+      | ((position: PointerPosition, modifiers: KeyboardModifiers) => Message),
+  ) => OnContextMenu({ message }),
   OnDragStart: (message: Message) => OnDragStart({ message }),
   OnDrag: (message: Message) => OnDrag({ message }),
   OnDragEnd: (message: Message) => OnDragEnd({ message }),
