@@ -4,9 +4,14 @@ import { join, resolve } from 'node:path'
 import { resolveConfig, build as viteBuild } from 'vite'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { buildIdForCommand, resolveBuildId } from '../src/buildToken.ts'
+import {
+  RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID,
+  buildIdForCommand,
+  resolveBuildId,
+} from '../src/buildToken.ts'
 import { foldkit } from '../src/index.ts'
 import { foldkitSsr } from '../src/ssr.ts'
+import { isFoldkitBuildTokenModuleId, recordModuleIds } from './moduleIds.ts'
 
 const FIXTURE_ROOT = resolve(import.meta.dirname, 'fixtures/ssr')
 const BUILD_CONFIG_ROOT = resolve(import.meta.dirname, 'fixtures/build-config')
@@ -186,19 +191,20 @@ describe('separately invoked aggregate builds', () => {
       })
     const clientOutput = join(outputRoot, 'client')
     const serverOutput = join(outputRoot, 'server')
+    const moduleIds: Array<string> = []
 
     await viteBuild({
       root: BUILD_CONFIG_ROOT,
       configFile: false,
       logLevel: 'silent',
-      plugins: [plugin()],
+      plugins: [plugin(), recordModuleIds(moduleIds)],
       build: { emptyOutDir: true, outDir: clientOutput },
     })
     await viteBuild({
       root: BUILD_CONFIG_ROOT,
       configFile: false,
       logLevel: 'silent',
-      plugins: [plugin()],
+      plugins: [plugin(), recordModuleIds(moduleIds)],
       build: {
         emptyOutDir: true,
         outDir: serverOutput,
@@ -210,5 +216,7 @@ describe('separately invoked aggregate builds', () => {
     const server = readBuiltFiles(serverOutput)
     expect(client).toContain(buildId)
     expect(server).toContain(buildId)
+    expect(moduleIds.some(isFoldkitBuildTokenModuleId)).toBe(true)
+    expect(moduleIds).not.toContain(RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID)
   })
 })
