@@ -20,7 +20,23 @@ export const findFirstEnabledIndex =
       Option.getOrElse(() => focusedIndex),
     )
 
-export const keyToIndex = (
+const keyToIndexFromNone = (
+  previousKey: string,
+  itemCount: number,
+  isDisabled: (index: number) => boolean,
+): ((key: string) => number) => {
+  const find = findFirstEnabledIndex(itemCount, 0, isDisabled)
+  const firstEnabledIndex = find(0, 1)
+  const lastEnabledIndex = find(itemCount - 1, -1)
+
+  return (key: string): number =>
+    Match.value(key).pipe(
+      Match.whenOr(previousKey, 'End', 'PageDown', () => lastEnabledIndex),
+      Match.orElse(() => firstEnabledIndex),
+    )
+}
+
+const keyToIndexFromFocused = (
   nextKey: string,
   previousKey: string,
   itemCount: number,
@@ -38,3 +54,26 @@ export const keyToIndex = (
       Match.orElse(() => focusedIndex),
     )
 }
+
+/** Resolves the index a navigation key moves to. From a focused index, the
+ *  next and previous keys step to the neighboring enabled index, wrapping at
+ *  the ends. With no focused index, the previous key, `End` and `PageDown`
+ *  land on the last enabled index, and every other key lands on the first. */
+export const keyToIndex = (
+  nextKey: string,
+  previousKey: string,
+  itemCount: number,
+  maybeFocusedIndex: Option.Option<number>,
+  isDisabled: (index: number) => boolean,
+): ((key: string) => number) =>
+  Option.match(maybeFocusedIndex, {
+    onNone: () => keyToIndexFromNone(previousKey, itemCount, isDisabled),
+    onSome: focusedIndex =>
+      keyToIndexFromFocused(
+        nextKey,
+        previousKey,
+        itemCount,
+        focusedIndex,
+        isDisabled,
+      ),
+  })

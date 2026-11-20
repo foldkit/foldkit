@@ -927,7 +927,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       'ArrowDown',
       'ArrowUp',
       items.length,
-      Option.getOrElse(maybeActiveItemIndex, () => 0),
+      maybeActiveItemIndex,
       isDisabled,
     )
 

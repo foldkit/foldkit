@@ -988,7 +988,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         'ArrowDown',
         'ArrowUp',
         items.length,
-        Option.getOrElse(maybeActiveItemIndex, () => -1),
+        maybeActiveItemIndex,
         isDisabledAtIndex,
       )
 

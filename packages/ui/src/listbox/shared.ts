@@ -966,27 +966,13 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
         OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
 
-      const resolveActiveIndex = (key: string): number =>
-        Option.match(maybeActiveItemIndex, {
-          onNone: () =>
-            Match.value(key).pipe(
-              Match.whenOr(
-                previousKey,
-                'End',
-                'PageDown',
-                () => lastEnabledIndex,
-              ),
-              Match.orElse(() => firstEnabledIndex),
-            ),
-          onSome: activeIndex =>
-            keyToIndex(
-              nextKey,
-              previousKey,
-              items.length,
-              activeIndex,
-              isItemDisabledByIndex,
-            )(key),
-        })
+      const resolveActiveIndex = keyToIndex(
+        nextKey,
+        previousKey,
+        items.length,
+        maybeActiveItemIndex,
+        isItemDisabledByIndex,
+      )
 
       const searchForKey = (key: string): Option.Option<Message> => {
         const nextQuery = searchQuery + key
