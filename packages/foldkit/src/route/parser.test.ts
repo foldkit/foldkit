@@ -3,7 +3,7 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { Url } from '../url/index.js'
+import { Url, fromString } from '../url/index.js'
 import { defineRouteUnion } from './index.js'
 import {
   __isSingleSegment,
@@ -565,6 +565,202 @@ describe('query', () => {
       expect(value).toStrictEqual({ category: 'electronics', sort: 'price' })
     }),
   )
+
+  describe('array fields', () => {
+    const AppRoute = defineRouteUnion({
+      Search: {
+        tags: Schema.Array(Schema.String),
+        sort: Schema.OptionFromOptionalKey(Schema.String),
+      },
+      Filter: { ids: Schema.optionalKey(Schema.Array(Schema.Number)) },
+      NotFound: { path: Schema.String },
+    })
+
+    const searchRouter = pipe(
+      literal('search'),
+      query(
+        Schema.Struct({
+          tags: Schema.Array(Schema.String),
+          sort: Schema.OptionFromOptionalKey(Schema.String),
+        }),
+      ),
+      mapTo(AppRoute.Search),
+    )
+
+    const filterRouter = pipe(
+      literal('filter'),
+      query(
+        Schema.Struct({
+          ids: Schema.optionalKey(Schema.Array(Schema.FiniteFromString)),
+        }),
+      ),
+      mapTo(AppRoute.Filter),
+    )
+
+    it('prints one parameter for each array element', () => {
+      const href = searchRouter({
+        tags: ['rent', 'lease'],
+        sort: Option.some('date'),
+      })
+
+      expect(href).toBe('/search?tags=rent&tags=lease&sort=date')
+    })
+
+    it('keeps a comma inside one array element', () => {
+      const href = searchRouter({ tags: ['a,b', 'c'], sort: Option.none() })
+
+      expect(href).toBe('/search?tags=a%2Cb&tags=c')
+    })
+
+    it.effect('parses a repeated parameter into an array', () =>
+      Effect.gen(function* () {
+        const [value] = yield* searchRouter.parse(
+          ['search'],
+          'tags=rent&tags=lease&sort=date',
+        )
+
+        expect(value).toStrictEqual(
+          AppRoute.Search({
+            tags: ['rent', 'lease'],
+            sort: Option.some('date'),
+          }),
+        )
+      }),
+    )
+
+    it.effect('parses one parameter into an array with one element', () =>
+      Effect.gen(function* () {
+        const [value] = yield* searchRouter.parse(['search'], 'tags=rent')
+
+        expect(value).toStrictEqual(
+          AppRoute.Search({ tags: ['rent'], sort: Option.none() }),
+        )
+      }),
+    )
+
+    it.effect('parses a missing parameter into an empty array', () =>
+      Effect.gen(function* () {
+        const [value] = yield* searchRouter.parse(['search'])
+
+        expect(value).toStrictEqual(
+          AppRoute.Search({ tags: [], sort: Option.none() }),
+        )
+      }),
+    )
+
+    it.effect('uses the last value of a repeated string parameter', () =>
+      Effect.gen(function* () {
+        const [value] = yield* searchRouter.parse(
+          ['search'],
+          'tags=rent&sort=date&sort=price',
+        )
+
+        expect(value).toStrictEqual(
+          AppRoute.Search({ tags: ['rent'], sort: Option.some('price') }),
+        )
+      }),
+    )
+
+    it.effect('leaves a missing optional array field out', () =>
+      Effect.gen(function* () {
+        const [value] = yield* filterRouter.parse(['filter'])
+
+        expect(value).toStrictEqual(AppRoute.Filter({}))
+      }),
+    )
+
+    it('prints no parameter for an empty or absent optional array field', () => {
+      expect(filterRouter({})).toBe('/filter')
+      expect(filterRouter({ ids: [] })).toBe('/filter')
+    })
+
+    it.effect('decodes each element of an array field', () =>
+      Effect.gen(function* () {
+        const [value] = yield* filterRouter.parse(['filter'], 'ids=1&ids=2')
+
+        expect(value).toStrictEqual(AppRoute.Filter({ ids: [1, 2] }))
+      }),
+    )
+
+    it('encodes each element of an array field', () => {
+      expect(filterRouter({ ids: [1, 2] })).toBe('/filter?ids=1&ids=2')
+    })
+
+    it.effect(
+      'parses an optional array field that also accepts undefined',
+      () =>
+        Effect.gen(function* () {
+          const parser = pipe(
+            literal('filter'),
+            query(
+              Schema.Struct({
+                ids: Schema.optional(Schema.Array(Schema.String)),
+              }),
+            ),
+          )
+          const [value] = yield* parser.parse(['filter'], 'ids=a&ids=b')
+
+          expect(value).toStrictEqual({ ids: ['a', 'b'] })
+        }),
+    )
+
+    it.effect(
+      'reads one string for a field that accepts a string or an array',
+      () =>
+        Effect.gen(function* () {
+          const parser = pipe(
+            literal('filter'),
+            query(
+              Schema.Struct({
+                id: Schema.Union([Schema.String, Schema.Array(Schema.String)]),
+              }),
+            ),
+          )
+          const [value] = yield* parser.parse(['filter'], 'id=a')
+
+          expect(value).toStrictEqual({ id: 'a' })
+        }),
+    )
+
+    it.effect(
+      'prints one parameter for a field that accepts a string or an array',
+      () =>
+        Effect.gen(function* () {
+          const parser = pipe(
+            literal('filter'),
+            query(
+              Schema.Struct({
+                id: Schema.Union([Schema.String, Schema.Array(Schema.String)]),
+              }),
+            ),
+          )
+          const state = yield* parser.print(
+            { id: ['a', 'b'] },
+            { segments: [], queryParams: new URLSearchParams() },
+          )
+
+          expect(state.queryParams.toString()).toBe('id=a%2Cb')
+        }),
+    )
+
+    it.each([
+      { tags: ['rent', 'lease'] },
+      { tags: ['rent'] },
+      { tags: [] },
+      { tags: ['a,b', 'c d'] },
+    ])('build then parse round-trips $tags', ({ tags }) => {
+      const href = searchRouter({ tags, sort: Option.none() })
+      const url = Option.getOrThrow(fromString(`https://example.com${href}`))
+      const parsed = parseUrlWithFallback(
+        oneOf(searchRouter),
+        AppRoute.NotFound,
+      )(url)
+
+      expect(parsed).toStrictEqual(
+        AppRoute.Search({ tags, sort: Option.none() }),
+      )
+    })
+  })
 })
 
 describe('oneOf', () => {
