@@ -49,6 +49,7 @@
     "@foldkit/lustre-benchmark",
     "@foldkit/js-framework-benchmark",
     "charting-example",
+    "pokedex-example",
     "state-machine-example",
     "personal-blog-example",
     "interrupting-commands-example",

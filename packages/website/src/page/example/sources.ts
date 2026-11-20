@@ -26,6 +26,7 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   'api-cache': () => import('virtual:example-sources/api-cache'),
   'api-cache-query': () => import('virtual:example-sources/api-cache-query'),
   charting: () => import('virtual:example-sources/charting'),
+  pokedex: () => import('virtual:example-sources/pokedex'),
   routing: () => import('virtual:example-sources/routing'),
   'route-transitions': () =>
     import('virtual:example-sources/route-transitions'),
