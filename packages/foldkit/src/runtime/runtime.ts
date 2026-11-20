@@ -559,6 +559,7 @@ export const makeRuntime = <
             status,
             processMessage: message => processMessagePlain(message),
             crashWith: (cause, maybeMessage) => crashWith(cause, maybeMessage),
+            onDrainFinished: () => restoreEditedElements(),
           })
         const { enqueueMessage, enqueueMessageEffect, completeBoot } =
           messageQueue
@@ -647,6 +648,7 @@ export const makeRuntime = <
           crashWith,
           render,
           setLastDirtyMessage,
+          restoreEditedElements,
           scheduleRenderFrame,
           skipPendingViewTransition,
           devToolsRenderBridge,

@@ -63,6 +63,7 @@ const withQueue = (
         let process = (_message: Message) => {}
         const queue = yield* makeMessageQueue<Message>({
           status,
+          onDrainFinished: () => {},
           processMessage: message => {
             processed.push(message._tag)
             processingTime += UPDATE_COST_MS

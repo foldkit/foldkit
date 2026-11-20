@@ -96,6 +96,7 @@ export type Renderer<Model, Message> = Readonly<{
     maybeMessage: Option.Option<Message>,
   ) => Effect.Effect<void>
   setLastDirtyMessage: (message: Message) => void
+  restoreEditedElements: () => void
   scheduleRenderFrame: () => void
   skipPendingViewTransition: () => void
   devToolsRenderBridge: DevToolsRenderBridge
@@ -430,14 +431,6 @@ export const makeRenderer = <Model, Message>({
       }
     }
 
-    const restoreEditedElementsAfterDeferredDrain = (): void => {
-      if (isAnyMessageDeferred()) {
-        requestAnimationFrame(restoreEditedElementsAfterDeferredDrain)
-        return
-      }
-      restoreEditedElements()
-    }
-
     // NOTE: registered in the bubble phase, so the listener that records the
     // end of the composition, which captures, has already run.
     ownerDocument.addEventListener('compositionend', restoreEditedElements)
@@ -459,11 +452,6 @@ export const makeRenderer = <Model, Message>({
       recordEditedElement()
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       enqueueMessage(message as Message)
-      if (isAnyMessageDeferred() && editedElements.size > 0) {
-        requestAnimationFrame(restoreEditedElementsAfterDeferredDrain)
-      } else {
-        restoreEditedElements()
-      }
     }
 
     const dispatchAsync = (message: unknown): Effect.Effect<void> =>
@@ -984,6 +972,7 @@ export const makeRenderer = <Model, Message>({
       crashWith,
       render,
       setLastDirtyMessage,
+      restoreEditedElements,
       scheduleRenderFrame,
       skipPendingViewTransition,
       devToolsRenderBridge,
