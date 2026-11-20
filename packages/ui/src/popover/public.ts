@@ -27,6 +27,7 @@ export {
   type ClickedButton,
   type IgnoredMouseClick,
   type SuppressedSpaceScroll,
+  type MovedPointerOffButton,
 } from './index.js'
 
 export type { InitConfig, ViewInputs, RenderInfo } from './index.js'

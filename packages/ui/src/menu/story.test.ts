@@ -409,7 +409,7 @@ describe('Menu', () => {
         )
       })
 
-      it('does not toggle on mouse right button', () => {
+      it('does not toggle or record the pointer type on mouse right button', () => {
         Story.story(
           update,
           givenClosed,
@@ -425,13 +425,13 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
-              Option.some('mouse'),
+              Option.none(),
             )
           }),
         )
       })
 
-      it('always records maybeLastButtonPointerType', () => {
+      it('records the pointer type of touch and left mouse presses', () => {
         Story.story(
           update,
           givenClosed,
@@ -463,6 +463,40 @@ describe('Menu', () => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
             )
+          }),
+        )
+      })
+    })
+
+    describe('MovedPointerOffButton', () => {
+      it('lets blur close the menu after a mouse press leaves the button', () => {
+        Story.story(
+          update,
+          givenClosed,
+          Story.message(
+            Message.PressedPointerOnButton({
+              pointerType: 'mouse',
+              button: 0,
+              screenX: 100,
+              screenY: 200,
+              timeStamp: 1000,
+            }),
+          ),
+          Story.Command.resolve(FocusItems, Message.CompletedFocusItems()),
+          Story.message(Message.BlurredItems()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
+          }),
+          Story.message(Message.MovedPointerOffButton()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.none(),
+            )
+          }),
+          Story.message(Message.BlurredItems()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
           }),
         )
       })

@@ -331,7 +331,7 @@ describe('Listbox', () => {
         )
       })
 
-      it('does not toggle on mouse right button', () => {
+      it('does not toggle or record the pointer type on mouse right button', () => {
         Story.story(
           update,
           givenClosed,
@@ -341,13 +341,13 @@ describe('Listbox', () => {
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
-              Option.some('mouse'),
+              Option.none(),
             )
           }),
         )
       })
 
-      it('always records maybeLastButtonPointerType', () => {
+      it('records the pointer type of touch and left mouse presses', () => {
         Story.story(
           update,
           givenClosed,
@@ -815,6 +815,32 @@ describe('Listbox', () => {
           Story.message(Message.CompletedLockScroll()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
+          }),
+        )
+      })
+
+      it('lets blur close the listbox after a mouse press leaves the button', () => {
+        Story.story(
+          update,
+          givenClosed,
+          Story.message(
+            Message.PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
+          ),
+          Story.Command.resolve(FocusItems, Message.CompletedFocusItems()),
+          Story.message(Message.BlurredItems()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
+          }),
+          Story.message(Message.MovedPointerOffButton()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.none(),
+            )
+          }),
+          Story.message(Message.BlurredItems()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
           }),
         )
       })
