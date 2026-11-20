@@ -183,8 +183,15 @@ export const fromDateInZone = (date: Date, timeZone: string): CalendarDate => {
  * const jsDate = Calendar.toDateLocal(Calendar.make(2026, 4, 13))
  * ```
  */
-export const toDateLocal = (calendarDate: CalendarDate): Date =>
-  new Date(calendarDate.year, calendarDate.month - 1, calendarDate.day)
+export const toDateLocal = (calendarDate: CalendarDate): Date => {
+  // NOTE: The `Date(year, monthIndex, day)` constructor reads a year from 0 to
+  // 99 as 1900 to 1999.
+  const date = new Date(0)
+  date.setHours(0, 0, 0, 0)
+  date.setFullYear(calendarDate.year, calendarDate.month - 1, calendarDate.day)
+
+  return date
+}
 
 const isoPattern = /^(\d{4})-(\d{2})-(\d{2})$/
 
