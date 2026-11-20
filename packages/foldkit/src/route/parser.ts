@@ -531,12 +531,23 @@ export const oneOf = <Parsers extends ReadonlyArray<ParserInput>>(
     }),
 })
 
+type RouteBiparser<ConstructorInput, RouteValue> = Readonly<{
+  parse: Biparser<ConstructorInput>['parse']
+  print: Biparser<Omit<RouteValue, '_tag'>>['print']
+}>
+
 /**
  * Converts a `Biparser` into a `Router` by mapping parsed values to a
  * tagged type constructor.
  *
  * The resulting `Router` can both parse URLs into tagged route values and
  * build URLs from route payloads.
+ *
+ * The parser must produce a value the constructor accepts, and must print
+ * the payload of the route the constructor returns. A route field with
+ * `Schema.withConstructorDefault` is optional for the constructor, so the
+ * parser may omit it. If the parser omits the field, the constructor fills
+ * in the default when parsing, and building a URL drops the field's value.
  *
  * @example
  * ```ts
@@ -549,7 +560,7 @@ export const mapTo: {
   }): (parser: Biparser<{}>) => Router<T>
   <A, T>(appRouteConstructor: {
     make: (data: A) => T
-  }): (parser: Biparser<A>) => Router<T>
+  }): (parser: RouteBiparser<A, T>) => Router<T>
 } = (appRouteConstructor: any): any => {
   return (parser: any) => {
     const build = buildUrl(parser)
