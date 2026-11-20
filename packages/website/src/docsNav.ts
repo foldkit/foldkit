@@ -1,101 +1,7 @@
-import { Array, Number, Option, pipe } from 'effect'
+import { Array, Equal, Number, Option, Schema, pipe } from 'effect'
 
 import { examples } from './page/example/meta'
-import {
-  aiMcpRouter,
-  aiOverviewRouter,
-  aiSkillsRouter,
-  asyncDataRouter,
-  bestPracticesImmutabilityRouter,
-  bestPracticesKeyingRouter,
-  bestPracticesMessagesRouter,
-  bestPracticesSideEffectsRouter,
-  comingFromReactRouter,
-  comingFromTanStackQueryRouter,
-  contentApiRouter,
-  coreArchitectureRouter,
-  coreCanvasRouter,
-  coreCommandsRouter,
-  coreCounterExampleRouter,
-  coreCrashViewRouter,
-  coreCustomElementRouter,
-  coreDevToolsRouter,
-  coreDomRouter,
-  coreEmbeddingRouter,
-  coreFileRouter,
-  coreFreezeModelRouter,
-  coreHttpRouter,
-  coreInitAndFlagsRouter,
-  coreMachineRouter,
-  coreManagedResourcesRouter,
-  coreMessagesRouter,
-  coreModelRouter,
-  coreMountRouter,
-  corePreserveScrollRouter,
-  coreQueryRouter,
-  coreRenderRouter,
-  coreResourcesRouter,
-  coreRuntimeRouter,
-  coreServerRenderingRouter,
-  coreSlowWarningsRouter,
-  coreSubmodelRouter,
-  coreSubscriptionsRouter,
-  coreUpdateRouter,
-  coreViewMemoizationRouter,
-  coreViewRouter,
-  coreViewTransitionsRouter,
-  effectAtomComparisonRouter,
-  elmComparisonRouter,
-  exampleDetailRouter,
-  examplesRouter,
-  fieldValidationRouter,
-  getStartedRouter,
-  patternsAntiPatternsRouter,
-  patternsInformingSubmodelsRouter,
-  patternsSubscriptionOrganizationRouter,
-  performanceRouter,
-  projectOrganizationRouter,
-  reactComparisonRouter,
-  roadmapRouter,
-  routingAndNavigationRouter,
-  testingRouter,
-  testingSceneRouter,
-  testingStoryRouter,
-  toolingLintingRouter,
-  typingTerminalRouter,
-  uiAnchorRouter,
-  uiAnimationRouter,
-  uiButtonRouter,
-  uiCalendarRouter,
-  uiCheckboxRouter,
-  uiComboboxRouter,
-  uiDatePickerRouter,
-  uiDialogRouter,
-  uiDisclosureRouter,
-  uiDragAndDropRouter,
-  uiFieldsetRouter,
-  uiFileDropRouter,
-  uiHoverIntentRouter,
-  uiInputRouter,
-  uiListboxRouter,
-  uiMenuRouter,
-  uiMeterRouter,
-  uiNavRouter,
-  uiOverviewRouter,
-  uiPopoverRouter,
-  uiProgressRouter,
-  uiRadioGroupRouter,
-  uiSelectRouter,
-  uiSelectionSubmodelsRouter,
-  uiSliderRouter,
-  uiSwitchRouter,
-  uiTabsRouter,
-  uiTextareaRouter,
-  uiToastRouter,
-  uiTooltipRouter,
-  uiVirtualListRouter,
-  whyFoldkitRouter,
-} from './route'
+import { AppRoute, DocsRoute, isBlogRoute } from './route'
 import { type GroupKey } from './sidebarStorage'
 
 export const DOCS_SIDEBAR_NAV_ID = 'docs-sidebar-nav'
@@ -104,32 +10,14 @@ export const MOBILE_MENU_NAV_ID = 'mobile-menu-nav'
 
 // NAV PAGE
 
-export type NavPage = Readonly<{
-  _tag: string
-  href: string
-  label: string
-}>
+export const NavPage = Schema.Struct({
+  route: DocsRoute,
+  label: Schema.String,
+})
+export type NavPage = typeof NavPage.Type
 
-const EXAMPLE_DETAIL_TAG_PREFIX = 'ExampleDetail:'
-
-const exampleDetailTag = (slug: string): string =>
-  EXAMPLE_DETAIL_TAG_PREFIX + slug
-
-/** Determines whether a nav page should be highlighted as active. Handles
- *  example detail pages whose `_tag` encodes the slug (e.g. `ExampleDetail:counter`). */
-export const isNavPageActive = (
-  routeTag: string,
-  maybeExampleSlug: Option.Option<string>,
-  pageTag: string,
-): boolean =>
-  pipe(
-    maybeExampleSlug,
-    Option.filter(() => pageTag.startsWith(EXAMPLE_DETAIL_TAG_PREFIX)),
-    Option.match({
-      onNone: () => routeTag === pageTag,
-      onSome: slug => pageTag === exampleDetailTag(slug),
-    }),
-  )
+export const isNavPageActive = (route: AppRoute, page: NavPage): boolean =>
+  Equal.equals(page.route, route)
 
 // DOCS SECTIONS
 
@@ -140,8 +28,7 @@ export type DocsSection = Readonly<{
 }>
 
 export const getStartedPage: NavPage = {
-  _tag: 'GetStarted',
-  href: getStartedRouter(),
+  route: AppRoute.GetStarted(),
   label: 'Get Started',
 }
 
@@ -152,13 +39,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
-          _tag: 'WhyFoldkit',
-          href: whyFoldkitRouter(),
+          route: AppRoute.WhyFoldkit(),
           label: 'Why Foldkit',
         },
         {
-          _tag: 'Roadmap',
-          href: roadmapRouter(),
+          route: AppRoute.Roadmap(),
           label: 'Roadmap',
         },
       ],
@@ -170,185 +55,151 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
-          _tag: 'CoreArchitecture',
-          href: coreArchitectureRouter(),
+          route: AppRoute.CoreArchitecture(),
           label: 'Architecture',
         },
         {
-          _tag: 'CoreCounterExample',
-          href: coreCounterExampleRouter(),
+          route: AppRoute.CoreCounterExample(),
           label: 'Counter Example',
         },
       ],
       [
         {
-          _tag: 'CoreModel',
-          href: coreModelRouter(),
+          route: AppRoute.CoreModel(),
           label: 'Model',
         },
         {
-          _tag: 'CoreMessages',
-          href: coreMessagesRouter(),
+          route: AppRoute.CoreMessages(),
           label: 'Messages',
         },
         {
-          _tag: 'CoreUpdate',
-          href: coreUpdateRouter(),
+          route: AppRoute.CoreUpdate(),
           label: 'Update',
         },
         {
-          _tag: 'CoreView',
-          href: coreViewRouter(),
+          route: AppRoute.CoreView(),
           label: 'View',
         },
       ],
       [
         {
-          _tag: 'CoreCommands',
-          href: coreCommandsRouter(),
+          route: AppRoute.CoreCommands(),
           label: 'Commands',
         },
         {
-          _tag: 'CoreSubscriptions',
-          href: coreSubscriptionsRouter(),
+          route: AppRoute.CoreSubscriptions(),
           label: 'Subscriptions',
         },
         {
-          _tag: 'CoreInitAndFlags',
-          href: coreInitAndFlagsRouter(),
+          route: AppRoute.CoreInitAndFlags(),
           label: 'Init & Flags',
         },
         {
-          _tag: 'CoreSubmodel',
-          href: coreSubmodelRouter(),
+          route: AppRoute.CoreSubmodel(),
           label: 'Submodel',
         },
         {
-          _tag: 'CoreRuntime',
-          href: coreRuntimeRouter(),
+          route: AppRoute.CoreRuntime(),
           label: 'Runtime',
         },
         {
-          _tag: 'CoreServerRendering',
-          href: coreServerRenderingRouter(),
+          route: AppRoute.CoreServerRendering(),
           label: 'Server Rendering',
         },
         {
-          _tag: 'CoreEmbedding',
-          href: coreEmbeddingRouter(),
+          route: AppRoute.CoreEmbedding(),
           label: 'Embedding',
         },
         {
-          _tag: 'RoutingAndNavigation',
-          href: routingAndNavigationRouter(),
+          route: AppRoute.RoutingAndNavigation(),
           label: 'Routing & Navigation',
         },
         {
-          _tag: 'CoreViewTransitions',
-          href: coreViewTransitionsRouter(),
+          route: AppRoute.CoreViewTransitions(),
           label: 'View Transitions',
         },
       ],
       [
         {
-          _tag: 'CoreMount',
-          href: coreMountRouter(),
+          route: AppRoute.CoreMount(),
           label: 'Mount',
         },
         {
-          _tag: 'CoreCustomElement',
-          href: coreCustomElementRouter(),
+          route: AppRoute.CoreCustomElement(),
           label: 'CustomElement',
         },
         {
-          _tag: 'CoreDom',
-          href: coreDomRouter(),
+          route: AppRoute.CoreDom(),
           label: 'Dom',
         },
         {
-          _tag: 'CoreRender',
-          href: coreRenderRouter(),
+          route: AppRoute.CoreRender(),
           label: 'Render',
         },
         {
-          _tag: 'CoreCanvas',
-          href: coreCanvasRouter(),
+          route: AppRoute.CoreCanvas(),
           label: 'Canvas',
         },
         {
-          _tag: 'CoreFile',
-          href: coreFileRouter(),
+          route: AppRoute.CoreFile(),
           label: 'File',
         },
         {
-          _tag: 'CoreHttp',
-          href: coreHttpRouter(),
+          route: AppRoute.CoreHttp(),
           label: 'Http',
         },
         {
-          _tag: 'CoreQuery',
-          href: coreQueryRouter(),
+          route: AppRoute.CoreQuery(),
           label: 'Query',
         },
         {
-          _tag: 'FieldValidation',
-          href: fieldValidationRouter(),
+          route: AppRoute.FieldValidation(),
           label: 'Field Validation',
         },
         {
-          _tag: 'AsyncData',
-          href: asyncDataRouter(),
+          route: AppRoute.AsyncData(),
           label: 'Async Data',
         },
         {
-          _tag: 'CoreMachine',
-          href: coreMachineRouter(),
+          route: AppRoute.CoreMachine(),
           label: 'Machine',
         },
       ],
       [
         {
-          _tag: 'CoreResources',
-          href: coreResourcesRouter(),
+          route: AppRoute.CoreResources(),
           label: 'Resources',
         },
         {
-          _tag: 'CoreManagedResources',
-          href: coreManagedResourcesRouter(),
+          route: AppRoute.CoreManagedResources(),
           label: 'Managed Resources',
         },
       ],
       [
         {
-          _tag: 'CoreCrashView',
-          href: coreCrashViewRouter(),
+          route: AppRoute.CoreCrashView(),
           label: 'Crash View',
         },
         {
-          _tag: 'CoreSlowWarnings',
-          href: coreSlowWarningsRouter(),
+          route: AppRoute.CoreSlowWarnings(),
           label: 'Slow Warnings',
         },
         {
-          _tag: 'CoreViewMemoization',
-          href: coreViewMemoizationRouter(),
+          route: AppRoute.CoreViewMemoization(),
           label: 'View Memoization',
         },
         {
-          _tag: 'CoreFreezeModel',
-          href: coreFreezeModelRouter(),
+          route: AppRoute.CoreFreezeModel(),
           label: 'Freeze Model',
         },
         {
-          _tag: 'CorePreserveScroll',
-          href: corePreserveScrollRouter(),
+          route: AppRoute.CorePreserveScroll(),
           label: 'Preserve Scroll',
         },
       ],
       [
         {
-          _tag: 'CoreDevTools',
-          href: coreDevToolsRouter(),
+          route: AppRoute.CoreDevTools(),
           label: 'DevTools',
         },
       ],
@@ -360,32 +211,27 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
-          _tag: 'ComingFromReact',
-          href: comingFromReactRouter(),
+          route: AppRoute.ComingFromReact(),
           label: 'Coming from React',
         },
         {
-          _tag: 'ReactComparison',
-          href: reactComparisonRouter(),
+          route: AppRoute.ReactComparison(),
           label: 'Foldkit vs React: Side by Side',
         },
         {
-          _tag: 'EffectAtomComparison',
-          href: effectAtomComparisonRouter(),
+          route: AppRoute.EffectAtomComparison(),
           label: 'Foldkit vs React + Effect Atom',
         },
       ],
       [
         {
-          _tag: 'ElmComparison',
-          href: elmComparisonRouter(),
+          route: AppRoute.ElmComparison(),
           label: 'Foldkit vs Elm: Side by Side',
         },
       ],
       [
         {
-          _tag: 'ComingFromTanStackQuery',
-          href: comingFromTanStackQueryRouter(),
+          route: AppRoute.ComingFromTanStackQuery(),
           label: 'Coming from TanStack Query',
         },
       ],
@@ -397,23 +243,19 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
-          _tag: 'PatternsAntiPatterns',
-          href: patternsAntiPatternsRouter(),
+          route: AppRoute.PatternsAntiPatterns(),
           label: 'Anti-patterns',
         },
         {
-          _tag: 'ProjectOrganization',
-          href: projectOrganizationRouter(),
+          route: AppRoute.ProjectOrganization(),
           label: 'Project Organization',
         },
         {
-          _tag: 'PatternsInformingSubmodels',
-          href: patternsInformingSubmodelsRouter(),
+          route: AppRoute.PatternsInformingSubmodels(),
           label: 'Informing Submodels',
         },
         {
-          _tag: 'PatternsSubscriptionOrganization',
-          href: patternsSubscriptionOrganizationRouter(),
+          route: AppRoute.PatternsSubscriptionOrganization(),
           label: 'Subscription Organization',
         },
       ],
@@ -425,8 +267,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
-          _tag: 'ToolingLinting',
-          href: toolingLintingRouter(),
+          route: AppRoute.ToolingLinting(),
           label: 'Oxlint Plugin',
         },
       ],
@@ -438,8 +279,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
-          _tag: 'Performance',
-          href: performanceRouter(),
+          route: AppRoute.Performance(),
           label: 'Performance',
         },
       ],
@@ -451,160 +291,129 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
-          _tag: 'UiOverview',
-          href: uiOverviewRouter(),
+          route: AppRoute.UiOverview(),
           label: 'Overview',
         },
         {
-          _tag: 'UiSelectionSubmodels',
-          href: uiSelectionSubmodelsRouter(),
+          route: AppRoute.UiSelectionSubmodels(),
           label: 'Selection Submodels',
         },
       ],
       [
         {
-          _tag: 'UiAnchor',
-          href: uiAnchorRouter(),
+          route: AppRoute.UiAnchor(),
           label: 'Anchor',
         },
         {
-          _tag: 'UiAnimation',
-          href: uiAnimationRouter(),
+          route: AppRoute.UiAnimation(),
           label: 'Animation',
         },
         {
-          _tag: 'UiButton',
-          href: uiButtonRouter(),
+          route: AppRoute.UiButton(),
           label: 'Button',
         },
         {
-          _tag: 'UiCalendar',
-          href: uiCalendarRouter(),
+          route: AppRoute.UiCalendar(),
           label: 'Calendar',
         },
         {
-          _tag: 'UiCheckbox',
-          href: uiCheckboxRouter(),
+          route: AppRoute.UiCheckbox(),
           label: 'Checkbox',
         },
         {
-          _tag: 'UiCombobox',
-          href: uiComboboxRouter(),
+          route: AppRoute.UiCombobox(),
           label: 'Combobox',
         },
         {
-          _tag: 'UiDatePicker',
-          href: uiDatePickerRouter(),
+          route: AppRoute.UiDatePicker(),
           label: 'Date Picker',
         },
         {
-          _tag: 'UiDialog',
-          href: uiDialogRouter(),
+          route: AppRoute.UiDialog(),
           label: 'Dialog',
         },
         {
-          _tag: 'UiDisclosure',
-          href: uiDisclosureRouter(),
+          route: AppRoute.UiDisclosure(),
           label: 'Disclosure',
         },
         {
-          _tag: 'UiDragAndDrop',
-          href: uiDragAndDropRouter(),
+          route: AppRoute.UiDragAndDrop(),
           label: 'Drag and Drop',
         },
         {
-          _tag: 'UiFieldset',
-          href: uiFieldsetRouter(),
+          route: AppRoute.UiFieldset(),
           label: 'Fieldset',
         },
         {
-          _tag: 'UiFileDrop',
-          href: uiFileDropRouter(),
+          route: AppRoute.UiFileDrop(),
           label: 'File Drop',
         },
         {
-          _tag: 'UiHoverIntent',
-          href: uiHoverIntentRouter(),
+          route: AppRoute.UiHoverIntent(),
           label: 'Hover Intent',
         },
         {
-          _tag: 'UiInput',
-          href: uiInputRouter(),
+          route: AppRoute.UiInput(),
           label: 'Input',
         },
         {
-          _tag: 'UiListbox',
-          href: uiListboxRouter(),
+          route: AppRoute.UiListbox(),
           label: 'Listbox',
         },
         {
-          _tag: 'UiMenu',
-          href: uiMenuRouter(),
+          route: AppRoute.UiMenu(),
           label: 'Menu',
         },
         {
-          _tag: 'UiMeter',
-          href: uiMeterRouter(),
+          route: AppRoute.UiMeter(),
           label: 'Meter',
         },
         {
-          _tag: 'UiNav',
-          href: uiNavRouter(),
+          route: AppRoute.UiNav(),
           label: 'Nav',
         },
         {
-          _tag: 'UiPopover',
-          href: uiPopoverRouter(),
+          route: AppRoute.UiPopover(),
           label: 'Popover',
         },
         {
-          _tag: 'UiProgress',
-          href: uiProgressRouter(),
+          route: AppRoute.UiProgress(),
           label: 'Progress',
         },
         {
-          _tag: 'UiRadioGroup',
-          href: uiRadioGroupRouter(),
+          route: AppRoute.UiRadioGroup(),
           label: 'Radio Group',
         },
         {
-          _tag: 'UiSelect',
-          href: uiSelectRouter(),
+          route: AppRoute.UiSelect(),
           label: 'Select',
         },
         {
-          _tag: 'UiSlider',
-          href: uiSliderRouter(),
+          route: AppRoute.UiSlider(),
           label: 'Slider',
         },
         {
-          _tag: 'UiSwitch',
-          href: uiSwitchRouter(),
+          route: AppRoute.UiSwitch(),
           label: 'Switch',
         },
         {
-          _tag: 'UiTabs',
-          href: uiTabsRouter(),
+          route: AppRoute.UiTabs(),
           label: 'Tabs',
         },
         {
-          _tag: 'UiTextarea',
-          href: uiTextareaRouter(),
+          route: AppRoute.UiTextarea(),
           label: 'Textarea',
         },
         {
-          _tag: 'UiToast',
-          href: uiToastRouter(),
+          route: AppRoute.UiToast(),
           label: 'Toast',
         },
         {
-          _tag: 'UiTooltip',
-          href: uiTooltipRouter(),
+          route: AppRoute.UiTooltip(),
           label: 'Tooltip',
         },
         {
-          _tag: 'UiVirtualList',
-          href: uiVirtualListRouter(),
+          route: AppRoute.UiVirtualList(),
           label: 'Virtual List',
         },
       ],
@@ -616,23 +425,19 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
-          _tag: 'AiOverview',
-          href: aiOverviewRouter(),
+          route: AppRoute.AiOverview(),
           label: 'Overview',
         },
         {
-          _tag: 'AiSkills',
-          href: aiSkillsRouter(),
+          route: AppRoute.AiSkills(),
           label: 'Skills',
         },
         {
-          _tag: 'AiMcp',
-          href: aiMcpRouter(),
+          route: AppRoute.AiMcp(),
           label: 'DevTools MCP',
         },
         {
-          _tag: 'ContentApi',
-          href: contentApiRouter(),
+          route: AppRoute.ContentApi(),
           label: 'Content API',
         },
       ],
@@ -644,18 +449,15 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
-          _tag: 'Testing',
-          href: testingRouter(),
+          route: AppRoute.Testing(),
           label: 'Overview',
         },
         {
-          _tag: 'TestingStory',
-          href: testingStoryRouter(),
+          route: AppRoute.TestingStory(),
           label: 'Story',
         },
         {
-          _tag: 'TestingScene',
-          href: testingSceneRouter(),
+          route: AppRoute.TestingScene(),
           label: 'Scene',
         },
       ],
@@ -667,23 +469,19 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
-          _tag: 'BestPracticesSideEffects',
-          href: bestPracticesSideEffectsRouter(),
+          route: AppRoute.BestPracticesSideEffects(),
           label: 'Side Effects & Purity',
         },
         {
-          _tag: 'BestPracticesMessages',
-          href: bestPracticesMessagesRouter(),
+          route: AppRoute.BestPracticesMessages(),
           label: 'Messages',
         },
         {
-          _tag: 'BestPracticesKeying',
-          href: bestPracticesKeyingRouter(),
+          route: AppRoute.BestPracticesKeying(),
           label: 'Keying',
         },
         {
-          _tag: 'BestPracticesImmutability',
-          href: bestPracticesImmutabilityRouter(),
+          route: AppRoute.BestPracticesImmutability(),
           label: 'Immutability',
         },
       ],
@@ -695,18 +493,15 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
-          _tag: 'Examples',
-          href: examplesRouter(),
+          route: AppRoute.Examples(),
           label: 'Overview',
         },
         ...Array.map(examples, example => ({
-          _tag: exampleDetailTag(example.slug),
-          href: exampleDetailRouter({ exampleSlug: example.slug }),
+          route: AppRoute.ExampleDetail({ exampleSlug: example.slug }),
           label: example.title,
         })),
         {
-          _tag: 'TypingTerminal',
-          href: typingTerminalRouter(),
+          route: AppRoute.TypingTerminal(),
           label: 'Typing Terminal',
         },
       ],
@@ -728,10 +523,10 @@ export type PageNeighbors = Readonly<{
   maybeNext: Option.Option<NavPage>
 }>
 
-export const pageNeighbors = (_tag: string): PageNeighbors =>
+export const pageNeighbors = (route: AppRoute): PageNeighbors =>
   pipe(
     allPages,
-    Array.findFirstIndex(page => page._tag === _tag),
+    Array.findFirstIndex(page => isNavPageActive(route, page)),
     Option.match({
       onNone: (): PageNeighbors => ({
         maybePrevious: Option.none(),
@@ -745,27 +540,25 @@ export const pageNeighbors = (_tag: string): PageNeighbors =>
   )
 
 export const findActiveSectionKey = (
-  routeTag: string,
-  maybeExampleSlug: Option.Option<string>,
+  route: AppRoute,
 ): Option.Option<GroupKey> => {
   // NOTE: ApiModule and Blog pages aren't in docsSections. Their groups are
   // rendered separately, so map them explicitly.
-  if (routeTag === 'ApiModule') {
+  if (AppRoute.guards.ApiModule(route)) {
     return Option.some('apiReference')
   }
 
-  if (routeTag === 'Blog' || routeTag === 'BlogPost') {
+  if (isBlogRoute(route)) {
     return Option.some('blog')
   }
+
   return pipe(
     docsSections,
     Array.findFirst(section =>
       pipe(
         section.pageGroups,
         Array.flatten,
-        Array.some(page =>
-          isNavPageActive(routeTag, maybeExampleSlug, page._tag),
-        ),
+        Array.some(page => isNavPageActive(route, page)),
       ),
     ),
     Option.map(section => section.key),
