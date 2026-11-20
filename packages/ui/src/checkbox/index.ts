@@ -61,10 +61,26 @@ export type ViewConfig<Message> = Readonly<{
   value?: string
 }>
 
-/** Returns the label element id, derived from the checkbox's base id. */
+/** Returns the label element id the checkbox's `aria-labelledby` points at,
+ *  derived from the checkbox's base id.
+ *
+ *  The primary path is to spread `CheckboxAttributes.label` onto your label
+ *  element in `toView`. This group already carries the id.
+ *  Use this helper when you need the id as a value outside that path.
+ *  For example: a Command that calls `getElementById`, an `aria-labelledby`
+ *  reference from another element, or a test.
+ *  Do not hand-roll the id string. */
 export const labelId = (id: string): string => `${id}-label`
 
-/** Returns the description element id, derived from the checkbox's base id. */
+/** Returns the description element id, derived from the checkbox's base id.
+ *
+ *  The primary path is to spread `CheckboxAttributes.description` onto your
+ *  description element in `toView`. This group already carries the id.
+ *  Use this helper when you need the id as a value outside that path.
+ *  For example: a Command that calls `getElementById`, an `aria-describedby`
+ *  reference from another element, or a test.
+ *  Set `ViewConfig.hasDescription` when you render the description.
+ *  Do not hand-roll the id string. */
 export const descriptionId = (id: string): string => `${id}-description`
 
 /** Renders an accessible checkbox as a stateless controlled component. The
