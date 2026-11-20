@@ -135,6 +135,41 @@ describe('Menu', () => {
         ),
       )
     })
+
+    it('leaves a character pressed with Control, Meta, or Alt to the page', () => {
+      const items = Scene.selector('#test-items')
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openModel()),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.keydown(items, 'd', { metaKey: true }),
+        Scene.expectIgnored(),
+        Scene.keydown(items, 'd', { ctrlKey: true }),
+        Scene.expectIgnored(),
+        Scene.keydown(items, 'd', { altKey: true }),
+        Scene.expectIgnored(),
+        Scene.expect(Scene.selector('#test-item-0')).toHaveAttr(
+          'data-active',
+          '',
+        ),
+        Scene.keydown(items, 'D', { shiftKey: true }),
+        Scene.expectHandled(),
+        Scene.expect(Scene.selector('#test-item-1')).toHaveAttr(
+          'data-active',
+          '',
+        ),
+        Scene.Command.resolve(
+          DelayClearSearch,
+          Message.CompletedDelayClearSearch({
+            version: STALE_CLEAR_SEARCH_VERSION,
+          }),
+        ),
+      )
+    })
   })
 
   describe('init', () => {
