@@ -27,6 +27,3 @@ export const injectedBuildId = foldkitBuildIdPlaceholder()
 export const buildIdOrInjected = (
   buildId: string | undefined,
 ): string | undefined => (buildId === undefined ? injectedBuildId : buildId)
-
-/** The attribute a hydratable render stamps the build id onto. */
-export const HYDRATION_BUILD_ATTRIBUTE = 'data-foldkit-build'

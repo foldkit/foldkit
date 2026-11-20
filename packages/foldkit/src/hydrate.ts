@@ -1,6 +1,5 @@
 import { Option } from 'effect'
 
-import { HYDRATION_BUILD_ATTRIBUTE } from './buildToken.js'
 import { controlledStatePropertyNames } from './controlledDomState.js'
 import {
   BOOLEAN_PROPERTIES,
@@ -10,6 +9,7 @@ import {
   serializedHtmlPropertyValue,
   serializedStylePropertyName,
 } from './domReflection.js'
+import { FOLDKIT_BUILD_ATTRIBUTE } from './hydrationMarker.js'
 import {
   HYDRATION_IDENTITY_ATTRIBUTE,
   HYDRATION_KEY_ATTRIBUTE,
@@ -1096,9 +1096,9 @@ export const __hydrateVNode = (
   // defense for a caller reaching the adoption step directly, and it never
   // matches an absent marker: `buildId` is required and non-empty, so a page
   // served before build ids existed cannot pass for one of this build's.
-  const servedBuild = hydrationRoot.getAttribute(HYDRATION_BUILD_ATTRIBUTE)
+  const servedBuild = hydrationRoot.getAttribute(FOLDKIT_BUILD_ATTRIBUTE)
   const isSameBuild = buildId !== '' && servedBuild === buildId
-  hydrationRoot.removeAttribute(HYDRATION_BUILD_ATTRIBUTE)
+  hydrationRoot.removeAttribute(FOLDKIT_BUILD_ATTRIBUTE)
 
   // The root is checked for logical identity the same way every other adopted
   // element is. A root whose key or view identity disagrees with the served one

@@ -1,3 +1,5 @@
+import { FOLDKIT_BUILD_ATTRIBUTE } from 'foldkit/experimental/server'
+
 import { expect, test } from '@playwright/test'
 
 test('renders the experimental API reference', async ({ page }) => {
@@ -26,7 +28,7 @@ test('renders the experimental API reference', async ({ page }) => {
 
 test('closes the hover-intent menu without navigating', async ({ page }) => {
   await page.goto('/ui/hover-intent', { waitUntil: 'networkidle' })
-  await expect(page.locator('[data-foldkit-build]')).toHaveCount(0)
+  await expect(page.locator(`[${FOLDKIT_BUILD_ATTRIBUTE}]`)).toHaveCount(0)
 
   const trigger = page.locator('#hover-intent-menu-trigger')
   const panel = page.locator('#hover-intent-menu-panel')
@@ -42,7 +44,7 @@ test('closes the hover-intent menu without navigating', async ({ page }) => {
 test('names the mobile menu and moves focus into it', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 })
   await page.goto('/ui/dialog')
-  await expect(page.locator('[data-foldkit-build]')).toHaveCount(0)
+  await expect(page.locator(`[${FOLDKIT_BUILD_ATTRIBUTE}]`)).toHaveCount(0)
 
   const trigger = page.getByRole('button', { name: 'Toggle menu' })
   await trigger.click()
@@ -88,7 +90,7 @@ test('selects an item from the combobox', async ({ page }) => {
 
 test('opens search from the landing page', async ({ page }) => {
   await page.goto('/', { waitUntil: 'networkidle' })
-  await expect(page.locator('[data-foldkit-build]')).toHaveCount(0)
+  await expect(page.locator(`[${FOLDKIT_BUILD_ATTRIBUTE}]`)).toHaveCount(0)
 
   const dialog = page.locator('#search-dialog')
 
@@ -109,7 +111,7 @@ test('opens search from the landing page below the wide trigger', async ({
 }) => {
   await page.setViewportSize({ width: 768, height: 900 })
   await page.goto('/', { waitUntil: 'networkidle' })
-  await expect(page.locator('[data-foldkit-build]')).toHaveCount(0)
+  await expect(page.locator(`[${FOLDKIT_BUILD_ATTRIBUTE}]`)).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Search documentation' }).click()
 

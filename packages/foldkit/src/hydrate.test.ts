@@ -16,6 +16,7 @@ import {
   setRuntime,
 } from './html/runtimeSingleton.js'
 import { __elementSignature, __hydrateVNode } from './hydrate.js'
+import { FOLDKIT_BUILD_ATTRIBUTE } from './hydrationMarker.js'
 import { defineMessageUnion } from './message/index.js'
 import { type VNode, h as snabbdomH, toVNode } from './snabbdom/index.js'
 import { patch } from './vdom.js'
@@ -66,7 +67,7 @@ describe('__hydrateVNode', () => {
     if (root === null) {
       throw new Error('server markup did not produce a root element')
     }
-    root.setAttribute('data-foldkit-build', BUILD_ID)
+    root.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, BUILD_ID)
     return root
   }
 
@@ -403,7 +404,7 @@ describe('__hydrateVNode', () => {
 
     const root = mountServerHtml(serializeHydratable(serverRoot))
     // The served page came from a build that stamped its own token.
-    root.setAttribute('data-foldkit-build', 'build-one')
+    root.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, 'build-one')
     const servedInput = root.querySelector('input')
     if (!(servedInput instanceof HTMLInputElement)) {
       throw new Error('expected a served input')
@@ -478,7 +479,7 @@ describe('__hydrateVNode', () => {
     // would survive the very check that rejected it, carrying its DOM state
     // with it.
     const root = document.createElement('form')
-    root.setAttribute('data-foldkit-build', 'build-one')
+    root.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, 'build-one')
     const servedInput = document.createElement('input')
     servedInput.setAttribute('type', 'text')
     servedInput.setAttribute('name', 'email')
@@ -511,7 +512,7 @@ describe('__hydrateVNode', () => {
     // the detached root would skip it, leaving a rebuilt root uninitialized.
     const inserted: globalThis.Array<string> = []
     const root = document.createElement('div')
-    root.setAttribute('data-foldkit-build', 'build-one')
+    root.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, 'build-one')
 
     const clientRoot = buildView(() => h.div([], ['fresh']))
     if (clientRoot === null) {
@@ -536,7 +537,7 @@ describe('__hydrateVNode', () => {
     const root = mountServerHtml(
       serializeHydratable(buildView(() => h.main([], [h.span([], ['hi'])]))),
     )
-    root.setAttribute('data-foldkit-build', 'build-one')
+    root.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, 'build-one')
     const servedSpan = root.querySelector('span')
 
     const patchedVNode = buildView(() =>
@@ -550,7 +551,7 @@ describe('__hydrateVNode', () => {
 
     expect(patchedVNode.elm).toBe(root)
     expect(root.querySelector('span')).toBe(servedSpan)
-    expect(root.getAttribute('data-foldkit-build')).toBeNull()
+    expect(root.getAttribute(FOLDKIT_BUILD_ATTRIBUTE)).toBeNull()
   })
 
   it('rebuilds a stale field rather than carrying its value into a changed view', () => {
@@ -1311,7 +1312,7 @@ describe('__hydrateVNode', () => {
   it('does not adopt an SVG element whose tag casing differs', () => {
     const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
     const svg = document.createElementNS(SVG_NAMESPACE, 'svg')
-    svg.setAttribute('data-foldkit-build', BUILD_ID)
+    svg.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, BUILD_ID)
     const uppercaseRect = document.createElementNS(SVG_NAMESPACE, 'RECT')
     svg.appendChild(uppercaseRect)
     host.appendChild(svg)
@@ -1326,7 +1327,7 @@ describe('__hydrateVNode', () => {
   it('adopts a MathML subtree by namespace', () => {
     const MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML'
     const math = document.createElementNS(MATHML_NAMESPACE, 'math')
-    math.setAttribute('data-foldkit-build', BUILD_ID)
+    math.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, BUILD_ID)
     const mi = document.createElementNS(MATHML_NAMESPACE, 'mi')
     mi.textContent = 'x'
     math.appendChild(mi)
@@ -1343,7 +1344,7 @@ describe('__hydrateVNode', () => {
   it('does not adopt a MathML element whose tag casing differs', () => {
     const MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML'
     const uppercaseMath = document.createElementNS(MATHML_NAMESPACE, 'MATH')
-    uppercaseMath.setAttribute('data-foldkit-build', BUILD_ID)
+    uppercaseMath.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, BUILD_ID)
     host.appendChild(uppercaseMath)
 
     const hydrated = buildView(() => hydrateVNode(uppercaseMath, h.math([])))
@@ -1358,7 +1359,7 @@ describe('__hydrateVNode', () => {
   it('adopts an mglyph child inside a MathML text integration point', () => {
     const MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML'
     const math = document.createElementNS(MATHML_NAMESPACE, 'math')
-    math.setAttribute('data-foldkit-build', BUILD_ID)
+    math.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, BUILD_ID)
     const mi = document.createElementNS(MATHML_NAMESPACE, 'mi')
     const mglyph = document.createElementNS(MATHML_NAMESPACE, 'mglyph')
     mi.appendChild(mglyph)
@@ -1376,7 +1377,7 @@ describe('__hydrateVNode', () => {
     const MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML'
     const HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml'
     const math = document.createElementNS(MATHML_NAMESPACE, 'math')
-    math.setAttribute('data-foldkit-build', BUILD_ID)
+    math.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, BUILD_ID)
     const annotationXml = document.createElementNS(
       MATHML_NAMESPACE,
       'annotation-xml',
@@ -1426,7 +1427,7 @@ describe('__hydrateVNode', () => {
     // The element upgrades and runs connectedCallback when it connects, before
     // hydration adopts it.
     const element = document.createElement('x-owned')
-    element.setAttribute('data-foldkit-build', BUILD_ID)
+    element.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, BUILD_ID)
     host.appendChild(element)
     expect(element.getAttribute('role')).toBe('button')
     expect(element.querySelector('span')?.textContent).toBe('owned')
@@ -1457,7 +1458,7 @@ describe('__hydrateVNode', () => {
     const element = document.createElement('x-styled')
     element.setAttribute('class', 'client')
     element.setAttribute('style', 'color: blue')
-    element.setAttribute('data-foldkit-build', BUILD_ID)
+    element.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, BUILD_ID)
     host.appendChild(element)
     expect(element.classList.contains('owned')).toBe(true)
     expect(element.style.getPropertyValue('background-color')).toBe('red')
@@ -1485,7 +1486,7 @@ describe('__hydrateVNode', () => {
       customElements.define('x-hydrated-listener', XHydratedListener)
     }
     const element = document.createElement('x-hydrated-listener')
-    element.setAttribute('data-foldkit-build', BUILD_ID)
+    element.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, BUILD_ID)
     host.appendChild(element)
     let clicks = 0
     const view = snabbdomH('x-hydrated-listener', {
@@ -1526,7 +1527,7 @@ describe('__hydrateVNode', () => {
     const element = document.createElement('x-observed-id')
     element.id = 'same'
     element.setAttribute('data-foldkit-app', 'app')
-    element.setAttribute('data-foldkit-build', BUILD_ID)
+    element.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, BUILD_ID)
     host.appendChild(element)
     const view = () => customElement<Message>()('x-observed-id')([h.Id('same')])
 
@@ -1830,7 +1831,7 @@ describe('__hydrateVNode', () => {
     }
 
     const root = document.createElement('div')
-    root.setAttribute('data-foldkit-build', BUILD_ID)
+    root.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, BUILD_ID)
     root.setAttribute('title', 'parent-owned')
     host.appendChild(root)
     const earlierSibling = document.createElement('div')
@@ -2621,7 +2622,7 @@ describe('__hydrateVNode', () => {
     // "\nfirst". (happy-dom's innerHTML parser does not strip it, so the DOM is
     // built directly to match what the render walk's parser and a browser see.)
     const root = document.createElement('pre')
-    root.setAttribute('data-foldkit-build', BUILD_ID)
+    root.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, BUILD_ID)
     root.textContent = '\nfirst'
     host.appendChild(root)
 
