@@ -4,17 +4,84 @@ import { describe, it } from '@effect/vitest'
 
 import {
   ROOT_BOUNDARY,
+  beginLazyTracking,
   beginRender,
   boundaryMappers,
   composeBoundary,
   createBoundaryRegistry,
   deregisterBoundaryWrap,
+  endLazyTracking,
   getOrCreateBoundaryDispatch,
   registerBoundaryWrap,
   resolveBoundaryDispatchThunk,
   resolveMountBoundaryDispatch,
+  restoreBoundaryWrapsForLazyHit,
 } from './boundary.js'
 import type { DispatchSync } from './runtimeSingleton.js'
+describe('boundary callsites', () => {
+  it('does not format Error stacks while registering unique boundaries', () => {
+    const originalDescriptor = Object.getOwnPropertyDescriptor(
+      Error,
+      'prepareStackTrace',
+    )
+    let formattedStackCount = 0
+    Object.defineProperty(Error, 'prepareStackTrace', {
+      configurable: true,
+      value: (_error: Error, frames: Array<{ toString: () => string }>) => {
+        formattedStackCount += 1
+        return frames.map(frame => frame.toString()).join('\n')
+      },
+    })
+
+    try {
+      const registry = createBoundaryRegistry()
+      const dispatch: DispatchSync = () => {}
+      for (let index = 0; index < 200; index += 1) {
+        registerBoundaryWrap(
+          registry,
+          `boundary-${index}`,
+          { toParentMessage: message => message },
+          dispatch,
+        )
+      }
+    } finally {
+      if (originalDescriptor === undefined) {
+        Reflect.deleteProperty(Error, 'prepareStackTrace')
+      } else {
+        Object.defineProperty(Error, 'prepareStackTrace', originalDescriptor)
+      }
+    }
+
+    expect(formattedStackCount).toBe(0)
+  })
+
+  it('preserves the callsite when a lazy cache hit restores a boundary', () => {
+    const registry = createBoundaryRegistry()
+    const dispatch: DispatchSync = () => {}
+    const trackedBoundaries = beginLazyTracking(registry)
+    registerBoundaryWrap(
+      registry,
+      'cached-child',
+      { toParentMessage: message => message },
+      dispatch,
+    )
+    endLazyTracking(registry)
+
+    beginRender(registry)
+    restoreBoundaryWrapsForLazyHit(registry, trackedBoundaries)
+
+    expect(() =>
+      registerBoundaryWrap(
+        registry,
+        'cached-child',
+        { toParentMessage: message => message },
+        dispatch,
+      ),
+    ).toThrow(
+      /First registration:.*boundary\.test\.ts:\d+:\d+\n  Second registration:.*boundary\.test\.ts:\d+:\d+/s,
+    )
+  })
+})
 
 describe('boundary chain traversal', () => {
   it('applies every ancestor from inner to outer for each routing mode', () => {
