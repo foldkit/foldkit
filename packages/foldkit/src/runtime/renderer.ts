@@ -16,7 +16,9 @@ import {
 } from '../html/index.js'
 import { __hydrateVNode } from '../hydrate.js'
 import { FOLDKIT_APP_ATTRIBUTE } from '../hydrationMarker.js'
+import { observeCompositions } from '../imeComposition.js'
 import { MountRuntime, MountTracker } from '../mount/index.js'
+import { restoreRenderedValue } from '../propsModule.js'
 import type { CommitNotifier } from '../render/commit.js'
 import {
   VNode,
@@ -94,6 +96,7 @@ export type Renderer<Model, Message> = Readonly<{
     maybeMessage: Option.Option<Message>,
   ) => Effect.Effect<void>
   setLastDirtyMessage: (message: Message) => void
+  restoreEditedElements: () => void
   scheduleRenderFrame: () => void
   skipPendingViewTransition: () => void
   devToolsRenderBridge: DevToolsRenderBridge
@@ -371,7 +374,82 @@ export const makeRenderer = <Model, Message>({
       maybeLastDirtyMessage = Option.some(message)
     }
 
+    // NOTE: an `input` or `change` event leaves the element holding the
+    // user's edit. When the Messages its handlers dispatch leave the Model
+    // unchanged, no render follows, and the element would keep an edit the
+    // Model refused. The elements such an event edited are therefore
+    // returned to their rendered `value` as soon as the DOM on screen is
+    // the view of the live Model: at once when `update` refused the edit,
+    // and otherwise after the render the edit caused.
+    const editedElements = new Set<Element>()
+    let maybeEditEvent: Event | null = null
+
+    const observeEditEvent = (event: Event): void => {
+      maybeEditEvent = event
+    }
+
+    const ownerDocument = container.ownerDocument
+    observeCompositions(ownerDocument)
+    ownerDocument.addEventListener('input', observeEditEvent, true)
+    ownerDocument.addEventListener('change', observeEditEvent, true)
+
+    const recordEditedElement = (): void => {
+      if (maybeEditEvent === null) {
+        return
+      }
+      // NOTE: an event that has finished dispatching no longer has a phase.
+      if (maybeEditEvent.eventPhase === Event.NONE) {
+        maybeEditEvent = null
+        return
+      }
+      const target = maybeEditEvent.composedPath()[0] ?? maybeEditEvent.target
+      if (target instanceof Element) {
+        editedElements.add(target)
+      }
+    }
+
+    // NOTE: a deferred drain means queued Messages can still change the
+    // Model, so the edited elements wait for it the way a render frame does.
+    const isScreenShowingLiveModel = (): boolean =>
+      lastRenderedModel === readLiveModel() &&
+      readViewState() === 'Live' &&
+      !isAnyMessageDeferred() &&
+      !status.isRenderingFrame &&
+      !status.isRuntimeDisposed &&
+      !status.isCrashed
+
+    const restoreEditedElements = (): void => {
+      if (editedElements.size === 0 || !isScreenShowingLiveModel()) {
+        return
+      }
+      for (const element of editedElements) {
+        // NOTE: an element still composing stays recorded, and is restored
+        // when its composition ends.
+        if (restoreRenderedValue(element)) {
+          editedElements.delete(element)
+        }
+      }
+    }
+
+    // NOTE: registered in the bubble phase, so the listener that records the
+    // end of the composition, which captures, has already run.
+    ownerDocument.addEventListener('compositionend', restoreEditedElements)
+
+    yield* Effect.addFinalizer(() =>
+      Effect.sync(() => {
+        ownerDocument.removeEventListener('input', observeEditEvent, true)
+        ownerDocument.removeEventListener('change', observeEditEvent, true)
+        ownerDocument.removeEventListener(
+          'compositionend',
+          restoreEditedElements,
+        )
+        editedElements.clear()
+        maybeEditEvent = null
+      }),
+    )
+
     const dispatchSync = (message: unknown): void => {
+      recordEditedElement()
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       enqueueMessage(message as Message)
     }
@@ -614,6 +692,7 @@ export const makeRenderer = <Model, Message>({
       // frame held the stack; they process now, after the patch has
       // committed and the frame's Mount events are attributed.
       drainPendingMessages()
+      restoreEditedElements()
       // NOTE: last, so a waiter resumed by the commit observes the same
       // DOM and the same processed-Message ordering it saw when
       // `afterCommit` counted frames.
@@ -893,6 +972,7 @@ export const makeRenderer = <Model, Message>({
       crashWith,
       render,
       setLastDirtyMessage,
+      restoreEditedElements,
       scheduleRenderFrame,
       skipPendingViewTransition,
       devToolsRenderBridge,

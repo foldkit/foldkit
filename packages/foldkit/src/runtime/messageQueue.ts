@@ -30,6 +30,7 @@ export const makeMessageQueue = <Message>({
   status,
   processMessage,
   crashWith,
+  onDrainFinished,
 }: Readonly<{
   status: RuntimeStatus
   processMessage: (message: Message) => void
@@ -37,6 +38,7 @@ export const makeMessageQueue = <Message>({
     cause: Cause.Cause<never>,
     maybeMessage: Option.Option<Message>,
   ) => Effect.Effect<void>
+  onDrainFinished: () => void
 }>): Effect.Effect<MessageQueue<Message>, never, Scope.Scope> =>
   Effect.gen(function* () {
     let pendingMessages: Array<Message> = []
@@ -155,6 +157,7 @@ export const makeMessageQueue = <Message>({
         syncWorkMsSinceYield += drainEndedAt - drainStartedAt
         lastDrainEndedAt = drainEndedAt
         isProcessingMessages = false
+        onDrainFinished()
       }
     }
 
@@ -186,6 +189,7 @@ export const makeMessageQueue = <Message>({
         syncWorkMsSinceYield += drainEndedAt - drainStartedAt
         lastDrainEndedAt = drainEndedAt
         isProcessingMessages = false
+        onDrainFinished()
       }
     }
 

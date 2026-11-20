@@ -8,6 +8,7 @@ import {
   htmlAttributeValue,
   reflectedAttributeName,
 } from './domReflection.js'
+import { isComposingText } from './imeComposition.js'
 import { writeNativeInnerHtml } from './nativeInnerHtml.js'
 import {
   hasTrustedInnerHtml,
@@ -74,6 +75,31 @@ const resetProperty = (element: object, name: string, value: unknown): void => {
   } else if (typeof value === 'number') {
     writeProperty(element, name, 0)
   }
+}
+
+// NOTE: the `value` each element was last rendered with, so the element can
+// be returned to it between renders without finding its vnode.
+const renderedValues = new WeakMap<Element, unknown>()
+
+/** Returns an element to the `value` it was last rendered with, and reports
+ *  whether it is now in step. An element rendered without `value` is left
+ *  alone. Text an input method is composing is left in place, because writing
+ *  `value` ends the composition, and the element is reported out of step.
+ *
+ * @internal
+ */
+export const restoreRenderedValue = (element: Element): boolean => {
+  if (!renderedValues.has(element)) {
+    return true
+  }
+  if (isComposingText(element)) {
+    return false
+  }
+  const value = renderedValues.get(element)
+  if (Reflect.get(element, 'value') !== value) {
+    writeProperty(element, 'value', value)
+  }
+  return true
 }
 
 /** A props module that extends Snabbdom's built-in module with cleanup of
@@ -153,6 +179,9 @@ function updateProps(
     const old = oldProps[key]
     const isOwnershipChanged =
       isClientOnlyProperty(oldProps, key) !== isClientOnlyProperty(props, key)
+    if (key === 'value' && elm instanceof Element && old !== cur) {
+      renderedValues.set(elm, cur)
+    }
     if (
       (old !== cur || isOwnershipChanged) &&
       (key !== 'value' || elm[key] !== cur)
@@ -177,6 +206,9 @@ function updateProps(
   for (const key of Object.keys(oldProps)) {
     if (!Object.hasOwn(props, key)) {
       const old = oldProps[key]
+      if (key === 'value' && elm instanceof Element) {
+        renderedValues.delete(elm)
+      }
       if (
         key === 'innerHTML' &&
         elm instanceof Element &&
