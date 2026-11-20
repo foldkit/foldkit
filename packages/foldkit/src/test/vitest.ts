@@ -1,5 +1,6 @@
 import { expect } from 'vitest'
 
+import { __setModelPreservationHotContext } from '../runtime/modelPreservationBridge.js'
 import { sceneMatchers } from './matchers.js'
 
 declare module 'vitest' {
@@ -24,8 +25,9 @@ declare module 'vitest' {
   }
 }
 
-/** Registers Foldkit's Scene matchers with Vitest's `expect`.
- *  Call once from your Vitest setup file:
+/** Registers Foldkit's Scene matchers with Vitest's `expect` and skips HMR
+ *  Model restoration so Runtime startup does not wait for a Vite plugin response.
+ *  Safe to call more than once. Call from your Vitest setup file:
  *
  *  ```ts
  *  // vitest-setup.ts
@@ -36,5 +38,6 @@ declare module 'vitest' {
  *  Importing this module also augments `Assertion<R, T>` with the Scene
  *  matcher types — no manual `declare module 'vitest'` block needed. */
 export const setup = (): void => {
+  __setModelPreservationHotContext(undefined)
   expect.extend(sceneMatchers)
 }

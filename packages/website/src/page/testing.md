@@ -27,6 +27,10 @@ Name each file for the boundary it tests:
 
 The names stay accurate whether update and view live together or in separate files. See [Project Organization](/patterns/project-organization) for the full layout.
 
+## Vitest setup
+
+Call `setup()` from `foldkit/test/vitest` in your Vitest setup file. It registers Scene matchers and skips HMR Model restoration. `Runtime.embed` starts without waiting up to 500 ms for a Vite plugin response. Calling `setup()` more than once is safe.
+
 ## Story
 
 `story` starts from a Model, sends Messages through update, and keeps Commands as data until the test supplies their result Messages. See the [Story](/testing/story) page for the full API.

@@ -1,4 +1,4 @@
-import { Effect, Exit, Function, Schema, pipe } from 'effect'
+import { Effect, Exit, Function, Option, Schema, pipe } from 'effect'
 
 import {
   PreserveModelMessage,
@@ -26,6 +26,24 @@ export const preserveModel = (
   }
 }
 
+type ModelPreservationHotContext = Readonly<{
+  on: (event: string, handler: (message: unknown) => void) => void
+  off: (event: string, handler: (message: unknown) => void) => void
+  send: (event: string, message: unknown) => void
+}>
+
+let maybeHotContextOverride = Option.none<
+  ModelPreservationHotContext | undefined
+>()
+
+/** Overrides the Model restoration transport for tests. Passing `undefined`
+ *  resolves without a preserved Model or an HMR request. Internal, test-only. */
+export const __setModelPreservationHotContext = (
+  hot: ModelPreservationHotContext | undefined,
+): void => {
+  maybeHotContextOverride = Option.some(hot)
+}
+
 const PLUGIN_RESPONSE_TIMEOUT_MS = 500
 
 // NOTE: asks @foldkit/vite-plugin for a model preserved across the last
@@ -35,7 +53,7 @@ const PLUGIN_RESPONSE_TIMEOUT_MS = 500
 export const resolvePreservedModel = (
   runtimeId: string,
 ): Effect.Effect<unknown> => {
-  const hot = import.meta.hot
+  const hot = Option.getOrElse(maybeHotContextOverride, () => import.meta.hot)
   if (!hot) {
     return Effect.succeed(undefined)
   }
