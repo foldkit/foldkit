@@ -152,14 +152,16 @@ type ViewMessageOf<View extends AnySubmodelView> = View extends {
  *    LEVEL of `viewInputs` (slot callbacks like `toView`) are
  *    auto-wrapped to execute in the parent's boundary so handlers the
  *    consumer builds inside them dispatch through the parent's wrapping
- *    chain. Function values nested below the top level (e.g.
- *    `viewInputs: { config: { onSubmit } }`) throw at view-build time
- *    with a path-based error like `viewInputs.config.onSubmit`. The
+ *    chain. In development, function values nested below the top level
+ *    (e.g. `viewInputs: { config: { onSubmit } }`) throw at view-build
+ *    time with a path-based error like `viewInputs.config.onSubmit`. The
  *    check is runtime-only (TypeScript cannot distinguish a
  *    user-declared nested callback from a data value whose prototype
  *    carries methods), so a misuse compiles cleanly and surfaces the
- *    first time the boundary renders. Keep slot callbacks at the top
- *    level of `viewInputs`.
+ *    first time the boundary renders in development. Production builds
+ *    skip the check, so in production a nested function's handlers
+ *    dispatch through the child's boundary instead of the parent's, with
+ *    no error. Keep slot callbacks at the top level of `viewInputs`.
  *  - `toParentMessage`: function that lifts a child message into the
  *    current boundary's Message type. The argument is typed as the
  *    child's Message via the view's brand, and the return is typed as
@@ -202,7 +204,9 @@ const isPlainObject = (
  *  would silently capture the child's boundary and dispatch through
  *  the child's wrapping chain, which is almost certainly not what the
  *  consumer meant. Failing loud at view-build time is cheaper than a
- *  confused bug report from a misrouted Message. */
+ *  confused bug report from a misrouted Message. Dev-only: the caller
+ *  runs the walk behind `import.meta.hot`, so it tree-shakes out of
+ *  production builds. */
 const assertNoNestedFunctions = (
   viewInputs: Readonly<Record<string, unknown>>,
 ): void => {
@@ -260,7 +264,9 @@ const wrapViewInputsForOuterBoundary = <ViewInputs>(
   if (!isPlainObject(viewInputs)) {
     return viewInputs
   }
-  assertNoNestedFunctions(viewInputs)
+  if (import.meta.hot) {
+    assertNoNestedFunctions(viewInputs)
+  }
   const wrapped: Record<string, unknown> = {}
   for (const key of Object.keys(viewInputs)) {
     const value = viewInputs[key]

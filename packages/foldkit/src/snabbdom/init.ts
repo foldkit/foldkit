@@ -107,12 +107,8 @@ export const __overrideDuplicateKeyWarning = (
   duplicateKeyWarningOverride = isActive
 }
 
-// NOTE: `import.meta` is read through a structural cast rather than the
-// vite/client `ImportMeta` augmentation so repo-internal programs that
-// typecheck this source without vite types (internal/lustre-benchmark) still
-// compile. The emitted JS is a plain `import.meta.hot` access either way.
 const isDuplicateKeyWarningActive = (): boolean =>
-  duplicateKeyWarningOverride ?? !!(import.meta as { hot?: unknown }).hot
+  duplicateKeyWarningOverride ?? !!import.meta.hot
 
 export function init(
   modules: Array<Partial<Module>>,
