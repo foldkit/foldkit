@@ -40,6 +40,8 @@ Mount args are captured at mount, not refreshed across renders. A changed `ancho
 
 `portalToContainingRoot` is the same relocation as a standalone function, for the elements `anchorSetup` does not touch. For a click-outside backdrop, use `portalBackdrop` instead, described below. Popover, Listbox, Menu, and Combobox each portal their backdrop through a second Mount. Give yours its own `Mount.define`, since [one element takes one Mount](/core/mount).
 
+A Mount on an element inside the panel runs before the panel is portaled. Say a list inside a Popover panel has a Mount that scrolls it to the selected row. That Mount runs while the panel is still where the view rendered it, and `anchorSetup` moves the panel afterwards. A browser resets scroll offsets inside an element that moves, so `anchorSetup`, `portalToContainingRoot`, and `portalBackdrop` restore them after the move and the list stays on its row. A Mount that measures position is different. It reads the panel before Anchor has placed it, so defer that measurement by a frame.
+
 ### The Shared Portal Root
 
 The portal root is a shared `foldkit-portal-root` div in the containing root. The containing root is the shadow root when the app is mounted inside one, and `document.body` otherwise, so a portaled panel keeps that root's scoped styles. The portal root div is prepended rather than appended, which keeps component wrappers painting above a backdrop and leaves click-outside detection working. The div is removed once nothing is portaled into it, so the next open creates a fresh root.
