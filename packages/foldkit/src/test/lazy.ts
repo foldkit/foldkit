@@ -64,7 +64,10 @@ const formatMiss = ({ slotId, key, reason }: LazyMiss): string =>
     ? `  slot ${slotId}: ${formatReason(reason)}`
     : `  slot ${slotId}, key ${formatKey(key)}: ${formatReason(reason)}`
 
-const formatFailure = (misses: ReadonlyArray<LazyMiss>): string => {
+const formatFailure = (
+  misses: ReadonlyArray<LazyMiss>,
+  modelLabel: string,
+): string => {
   const missCount =
     misses.length === 1
       ? '1 lazy cache miss'
@@ -77,7 +80,7 @@ const formatFailure = (misses: ReadonlyArray<LazyMiss>): string => {
   )
 
   return [
-    `${missCount} on the second render with the same Model:`,
+    `${missCount} on the second render with ${modelLabel}:`,
     '',
     ...Array.map(misses, formatMiss),
     '',
@@ -103,12 +106,13 @@ const toMisses = (
   return misses
 }
 
-/** Checks lazy cache reuse by rendering `view` twice with the same `model`.
- *  Throws if a lazy call misses its cache on the second render. The error
- *  identifies each slot, includes the key for keyed calls, and explains the
- *  miss. `ArgumentsChanged` also lists the changed argument indices. Slot
- *  numbers identify lazy instances in the order they are first called on
- *  the second render.
+/** Checks lazy cache reuse by rendering `view` with `model`, then `nextModel`.
+ *  When `nextModel` is omitted, both renders use `model`. Throws if a lazy
+ *  call misses its cache on the second render, including when an argument
+ *  intentionally changes. The error identifies each slot, includes the key
+ *  for keyed calls, and explains the miss. `ArgumentsChanged` also lists the
+ *  changed argument indices. Slot numbers identify lazy instances in the
+ *  order they are first called on the second render.
  *
  *  Throws when the second render makes no lazy calls. Supply a Model that
  *  renders the memoized content to test. Check states that render different
@@ -127,27 +131,31 @@ export const expectAllReused = <Model, Message>(
   config: Readonly<{
     view: (model: Model, h: HtmlBuilder<Message>) => Html | Document
     model: Model
+    nextModel?: Model
   }>,
 ): void => {
-  const { view, model } = config
+  const { view, model, nextModel = model } = config
   const registry = createHtmlBoundaryRegistry()
-  const render = (): void => {
+  const render = (renderModel: Model): void => {
     beginHtmlRender(registry)
     setHtmlRuntime(noOpDispatch.dispatchSync, lazyContext, registry)
 
     try {
-      view(model, htmlBuilderFor<Message>())
+      view(renderModel, htmlBuilderFor<Message>())
     } finally {
       clearHtmlRuntime()
     }
   }
 
-  render()
+  render(model)
 
   const resolutions: Array<LazyResolution> = []
-  observeLazyResolutions(resolution => {
-    resolutions.push(resolution)
-  }, render)
+  observeLazyResolutions(
+    resolution => {
+      resolutions.push(resolution)
+    },
+    () => render(nextModel),
+  )
 
   if (Array.isArrayEmpty(resolutions)) {
     throw new Error(
@@ -159,6 +167,9 @@ export const expectAllReused = <Model, Message>(
   const misses = toMisses(resolutions)
 
   if (Array.isReadonlyArrayNonEmpty(misses)) {
-    throw new Error(formatFailure(misses))
+    const modelLabel =
+      config.nextModel === undefined ? 'the same Model' : 'nextModel'
+
+    throw new Error(formatFailure(misses, modelLabel))
   }
 }
