@@ -3,10 +3,9 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { Url } from '../url/index.js'
+import { Url, fromString } from '../url/index.js'
 import { defineRouteUnion } from './index.js'
 import {
-  __isSingleSegment,
   int,
   literal,
   mapTo,
@@ -205,20 +204,6 @@ describe('schemaSegment', () => {
       expect(router({ userId: parsed.userId })).toBe('/users/abc')
     }),
   )
-
-  it('treats a value that is exactly one path segment as single', () => {
-    expect(__isSingleSegment('abc')).toBe(true)
-    expect(__isSingleSegment('Horizontal')).toBe(true)
-    expect(__isSingleSegment('a b')).toBe(true)
-  })
-
-  it('rejects an encoded value that would not survive the path round-trip', () => {
-    expect(__isSingleSegment('a/b')).toBe(false)
-    expect(__isSingleSegment('')).toBe(false)
-    expect(__isSingleSegment('a/')).toBe(false)
-    expect(__isSingleSegment('/a')).toBe(false)
-    expect(__isSingleSegment('a//b')).toBe(false)
-  })
 })
 
 describe('root', () => {
@@ -699,6 +684,125 @@ describe('parseUrlWithFallback', () => {
       AppRoute.NotFound,
     )(makeUrl('/unknown'))
     expect(result).toStrictEqual({ _tag: 'NotFound', path: '/unknown' })
+  })
+})
+
+describe('path segment encoding', () => {
+  const AccountId = Schema.String.pipe(Schema.brand('AccountId'))
+
+  const AppRoute = defineRouteUnion({
+    User: { id: Schema.String },
+    Account: { accountId: AccountId },
+    Cafe: {},
+    NotFound: { path: Schema.String },
+  })
+
+  const userRouter = pipe(
+    literal('users'),
+    slash(string('id')),
+    mapTo(AppRoute.User),
+  )
+  const accountRouter = pipe(
+    literal('accounts'),
+    slash(schemaSegment('accountId', AccountId)),
+    mapTo(AppRoute.Account),
+  )
+  const cafeRouter = pipe(literal('café'), mapTo(AppRoute.Cafe))
+  const parser = oneOf(userRouter, accountRouter, cafeRouter)
+
+  const parseBuiltPath = (path: string) =>
+    pipe(
+      fromString(`https://example.com${path}`),
+      Option.map(parseUrlWithFallback(parser, AppRoute.NotFound)),
+    )
+
+  const valuesThatAreNotPlainSegments = [
+    'a/b',
+    '/evil.example',
+    'x?tab=1',
+    'x#top',
+    '100%',
+    'a b',
+    'café',
+  ]
+
+  it.each(valuesThatAreNotPlainSegments)(
+    'round-trips the string value %s through the built URL',
+    id => {
+      expect(parseBuiltPath(userRouter({ id }))).toStrictEqual(
+        Option.some(AppRoute.User.make({ id })),
+      )
+    },
+  )
+
+  it.each(valuesThatAreNotPlainSegments)(
+    'round-trips the schemaSegment value %s through the built URL',
+    value => {
+      const accountId = AccountId.make(value)
+      expect(parseBuiltPath(accountRouter({ accountId }))).toStrictEqual(
+        Option.some(AppRoute.Account.make({ accountId })),
+      )
+    },
+  )
+
+  it('builds a value with a slash as one segment', () => {
+    expect(userRouter({ id: 'a/b' })).toBe('/users/a%2Fb')
+  })
+
+  it('matches a literal against the decoded segment', () => {
+    expect(cafeRouter()).toBe('/caf%C3%A9')
+    expect(parseBuiltPath('/caf%C3%A9')).toStrictEqual(
+      Option.some(AppRoute.Cafe.make({})),
+    )
+  })
+
+  it.effect('fails to print an empty segment value', () =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(
+        string('id').print(
+          { id: '' },
+          { segments: ['users'], queryParams: new URLSearchParams() },
+        ),
+      )
+      expect(error._tag).toBe('ParseError')
+      expect(error.actual).toBe('empty string')
+    }),
+  )
+
+  it('throws when building a URL from an empty segment value', () => {
+    expect(() => userRouter({ id: '' })).toThrow()
+    expect(() => accountRouter({ accountId: AccountId.make('') })).toThrow()
+  })
+
+  it.effect('fails to print a value that is not well-formed Unicode', () =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(
+        string('id').print(
+          { id: '\uD800' },
+          { segments: ['users'], queryParams: new URLSearchParams() },
+        ),
+      )
+      expect(error._tag).toBe('ParseError')
+    }),
+  )
+
+  it('throws when building a URL from a dot segment value', () => {
+    expect(() => userRouter({ id: '.' })).toThrow()
+    expect(() => userRouter({ id: '..' })).toThrow()
+  })
+
+  it.effect('fails to parse a segment with a malformed percent escape', () =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(string('id').parse(['%E0%A4%A']))
+      expect(error._tag).toBe('ParseError')
+      expect(error.actual).toBe('%E0%A4%A')
+    }),
+  )
+
+  it('falls back to not-found for a URL with a malformed percent escape', () => {
+    expect(parseBuiltPath('/users/%E0%A4%A')).toStrictEqual(
+      Option.some(AppRoute.NotFound.make({ path: '/users/%E0%A4%A' })),
+    )
   })
 })
 
