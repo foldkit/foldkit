@@ -8,6 +8,7 @@ import { Tabs } from '@foldkit/ui'
 import { Message, postQuery, postsQuery, statsQuery, update } from './main'
 import {
   FETCHED_AT,
+  cachedFirstPostModel,
   failedFirstPostModel,
   failedPostsModel,
   firstPostDetail,
@@ -21,6 +22,7 @@ import {
 
 const FIRST_REQUEST_GENERATION = 1
 const SECOND_REQUEST_GENERATION = 2
+const THIRD_REQUEST_GENERATION = 3
 
 const postAsyncDataTag = (
   model: typeof loadedPostsModel,
@@ -207,7 +209,7 @@ test('retrying failed posts shows the loading state and refetches', () => {
   )
 })
 
-test('opening a post once reuses its retained data on later visits', () => {
+test('reopening a recently opened post reuses its retained data', () => {
   story(
     update,
     given(loadedPostsModel),
@@ -232,6 +234,48 @@ test('opening a post once reuses its retained data on later visits', () => {
     model(model => {
       expect(postAsyncDataTag(model, 'first-post')).toBe('Success')
       expect(model.maybeSelectedPostId).toEqual(Option.some('first-post'))
+    }),
+  )
+})
+
+test('opening a third post evicts the least recently opened post', () => {
+  story(
+    update,
+    given(cachedFirstPostModel),
+    message(Message.ClickedPost({ postId: 'second-post' })),
+    Command.resolve(
+      postQuery.Fetch,
+      postQuery.Message.CompletedFetch({
+        args: { postId: 'second-post' },
+        generation: SECOND_REQUEST_GENERATION,
+        result: Result.succeed({
+          post: { ...firstPostDetail, id: 'second-post' },
+          fetchedAt: FETCHED_AT,
+        }),
+      }),
+    ),
+    message(Message.ClickedBackToPosts()),
+    model(model => {
+      expect(postAsyncDataTag(model, 'first-post')).toBe('Success')
+      expect(postAsyncDataTag(model, 'second-post')).toBe('Success')
+    }),
+    message(Message.ClickedPost({ postId: 'third-post' })),
+    Command.resolve(
+      postQuery.Fetch,
+      postQuery.Message.CompletedFetch({
+        args: { postId: 'third-post' },
+        generation: THIRD_REQUEST_GENERATION,
+        result: Result.succeed({
+          post: { ...firstPostDetail, id: 'third-post' },
+          fetchedAt: FETCHED_AT,
+        }),
+      }),
+    ),
+    model(model => {
+      expect(postAsyncDataTag(model, 'first-post')).toBe('Idle')
+      expect(postAsyncDataTag(model, 'second-post')).toBe('Success')
+      expect(postAsyncDataTag(model, 'third-post')).toBe('Success')
+      expect(model.recentPostIds).toEqual(['third-post', 'second-post'])
     }),
   )
 })

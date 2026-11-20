@@ -168,7 +168,31 @@ Provide `toKey` when several argument values deliberately identify the same reta
 
 ### Retention Limits
 
-A KeyedQuery retains entries until `reset` clears all of them. It does not currently expire entries, cap their number, or remove one key. Use it for a set whose lifetime and size fit the parent Model. Manage a different cache shape directly when entries need individual eviction or another retention policy.
+A KeyedQuery retains entries until `forget` removes a key, `retainOnly` changes the retained set, or `reset` clears all of them. It does not expire entries or cap their number automatically. The parent controls the retained set through its Model and Messages.
+
+## Control Query Lifecycles
+
+### Refetch While a Fetch Is Pending
+
+`refetch` starts a new Fetch even when one is pending. It keeps available data on screen and advances the request generation, so the earlier Fetch cannot overwrite the new one. On a settled Query, it uses the same transition as `revalidateOrLoad`.
+
+With a custom `toKey`, different argument values can share one KeyedQuery entry. If the arguments for that entry change while its Fetch is pending, `loadIfMissing` and `revalidateOrLoad` leave the entry unchanged, and the pending Fetch completes with data for the old arguments. `refetch` stores the new arguments and starts a Fetch with them.
+
+### Forget One Entry
+
+`forget(model, args)` removes one KeyedQuery entry while preserving the generation counter. Forgetting and then loading the same key cannot reuse an older request's identity. Use `reset` to clear a plain Query or every entry in a KeyedQuery.
+
+### Retain Selected Entries
+
+`retainOnly(model, argsList)` removes KeyedQuery entries outside the supplied keys. It preserves retained entries and their arguments, and does not fetch missing entries. An empty list removes every entry.
+
+When the retained set follows parent Model state, apply `retainOnly` in the update handler that changes that state. Compose it with `loadIfMissing` to fetch the selected entry explicitly:
+
+::Snippet{name="queryRetainOnly" label="Retaining recently opened posts"}
+
+### Superseded and Forgotten Fetches
+
+These operations do not interrupt a Fetch that is already running. Query ignores the result of a Fetch that `refetch` superseded and of a Fetch for a forgotten entry, and a later Fetch for that key uses a new generation. The [API Cache Query example](/example-apps/api-cache-query) keeps the two most recently opened posts and evicts older ones with `retainOnly`.
 
 ## Test Query Commands
 
