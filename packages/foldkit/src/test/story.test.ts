@@ -1,4 +1,4 @@
-import { Array } from 'effect'
+import { Array, Redacted } from 'effect'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import * as Interruptible from '../command/interruptible/index.js'
@@ -1003,6 +1003,170 @@ describe("resolveAll applies each Command's own message mapping", () => {
         expect(model.savedIds).toEqual(['abc'])
       }),
     )
+  })
+})
+
+const failureOf = (run: () => void): Error => {
+  try {
+    run()
+  } catch (error) {
+    if (error instanceof Error) {
+      return error
+    }
+    throw error
+  }
+  throw new Error('Expected the story to fail')
+}
+
+describe('failure report', () => {
+  test('marks the failing Model step and shows each earlier step', () => {
+    const error = failureOf(() =>
+      Story.story(
+        update,
+        Story.given({ count: 0, log: [] }),
+        Story.message(CounterMessage.ClickedIncrement()),
+        Story.message(CounterMessage.ClickedFetch()),
+        Story.Command.resolve(
+          FetchCount,
+          CounterMessage.SucceededFetchCount({ count: 5 }),
+        ),
+        Story.model(model => {
+          expect(model.count).toBe(9)
+        }),
+        Story.message(CounterMessage.ClickedDecrement()),
+      ),
+    )
+
+    expect(error.message).toContain(
+      [
+        'Story failed at step 5 of 6:',
+        '',
+        '  ✓ 1 Given            { count: 0, log: [] }',
+        '  ✓ 2 Message          ClickedIncrement',
+        '                       model     count: 0 → 1',
+        '  ✓ 3 Message          ClickedFetch',
+        '                       commands  FetchCount',
+        '  ✓ 4 Command.resolve  FetchCount → SucceededFetchCount { count: 5 }',
+        '                       model     count: 1 → 5',
+        '                                 log: [] → [5]',
+        '  ✗ 5 Model',
+        '                       error     expected 5 to be 9 // Object.is equality',
+        '                       model     { count: 5, log: [5] }',
+        '    6 Message          ClickedDecrement',
+      ].join('\n'),
+    )
+  })
+
+  test('marks the failing Command step and numbers grouped steps in order', () => {
+    const error = failureOf(() =>
+      Story.story(
+        update,
+        Story.steps(
+          Story.given({ count: 0, log: [] }),
+          Story.message(CounterMessage.ClickedIncrement()),
+        ),
+        Story.message(CounterMessage.ClickedFetch()),
+        Story.Command.expectExact(FetchCountById({ id: 7 })),
+        Story.Command.resolveAll([
+          FetchCount,
+          CounterMessage.SucceededFetchCount({ count: 1 }),
+        ]),
+      ),
+    )
+
+    expect(error.message).toContain(
+      [
+        'Story failed at step 4 of 5:',
+        '',
+        '  ✓ 1 Given                { count: 0, log: [] }',
+        '  ✓ 2 Message              ClickedIncrement',
+        '                           model     count: 0 → 1',
+        '  ✓ 3 Message              ClickedFetch',
+        '                           commands  FetchCount',
+        '  ✗ 4 Command.expectExact  FetchCountById { id: 7 }',
+        '                           error     Expected exactly these Commands:',
+        '                           model     { count: 1, log: [] }',
+        '                           pending   FetchCount',
+        '    5 Command.resolveAll   FetchCount → SucceededFetchCount { count: 1 }',
+      ].join('\n'),
+    )
+  })
+
+  test('marks the end check when Commands stay unresolved', () => {
+    const error = failureOf(() =>
+      Story.story(
+        update,
+        Story.given({ count: 0, log: [] }),
+        Story.message(CounterMessage.ClickedFetch()),
+      ),
+    )
+
+    expect(error.message).toContain(
+      [
+        'Story failed after step 2 of 2:',
+        '',
+        '  ✓ 1 Given    { count: 0, log: [] }',
+        '  ✓ 2 Message  ClickedFetch',
+        '               commands  FetchCount',
+        '  ✗   End      every Command resolved',
+        '               error     I found Commands without resolvers:',
+        '               model     { count: 0, log: [] }',
+        '               pending   FetchCount',
+      ].join('\n'),
+    )
+  })
+
+  test('keeps the original error and its message first', () => {
+    const error = failureOf(() =>
+      Story.story(
+        update,
+        Story.given({ count: 2, log: [] }),
+        Story.model(model => {
+          expect(model.count).toBe(1)
+        }),
+      ),
+    )
+
+    expect(error.message).toMatch(/^expected 2 to be 1/)
+    expect(error).toMatchObject({ expected: 1, actual: 2 })
+  })
+
+  test('hides Redacted values and shortens long values', () => {
+    type SecretModel = Readonly<{
+      token: Redacted.Redacted<string>
+      note: string
+    }>
+    type SecretMessage = Readonly<{
+      _tag: 'SavedToken'
+      token: Redacted.Redacted<string>
+      note: string
+    }>
+    const secretUpdate = (_model: SecretModel, message: SecretMessage) => ({
+      model: { token: message.token, note: message.note },
+    })
+    const longNote = 'n'.repeat(500)
+
+    const error = failureOf(() =>
+      Story.story(
+        secretUpdate,
+        Story.given({ token: Redacted.make('old-secret'), note: '' }),
+        Story.message({
+          _tag: 'SavedToken',
+          token: Redacted.make('new-secret'),
+          note: longNote,
+        }),
+        Story.model(() => {
+          throw new Error('boom')
+        }),
+      ),
+    )
+
+    expect(error.message).not.toContain('secret')
+    expect(error.message).not.toContain(longNote)
+    expect(error.message).toContain('<redacted>')
+    expect(
+      Array.every(error.message.split('\n'), line => line.length <= 120),
+    ).toBe(true)
   })
 })
 

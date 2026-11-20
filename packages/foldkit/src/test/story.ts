@@ -1,4 +1,4 @@
-import { Array, Equal, Predicate, pipe } from 'effect'
+import { Array, Equal, Option, Predicate, pipe } from 'effect'
 
 import type {
   AnyCommand,
@@ -23,6 +23,19 @@ import {
   resolveAllInternal,
   resolveByMatcher,
 } from './internal.js'
+import {
+  GIVEN_LABEL,
+  type PassedStep,
+  type StepDescription,
+  type StorySnapshot,
+  attachedDescription,
+  describeStep,
+  formatMatcherShort,
+  formatValue,
+  renderStoryReport,
+  stepDescription,
+  withStoryReport,
+} from './storyReport.js'
 
 export type { AnyCommand, CommandMatcher, Resolver }
 
@@ -130,9 +143,12 @@ export const given = <Model>(model: Model): GivenStep<Model> => {
     >
   }
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
-  return Object.assign(step, {
-    _phantomModel: undefined as unknown as Model,
-  }) as GivenStep<Model>
+  return describeStep(
+    Object.assign(step, {
+      _phantomModel: undefined as unknown as Model,
+    }),
+    () => stepDescription(GIVEN_LABEL, formatValue(model)),
+  ) as GivenStep<Model>
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 }
 
@@ -179,34 +195,58 @@ const resolveCommand: {
   ): <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ) => StorySimulation<Model, Message, OutMessage>
-} =
-  <ResultMessage>(matcher: CommandMatcher, resultMessage: ResultMessage) =>
-  <Model, Message, OutMessage = undefined>(
-    simulation: StorySimulation<Model, Message, OutMessage>,
-  ): StorySimulation<Model, Message, OutMessage> => {
-    const internal = toInternal(simulation)
-    assertResolveUnambiguous(internal.commands, matcher)
-    const next = resolveByMatcher(internal, matcher, resultMessage)
+} = <ResultMessage>(matcher: CommandMatcher, resultMessage: ResultMessage) =>
+  describeStep(
+    <Model, Message, OutMessage = undefined>(
+      simulation: StorySimulation<Model, Message, OutMessage>,
+    ): StorySimulation<Model, Message, OutMessage> =>
+      resolveOne(simulation, matcher, resultMessage),
+    () =>
+      stepDescription(
+        'Command.resolve',
+        formatResolver([matcher, resultMessage]),
+      ),
+  )
 
-    if (Predicate.isUndefined(next)) {
-      const pending = Array.match(internal.commands, {
-        onEmpty: () => '    (none)',
-        onNonEmpty: nonEmpty =>
-          pipe(
-            nonEmpty,
-            Array.map(command => `    ${formatCommand(command)}`),
-            Array.join('\n'),
-          ),
-      })
-      throw new Error(
-        `I tried to resolve "${formatMatcher(matcher)}" but no matching pending Command was found.\n\n` +
-          `Pending Commands:\n${pending}\n\n` +
-          'Make sure the previous Message produced this Command.',
-      )
-    }
+const formatResolver = ([matcher, resultMessage]: readonly [
+  CommandMatcher,
+  unknown,
+]): string => `${formatMatcherShort(matcher)} → ${formatValue(resultMessage)}`
 
-    return next
+const formatResolvers = (resolvers: ReadonlyArray<Resolver>): string =>
+  pipe(resolvers, Array.map(formatResolver), Array.join(', '))
+
+const formatMatchers = (matchers: ReadonlyArray<CommandMatcher>): string =>
+  pipe(matchers, Array.map(formatMatcherShort), Array.join(', '))
+
+const resolveOne = <Model, Message, OutMessage>(
+  simulation: StorySimulation<Model, Message, OutMessage>,
+  matcher: CommandMatcher,
+  resultMessage: unknown,
+): StorySimulation<Model, Message, OutMessage> => {
+  const internal = toInternal(simulation)
+  assertResolveUnambiguous(internal.commands, matcher)
+  const next = resolveByMatcher(internal, matcher, resultMessage)
+
+  if (Predicate.isUndefined(next)) {
+    const pending = Array.match(internal.commands, {
+      onEmpty: () => '    (none)',
+      onNonEmpty: nonEmpty =>
+        pipe(
+          nonEmpty,
+          Array.map(command => `    ${formatCommand(command)}`),
+          Array.join('\n'),
+        ),
+    })
+    throw new Error(
+      `I tried to resolve "${formatMatcher(matcher)}" but no matching pending Command was found.\n\n` +
+        `Pending Commands:\n${pending}\n\n` +
+        'Make sure the previous Message produced this Command.',
+    )
   }
+
+  return next
+}
 
 /** Resolves listed Commands with their result Messages, cascading through any
  *  Commands the result produces. Each entry is consumed by exactly one
@@ -217,32 +257,41 @@ const resolveCommand: {
  *  `resolveAll` calls: unused entries can match later dispatches, and a new
  *  entry replaces any leftover resolvers sharing its Definition or Instance
  *  shape (latest wins). */
-const resolveAllCommands =
-  <Matchers extends ReadonlyArray<ResolvableCommandMatcher>>(
-    ...resolvers: { [K in keyof Matchers]: Resolver<Matchers[K]> }
-  ) =>
-  <Model, Message, OutMessage = undefined>(
-    simulation: StorySimulation<Model, Message, OutMessage>,
-  ): StorySimulation<Model, Message, OutMessage> =>
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    resolveAllInternal(toInternal(simulation), resolvers) as StorySimulation<
-      Model,
-      Message,
-      OutMessage
-    >
+const resolveAllCommands = <
+  Matchers extends ReadonlyArray<ResolvableCommandMatcher>,
+>(
+  ...resolvers: { [K in keyof Matchers]: Resolver<Matchers[K]> }
+) =>
+  describeStep(
+    <Model, Message, OutMessage = undefined>(
+      simulation: StorySimulation<Model, Message, OutMessage>,
+    ): StorySimulation<Model, Message, OutMessage> =>
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      resolveAllInternal(toInternal(simulation), resolvers) as StorySimulation<
+        Model,
+        Message,
+        OutMessage
+      >,
+    () => stepDescription('Command.resolveAll', formatResolvers(resolvers)),
+  )
 
 /** Resolves listed Commands with their result Messages, cascading through any
  *  Commands the results produce. Every resolver must match one dispatch in
  *  this call, and no actual Commands may remain unresolved. Supplied resolvers
  *  do not carry forward. */
-const resolveAllExactCommands =
-  <Matchers extends ReadonlyArray<ResolvableCommandMatcher>>(
-    ...resolvers: { [K in keyof Matchers]: Resolver<Matchers[K]> }
-  ) =>
-  <Model, Message, OutMessage = undefined>(
-    simulation: StorySimulation<Model, Message, OutMessage>,
-  ): StorySimulation<Model, Message, OutMessage> =>
-    resolveAllExactInternal(toInternal(simulation), resolvers)
+const resolveAllExactCommands = <
+  Matchers extends ReadonlyArray<ResolvableCommandMatcher>,
+>(
+  ...resolvers: { [K in keyof Matchers]: Resolver<Matchers[K]> }
+) =>
+  describeStep(
+    <Model, Message, OutMessage = undefined>(
+      simulation: StorySimulation<Model, Message, OutMessage>,
+    ): StorySimulation<Model, Message, OutMessage> =>
+      resolveAllExactInternal(toInternal(simulation), resolvers),
+    () =>
+      stepDescription('Command.resolveAllExact', formatResolvers(resolvers)),
+  )
 
 /** Runs an assertion function against the current Model. */
 export const model = <Model>(f: (model: Model) => void): ModelStep<Model> => ({
@@ -290,38 +339,44 @@ export const steps = <Steps extends ReadonlyArray<StoryStep<any, any, any>>>(
 
 /** Asserts that every given matcher matches a pending Command. Definition
  *  matchers match by name only; Instance matchers match by name + args. */
-const expectHasCommandsStep =
-  (...matchers: ReadonlyArray<CommandMatcher>) =>
-  <Model, Message, OutMessage = undefined>(
-    simulation: StorySimulation<Model, Message, OutMessage>,
-  ): StorySimulation<Model, Message, OutMessage> => {
-    assertHasCommands(toInternal(simulation).commands, matchers)
-    return simulation
-  }
+const expectHasCommandsStep = (...matchers: ReadonlyArray<CommandMatcher>) =>
+  describeStep(
+    <Model, Message, OutMessage = undefined>(
+      simulation: StorySimulation<Model, Message, OutMessage>,
+    ): StorySimulation<Model, Message, OutMessage> => {
+      assertHasCommands(toInternal(simulation).commands, matchers)
+      return simulation
+    },
+    () => stepDescription('Command.expectHas', formatMatchers(matchers)),
+  )
 
 /** Asserts that the pending Commands match the given matchers exactly
  *  (order-independent). Definition matchers compare by name; Instance
  *  matchers compare by name + args. Each matcher must consume exactly one
  *  pending Command. */
-const expectExactCommandsStep =
-  (...matchers: ReadonlyArray<CommandMatcher>) =>
-  <Model, Message, OutMessage = undefined>(
-    simulation: StorySimulation<Model, Message, OutMessage>,
-  ): StorySimulation<Model, Message, OutMessage> => {
-    assertExactCommands(toInternal(simulation).commands, matchers)
-    return simulation
-  }
+const expectExactCommandsStep = (...matchers: ReadonlyArray<CommandMatcher>) =>
+  describeStep(
+    <Model, Message, OutMessage = undefined>(
+      simulation: StorySimulation<Model, Message, OutMessage>,
+    ): StorySimulation<Model, Message, OutMessage> => {
+      assertExactCommands(toInternal(simulation).commands, matchers)
+      return simulation
+    },
+    () => stepDescription('Command.expectExact', formatMatchers(matchers)),
+  )
 
 /** Asserts that there are no pending Commands. */
-const expectNoCommandsStep =
-  () =>
-  <Model, Message, OutMessage = undefined>(
-    simulation: StorySimulation<Model, Message, OutMessage>,
-  ): StorySimulation<Model, Message, OutMessage> => {
-    assertZeroCommands(toInternal(simulation).commands)
+const expectNoCommandsStep = () =>
+  describeStep(
+    <Model, Message, OutMessage = undefined>(
+      simulation: StorySimulation<Model, Message, OutMessage>,
+    ): StorySimulation<Model, Message, OutMessage> => {
+      assertZeroCommands(toInternal(simulation).commands)
 
-    return simulation
-  }
+      return simulation
+    },
+    () => stepDescription('Command.expectNone'),
+  )
 
 /** Steps that operate on the pending Commands of a story simulation.
  *  Destructure as `const { Command } = Story` for concise call sites. */
@@ -370,24 +425,61 @@ export const expectOutMessage = <OutMessage>(
 })
 
 /** Asserts that update emitted no OutMessage. */
-export const expectNoOutMessage =
-  () =>
-  <Model, Message, OutMessage>(
-    simulation: StorySimulation<Model, Message, OutMessage>,
-  ): StorySimulation<Model, Message, OutMessage> => {
-    const internal = toInternal(simulation)
-    const outMessage = internal.outMessage
+export const expectNoOutMessage = () =>
+  describeStep(
+    <Model, Message, OutMessage>(
+      simulation: StorySimulation<Model, Message, OutMessage>,
+    ): StorySimulation<Model, Message, OutMessage> => {
+      const internal = toInternal(simulation)
+      const outMessage = internal.outMessage
 
-    if (!Predicate.isUndefined(outMessage)) {
-      throw new Error(
-        `Expected no OutMessage but got:\n\n    ${JSON.stringify(outMessage)}`,
-      )
-    }
+      if (!Predicate.isUndefined(outMessage)) {
+        throw new Error(
+          `Expected no OutMessage but got:\n\n    ${JSON.stringify(outMessage)}`,
+        )
+      }
 
-    return simulation
-  }
+      return simulation
+    },
+    () => stepDescription('expectNoOutMessage'),
+  )
 
 // STORY
+
+const flattenSteps = (
+  storySteps: ReadonlyArray<StoryStep<any, any, any>>,
+): ReadonlyArray<StoryStep<any, any, any>> =>
+  Array.flatMap(storySteps, step =>
+    Predicate.isTagged(step, 'StoryStepsStep')
+      ? flattenSteps(step.steps)
+      : [step],
+  )
+
+const describeStoryStep = (step: StoryStep<any, any, any>): StepDescription => {
+  if (Predicate.isTagged(step, 'ModelStep')) {
+    return stepDescription('Model')
+  }
+  if (Predicate.isTagged(step, 'MessageStep')) {
+    return stepDescription('Message', formatValue(step.message))
+  }
+  if (Predicate.isTagged(step, 'OutMessageStep')) {
+    return stepDescription('expectOutMessage', formatValue(step.expected))
+  }
+  return Option.getOrElse(attachedDescription(step), () =>
+    stepDescription(
+      'Step',
+      Predicate.isFunction(step) && step.name !== '' ? step.name : undefined,
+    ),
+  )
+}
+
+const toSnapshot = (
+  simulation: StorySimulation<any, any, any>,
+): StorySnapshot => ({
+  model: simulation.model,
+  commands: simulation.commands,
+  outMessage: simulation.outMessage,
+})
 
 const applyStoryStep = <Model, Message, OutMessage>(
   current: StorySimulation<Model, Message, OutMessage>,
@@ -463,9 +555,47 @@ export const story: {
     resolvers: [],
   } as unknown as StorySimulation<Model, Message, OutMessage>
 
-  const result = Array.reduce(steps, seed, applyStoryStep)
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
-  const internal = toInternal(result)
-  assertAllCommandsResolved(internal.commands)
+  const flatSteps = flattenSteps(steps)
+  const describeSteps = () => Array.map(flatSteps, describeStoryStep)
+
+  const { current, passed } = Array.reduce(
+    flatSteps,
+    { current: seed, passed: Array.empty<PassedStep>() },
+    (state, step, index) => {
+      try {
+        const next = applyStoryStep(state.current, step)
+        return {
+          current: next,
+          passed: Array.append(state.passed, {
+            before: toSnapshot(state.current),
+            after: toSnapshot(next),
+          }),
+        }
+      } catch (error) {
+        throw withStoryReport(
+          error,
+          renderStoryReport(describeSteps(), state.passed, {
+            maybeFailedStep: Option.some(index),
+            current: toSnapshot(state.current),
+            error,
+          }),
+        )
+      }
+    },
+  )
+
+  try {
+    assertAllCommandsResolved(toInternal(current).commands)
+  } catch (error) {
+    throw withStoryReport(
+      error,
+      renderStoryReport(describeSteps(), passed, {
+        maybeFailedStep: Option.none(),
+        current: toSnapshot(current),
+        error,
+      }),
+    )
+  }
 }
