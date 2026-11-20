@@ -246,6 +246,29 @@ export type SetupConfig = Readonly<{
   arrowPadding?: number
 }>
 
+// NOTE: when the page transitions `visibility`, as the common reduced-motion
+// reset does by giving every element a near-zero `transition-duration`,
+// clearing the panel's inline `visibility: hidden` starts a transition that
+// computes as `hidden` until its first frame, or its `transition-delay`, has
+// passed. Each descendant starts its own transition only once its parent's
+// value has changed, so a target several levels down stays hidden for several
+// frames, and a hidden element ignores `focus()`. While the change is still
+// passing down to the target, a `visibility` transition is running on the
+// target or one of its ancestors. Environments without `getAnimations`, such
+// as jsdom, report no transition, so the target gets a single attempt.
+const isRunningVisibilityTransition = (animation: Animation): boolean =>
+  'transitionProperty' in animation &&
+  animation.transitionProperty === 'visibility' &&
+  animation.playState === 'running'
+
+const isVisibilityTransitioningInAncestry = (
+  element: Element | null,
+): boolean =>
+  element !== null &&
+  typeof element.getAnimations === 'function' &&
+  (Array.some(element.getAnimations(), isRunningVisibilityTransition) ||
+    isVisibilityTransitioningInAncestry(element.parentElement))
+
 // NOTE: the unused axis is reset to `initial` rather than removed. Custom
 // properties inherit, so removing it lets an ancestor's `--arrow-x` reach the
 // arrow, and a `left` that resolves beats the side rule's `right` under
@@ -279,6 +302,9 @@ const setOrResetLength = (
  *  in view, so a scroll-on-focus can only move the page under it, which
  *  happens when the element's top edge lands within the document's
  *  `scroll-padding-top`.
+ *  While a `visibility` transition on the focus target or one of its
+ *  ancestors keeps the target hidden, the focus call waits a frame at a time
+ *  for it to finish, and is dropped if focus moves elsewhere during the wait.
  *  `focusSelector` optionally targets a descendant (e.g. a calendar grid
  *  inside a popover panel) instead of the panel itself.
  *  A portaled element whose button sits inside a `position: fixed` ancestor
@@ -380,6 +406,42 @@ export const anchorSetup = (
   let isPositioningQueued = false
   let hasWarnedFailure = false
   let lockedPlacement: FloatingPlacement | undefined
+  let focusFrame: number | undefined
+
+  const focusTargetWhenVisible = (
+    maybeActiveElementAtWait: Option.Option<Element | null>,
+  ): void => {
+    focusFrame = requestAnimationFrame(() => {
+      const isFocusMovedDuringWait = Option.exists(
+        maybeActiveElementAtWait,
+        activeElementAtWait => owner.activeElement !== activeElementAtWait,
+      )
+
+      if (isFocusMovedDuringWait) {
+        return
+      }
+
+      const target = config.focusSelector
+        ? owner.querySelector(config.focusSelector)
+        : element
+
+      if (!(target instanceof HTMLElement)) {
+        return
+      }
+
+      const isHidden = getComputedStyle(target).visibility !== 'visible'
+
+      if (isHidden && isVisibilityTransitioningInAncestry(target)) {
+        focusTargetWhenVisible(
+          Option.orElse(maybeActiveElementAtWait, () =>
+            Option.some(owner.activeElement),
+          ),
+        )
+      } else {
+        target.focus({ preventScroll: true })
+      }
+    })
+  }
 
   const positionElement = (): void => {
     if (!isActive) {
@@ -481,18 +543,7 @@ export const anchorSetup = (
             element.style.visibility = ''
 
             if (config.focusAfterPosition ?? false) {
-              requestAnimationFrame(() => {
-                if (!isActive) {
-                  return
-                }
-
-                const target = config.focusSelector
-                  ? owner.querySelector(config.focusSelector)
-                  : element
-                if (target instanceof HTMLElement) {
-                  target.focus({ preventScroll: true })
-                }
-              })
+              focusTargetWhenVisible(Option.none())
             }
           }
         },
@@ -538,6 +589,10 @@ export const anchorSetup = (
     isActive = false
     isPositioningQueued = false
     floatingCleanup()
+
+    if (focusFrame !== undefined) {
+      cancelAnimationFrame(focusFrame)
+    }
 
     if (isTabIntercepted) {
       element.removeEventListener('keydown', handleTabKey)
