@@ -1,5 +1,6 @@
 import { Array, Effect, Equal, Function, Match, Number, Option } from 'effect'
 
+import { isImeCompositionKeydown } from '../imeComposition.js'
 import { afterCommit, afterPaint } from '../render/render.js'
 import { DialogRuntime } from './dialogRuntime.js'
 import { ElementNotFound } from './error.js'
@@ -349,6 +350,8 @@ export const focus = (
  * and transitions. Fails with `ElementNotFound` if the selector does not match
  * an `HTMLDialogElement`.
  *
+ * Escape keydowns during IME composition are ignored.
+ *
  * Pass `focusSelector` to focus an element inside the dialog when it opens.
  * When it does not match a focusable element, or when none is provided, focus
  * falls back to the first focusable descendant and then to the dialog itself.
@@ -457,7 +460,7 @@ export const showDialog = (
 
       Match.value(event.key).pipe(
         Match.when('Escape', () => {
-          if (event.defaultPrevented) {
+          if (event.defaultPrevented || isImeCompositionKeydown(event)) {
             return
           }
 
