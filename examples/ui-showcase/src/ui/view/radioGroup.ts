@@ -153,7 +153,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           model: model.verticalRadioGroupDemo,
           view: PlanRadioGroup.view,
           viewInputs: {
-            selectedValue: model.verticalRadioGroupDemoValue,
+            selectedValue: model.maybeVerticalRadioGroupDemoValue,
             options: plans,
             ariaLabel: 'Server plan',
             hasOptionDescription: () => true,
@@ -172,7 +172,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           model: model.horizontalRadioGroupDemo,
           view: PlanRadioGroup.view,
           viewInputs: {
-            selectedValue: model.horizontalRadioGroupDemoValue,
+            selectedValue: model.maybeHorizontalRadioGroupDemoValue,
             options: plans,
             ariaLabel: 'Server plan',
             orientation: 'Horizontal',
