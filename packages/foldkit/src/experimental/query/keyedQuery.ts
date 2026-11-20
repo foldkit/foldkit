@@ -18,12 +18,17 @@ import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
 import * as Update from '../../update/index.js'
 import {
+  type AnyFoldOutMessage,
   type AsyncDataTransition,
   type CompletedFetchOf,
   type FoldLens,
+  type FoldOutMessageConfig,
   type KeyedArgs,
+  type KeyedDataTransform,
+  type KeyedDataWrite,
   type LiftConfig,
   type LiftKeyedQuery,
+  type LiftedKeyedQuery,
   type ParentFieldConfig,
   type QueryStore,
   applyTransition,
@@ -32,6 +37,7 @@ import {
   parentFieldToLens,
   runExecute,
 } from './internal.js'
+import { transformRetainedData } from './retainedData.js'
 
 export type SyncFields = {
   readonly [x: PropertyKey]: Schema.Codec<unknown, unknown, never, never>
@@ -123,6 +129,29 @@ export type KeyedQueryMessage<
   EI,
   Fields extends SyncFields,
 > = ReturnType<typeof makeKeyedQueryMessage<A, AI, E, EI, Fields>>
+
+const makeKeyedQueryOutMessage = <A, AI, E, EI, Fields extends SyncFields>(
+  data: Schema.Codec<A, AI>,
+  error: Schema.Codec<E, EI>,
+  Args: Schema.Struct<Fields>,
+) =>
+  defineMessageUnion({
+    AcceptedFetch: { args: Args, result: Schema.Result(data, error) },
+  })
+
+/**
+ * Schema-backed OutMessage union a KeyedQuery emits when it accepts the result
+ * of an entry's current Fetch. A late or superseded completion emits nothing.
+ *
+ * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+ */
+export type KeyedQueryOutMessage<
+  A,
+  AI,
+  E,
+  EI,
+  Fields extends SyncFields,
+> = ReturnType<typeof makeKeyedQueryOutMessage<A, AI, E, EI, Fields>>
 
 /** Builds the Model Schema for a KeyedQuery. */
 export const makeKeyedQueryModel = <A, AI, E, EI, Fields extends SyncFields>(
@@ -244,13 +273,70 @@ export interface KeyedQuery<
   readonly lift: LiftKeyedQuery<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
+    KeyedQueryOutMessage<A, AI, E, EI, Fields>['Type'],
     KeyedArgs<Fields>,
+    A,
     R
   >
   /** Executes one keyed fetch directly and returns settled `AsyncData`. */
   readonly run: (
     args: KeyedArgs<Fields>,
   ) => Effect.Effect<AsyncData.AsyncData<A, E>, never, R>
+  /**
+   * Schema-backed union of OutMessages emitted by `updateWithOutMessage`.
+   * Pass `foldOutMessage` to `lift` to fold each accepted Fetch result into
+   * the parent. When its Step returns Commands that need services, pass
+   * them as the third type argument: `lift<Model, Message, HttpClient>`.
+   */
+  readonly OutMessage: KeyedQueryOutMessage<A, AI, E, EI, Fields>
+  /**
+   * Folds a keyed Fetch completion like `update` and returns an
+   * `AcceptedFetch` OutMessage when the KeyedQuery accepts the result. Late
+   * and superseded completions leave the Model unchanged and return no
+   * OutMessage.
+   */
+  readonly updateWithOutMessage: (
+    model: KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
+    message: KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
+  ) => Update.ReturnWithOutMessage<
+    KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
+    KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
+    KeyedQueryOutMessage<A, AI, E, EI, Fields>['Type']
+  >
+  /**
+   * Writes `data` into the entry for `args` as `Success` without fetching,
+   * creating the entry when it does not exist. Advances the request
+   * generation, so a pending Fetch's result for that entry is ignored.
+   */
+  readonly setData: Update.Fold<
+    KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
+    KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
+    KeyedDataWrite<KeyedArgs<Fields>, A>
+  >
+  /**
+   * Transforms the retained data of the entry for `args` without fetching.
+   * `Success` and `Refreshing` become `Success`, and `Stale` stays `Stale`
+   * with its error. Advances the request generation, so a pending Fetch's
+   * result for that entry is ignored. Leaves the Model unchanged when the
+   * entry has no data.
+   */
+  readonly updateData: Update.Fold<
+    KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
+    KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
+    KeyedDataTransform<KeyedArgs<Fields>, A>
+  >
+  /**
+   * Builds a KeyedQuery Model holding the given entries, for test fixtures.
+   * Entries are keyed the same way loading operations key them, and a later
+   * entry with the same key replaces an earlier one. A pending
+   * seed represents a Fetch with generation 0, so the first Fetch started
+   * from a seeded Model has generation 1.
+   */
+  readonly seed: (
+    entries: ReadonlyArray<
+      Readonly<{ args: KeyedArgs<Fields>; data: AsyncData.AsyncData<A, E> }>
+    >,
+  ) => KeyedQueryModel<A, AI, E, EI, Fields>['Type']
 }
 
 export function defineKeyedQuery<
@@ -278,6 +364,8 @@ export function defineKeyedQuery<
 
   const Message = makeKeyedQueryMessage(config.data, config.error, Args)
   type Message = KeyedQueryMessage<A, AI, E, EI, Fields>['Type']
+  const OutMessage = makeKeyedQueryOutMessage(config.data, config.error, Args)
+  type OutMessage = KeyedQueryOutMessage<A, AI, E, EI, Fields>['Type']
 
   const Fetch = Command.define(`Fetch${config.name}`, {
     args: { args: Args, generation: Schema.Number },
@@ -302,6 +390,13 @@ export function defineKeyedQuery<
   type Model = KeyedQueryModel<A, AI, E, EI, Fields>['Type']
   type UpdateReturn = Update.Return<Model, Message, R>
   type PureUpdateReturn = Update.Return<Model, Message>
+  type UpdateReturnWithOutMessage = Update.ReturnWithOutMessage<
+    Model,
+    Message,
+    OutMessage
+  >
+  type DataWrite = KeyedDataWrite<Args, A>
+  type DataTransform = KeyedDataTransform<Args, A>
 
   const store: QueryStore<Model, Args, A, E, Message, R> = {
     read: (model, args) =>
@@ -347,8 +442,11 @@ export function defineKeyedQuery<
   const revalidateOrLoad = liftTransition(AsyncData.revalidateOrLoad)
   const loadIfMissing = liftTransition(AsyncData.loadIfMissing)
 
-  const update = (model: Model, message: Message): PureUpdateReturn =>
-    Message.match<PureUpdateReturn>(message, {
+  const updateWithOutMessage = (
+    model: Model,
+    message: Message,
+  ): UpdateReturnWithOutMessage =>
+    Message.match<UpdateReturnWithOutMessage>(message, {
       CompletedFetch({ args, generation, result }) {
         const key = argsToKey(args)
         const maybeEntry = HashMap.get(model.entries, key)
@@ -375,14 +473,91 @@ export function defineKeyedQuery<
               }),
             ),
           }),
+          // NOTE: AcceptedFetch's constructor input view rejects args that are already the decoded Type.
+          outMessage: { _tag: 'AcceptedFetch', args, result },
         }
       },
     })
 
+  const update = (model: Model, message: Message): PureUpdateReturn => {
+    const completion = updateWithOutMessage(model, message)
+
+    return { model: completion.model }
+  }
+
+  const writeEntry = (
+    model: Model,
+    args: Args,
+    data: EntryData,
+  ): PureUpdateReturn => {
+    const nextGeneration = Number.increment(model.generation)
+
+    return {
+      model: modifyFields(model, {
+        entries: HashMap.set(argsToKey(args), {
+          args,
+          data,
+          generation: nextGeneration,
+        }),
+        generation: () => nextGeneration,
+      }),
+    }
+  }
+
+  const setData: Update.Fold<Model, Message, DataWrite> = Function.dual(
+    2,
+    (model: Model, { args, data }: DataWrite): PureUpdateReturn =>
+      writeEntry(model, args, AsyncData.Success({ data })),
+  )
+
+  const updateData: Update.Fold<Model, Message, DataTransform> = Function.dual(
+    2,
+    (model: Model, { args, toNextData }: DataTransform): PureUpdateReturn =>
+      Option.match(transformRetainedData(read(model, args), toNextData), {
+        onNone: () => ({ model }),
+        onSome: nextData => writeEntry(model, args, nextData),
+      }),
+  )
+
+  const seed = (
+    entries: ReadonlyArray<Readonly<{ args: Args; data: EntryData }>>,
+  ): Model =>
+    Model.make({
+      entries: HashMap.fromIterable(
+        Array.map(entries, ({ args, data }) => [
+          argsToKey(args),
+          { args, data, generation: 0 },
+        ]),
+      ),
+      generation: 0,
+    })
+
+  const liftFold = <ParentModel, ParentMessage>(
+    lens: FoldLens<ParentModel, ParentMessage, Model, Message>,
+    foldOutMessage:
+      | AnyFoldOutMessage<ParentMessage, Message, OutMessage>
+      | undefined,
+  ): Update.Fold<ParentModel, ParentMessage, Message, any> => {
+    if (Predicate.isUndefined(foldOutMessage)) {
+      return Update.foldChild({ update, ...lens })
+    }
+
+    return Update.foldChild({
+      update: updateWithOutMessage,
+      ...lens,
+      foldOutMessage,
+    })
+  }
+
   const liftFromLens = <ParentModel, ParentMessage>(
     lens: FoldLens<ParentModel, ParentMessage, Model, Message>,
+    foldOutMessage:
+      | AnyFoldOutMessage<ParentMessage, Message, OutMessage>
+      | undefined,
   ) => ({
-    fold: Update.foldChild({ update, ...lens }),
+    fold: liftFold(lens, foldOutMessage),
+    setData: liftChildFold(setData, lens),
+    updateData: liftChildFold(updateData, lens),
     reset: Update.foldChildStep({
       update: reset,
       ...lens,
@@ -392,20 +567,64 @@ export function defineKeyedQuery<
     loadIfMissing: liftChildFold(loadIfMissing, lens),
   })
 
-  function lift<ParentModel, ParentMessage>(
-    config: ParentFieldConfig<ParentModel, ParentMessage, Model, Message>,
-  ): ReturnType<LiftKeyedQuery<Model, Message, Args, R>>
-  function lift<ParentModel, ParentMessage>(
-    config: FoldLens<ParentModel, ParentMessage, Model, Message>,
-  ): ReturnType<LiftKeyedQuery<Model, Message, Args, R>>
-  function lift<ParentModel, ParentMessage>(
-    config: LiftConfig<ParentModel, ParentMessage, Model, Message>,
+  function lift<ParentModel, ParentMessage, OutMessageRequirements = never>(
+    config: ParentFieldConfig<ParentModel, ParentMessage, Model, Message> &
+      FoldOutMessageConfig<
+        ParentModel,
+        ParentMessage,
+        Message,
+        OutMessage,
+        OutMessageRequirements
+      >,
+  ): LiftedKeyedQuery<
+    ParentModel,
+    ParentMessage,
+    Message,
+    Args,
+    A,
+    R,
+    OutMessageRequirements
+  >
+  function lift<ParentModel, ParentMessage, OutMessageRequirements = never>(
+    config: FoldLens<ParentModel, ParentMessage, Model, Message> &
+      FoldOutMessageConfig<
+        ParentModel,
+        ParentMessage,
+        Message,
+        OutMessage,
+        OutMessageRequirements
+      >,
+  ): LiftedKeyedQuery<
+    ParentModel,
+    ParentMessage,
+    Message,
+    Args,
+    A,
+    R,
+    OutMessageRequirements
+  >
+  function lift<ParentModel, ParentMessage, OutMessageRequirements = never>(
+    config: LiftConfig<
+      ParentModel,
+      ParentMessage,
+      Model,
+      Message,
+      OutMessage,
+      OutMessageRequirements
+    >,
   ) {
     if (isParentFieldConfig(config)) {
-      return liftFromLens(parentFieldToLens(config))
+      return liftFromLens(parentFieldToLens(config), config.foldOutMessage)
     }
 
-    return liftFromLens(config)
+    return liftFromLens(
+      {
+        read: config.read,
+        write: config.write,
+        toParentMessage: config.toParentMessage,
+      },
+      config.foldOutMessage,
+    )
   }
 
   const run = (args: Args): Effect.Effect<EntryData, never, R> =>
@@ -424,5 +643,10 @@ export function defineKeyedQuery<
     loadIfMissing,
     lift,
     run,
+    OutMessage,
+    updateWithOutMessage,
+    setData,
+    updateData,
+    seed,
   } satisfies KeyedQuery<Name, A, AI, E, EI, Fields, R>
 }
