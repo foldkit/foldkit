@@ -9,6 +9,7 @@ import {
 } from 'effect-oxlint'
 
 import {
+  type ImportedPath,
   calleeMatchesHelperName,
   helperCalleeName,
   indexReferences,
@@ -17,22 +18,45 @@ import {
   isFoldkitHtmlBuilderMember,
   isIdentifier,
   isMemberExpression,
+  resolveFoldkitApiPath,
   resolveImportedPath,
   resolvedVariable,
 } from '../guards.ts'
 
 const rowElementTagNames = ['li', 'div', 'tr', 'article', 'section']
 
-const singleValueMapNamespaces = [
-  'Option',
+const effectSingleValueMapNamespaces = [
+  'Arbitrary',
+  'Argument',
+  'AsyncResult',
+  'Atom',
+  'Cause',
+  'Channel',
+  'Config',
   'Effect',
-  'Stream',
-  'Result',
   'Either',
   'Exit',
   'Fiber',
-  'STM',
+  'Flag',
+  'Logger',
   'Match',
+  'Option',
+  'Param',
+  'Prompt',
+  'Result',
+  'STM',
+  'Schedule',
+  'SchemaGetter',
+  'Sink',
+  'Stream',
+  'UndefinedOr',
+]
+
+const foldkitSingleValueMapNamespaces = ['AsyncData']
+
+const singleValueMapNamespaces = [
+  ...effectSingleValueMapNamespaces,
+  ...foldkitSingleValueMapNamespaces,
 ]
 
 // GUARDS
@@ -76,6 +100,54 @@ const isObjectPattern = (
   'type' in node &&
   node.type === 'ObjectPattern'
 
+const effectModulePath = (
+  path: ImportedPath,
+): Option.Option<ReadonlyArray<string>> => {
+  if (path.source === 'effect') {
+    return Option.some(path.members)
+  }
+  if (path.source.startsWith('effect/')) {
+    return Option.some([
+      ...path.source.slice('effect/'.length).split('/'),
+      ...path.members,
+    ])
+  }
+  return Option.none()
+}
+
+const isEffectSingleValueMapCallee = (
+  callee: unknown,
+  references: WeakMap<ESTree.Node, Reference>,
+): boolean =>
+  pipe(
+    resolveImportedPath(references, callee),
+    Option.flatMap(effectModulePath),
+    Option.exists(modulePath => {
+      const [namespace, methodName] = Array.takeRight(modulePath, 2)
+
+      return (
+        namespace !== undefined &&
+        effectSingleValueMapNamespaces.includes(namespace) &&
+        methodName === 'map'
+      )
+    }),
+  )
+
+const isFoldkitSingleValueMapCallee = (
+  callee: unknown,
+  references: WeakMap<ESTree.Node, Reference>,
+): boolean =>
+  Option.exists(resolveFoldkitApiPath(references, callee), path => {
+    const [namespace, methodName, extraMember] = path
+
+    return (
+      namespace !== undefined &&
+      foldkitSingleValueMapNamespaces.includes(namespace) &&
+      methodName === 'map' &&
+      extraMember === undefined
+    )
+  })
+
 const isSingleValueMapCallee = (
   callee: unknown,
   references: WeakMap<ESTree.Node, Reference> | undefined,
@@ -90,22 +162,10 @@ const isSingleValueMapCallee = (
     )
   }
 
-  return Option.exists(resolveImportedPath(references, callee), path => {
-    const isEffectModule =
-      path.source === 'effect' || path.source.startsWith('effect/')
-    const members = path.source.startsWith('effect/')
-      ? [path.source.slice('effect/'.length), ...path.members]
-      : path.members
-    const [namespace, methodName, extraMember] = members
-
-    return (
-      isEffectModule &&
-      namespace !== undefined &&
-      singleValueMapNamespaces.includes(namespace) &&
-      methodName === 'map' &&
-      extraMember === undefined
-    )
-  })
+  return (
+    isEffectSingleValueMapCallee(callee, references) ||
+    isFoldkitSingleValueMapCallee(callee, references)
+  )
 }
 
 const isMapCallee = (
@@ -119,20 +179,19 @@ const isMapCallee = (
     return false
   }
 
-  return Option.exists(resolveImportedPath(references, callee), path => {
-    if (path.source !== 'effect' && !path.source.startsWith('effect/')) {
-      return false
-    }
+  return pipe(
+    resolveImportedPath(references, callee),
+    Option.flatMap(effectModulePath),
+    Option.exists(modulePath => {
+      const [namespace, methodName, extraMember] = modulePath
 
-    const members = path.source.startsWith('effect/')
-      ? [path.source.slice('effect/'.length), ...path.members]
-      : path.members
-    const [namespace, methodName, extraMember] = members
-
-    return (
-      namespace === 'Array' && methodName === 'map' && extraMember === undefined
-    )
-  })
+      return (
+        namespace === 'Array' &&
+        methodName === 'map' &&
+        extraMember === undefined
+      )
+    }),
+  )
 }
 
 const arrowCallback = (

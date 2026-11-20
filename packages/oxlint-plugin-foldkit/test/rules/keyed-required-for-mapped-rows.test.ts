@@ -200,6 +200,65 @@ describe('keyed-required-for-mapped-rows', () => {
     expect(runRule(effectMap)).toHaveLength(0)
   })
 
+  it('allows the single-value AsyncData.map', () => {
+    const asyncDataMap = Testing.callOfMember('AsyncData', 'map', [
+      Testing.id('itemData'),
+      Testing.arrowFn(idBearingRow('div'), [Testing.id('item')]),
+    ])
+
+    expect(runRule(asyncDataMap)).toHaveLength(0)
+  })
+
+  it('allows every single-value Effect module map', () => {
+    const singleValueModuleNames = [
+      'Arbitrary',
+      'Argument',
+      'AsyncResult',
+      'Atom',
+      'Cause',
+      'Channel',
+      'Config',
+      'Exit',
+      'Flag',
+      'Logger',
+      'Param',
+      'Prompt',
+      'Result',
+      'Schedule',
+      'SchemaGetter',
+      'Sink',
+      'Stream',
+      'UndefinedOr',
+    ]
+    for (const moduleName of singleValueModuleNames) {
+      const moduleMap = Testing.callOfMember(moduleName, 'map', [
+        Testing.id('container'),
+        Testing.arrowFn(idBearingRow('div'), [Testing.id('item')]),
+      ])
+
+      expect(runRule(moduleMap), moduleName).toHaveLength(0)
+    }
+  })
+
+  it('still flags the map of each Effect collection module', () => {
+    const collectionModuleNames = [
+      'Chunk',
+      'HashMap',
+      'HashSet',
+      'Iterable',
+      'Record',
+      'Trie',
+    ]
+    for (const moduleName of collectionModuleNames) {
+      const moduleMap = Testing.callOfMember(moduleName, 'map', [
+        Testing.id('items'),
+        Testing.arrowFn(idBearingRow('li'), [Testing.id('item')]),
+      ])
+
+      expect(runRule(moduleMap), moduleName).toHaveLength(1)
+    }
+  })
+
   it('still flags a data-first Array.map that returns an id-bearing row', () => {
     const arrayMap = Testing.callOfMember('Array', 'map', [
       Testing.id('items'),
