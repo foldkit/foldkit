@@ -192,6 +192,563 @@ describe('identity-aware patching', () => {
     expect(fifthAfter).toBe(itemE)
     expect(sixthAfter).toBe(itemF)
   })
+  it('does not move retained nodes when filtering to an ordered subsequence', () => {
+    const renderList = (keys: ReadonlyArray<string>): VNode =>
+      h(
+        'ul',
+        {},
+        keys.map(key => h('li', { key }, [key])),
+      )
+    const container = document.createElement('div')
+    const mounted = patch(container, renderList(['a', 'b', 'c', 'd', 'e', 'f']))
+    const nodesBefore = listItemsIn(mounted)
+    const insertBefore = vi.spyOn(Node.prototype, 'insertBefore')
+
+    const patched = patch(mounted, renderList(['a', 'c', 'd', 'f']))
+
+    expect(listItemsIn(patched)).toEqual([
+      nodesBefore[0],
+      nodesBefore[2],
+      nodesBefore[3],
+      nodesBefore[5],
+    ])
+    const retainedNodeSet = new Set<Node>(nodesBefore)
+    expect(
+      insertBefore.mock.calls.filter(([node]) => retainedNodeSet.has(node)),
+    ).toHaveLength(0)
+  })
+
+  it('moves the minimum number of retained nodes for a keyed permutation', () => {
+    const renderList = (keys: ReadonlyArray<string>): VNode =>
+      h(
+        'ul',
+        {},
+        keys.map(key => h('li', { key }, [key])),
+      )
+    const container = document.createElement('div')
+    const mounted = patch(container, renderList(['a', 'b', 'c', 'd']))
+    const insertBefore = vi.spyOn(Node.prototype, 'insertBefore')
+
+    const patched = patch(mounted, renderList(['b', 'a', 'd', 'c']))
+
+    expect(listItemsIn(patched).map(node => node.textContent)).toEqual([
+      'b',
+      'a',
+      'd',
+      'c',
+    ])
+    expect(
+      insertBefore.mock.calls.filter(([node]) => node instanceof HTMLLIElement),
+    ).toHaveLength(2)
+  })
+  it('reverses keyed siblings while preserving their DOM nodes', () => {
+    const renderList = (keys: ReadonlyArray<string>): VNode =>
+      h(
+        'ul',
+        {},
+        keys.map(key => h('li', { key }, [key])),
+      )
+    const mounted = patch(
+      document.createElement('div'),
+      renderList(['a', 'b', 'c', 'd']),
+    )
+    const previousNodes = listItemsIn(mounted)
+
+    const patched = patch(mounted, renderList(['d', 'c', 'b', 'a']))
+
+    expect(listItemsIn(patched)).toEqual(previousNodes.reverse())
+  })
+  it('skips null keyed-child holes while trimming cross-end matches', () => {
+    const renderList = (keys: ReadonlyArray<string | null>): VNode =>
+      h(
+        'ul',
+        {},
+        keys.map(key => (key === null ? null : h('li', { key }, [key]))),
+      )
+    const mounted = patch(
+      document.createElement('div'),
+      renderList(['a', null, 'b', 'c']),
+    )
+    const [itemA, itemB, itemC] = listItemsIn(mounted)
+
+    const patched = patch(mounted, renderList(['b', 'c', 'a']))
+
+    expect(listItemsIn(patched)).toEqual([itemB, itemC, itemA])
+  })
+  it('does not move retained nodes when filtering keyed siblings', () => {
+    const renderList = (keys: ReadonlyArray<string>): VNode =>
+      h(
+        'ul',
+        {},
+        keys.map(key => h('li', { key }, [key])),
+      )
+    const mounted = patch(
+      document.createElement('div'),
+      renderList(['a', 'b', 'c', 'd', 'e', 'f']),
+    )
+    const previousNodes = listItemsIn(mounted)
+    const retainedNodes = new Set<Node>(previousNodes)
+    const insertBefore = vi.spyOn(Node.prototype, 'insertBefore')
+
+    const patched = patch(mounted, renderList(['a', 'c', 'e']))
+
+    expect(listItemsIn(patched).map(node => node.textContent)).toEqual([
+      'a',
+      'c',
+      'e',
+    ])
+    expect(
+      insertBefore.mock.calls.filter(([node]) => retainedNodes.has(node)),
+    ).toHaveLength(0)
+    expect(listItemsIn(patched)).toEqual([
+      previousNodes[0],
+      previousNodes[2],
+      previousNodes[4],
+    ])
+  })
+  it.each([
+    ['remove from front', ['a', 'b', 'c', 'd'], ['b', 'c', 'd'], 0],
+    ['remove from middle', ['a', 'b', 'c', 'd'], ['a', 'c', 'd'], 0],
+    ['remove from end', ['a', 'b', 'c', 'd'], ['a', 'b', 'c'], 0],
+    ['insert at front', ['a', 'b', 'c'], ['x', 'a', 'b', 'c'], 0],
+    ['reverse', ['a', 'b', 'c', 'd'], ['d', 'c', 'b', 'a'], 3],
+    ['swap', ['a', 'b', 'c'], ['b', 'a', 'c'], 1],
+    ['rotate', ['a', 'b', 'c', 'd'], ['b', 'c', 'd', 'a'], 1],
+    [
+      'random permutation',
+      ['a', 'b', 'c', 'd', 'e', 'f'],
+      ['c', 'f', 'b', 'e', 'a', 'd'],
+      4,
+    ],
+    [
+      'mixed insertion, removal, and movement',
+      ['a', 'b', 'c', 'd', 'e'],
+      ['x', 'c', 'a', 'y', 'e'],
+      1,
+    ],
+  ])('%s moves only the minimum retained nodes', (_, before, after, moves) => {
+    const renderList = (keys: ReadonlyArray<string>): VNode =>
+      h(
+        'ul',
+        {},
+        keys.map(key => h('li', { key }, [key])),
+      )
+    const container = document.createElement('div')
+    const mounted = patch(container, renderList(before))
+    const retainedNodes = new Map<string, HTMLLIElement>(
+      listItemsIn(mounted).map(node => [node.textContent!, node]),
+    )
+    const insertBefore = vi.spyOn(Node.prototype, 'insertBefore')
+
+    const patched = patch(mounted, renderList(after))
+
+    const retainedNodeSet = new Set<Node>(retainedNodes.values())
+    expect(listItemsIn(patched).map(node => node.textContent)).toEqual(after)
+    expect(
+      insertBefore.mock.calls.filter(([node]) => retainedNodeSet.has(node)),
+    ).toHaveLength(moves)
+    for (const node of listItemsIn(patched)) {
+      const previous = retainedNodes.get(node.textContent!)
+      if (previous !== undefined) {
+        expect(node).toBe(previous)
+      }
+    }
+  })
+
+  it('keeps duplicate-key behavior on the legacy differ path', () => {
+    const renderList = (labels: ReadonlyArray<string>): VNode =>
+      h(
+        'ul',
+        {},
+        labels.map(label => h('li', { key: 'duplicate' }, [label])),
+      )
+    const mounted = patch(
+      document.createElement('div'),
+      renderList(['first', 'second']),
+    )
+
+    const patched = patch(
+      mounted,
+      renderList(['updated-first', 'updated-second']),
+    )
+
+    expect(elementOf(patched).textContent).toBe('updated-firstupdated-second')
+  })
+
+  it('preserves positional keyed and unkeyed mixed children', () => {
+    const renderList = (labels: ReadonlyArray<string>): VNode =>
+      h('ul', {}, [
+        h('li', { key: 'keyed' }, [labels[0]!]),
+        h('li', {}, [labels[1]!]),
+      ])
+    const mounted = patch(
+      document.createElement('div'),
+      renderList(['before-keyed', 'before-unkeyed']),
+    )
+    const [keyedBefore, unkeyedBefore] = listItemsIn(mounted)
+
+    const patched = patch(mounted, renderList(['after-keyed', 'after-unkeyed']))
+    const [keyedAfter, unkeyedAfter] = listItemsIn(patched)
+
+    expect(keyedAfter).toBe(keyedBefore)
+    expect(unkeyedAfter).toBe(unkeyedBefore)
+  })
+
+  it('preserves select default selection when adding keyed options', () => {
+    const mounted = patch(
+      document.createElement('div'),
+      h('div', {}, [h('select', {}, [])]),
+    )
+    const select = elementOf(mounted).querySelector('select')!
+    expect(select.selectedIndex).toBe(-1)
+
+    const patched = patch(
+      mounted,
+      h('div', {}, [
+        h('select', {}, [
+          h('option', { key: 'first', props: { value: 'first' } }, ['First']),
+          h('option', { key: 'second', props: { value: 'second' } }, [
+            'Second',
+          ]),
+        ]),
+      ]),
+    )
+
+    expect(elementOf(patched).querySelector('select')!.selectedIndex).toBe(0)
+  })
+
+  it('preserves selectedness when replacing a keyed select option', () => {
+    const render = (replaceFirst: boolean): VNode =>
+      h('div', {}, [
+        h('select', {}, [
+          h(
+            'option',
+            {
+              key: replaceFirst ? 'replacement' : 'first',
+              props: { value: replaceFirst ? 'replacement' : 'first' },
+            },
+            [replaceFirst ? 'Replacement' : 'First'],
+          ),
+          h('option', { key: 'second', props: { value: 'second' } }, [
+            'Second',
+          ]),
+        ]),
+      ])
+    const mounted = patch(document.createElement('div'), render(false))
+
+    const patched = patch(mounted, render(true))
+
+    expect(elementOf(patched).querySelector('select')!.selectedIndex).toBe(0)
+  })
+
+  it('keeps the first retained option selected after reorder and removal', () => {
+    const render = (keys: ReadonlyArray<string>): VNode =>
+      h('div', {}, [
+        h(
+          'select',
+          {},
+          keys.map(key => h('option', { key }, [key])),
+        ),
+      ])
+    const mounted = patch(
+      document.createElement('div'),
+      render(['a', 'b', 'c']),
+    )
+
+    const patched = patch(mounted, render(['c', 'b']))
+    const select = elementOf(patched).querySelector('select')!
+
+    expect(select.selectedIndex).toBe(0)
+    expect(select.options[select.selectedIndex]!.textContent).toBe('c')
+  })
+
+  it('updates selected attributes after keyed option reordering', () => {
+    const render = (
+      keys: ReadonlyArray<string>,
+      selectedKey: string | undefined,
+    ): VNode =>
+      h('div', {}, [
+        h(
+          'select',
+          {},
+          keys.map(key =>
+            h('option', { key, attrs: { selected: key === selectedKey } }, [
+              key,
+            ]),
+          ),
+        ),
+      ])
+    const mounted = patch(
+      document.createElement('div'),
+      render(['a', 'b'], 'b'),
+    )
+
+    const patched = patch(mounted, render(['b', 'a'], undefined))
+    const select = elementOf(patched).querySelector('select')!
+
+    expect(select.options[0]!.hasAttribute('selected')).toBe(false)
+    expect(select.options[1]!.hasAttribute('selected')).toBe(false)
+  })
+
+  it('preserves focus and selection on a retained keyed input after reordering', () => {
+    const renderList = (keys: ReadonlyArray<string>): VNode =>
+      h(
+        'ul',
+        {},
+        keys.map(key =>
+          h('li', { key }, [h('input', { props: { value: key } })]),
+        ),
+      )
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const mounted = patch(container, renderList(['a', 'b', 'c']))
+    const input = elementOf(mounted).querySelector('input')!
+    input.value = 'typed'
+    input.focus()
+    input.setSelectionRange(2, 2)
+    expect(input.selectionStart).toBe(2)
+
+    const patched = patch(mounted, renderList(['c', 'a', 'b']))
+    const retainedInput = listItemsIn(patched)[1]!.querySelector('input')!
+
+    expect(retainedInput).toBe(input)
+    expect(document.activeElement).toBe(input)
+    expect(input.selectionStart).toBe(2)
+    expect(input.selectionEnd).toBe(2)
+  })
+
+  it('preserves lifecycle hooks while reusing and removing keyed children', () => {
+    const inserted = vi.fn()
+    const updated = vi.fn()
+    const destroyed = vi.fn()
+    const removed = vi.fn((_vnode: VNode, remove: () => void) => remove())
+    const renderList = (labels: ReadonlyArray<string>): VNode =>
+      h(
+        'ul',
+        {},
+        labels.map(label =>
+          h(
+            'li',
+            {
+              key: label,
+              hook: {
+                insert: inserted,
+                update: updated,
+                destroy: destroyed,
+                ...(label === 'b' ? { remove: removed } : {}),
+              },
+            },
+            [label],
+          ),
+        ),
+      )
+    const mounted = patch(document.createElement('div'), renderList(['a', 'b']))
+    inserted.mockClear()
+
+    const patched = patch(mounted, renderList(['a', 'c']))
+
+    expect(elementOf(patched).textContent).toBe('ac')
+    expect(inserted).toHaveBeenCalledTimes(1)
+    expect(updated).toHaveBeenCalledTimes(1)
+    expect(destroyed).toHaveBeenCalledTimes(1)
+    expect(removed).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps update, removal, and insert hooks in legacy order', () => {
+    const calls: Array<string> = []
+    const renderList = (keys: ReadonlyArray<string>): VNode =>
+      h(
+        'ul',
+        {},
+        keys.map(key =>
+          h(
+            'li',
+            {
+              key,
+              hook: {
+                insert: () => calls.push(`insert:${key}`),
+                update: () => calls.push(`update:${key}`),
+                destroy: () => calls.push(`destroy:${key}`),
+                ...(key === 'a'
+                  ? {
+                      remove: (_node: VNode, remove: () => void) => {
+                        calls.push('remove:a')
+                        remove()
+                      },
+                    }
+                  : {}),
+              },
+            },
+            [key],
+          ),
+        ),
+      )
+    const mounted = patch(
+      document.createElement('div'),
+      renderList(['a', 'b', 'c']),
+    )
+    calls.length = 0
+
+    patch(mounted, renderList(['c', 'b', 'd']))
+
+    expect(calls).toEqual([
+      'update:c',
+      'update:b',
+      'destroy:a',
+      'remove:a',
+      'insert:d',
+    ])
+  })
+  it('keeps insert hooks in rendered child order', () => {
+    const insertedKeys: Array<Key> = []
+    const renderList = (keys: ReadonlyArray<string>): VNode =>
+      h(
+        'ul',
+        {},
+        keys.map(key =>
+          h(
+            'li',
+            { key, hook: { insert: node => insertedKeys.push(node.key!) } },
+            [key],
+          ),
+        ),
+      )
+    const mounted = patch(
+      document.createElement('div'),
+      renderList(['existing']),
+    )
+    insertedKeys.length = 0
+
+    patch(mounted, renderList(['first', 'existing', 'last']))
+
+    expect(insertedKeys).toEqual(['first', 'last'])
+  })
+  it('defers removed-child hooks until retained updates finish', () => {
+    const calls: Array<string> = []
+    const renderList = (keys: ReadonlyArray<string>): VNode =>
+      h(
+        'ul',
+        {},
+        keys.map(key =>
+          h(
+            'li',
+            {
+              key,
+              hook: {
+                insert: () => calls.push(`insert:${key}`),
+                update: () => calls.push(`update:${key}`),
+                destroy: () => calls.push(`destroy:${key}`),
+                ...(key === 'b'
+                  ? {
+                      remove: (_node: VNode, remove: () => void) => {
+                        calls.push('remove:b')
+                        remove()
+                      },
+                    }
+                  : {}),
+              },
+            },
+            [key],
+          ),
+        ),
+      )
+    const mounted = patch(
+      document.createElement('div'),
+      renderList(['a', 'b', 'c', 'd']),
+    )
+    calls.length = 0
+
+    patch(mounted, renderList(['a', 'c', 'd', 'x']))
+
+    expect(calls).toEqual([
+      'update:a',
+      'update:d',
+      'update:c',
+      'destroy:b',
+      'remove:b',
+      'insert:x',
+    ])
+  })
+  it('orders nested and direct insert hooks by rendered sibling order', () => {
+    const inserted: Array<string> = []
+    const renderList = (withNewChildren: boolean): VNode =>
+      h('ul', {}, [
+        ...(withNewChildren
+          ? [
+              h(
+                'li',
+                { key: 'x', hook: { insert: () => inserted.push('x') } },
+                ['x'],
+              ),
+            ]
+          : []),
+        h(
+          'li',
+          { key: 'a', hook: { insert: () => inserted.push('a') } },
+          withNewChildren
+            ? [
+                h(
+                  'span',
+                  { key: 'y', hook: { insert: () => inserted.push('y') } },
+                  ['y'],
+                ),
+              ]
+            : ['a'],
+        ),
+        ...(withNewChildren
+          ? [
+              h(
+                'li',
+                { key: 'z', hook: { insert: () => inserted.push('z') } },
+                ['z'],
+              ),
+            ]
+          : []),
+      ])
+    const mounted = patch(document.createElement('div'), renderList(false))
+    inserted.length = 0
+
+    patch(mounted, renderList(true))
+
+    expect(inserted).toEqual(['x', 'y', 'z'])
+  })
+  it('preserves pointer-order insert hooks when a keyed range rotates', () => {
+    const inserted: Array<string> = []
+    const renderList = (
+      keys: ReadonlyArray<string>,
+      withNewChildren: boolean,
+    ): VNode =>
+      h(
+        'ul',
+        {},
+        keys.map(key =>
+          h(
+            'li',
+            { key },
+            withNewChildren
+              ? [
+                  h('span', { hook: { insert: () => inserted.push(key) } }, [
+                    key,
+                  ]),
+                ]
+              : [key],
+          ),
+        ),
+      )
+    const mounted = patch(
+      document.createElement('div'),
+      renderList(['a', 'b', 'c'], false),
+    )
+    inserted.length = 0
+
+    patch(mounted, renderList(['b', 'c', 'a'], true))
+
+    expect(inserted).toEqual(['a', 'b', 'c'])
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
 
   it('distinguishes numeric keys from equivalent string keys', () => {
     const renderList = (
@@ -736,17 +1293,21 @@ describe('duplicate sibling key warning', () => {
     )
   }
 
-  const patchToFreshKeys = (mounted: VNode): VNode =>
+  const patchToKeys = (mounted: VNode, keys: ReadonlyArray<string>): VNode =>
     patch(
       mounted,
-      h('ul', {}, [h('li', { key: 'x' }, ['x']), h('li', { key: 'y' }, ['y'])]),
+      h(
+        'ul',
+        {},
+        keys.map(key => h('li', { key }, [key])),
+      ),
     )
 
-  it('warns once per patch when old siblings share a key', () => {
+  it('warns once per patch when next siblings share a key', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const mounted = mountListWithKeys(['a', 'a', 'c'])
+    const mounted = mountListWithKeys(['x', 'y', 'z'])
 
-    patchToFreshKeys(mounted)
+    patchToKeys(mounted, ['a', 'a', 'c'])
 
     expect(warnSpy).toHaveBeenCalledTimes(1)
     expect(warnSpy.mock.calls[0]?.[0]).toContain('"a"')
@@ -755,9 +1316,9 @@ describe('duplicate sibling key warning', () => {
 
   it('warns again on a later patch', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const mounted = mountListWithKeys(['x', 'y', 'z'])
 
-    patchToFreshKeys(mountListWithKeys(['a', 'a', 'c']))
-    patchToFreshKeys(mountListWithKeys(['b', 'b', 'c']))
+    patchToKeys(patchToKeys(mounted, ['a', 'a', 'c']), ['b', 'b', 'c'])
 
     expect(warnSpy).toHaveBeenCalledTimes(2)
     expect(warnSpy.mock.calls[1]?.[0]).toContain('"b"')
@@ -765,19 +1326,18 @@ describe('duplicate sibling key warning', () => {
 
   it('does not warn when sibling keys are unique', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const mounted = mountListWithKeys(['a', 'b', 'c'])
+    const mounted = mountListWithKeys(['x', 'y', 'z'])
 
-    patchToFreshKeys(mounted)
-
+    patchToKeys(mounted, ['a', 'b', 'c'])
     expect(warnSpy).not.toHaveBeenCalled()
   })
 
   it('does not warn when the gate is off', () => {
     __overrideDuplicateKeyWarning(false)
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const mounted = mountListWithKeys(['a', 'a', 'c'])
+    const mounted = mountListWithKeys(['x', 'y', 'z'])
 
-    patchToFreshKeys(mounted)
+    patchToKeys(mounted, ['a', 'a', 'c'])
 
     expect(warnSpy).not.toHaveBeenCalled()
   })
