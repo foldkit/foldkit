@@ -4812,6 +4812,28 @@ describe('scene mounts', () => {
     )
   })
 
+  test('a stored expectEnded step acknowledges the same unmount in a later scene', () => {
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
+    const acknowledgeMeasurePanelEnded = Scene.Mount.expectEnded(MeasurePanel)
+
+    const runScene = () =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.given(openModel),
+        Scene.Mount.resolve(
+          MeasurePanel,
+          MountPanelMessage.MeasuredPanel({ width: 400 }),
+        ),
+        acknowledgeFocusButton,
+        Scene.click(Scene.role('button')),
+        acknowledgeMeasurePanelEnded,
+        Scene.Mount.expectNone(),
+      )
+
+    runScene()
+    runScene()
+  })
+
   test('an interaction with an unresolved mount throws a clear error', () => {
     const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
     expect(() =>

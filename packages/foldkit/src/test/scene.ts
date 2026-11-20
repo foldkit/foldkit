@@ -1201,7 +1201,7 @@ const expectEndedMountsStep =
   ): SceneSimulation<Model, Message, OutMessage> => {
     /* eslint-disable @typescript-eslint/consistent-type-assertions */
     const internal = toInternal(simulation)
-    const remaining: Array<MountMatcher> = Array.fromIterable(matchers)
+    const remaining: Array<MountMatcher> = Array.copy(matchers)
     const updatedSlots: Array<MountSlotState> = []
     for (const state of internal.mountSlots) {
       const maybeMatchIndex = Array.findFirstIndex(
