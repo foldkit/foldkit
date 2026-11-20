@@ -3,7 +3,7 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { stripPrefix, stripPrefixNonEmpty } from './stringExtensions.js'
+import { stripPrefix } from './stringExtensions.js'
 
 describe('stripPrefix', () => {
   it('strips a matching prefix', () => {
@@ -20,22 +20,5 @@ describe('stripPrefix', () => {
     const result = stripPrefix('hello')('hello')
     expect(Option.isSome(result)).toBe(true)
     expect(Option.getOrNull(result)).toBe('')
-  })
-})
-
-describe('stripPrefixNonEmpty', () => {
-  it('strips a matching prefix with remaining content', () => {
-    const result = stripPrefixNonEmpty('hello')('helloworld')
-    expect(Option.getOrNull(result)).toBe('world')
-  })
-
-  it('returns None when result would be empty', () => {
-    const result = stripPrefixNonEmpty('hello')('hello')
-    expect(Option.isNone(result)).toBe(true)
-  })
-
-  it('returns None for non-matching prefix', () => {
-    const result = stripPrefixNonEmpty('hello')('goodbye')
-    expect(Option.isNone(result)).toBe(true)
   })
 })
