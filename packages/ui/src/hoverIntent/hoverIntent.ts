@@ -5,6 +5,7 @@ import { modifyFields } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
+import * as OptionExt from '../internal/optionExtensions.js'
 import { Message, OutMessage } from './message.js'
 
 // MODEL
@@ -304,6 +305,19 @@ export const view = defineView<Model, Message, ViewInputs>(
           Match.orElse(() => Option.none()),
         )
 
+    const handleTriggerKeyDown = (
+      key: string,
+    ): Option.Option<typeof Message.PressedEscape.Type> =>
+      Match.value(key).pipe(
+        Match.when('Escape', () =>
+          OptionExt.when(
+            model.isOpen,
+            Message.PressedEscape({ source: 'Trigger' }),
+          ),
+        ),
+        Match.orElse(() => Option.none()),
+      )
+
     const panelEscapeHandler =
       focusTriggerSelector === undefined
         ? h.OnKeyDownPreventDefault(toPressedEscape('Panel'))
@@ -325,7 +339,7 @@ export const view = defineView<Model, Message, ViewInputs>(
         h.OnMouseLeave(Message.LeftTrigger()),
         h.OnFocus(Message.FocusedTrigger()),
         h.OnBlur(Message.BlurredTrigger()),
-        h.OnKeyDownPreventDefault(toPressedEscape('Trigger')),
+        h.OnKeyDownPreventDefault(handleTriggerKeyDown),
       ]),
       panel: childAttributes([
         h.OnMouseEnter(Message.EnteredPanel()),

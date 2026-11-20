@@ -2557,7 +2557,9 @@ export const beforeInput: {
 
 /** Simulates a keydown event on the element matching the target. The event is
  *  self-targeted (`target === currentTarget`), so `OnKeyDownSelf` and
- *  `OnKeyDownSelfPreventDefault` handlers fire.
+ *  `OnKeyDownSelfPreventDefault` handlers fire. As in the browser, when two
+ *  handlers on the element return `Some` for the key, only the earlier one
+ *  dispatches.
  *  Dual: `keydown(target, key, modifiers?)` or `keydown(key, modifiers?)` for data-last piping. */
 export const keydown: {
   (
@@ -2600,13 +2602,20 @@ export const keydown: {
     ): SceneSimulation<Model, Message, OutMessage> =>
       invokeAndCapture(simulation, target, 'keydown', handler => {
         const node = {}
+        let isDefaultPrevented = false
+
         handler({
           key,
           ...DEFAULT_KEYBOARD_MODIFIERS,
           ...modifiers,
           target: node,
           currentTarget: node,
-          preventDefault: Function.constVoid,
+          get defaultPrevented() {
+            return isDefaultPrevented
+          },
+          preventDefault: () => {
+            isDefaultPrevented = true
+          },
         })
       }),
 )
