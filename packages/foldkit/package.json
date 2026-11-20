@@ -135,6 +135,10 @@
       "types": "./dist/test/public.d.ts",
       "import": "./dist/test/public.js"
     },
+    "./test/dom": {
+      "types": "./dist/test/dom/public.d.ts",
+      "import": "./dist/test/dom/public.js"
+    },
     "./test/vitest": {
       "types": "./dist/test/vitest.d.ts",
       "import": "./dist/test/vitest.js"
