@@ -6645,3 +6645,258 @@ describe('expectHandled and expectIgnored', () => {
     )
   })
 })
+
+describe('Scene.steps', () => {
+  test('reuses a group and renders each interaction in order', () => {
+    const givenLoggedIn = Scene.steps(
+      Scene.given(initialModel),
+      Scene.type(Scene.label('Email'), 'alice@example.com'),
+      Scene.type(Scene.label('Password'), 'secret'),
+      Scene.click(Scene.role('button', { name: 'Sign in' })),
+      Scene.Command.expectExact(Authenticate),
+      Scene.Command.resolve(
+        Authenticate,
+        LoginMessage.SucceededAuthenticate({ username: 'alice' }),
+      ),
+      Scene.expect(Scene.role('status')).toHaveText('Welcome, alice!'),
+    )
+
+    Scene.scene({ update, view }, givenLoggedIn)
+    Scene.scene(
+      { update, view },
+      givenLoggedIn,
+      Scene.click(Scene.role('button', { name: 'Log out' })),
+      Scene.expect(Scene.label('Email')).toHaveValue(''),
+    )
+  })
+
+  test('composes nested and empty groups with Subscription and Command steps', () => {
+    const pollCount = Scene.steps(
+      Scene.steps(),
+      Scene.steps(Scene.Subscription.emit(CounterMessage.PolledCount())),
+      Scene.Command.expectExact(FetchCount),
+    )
+
+    Scene.scene(
+      { update: counterUpdate, view: counterView },
+      Scene.steps(Scene.steps(Scene.given(counterInitialModel)), pollCount),
+      Scene.Command.resolve(
+        FetchCount,
+        CounterMessage.SucceededFetchCount({ count: 7 }),
+      ),
+      Scene.steps(
+        Scene.Subscription.emit(CounterMessage.Ticked()),
+        Scene.steps(Scene.expect(Scene.role('status')).toHaveText('count: 8')),
+      ),
+    )
+  })
+
+  test('reconciles Mounts between child steps and acknowledges unmounts', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountView },
+      Scene.steps(
+        Scene.given(mountInitialModel),
+        Scene.Mount.resolve(
+          FocusButton,
+          MountPanelMessage.CompletedFocusButton(),
+        ),
+        Scene.click(Scene.role('button', { name: 'Open' })),
+        Scene.steps(
+          Scene.Mount.expectExact(MeasurePanel),
+          Scene.Mount.resolve(
+            MeasurePanel,
+            MountPanelMessage.MeasuredPanel({ width: 100 }),
+          ),
+          Scene.expect(Scene.text('width: 100')).toExist(),
+        ),
+        Scene.click(Scene.role('button', { name: 'Close' })),
+      ),
+      Scene.Mount.expectEnded(MeasurePanel),
+      Scene.expect(Scene.text('width: 100')).not.toExist(),
+    )
+  })
+
+  test('composes groups inside a scope and scopes inside a group', () => {
+    Scene.scene(
+      { update: counterUpdate, view: counterView },
+      Scene.given(counterInitialModel),
+      Scene.inside(
+        Scene.selector('div'),
+        Scene.steps(
+          Scene.Subscription.emit(CounterMessage.Ticked()),
+          Scene.inside(
+            Scene.role('status'),
+            Scene.steps(Scene.expect(Scene.text('count: 1')).toExist()),
+          ),
+        ),
+      ),
+      Scene.expect(Scene.role('status')).toHaveText('count: 1'),
+    )
+  })
+
+  test('an empty group preserves the current OutMessage sequence', () => {
+    Scene.scene(
+      { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
+      Scene.given(interactionInitialModel),
+      Scene.click(Scene.role('button', { name: 'Expand' })),
+      Scene.steps(Scene.steps()),
+      Scene.expectOutMessages(
+        InteractionOutMessage.RequestedExpand(),
+        InteractionOutMessage.RequestedSelection(),
+      ),
+    )
+  })
+
+  test('preserves the latest child OutMessages through nested groups', () => {
+    Scene.scene(
+      { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
+      Scene.steps(
+        Scene.given(interactionInitialModel),
+        Scene.Subscription.emit(InteractionMessage.ClickedRow()),
+        Scene.steps(
+          Scene.click(Scene.role('button', { name: 'Expand' })),
+          Scene.expectOutMessages(
+            InteractionOutMessage.RequestedExpand(),
+            InteractionOutMessage.RequestedSelection(),
+          ),
+        ),
+      ),
+      Scene.expectOutMessages(
+        InteractionOutMessage.RequestedExpand(),
+        InteractionOutMessage.RequestedSelection(),
+      ),
+      Scene.steps(
+        Scene.steps(Scene.Subscription.emit(InteractionMessage.ClickedRow())),
+      ),
+      Scene.expectOutMessage(InteractionOutMessage.RequestedSelection()),
+      Scene.steps(
+        Scene.Subscription.emit(InteractionMessage.CompletedAction()),
+        Scene.expectNoOutMessage(),
+      ),
+      Scene.expectNoOutMessage(),
+    )
+  })
+
+  test('checks unresolved Commands at the end of the scene', () => {
+    expect(() =>
+      Scene.scene(
+        { update: counterUpdate, view: counterView },
+        Scene.steps(
+          Scene.given(counterInitialModel),
+          Scene.Subscription.emit(CounterMessage.PolledCount()),
+        ),
+      ),
+    ).toThrow('FetchCount')
+  })
+
+  test('checks unresolved Mounts at the end of the scene', () => {
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.steps(Scene.given(mountInitialModel)),
+      ),
+    ).toThrow('FocusButton')
+  })
+
+  test('preserves the inferred types through nested groups', () => {
+    const group = PublicScene.steps(
+      Scene.steps(Scene.given(counterInitialModel)),
+      Scene.steps(Scene.Subscription.emit(CounterMessage.Ticked())),
+      Scene.steps(Scene.expectOutMessage(OutMessage.RequestedLogout())),
+    )
+
+    expectTypeOf(group).toEqualTypeOf<
+      Scene.SceneStepsStep<
+        typeof counterInitialModel,
+        ReturnType<typeof CounterMessage.Ticked>,
+        ReturnType<typeof OutMessage.RequestedLogout>
+      >
+    >()
+    expectTypeOf(
+      Scene.steps(
+        Scene.expectOutMessages(
+          InteractionOutMessage.RequestedExpand(),
+          InteractionOutMessage.RequestedSelection(),
+        ),
+      ),
+    ).toEqualTypeOf<
+      Scene.SceneStepsStep<
+        never,
+        never,
+        | ReturnType<typeof InteractionOutMessage.RequestedExpand>
+        | ReturnType<typeof InteractionOutMessage.RequestedSelection>
+      >
+    >()
+    expectTypeOf(Scene.steps()).toEqualTypeOf<
+      Scene.SceneStepsStep<never, never, never>
+    >()
+  })
+
+  test('rejects an incompatible initial Model inside nested groups', () => {
+    const givenLogin = Scene.steps(Scene.steps(Scene.given(initialModel)))
+
+    expectTypeOf(() =>
+      Scene.scene(
+        { update: counterUpdate, view: counterView },
+        // @ts-expect-error the Login Model is not a Counter Model
+        givenLogin,
+      ),
+    ).toBeFunction()
+  })
+
+  test('rejects an incompatible Subscription Message inside nested groups', () => {
+    const emitCompletedAction = Scene.steps(
+      Scene.steps(
+        Scene.Subscription.emit(LogoutButtonMessage.CompletedAction()),
+      ),
+    )
+
+    expectTypeOf(() =>
+      Scene.scene(
+        { update: counterUpdate, view: counterView },
+        Scene.given(counterInitialModel),
+        // @ts-expect-error CompletedAction is not a Counter Message
+        emitCompletedAction,
+      ),
+    ).toBeFunction()
+  })
+
+  test('rejects incompatible single and multiple OutMessage assertions in groups', () => {
+    const assertLogout = Scene.steps(
+      Scene.steps(Scene.expectOutMessage(OutMessage.RequestedLogout())),
+    )
+    const assertMixedOutMessages = Scene.steps(
+      Scene.steps(
+        Scene.expectOutMessages(
+          InteractionOutMessage.RequestedExpand(),
+          OutMessage.RequestedLogout(),
+        ),
+      ),
+    )
+
+    expectTypeOf(() =>
+      Scene.scene(
+        // @ts-expect-error RequestedLogout is not an Interaction OutMessage
+        { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
+        Scene.given(interactionInitialModel),
+        assertLogout,
+      ),
+    ).toBeFunction()
+    expectTypeOf(() =>
+      Scene.scene(
+        // @ts-expect-error RequestedLogout is not an Interaction OutMessage
+        { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
+        Scene.given(interactionInitialModel),
+        assertMixedOutMessages,
+      ),
+    ).toBeFunction()
+    expectTypeOf(() =>
+      Scene.scene(
+        { update: counterUpdate, view: counterView },
+        Scene.given(counterInitialModel),
+        // @ts-expect-error Counter update cannot emit an OutMessage
+        assertLogout,
+      ),
+    ).toBeFunction()
+  })
+})
