@@ -93,7 +93,7 @@ type ResolvedSlowConfig<Model, Message> = Readonly<{
  *   server. `'Always'` enables them in every environment.
  * - `measuredPhases`: Phases to measure. Defaults to every slow warning phase.
  * - `thresholdOverrides`: Per-phase budget overrides. Omitted fields keep defaults; overrides for unmeasured phases are ignored.
- * - `onSlow`: Callback for every measured phase that exceeds its budget. Replaces Foldkit's default `console.warn`; Foldkit will not also warn for tags your callback ignores.
+ * - `onSlow`: Callback with the full Model and Message context for every measured phase that exceeds its budget. Replaces Foldkit's summary-only `console.warn`; Foldkit will not also warn for tags your callback ignores.
  */
 export type SlowConfig<Model, Message> =
   | false
@@ -233,6 +233,7 @@ const optionMessageTrigger = (maybeMessage: Option.Option<unknown>): string =>
 const TUNING_HINT =
   'Set slow.thresholdOverrides to change budgets or pass slow: false to disable warnings.'
 
+/** Logs a slow-phase summary without the Model or Message payloads. */
 export const defaultSlowCallback = (
   context: SlowContext<unknown, unknown>,
 ): void => {
@@ -252,19 +253,5 @@ export const defaultSlowCallback = (
     }),
   )
 
-  const maybeRawMessage: Option.Option<unknown> = Match.value(context).pipe(
-    Match.withReturnType<Option.Option<unknown>>(),
-    Match.tagsExhaustive({
-      Update: ({ message }) => Option.some<unknown>(message),
-      View: ({ message }) => message,
-      Patch: ({ message }) => message,
-      SubscriptionDependencies: () => Option.none(),
-    }),
-  )
-
-  console.warn(
-    `[foldkit] ${summary} ${TUNING_HINT}`,
-    context,
-    ...Option.toArray(maybeRawMessage),
-  )
+  console.warn(`[foldkit] ${summary} ${TUNING_HINT}`)
 }

@@ -6,7 +6,7 @@
 
 Slow synchronous work blocks the browser from responding to input or drawing the next frame. During development, Foldkit measures update, view, DOM patching, and Subscription dependency extraction so you can find which phase held the main thread.
 
-Each phase has its own time budget. When work exceeds that budget, Foldkit logs a warning with the phase, duration, threshold, and attribution context. Configure `slow.onSlow` to send the same context to another destination.
+Each phase has its own time budget. When work exceeds that budget, Foldkit logs a summary with the phase, duration, threshold, and triggering Message tag or Subscription key. Configure `slow.onSlow` to receive the full context.
 
 ### Development Defaults
 
@@ -28,11 +28,11 @@ Measure before and after the change. Keep the optimization only when the profile
 
 ## Optimization playbook {#playbook}
 
-The warning `_tag` identifies the phase to inspect. Start with the work attributed in the context, then choose a fix that preserves the application's architecture.
+The warning identifies the phase to inspect. Start with the triggering Message tag or Subscription key, then choose a fix that preserves the application's architecture.
 
 - **Render-only derived data:** If a value exists only to decide what to draw, compute it from view inputs. Put an expensive, stable subtree behind [createLazy](/core/view-memoization#create-lazy) or `createKeyedLazy`. Do not move the value into update only to avoid a View warning.
 - **Slow View or Patch:** Start with stable keys for mapped lists and memoized boundaries around large regions. A lazy boundary helps only when its function and arguments often keep the same references between renders. If the inputs change every render, the cache misses every render.
-- **Slow Update:** Start with the Message in the warning context. Move render-only calculations back to the view path. For work that changes application state, limit the calculation to Messages that can change its inputs.
+- **Slow Update:** Start with the Message tag in the warning. Move render-only calculations back to the view path. For work that changes application state, limit the calculation to Messages that can change its inputs.
 - **Derived state in the Model:** Store a derived value only when it belongs with the Model and update can maintain it from the same Messages that change its source. Profiling should show that repeated calculation is the bottleneck.
 - **Commands:** A Command runs after update, but synchronous CPU work inside it can still block the main thread. Use a Command when the work is an effect or a deliberately asynchronous computation.
 - **Slow SubscriptionDependencies:** `modelToDependencies` should be a cheap projection from already-modeled fields to the values a stream reads. Avoid scanning, sorting, serializing, or building large dependency objects there.
@@ -55,6 +55,8 @@ Omit `slow` to measure all four phases during development with their default bud
 Passing an object also measures every phase unless `measuredPhases` narrows the list. Use `thresholdOverrides` to replace individual budgets. An omitted override keeps the Foldkit default, and an override for an unmeasured phase has no effect.
 
 ### Warning Output
+
+The default `console.warn` receives one summary string. It includes timing, the triggering Message tag (`init` when no Message triggered the phase) or Subscription key, and advice for that phase. It does not receive the Model or Message payloads. This keeps large application data out of console logs. Call `Runtime.defaultSlowCallback(context)` from a custom callback to use this same output.
 
 `show` and `onSlow` apply to every measured phase. Passing `onSlow` replaces the default `console.warn`, so Foldkit will not also log phases that the callback ignores. The callback receives the full tagged `SlowContext` union even when `measuredPhases` selects a subset.
 
