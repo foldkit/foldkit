@@ -13,6 +13,7 @@ expect(label('Email')).toHaveValue('alice@example.com')
 expect(role('button', { name: 'Submit' })).toBeDisabled()
 expect(role('button')).not.toBeDisabled()
 
-// Multi-match assertions — count-based
+// Multi-match assertions
 expectAll(all.role('row')).toHaveCount(3)
 expectAll(all.role('alert')).toBeEmpty()
+expectAll(all.role('listitem')).toHaveTexts(['First task', 'Second task'])

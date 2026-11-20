@@ -2981,14 +2981,37 @@ const assertCount =
     }
   }
 
+const assertTexts =
+  (expected: ReadonlyArray<string>) =>
+  (
+    matches: ReadonlyArray<VNode>,
+    description: string,
+    isNot: boolean,
+  ): void => {
+    const actual = Array.map(matches, textContent)
+    const pass = Equal.equals(actual, expected)
+
+    if (isNot ? pass : !pass) {
+      throw new Error(
+        `Expected elements matching ${description} ${isNot ? 'not to' : 'to'} have texts in order.\n\n` +
+          `Expected:\n${JSON.stringify(expected, null, 2)}\n\nActual:\n${JSON.stringify(actual, null, 2)}`,
+      )
+    }
+  }
+
 const buildExpectAllChain = (locatorAll: LocatorAll, isNot: boolean) => ({
   toHaveCount: (expected: number) =>
     wrapAllAssertion(locatorAll, assertCount(expected), isNot),
   toBeEmpty: () => wrapAllAssertion(locatorAll, assertCount(0), isNot),
+  toHaveTexts: (expected: ReadonlyArray<string>) =>
+    wrapAllAssertion(locatorAll, assertTexts(expected), isNot),
 })
 
-/** Creates an inline multi-match assertion step. Use for count-based
- *  assertions like `toHaveCount(n)` or `toBeEmpty()`. */
+/** Creates an inline multi-match assertion step. Use `toHaveCount(n)` or
+ *  `toBeEmpty()` for counts, or `toHaveTexts(expected)` to compare each
+ *  element's full text, including descendants, in traversal order.
+ *  Text, count, and order must match exactly; `[]` matches no elements.
+ *  Every matcher supports `.not`. */
 export const expectAll = (locatorAll: LocatorAll) => ({
   ...buildExpectAllChain(locatorAll, false),
   not: buildExpectAllChain(locatorAll, true),

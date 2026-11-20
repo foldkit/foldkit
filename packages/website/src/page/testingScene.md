@@ -161,12 +161,15 @@ Accessible-name and accessible-description matching excludes hidden descendant c
 
 ### Collection Assertions
 
-For `LocatorAll` (from `all.*`), use `expectAll(locatorAll)` for count-based assertions:
+For `LocatorAll` (from `all.*`), use `expectAll(locatorAll)` to assert on the collection:
 
-| Matcher           | Asserts that                           |
-| ----------------- | -------------------------------------- |
-| `.toHaveCount(n)` | The locator matches exactly n elements |
-| `.toBeEmpty()`    | The locator matches zero elements      |
+| Matcher                  | Asserts that                                                   |
+| ------------------------ | -------------------------------------------------------------- |
+| `.toHaveCount(n)`        | The locator matches exactly n elements                         |
+| `.toBeEmpty()`           | The locator matches zero elements                              |
+| `.toHaveTexts(expected)` | Each matched element has the expected text, in traversal order |
+
+`toHaveTexts` takes a readonly array of strings and compares the full text of each matched element, including descendant text. The count and order must match exactly. An empty array matches only an empty collection. On failure, Scene reports the locator and the expected and actual text arrays. Use `.not.toHaveTexts(expected)` to assert that the collection differs in text, count, or order.
 
 ## Handled and Ignored Interactions
 
