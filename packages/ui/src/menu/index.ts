@@ -725,12 +725,13 @@ export const selectItem = (
 
 // VIEW
 
-/** Configuration for an individual menu item's appearance. */
+/** Configuration for an individual menu item's appearance and attributes. */
 export type ItemConfig = Readonly<{
   className?: string
+  /** Applied before built-in attributes, which take precedence on conflicts. */
+  attributes?: ReadonlyArray<ChildAttribute>
   content: Html
 }>
-
 /** Configuration for a group heading rendered above a group of items. */
 export type GroupHeading = Readonly<{
   content: Html
@@ -1072,6 +1073,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       return h.keyed('div')(
         itemId(id, index),
         [
+          ...(itemConfig.attributes ?? []),
           h.Id(itemId(id, index)),
           h.Role('menuitem'),
           ...(isActiveItem ? [h.DataAttribute('active', '')] : []),
