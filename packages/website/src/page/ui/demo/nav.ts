@@ -12,13 +12,6 @@ import type { Message } from '../message'
 const NavDemoSection = Schema.Literals(['Home', 'Search', 'Library', 'Profile'])
 type NavDemoSection = typeof NavDemoSection.Type
 
-const demoSections: ReadonlyArray<NavDemoSection> = [
-  'Home',
-  'Search',
-  'Library',
-  'Profile',
-]
-
 const NAV_SECTION_QUERY_KEY = 'section'
 
 const defaultSection: NavDemoSection = 'Home'
@@ -34,7 +27,7 @@ const sectionFromUrl = (url: Url): NavDemoSection =>
     ),
     Option.flatMap(sectionParam =>
       Array.findFirst(
-        demoSections,
+        NavDemoSection.literals,
         section => section.toLowerCase() === sectionParam.toLowerCase(),
       ),
     ),
@@ -82,7 +75,7 @@ export const basicDemo = (url: Url, h: HtmlBuilder<Message>) => {
       [h.Class('w-full max-w-lg mx-auto')],
       [
         Nav.view<NavDemoSection>({
-          items: demoSections,
+          items: NavDemoSection.literals,
           ariaLabel: 'App sections',
           toHref: sectionToHref,
           isItemCurrent: section => section === currentSection,
