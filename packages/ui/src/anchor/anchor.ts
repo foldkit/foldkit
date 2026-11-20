@@ -141,13 +141,7 @@ export const portalToContainingRoot = (element: Element): (() => void) => {
   portalRoot.appendChild(element)
 
   return () => {
-    try {
-      element.remove()
-    } catch {
-      // NOTE: a re-render may unmount the element before this cleanup fires,
-      // so the remove() call can throw on a node that's already been removed.
-      // Swallow the error.
-    }
+    element.remove()
 
     // NOTE: a modal overlay isolates siblings before its Mount portals the
     // panel. An empty shared root would become inert, then receive the panel.
