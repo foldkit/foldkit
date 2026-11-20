@@ -2,6 +2,21 @@ import { expect, test } from '@playwright/test'
 
 import * as Page from '../page'
 
+const REDUCED_MOTION_TRANSITION_RESET = `
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+`
+
+const DELAYED_VISIBILITY_TRANSITION = `
+  *, *::before, *::after {
+    transition: visibility 0s 200ms;
+  }
+`
+
 test.describe('ui-showcase example', () => {
   test('loads cleanly', async ({ page }) => {
     await Page.assertLoadedCleanly(page)
@@ -386,5 +401,67 @@ test.describe('ui-showcase example', () => {
     await page.goBack()
     await expect(page).toHaveURL(/\/$/)
     await expect.poll(documentOverflow).not.toBe('hidden')
+  })
+
+  test.describe('with a reduced-motion transition reset', () => {
+    test.use({ contextOptions: { reducedMotion: 'reduce' } })
+
+    test('focuses the date picker calendar grid when opened from the keyboard', async ({
+      page,
+    }) => {
+      await page.goto('/')
+      await page.addStyleTag({ content: REDUCED_MOTION_TRANSITION_RESET })
+      await page
+        .getByRole('link', { name: 'Date Picker', exact: true })
+        .first()
+        .click()
+      await expect(page).toHaveURL(/\/date-picker$/)
+
+      const trigger = page.locator('#date-picker-basic-demo-popover-button')
+      await trigger.focus()
+      await page.keyboard.press('Enter')
+      await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+
+      await expect(
+        page.locator('#date-picker-basic-demo-calendar-grid'),
+      ).toBeFocused()
+    })
+  })
+
+  test('focuses the menu panel once a delayed visibility transition reveals it', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page.addStyleTag({ content: DELAYED_VISIBILITY_TRANSITION })
+    await page.getByRole('link', { name: 'Menu', exact: true }).first().click()
+    await expect(page).toHaveURL(/\/menu$/)
+
+    const trigger = page.locator('#menu-basic-demo-button')
+    await trigger.focus()
+    await page.keyboard.press('Enter')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+
+    await expect(page.locator('#menu-basic-demo-items')).toBeFocused()
+  })
+
+  test('focuses the date picker calendar grid once a delayed visibility transition reveals it', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page.addStyleTag({ content: DELAYED_VISIBILITY_TRANSITION })
+    await page
+      .getByRole('link', { name: 'Date Picker', exact: true })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/\/date-picker$/)
+
+    const trigger = page.locator('#date-picker-basic-demo-popover-button')
+    await trigger.focus()
+    await page.keyboard.press('Enter')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+
+    await expect(
+      page.locator('#date-picker-basic-demo-calendar-grid'),
+    ).toBeFocused()
   })
 })
