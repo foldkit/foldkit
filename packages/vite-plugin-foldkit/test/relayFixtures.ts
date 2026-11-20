@@ -40,6 +40,22 @@ export const findFreePort = () =>
     })
   })
 
+// NOTE: Binds every interface, the way `ws` does. Holding only 127.0.0.1
+// leaves the relay free to bind `::` and the contention never happens.
+export const holdFreePort = async (): Promise<number> => {
+  const squatter = createNetServer()
+  onTestFinished(() => new Promise<void>(done => squatter.close(() => done())))
+  await new Promise<void>((resolveListening, reject) => {
+    squatter.on('error', reject)
+    squatter.listen(0, () => resolveListening())
+  })
+
+  return Option.getOrThrowWith(
+    boundPort(squatter.address()),
+    () => new Error('The squatter has no bound port'),
+  )
+}
+
 export const serverPort = (server: ViteDevServer): number =>
   Option.getOrThrowWith(
     boundPort(server.httpServer?.address()),
