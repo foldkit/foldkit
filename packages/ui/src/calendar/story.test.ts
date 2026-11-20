@@ -360,6 +360,131 @@ describe('Calendar', () => {
         )
       })
 
+      it('ArrowRight keeps focus in place when maxDate is a disabled date', () => {
+        const friday = Calendar.make(2026, 10, 2)
+        const saturday = Calendar.make(2026, 10, 3)
+        Story.story(
+          update,
+          Story.given(
+            init({
+              id: 'test',
+              today,
+              initialViewDate: friday,
+              maxDate: saturday,
+              disabledDaysOfWeek: ['Saturday', 'Sunday'],
+            }),
+          ),
+          Story.message(
+            Message.PressedKeyOnGrid({
+              key: 'ArrowRight',
+              isShift: false,
+            }),
+          ),
+          expectFocus(friday),
+          Story.expectNoOutMessage(),
+        )
+      })
+
+      it('ArrowLeft keeps focus in place when minDate is a disabled date', () => {
+        const sunday = Calendar.make(2026, 4, 5)
+        const monday = Calendar.make(2026, 4, 6)
+        Story.story(
+          update,
+          Story.given(
+            init({
+              id: 'test',
+              today,
+              initialViewDate: monday,
+              minDate: sunday,
+              disabledDaysOfWeek: ['Saturday', 'Sunday'],
+            }),
+          ),
+          Story.message(
+            Message.PressedKeyOnGrid({
+              key: 'ArrowLeft',
+              isShift: false,
+            }),
+          ),
+          expectFocus(monday),
+          Story.expectNoOutMessage(),
+        )
+      })
+
+      it('ArrowDown lands on the last enabled date when maxDate is a disabled date', () => {
+        const monday = Calendar.make(2026, 9, 28)
+        const saturday = Calendar.make(2026, 10, 3)
+        Story.story(
+          update,
+          Story.given(
+            init({
+              id: 'test',
+              today,
+              initialViewDate: monday,
+              maxDate: saturday,
+              disabledDaysOfWeek: ['Saturday', 'Sunday'],
+            }),
+          ),
+          Story.message(
+            Message.PressedKeyOnGrid({ key: 'ArrowDown', isShift: false }),
+          ),
+          expectFocus(Calendar.make(2026, 10, 2)),
+          Story.expectOutMessage(
+            OutMessage.ChangedViewMonth({ year: 2026, month: 10 }),
+          ),
+        )
+      })
+
+      it('ArrowRight keeps focus in place when every date is disabled', () => {
+        Story.story(
+          update,
+          Story.given(
+            init({
+              id: 'test',
+              today,
+              disabledDaysOfWeek: [
+                'Sunday',
+                'Monday',
+                'Tuesday',
+                'Wednesday',
+                'Thursday',
+                'Friday',
+                'Saturday',
+              ],
+            }),
+          ),
+          Story.message(
+            Message.PressedKeyOnGrid({
+              key: 'ArrowRight',
+              isShift: false,
+            }),
+          ),
+          expectFocus(today),
+          Story.expectNoOutMessage(),
+        )
+      })
+
+      it('PageDown lands on the last enabled date when maxDate is a disabled date', () => {
+        const saturday = Calendar.make(2026, 5, 2)
+        Story.story(
+          update,
+          Story.given(
+            init({
+              id: 'test',
+              today,
+              maxDate: saturday,
+              disabledDaysOfWeek: ['Saturday', 'Sunday'],
+            }),
+          ),
+          Story.message(
+            Message.PressedKeyOnGrid({ key: 'PageDown', isShift: false }),
+          ),
+          expectFocus(Calendar.make(2026, 5, 1)),
+          Story.expectOutMessage(
+            OutMessage.ChangedViewMonth({ year: 2026, month: 5 }),
+          ),
+        )
+      })
+
       it('unknown keys are no-ops', () => {
         Story.story(
           update,
@@ -461,6 +586,49 @@ describe('Calendar', () => {
             expect(model.maybeFocusedDate).toStrictEqual(
               Option.some(Calendar.make(2026, 2, 28)),
             )
+          }),
+        )
+      })
+
+      it('moves focus to the last enabled date when maxDate is a disabled date', () => {
+        const saturday = Calendar.make(2026, 5, 2)
+        Story.story(
+          update,
+          Story.given(
+            init({
+              id: 'test',
+              today,
+              maxDate: saturday,
+              disabledDaysOfWeek: ['Saturday', 'Sunday'],
+            }),
+          ),
+          Story.message(Message.ClickedNextMonthButton()),
+          Story.model(model => {
+            expect(model.viewMonth).toBe(5)
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2026, 5, 1)),
+            )
+          }),
+        )
+      })
+
+      it('keeps focus in the new view month when its only dates in range are disabled', () => {
+        const saturday = Calendar.make(2026, 8, 1)
+        Story.story(
+          update,
+          Story.given(
+            init({
+              id: 'test',
+              today,
+              initialViewDate: Calendar.make(2026, 7, 15),
+              maxDate: saturday,
+              disabledDaysOfWeek: ['Saturday', 'Sunday'],
+            }),
+          ),
+          Story.message(Message.ClickedNextMonthButton()),
+          Story.model(model => {
+            expect(model.viewMonth).toBe(8)
+            expect(model.maybeFocusedDate).toStrictEqual(Option.some(saturday))
           }),
         )
       })
