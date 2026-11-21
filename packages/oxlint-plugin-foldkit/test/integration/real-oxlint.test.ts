@@ -181,6 +181,7 @@ describe('real-oxlint rule fixtures', () => {
     expect(
       countDiagnostics('got-wrapper-carries-only-routing', 'invalid'),
     ).toBe(2)
+    expect(countDiagnostics('got-submodel-message-name', 'invalid')).toBe(3)
     expect(countDiagnostics('no-noop-message', 'invalid')).toBe(2)
   })
 

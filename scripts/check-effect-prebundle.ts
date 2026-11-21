@@ -17,7 +17,8 @@ const collectTsFiles = (dir: string): ReadonlyArray<string> => {
     } else if (
       entry.endsWith('.ts') &&
       !entry.endsWith('.d.ts') &&
-      !entry.endsWith('.test.ts')
+      !entry.endsWith('.test.ts') &&
+      !entry.endsWith('.test-d.ts')
     ) {
       out.push(full)
     }

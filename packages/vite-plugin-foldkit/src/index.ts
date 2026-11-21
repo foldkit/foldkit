@@ -201,6 +201,7 @@ const FORCE_INCLUDED_EFFECT_ENTRIES: ReadonlyArray<string> = [
   'effect/Schema',
   'effect/SchemaAST',
   'effect/SchemaIssue',
+  'effect/SchemaParser',
   'effect/SchemaTransformation',
   'effect/Scope',
   'effect/Stream',

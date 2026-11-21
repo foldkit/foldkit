@@ -24,6 +24,10 @@ export const foldkitAliases = (dirname: string) => ({
     '../../packages/foldkit/src/devTools/host',
   ),
   'foldkit/dom': path.resolve(dirname, '../../packages/foldkit/src/dom'),
+  'foldkit/experimental/form': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/experimental/form/public',
+  ),
   'foldkit/experimental/machine': path.resolve(
     dirname,
     '../../packages/foldkit/src/experimental/machine',
