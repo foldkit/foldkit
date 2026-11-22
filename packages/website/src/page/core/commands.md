@@ -28,6 +28,10 @@ When `ClickedResetAfterDelay` arrives, update keeps the Model unchanged and retu
 
 Two optional fields extend that contract. `args` defines a Schema for inputs that vary by dispatch. `interrupt` makes in-flight work explicitly interruptible.
 
+`messages` requires a non-empty list of result Message Schemas. Entries whose decoded type is `never`, including `Schema.Never`, are rejected by TypeScript. When work completes without changing the Model, return a descriptive `Completed*` Message and leave the Model unchanged in update. The Message records completion for DevTools and tests.
+
+Keep shared declarations typed as non-empty tuples. A generic definition factory can accept `Command.ResultMessageSchemas<Messages>` and pass `Messages` explicitly to `Command.define` to preserve the validation when forwarding its schemas.
+
 ### Command and Result Names
 
 Command names are verb-first imperatives such as `FetchWeather`, `FocusItems`, and `LockScroll`. A Command names work for the runtime to perform. Its result Message records what happened, using a past-tense name such as `SucceededFetchWeather`, `FailedFetchWeather`, or `CompletedLockScroll`.

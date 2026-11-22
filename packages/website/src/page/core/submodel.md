@@ -202,6 +202,8 @@ By default, a parent render runs each child view again. If profiling finds repea
 
 Foldkit keeps the boundary registration alive across cache hits and removes it when the VNode leaves the tree. Key the lazy view with the same stable identifier used by `slotId`.
 
+The default keyed cache releases removed children's entries after the completed render. Use `{ evict: 'None' }` only for a bounded set of children whose entries must be reused after an absence.
+
 ### Further Guidance
 
 The [View Memoization](/core/view-memoization) page covers cache identity, limits, and measurement.
