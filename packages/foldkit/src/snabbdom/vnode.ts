@@ -34,6 +34,43 @@ export interface VNode {
   identity?: string
 }
 
+/** Whether two virtual nodes describe the same DOM element. The differ patches
+ * when this is true and creates a new element when it is false. */
+export const sameVnode = (vnode1: VNode, vnode2: VNode): boolean => {
+  if (vnode1 === vnode2) {
+    return true
+  }
+  if (vnode1.sel !== vnode2.sel) {
+    return false
+  }
+  if (vnode1.key !== vnode2.key) {
+    return false
+  }
+  if (vnode1.identity !== vnode2.identity) {
+    return false
+  }
+  if (vnode1.data?.is !== vnode2.data?.is) {
+    return false
+  }
+  return vnode1.sel !== undefined || typeof vnode1.text === typeof vnode2.text
+}
+
+/** Marker on {@link VNodeData.foldkitMount} for an element with an `OnMount`
+ * attribute. Snabbdom passes the field through without rendering it, so Scene
+ * can read it while walking the virtual tree. Carries the Mount Definition's
+ * name and args so a test can identify pending mounts. When the mount lives
+ * inside a Submodel boundary, it also carries that boundary's
+ * `toParentMessage` chain, innermost first, snapshotted at render time, so
+ * `Scene.Mount.resolve` can replay the lift the result travels through in
+ * production. Production keeps the Mount bound to the dispatcher owned by its
+ * acquiring render, then resolves that owner's latest chain when the Mount
+ * emits. */
+export type FoldkitMountMarker = Readonly<{
+  name: string
+  args?: Record<string, unknown>
+  messageMappers?: ReadonlyArray<(message: unknown) => unknown>
+}>
+
 export interface VNodeData<VNodeProps = Props> {
   [vnodeDataMaskKey]?: number
   props?: VNodeProps
@@ -46,6 +83,7 @@ export interface VNodeData<VNodeProps = Props> {
   key?: Key
   ns?: string // for SVGs
   is?: string // for custom elements v1
+  foldkitMount?: FoldkitMountMarker
   [key: string]: any // for any other 3rd party module
 }
 
