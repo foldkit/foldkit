@@ -16,6 +16,8 @@ export type {
   Html,
   HtmlBuilder,
   KeyboardModifiers,
+  KeyedLazyConfig,
+  KeyedLazyEviction,
   TagName,
   TextareaAttribute,
 } from './index.js'

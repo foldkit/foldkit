@@ -12,7 +12,11 @@ Use `Mount.define` for work that produces one Message when it starts. Its `execu
 
 ### Result Messages
 
-Both `Mount.define` and `Mount.defineStream` require at least one declared result Message. When no result needs to change the Model, return a descriptive `Completed*` Message and leave the Model unchanged in update. The Message keeps the effect visible to DevTools, Scene tests, and replay.
+Both `Mount.define` and `Mount.defineStream` require a non-empty list of result Message Schemas. Entries whose decoded type is `never`, including `Schema.Never`, are rejected by TypeScript. When no result needs to change the Model, return a descriptive `Completed*` Message and leave the Model unchanged in update. The Message records completion for DevTools, Scene tests, and replay.
+
+Returning the completion Message leaves the Mount's scope open. Resources registered with `Effect.acquireRelease` are released when the element unmounts.
+
+Keep shared declarations typed as non-empty tuples. A generic definition factory can accept `Mount.ResultMessageSchemas<Messages>` and pass `Messages` explicitly to `Mount.define` or `Mount.defineStream` to preserve the validation when forwarding its schemas.
 
 :::Info{label="Functional core, imperative shell"}
 The view describes what should be on screen. `OnMount` handles imperative work at the boundary between the virtual DOM and a live element. Results still return to update as Messages, and setup stays paired with cleanup inside the Mount's Effect or Stream.
