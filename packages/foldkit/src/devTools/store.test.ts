@@ -1,5 +1,6 @@
 import {
   Array,
+  BigDecimal,
   Effect,
   HashSet,
   Match,
@@ -25,6 +26,63 @@ const hasPath = (paths: HashSet.HashSet<string>, path: string) =>
   HashSet.has(paths, path)
 
 describe('computeDiff', () => {
+  it('compares distinct normalized BigDecimals without following self-links indefinitely', () => {
+    const previous = BigDecimal.normalize(BigDecimal.fromStringUnsafe('14.27'))
+    const current = BigDecimal.normalize(BigDecimal.fromStringUnsafe('15.28'))
+
+    const { changedPaths } = computeDiff(
+      { amount: previous },
+      { amount: current },
+    )
+
+    expect(hasPath(changedPaths, 'root.amount.value')).toBe(true)
+    expect(HashSet.size(changedPaths)).toBe(1)
+  })
+
+  it('returns an empty diff for equal cyclic records', () => {
+    const previous: Record<string, unknown> = { value: 1 }
+    const current: Record<string, unknown> = { value: 1 }
+    previous['self'] = previous
+    current['self'] = current
+
+    const { changedPaths, affectedPaths } = computeDiff(previous, current)
+
+    expect(HashSet.size(changedPaths)).toBe(0)
+    expect(HashSet.size(affectedPaths)).toBe(0)
+  })
+
+  it('reports every changed alias path and later siblings after a cycle', () => {
+    const previous: Record<string, unknown> = { value: 1 }
+    const current: Record<string, unknown> = { value: 2 }
+    previous['self'] = previous
+    current['self'] = current
+
+    const { changedPaths, affectedPaths } = computeDiff(
+      { left: previous, right: previous, after: { value: 1 } },
+      { left: current, right: current, after: { value: 2 } },
+    )
+
+    expect(hasPath(changedPaths, 'root.left.value')).toBe(true)
+    expect(hasPath(changedPaths, 'root.right.value')).toBe(true)
+    expect(hasPath(changedPaths, 'root.after.value')).toBe(true)
+    expect(HashSet.size(changedPaths)).toBe(3)
+    expect(hasPath(affectedPaths, 'root.left')).toBe(true)
+    expect(hasPath(affectedPaths, 'root.right')).toBe(true)
+    expect(hasPath(affectedPaths, 'root.after')).toBe(true)
+  })
+
+  it('compares array elements after a cyclic element', () => {
+    const previous: globalThis.Array<unknown> = []
+    const current: globalThis.Array<unknown> = []
+    previous.push(previous, 1)
+    current.push(current, 2)
+
+    const { changedPaths } = computeDiff(previous, current)
+
+    expect(hasPath(changedPaths, 'root.1')).toBe(true)
+    expect(HashSet.size(changedPaths)).toBe(1)
+  })
+
   it('returns empty diff for identical references', () => {
     const model = { count: 0 }
     const { changedPaths, affectedPaths } = computeDiff(model, model)

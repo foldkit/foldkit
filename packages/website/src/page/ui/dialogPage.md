@@ -75,7 +75,9 @@ See [Folding Update with Update.foldChild](/core/submodel#fold-child) for the ge
 
 ### Focus and Modal Isolation
 
-When the Dialog opens, Foldkit marks surrounding content inert and `aria-hidden="true"`, and sets `aria-modal="true"` on the Dialog. Keyboard focus stays inside until it closes, then the original inert and ARIA state is restored before focus returns to the element that opened it. The DevTools overlay remains interactive during development.
+When the Dialog opens, Foldkit marks surrounding content inert and `aria-hidden="true"`, and sets `aria-modal="true"` on the Dialog. Newly added background content is isolated too. Keyboard focus stays inside until it closes, then background state is restored before focus returns to the element that opened it. The DevTools overlay remains interactive during development.
+
+If another script changes `inert` or `aria-hidden` on an isolated element, Foldkit preserves that value while the Dialog is open and during cleanup. This prevents competing DOM observers from freezing the page. An external change can make background content interactive or expose it to assistive technology; the Dialog's keyboard focus trap stays active.
 
 ### Names and Descriptions
 

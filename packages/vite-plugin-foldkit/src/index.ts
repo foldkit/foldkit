@@ -164,8 +164,10 @@ export type FoldkitPluginOptions = Readonly<{
 const FORCE_INCLUDED_EFFECT_ENTRIES: ReadonlyArray<string> = [
   'effect',
   'effect/Array',
+  'effect/BigDecimal',
   'effect/Boolean',
   'effect/Cause',
+  'effect/Chunk',
   'effect/Clock',
   'effect/Context',
   'effect/Data',
@@ -183,6 +185,7 @@ const FORCE_INCLUDED_EFFECT_ENTRIES: ReadonlyArray<string> = [
   'effect/Layer',
   'effect/Logger',
   'effect/Match',
+  'effect/MutableRef',
   'effect/Number',
   'effect/Option',
   'effect/Order',

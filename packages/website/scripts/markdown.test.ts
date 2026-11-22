@@ -76,6 +76,65 @@ const y = 2</code></pre>
     )
   })
 
+  it('exports table headers, row headers, and inline cell formatting as GFM', () => {
+    setBody(`
+      <h2>Rendering time</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Operation (ms)</th>
+            <th><span>Solid</span><span> 1.9.3</span></th>
+            <th><span>Foldkit</span><span> 0.170.0-workspace</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row"><a href="/faq/performance">Create rows</a></th>
+            <td> 18.6 </td>
+            <td><strong>22.4</strong></td>
+          </tr>
+          <tr>
+            <th scope="row">Replace | clear</th>
+            <td><code>A | B</code></td>
+            <td> first\n second <em>value</em></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Lower is faster.</p>
+    `)
+
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe(
+      '## Rendering time\n\n' +
+        '| Operation (ms) | Solid 1.9.3 | Foldkit 0.170.0-workspace |\n' +
+        '| --- | --- | --- |\n' +
+        '| [Create rows](https://foldkit.dev/faq/performance) | 18.6 | **22.4** |\n' +
+        '| Replace \\| clear | `A \\| B` | first second _value_ |\n\n' +
+        'Lower is faster.',
+    )
+  })
+
+  it('skips ignored table rows and sections while preserving empty cell positions', () => {
+    setBody(`
+      <table>
+        <thead><tr><th>Measurement</th><th>First</th><th>Second</th></tr></thead>
+        <tbody>
+          <tr data-llm-ignore><th>Ignored row</th><td>1</td><td>2</td></tr>
+          <tr aria-hidden="true"><th>Hidden row</th><td>3</td><td>4</td></tr>
+          <tr><th scope="row">Ready</th><td data-llm-ignore>5</td><td>6</td></tr>
+          <tr><th scope="row">Created</th><td>7</td><td aria-hidden="true">8</td></tr>
+        </tbody>
+        <tfoot data-llm-ignore><tr><th>Ignored footer</th><td>9</td><td>10</td></tr></tfoot>
+      </table>
+    `)
+
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe(
+      '| Measurement | First | Second |\n' +
+        '| --- | --- | --- |\n' +
+        '| Ready |  | 6 |\n' +
+        '| Created | 7 |  |',
+    )
+  })
+
   it('prefixes labeled code blocks with a bold label line', () => {
     setBody(`
       <div data-llm-label="pnpm">
