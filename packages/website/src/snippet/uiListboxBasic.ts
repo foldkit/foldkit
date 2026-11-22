@@ -44,9 +44,8 @@ const Message = defineMessageUnion({
 // commits a selection it carries `Selected({ value })` where `value: Plan`.
 // The arm returns an Update.Step over the parent Model, which already has the
 // next Listbox Model written back:
-const foldListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>,
-  Listbox.OutMessage<Plan>
+const foldListboxOutMessage = PlanListbox.OutMessage.match<
+  Update.Step<Model, Message>
 >({
   Selected:
     ({ value }) =>
