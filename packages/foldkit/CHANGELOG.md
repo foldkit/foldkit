@@ -1,5 +1,53 @@
 # foldkit
 
+## 0.171.0
+
+### Minor Changes
+
+- [#1864](https://github.com/foldkit/foldkit/pull/1864) [`f0784d8`](https://github.com/foldkit/foldkit/commit/f0784d816e975b6cfea890d420f0ba5ac4e34aa7) Thanks [@austeane](https://github.com/austeane)! - Add `disposeAsync` to the `EmbedHandle` returned by `Runtime.embed`. It starts shutdown and returns a Promise that resolves after the runtime scope has closed and the original container has been restored. Await it before embedding a different program in the same container. It waits for Subscription, ManagedResource, and Command finalizers, including asynchronous release.
+
+  Mount finalizers run outside the runtime scope and may finish after the Promise resolves. A runtime finalizer that never completes keeps the Promise pending. Repeated calls await the same runtime, including calls after `dispose`. Runtime failures do not reject the returned Promise.
+
+- [#1567](https://github.com/foldkit/foldkit/pull/1567) [`f9079b8`](https://github.com/foldkit/foldkit/commit/f9079b8813cd6b864c6276879e4948b618dd36de) Thanks [@armancharan](https://github.com/armancharan)! - Make `createKeyedLazy()` release entries absent from the latest completed render by default. This bounds the keyed cache to entries used by that render. Cached parents preserve their children's entries, and cache writes roll back if view construction fails. Each runtime and server render has its own cache.
+
+  **Breaking change:** `createKeyedLazy()` and `createKeyedLazy({})` evict unused keys. If a bounded cache must reuse an entry after its key is absent from a render, migrate to `createKeyedLazy({ evict: 'None' })`. Explicit retention holds each cached VNode and its DOM element after that element leaves the document. Lists whose row identities can grow should use the default.
+
+- [#1943](https://github.com/foldkit/foldkit/pull/1943) [`7dfe32f`](https://github.com/foldkit/foldkit/commit/7dfe32f9d0cdb407aa871df17f712cd50f93e77a) Thanks [@raulescobar-g](https://github.com/raulescobar-g)! - Require a non-empty list of result Message Schemas in `Command.define`, `Mount.define`, and `Mount.defineStream`. Reject entries whose decoded type is `never`, including aliases of `Schema.Never`. These declarations produce a TypeScript error.
+
+  To migrate an empty or `Schema.Never` declaration, declare the Message that records the work's result. For setup that completes without changing the Model, return a descriptive `Completed*` Message and leave the Model unchanged in update. Mount setup can return that Message after registering cleanup with `Effect.acquireRelease`; its scope stays open until the element unmounts.
+
+  Shared declarations must preserve a non-empty tuple instead of widening to `ReadonlyArray<Schema.Top>`. Generic definition factories can accept `Command.ResultMessageSchemas<Messages>` or `Mount.ResultMessageSchemas<Messages>` to forward the validation without copying it. Pass the same `Messages` type argument explicitly when calling the definition constructor.
+
+### Patch Changes
+
+- [#1603](https://github.com/foldkit/foldkit/pull/1603) [`86585be`](https://github.com/foldkit/foldkit/commit/86585be79e3e5c2112a805b12ebf91a44fd50236) Thanks [@armancharan](https://github.com/armancharan)! - Allow updates from `Subscription.animationFrameEntry` to render in the frame that delivers the tick instead of waiting for another frame. The runtime advances at most one render per application per frame and coalesces ticks into a render that is already pending.
+
+  Keep frame timing local to the application and its tick delivery. Messages from other applications or later browser tasks retain their next-frame scheduling. Cancel frame callbacks when their Subscription becomes inactive or is disposed.
+
+- [#1935](https://github.com/foldkit/foldkit/pull/1935) [`b6cabe3`](https://github.com/foldkit/foldkit/commit/b6cabe30f0b0b6d84e251d3ba3d3766cdfb42840) Thanks [@devinjameson](https://github.com/devinjameson)! - Prevent modal isolation from freezing the page when another script changes `inert` or `aria-hidden`. Apply isolation to newly added background content and preserve external attribute changes while the Dialog is open and during cleanup. External scripts can override background isolation; the Dialog's focus trap stays active. Resolve every matching allowed overlay, including overlays inserted after a Dialog opens.
+
+- [#1774](https://github.com/foldkit/foldkit/pull/1774) [`7470352`](https://github.com/foldkit/foldkit/commit/7470352b2e5ab8d687606b44945ef4d2cac3fe16) Thanks [@artile](https://github.com/artile)! - Fix DOM updates being postponed indefinitely while a sustained stream of Messages exhausts the processing budget before each render opportunity.
+
+  Animation frames and asynchronous ViewTransition update callbacks share an allowance of three queue-related refusals. The next blocked opportunity processes the finite prefix of Messages already queued, including controlled-input changes, then commits plainly. A selected or pending ViewTransition can be skipped for this commit. Messages enqueued during catch-up wait for their posted task.
+
+  Catch-up is finite in Message count, not CPU time. A large or expensive prefix can occupy a long task, and the refusal bound does not guarantee a wall-clock or browser-paint deadline.
+
+- [#1923](https://github.com/foldkit/foldkit/pull/1923) [`78faa64`](https://github.com/foldkit/foldkit/commit/78faa6480fe5a6950528234d422e91e5b309d23e) Thanks [@rjdellecese](https://github.com/rjdellecese)! - Release dialogs owned by a crashed runtime before crash reporting and rendering. An open modal Dialog could leave the crash view inert and the page scroll locked, preventing recovery. Prevent interrupted dialog opens and late scroll-lock acquisitions from reactivating modal state after the crash. Dialogs owned by other runtimes retain their focus handling, isolation, and scroll locks.
+
+- [#1899](https://github.com/foldkit/foldkit/pull/1899) [`2d944db`](https://github.com/foldkit/foldkit/commit/2d944dbae71b77823111082d3f96f88c287d1095) Thanks [@wmaurer](https://github.com/wmaurer)! - Prevent DevTools stack overflows when inspecting Models or Messages containing Effect `Chunk` or `BigDecimal` values. Chunks display as arrays of their converted elements, and BigDecimals display as decimal strings without modifying their normalization caches. Circular references display as `[Circular]`.
+
+  Prevent history recording from overflowing on cyclic Models, including normalized BigDecimals. Changes in a shared value are reported at every Model path where it appears.
+
+  The Vite plugin prebundles `effect/Chunk` and `effect/BigDecimal` alongside the application's Effect imports so development builds share one Effect dependency graph.
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+- [#1931](https://github.com/foldkit/foldkit/pull/1931) [`fed1d86`](https://github.com/foldkit/foldkit/commit/fed1d862a0443321e600a8e1343b5ad667d14daf) Thanks [@Makisuo](https://github.com/Makisuo)! - Share a `Subscription.lift` projection across entries that read the same parent Model object or function. A projection that derives a child Model, such as indexing shared settings, runs once for that parent Model identity. Primitive parent Models are read separately for each entry. Keep `read` a pure projection of the parent Model. A slow projection is reported under the key of the first entry that reads that Model.
+
+- [#1932](https://github.com/foldkit/foldkit/pull/1932) [`c07f3a1`](https://github.com/foldkit/foldkit/commit/c07f3a1a8ceb665a756c66465627455583ddcb13) Thanks [@Makisuo](https://github.com/Makisuo)! - Derive all Subscription dependencies in one fiber per Model change and wake only the Subscriptions whose dependencies changed. Streams retain their dependency equivalence and access to the latest dependencies through `readDependencies`. This reduces per-Message scheduling overhead in applications with many Subscriptions.
+
+  Include `effect/MutableRef` in the Vite plugin's optimized Effect graph so the dependency follower can start in development builds.
+
 ## 0.170.0
 
 ### Minor Changes

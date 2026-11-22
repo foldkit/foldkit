@@ -1,0 +1,208 @@
+{
+  "localDate": "2026-10-30",
+  "harness": {
+    "repository": "https://github.com/krausest/js-framework-benchmark",
+    "commit": "ca8715d9ae84916fd24de3a79457d8c328f9b766",
+    "trackedSourceChanges": [],
+    "setupNotes": [
+      "Created empty frameworks/non-keyed directory required by the server discovery endpoint.",
+      "Root tooling installed with npm ci --legacy-peer-deps --ignore-scripts; server installed separately with npm ci.",
+      "Elm built with its installed compiler and the two upstream minification commands because elm-tooling is undeclared."
+    ]
+  },
+  "environment": {
+    "os": "macOS 26.6.2 (25G83)",
+    "cpu": "Apple M1 Max",
+    "memoryGiB": 64,
+    "power": "AC",
+    "browser": "Google Chrome for Testing 156.0.8078.75",
+    "browserExecutable": "/private/tmp/foldkit-chrome-for-testing-156.0.8078.75/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "node": "22.22.3",
+    "runner": "puppeteer",
+    "concurrentTimedRuns": 1,
+    "headless": {
+      "cpu": false,
+      "memory": true,
+      "size": false
+    },
+    "concurrentMemoryRunners": 7,
+    "memoryPressureObservations": [
+      {
+        "phase": "memory-start",
+        "freePercentage": 85,
+        "pressureLevel": 1
+      },
+      {
+        "phase": "memory-ready-sampling",
+        "freePercentage": 85,
+        "pressureLevel": 1
+      },
+      {
+        "phase": "memory-create-clear-sampling",
+        "freePercentage": 85,
+        "pressureLevel": 1
+      }
+    ],
+    "browserDistribution": {
+      "url": "https://storage.googleapis.com/chrome-for-testing-public/156.0.8078.75/mac-arm64/chrome-mac-arm64.zip",
+      "sha256": "fdcf54cb956a330560360cb0de364c126314a50a0351997d6d674db6aa5800ce"
+    },
+    "timeZone": "America/New_York"
+  },
+  "foldkit": {
+    "version": "0.170.0-workspace",
+    "librarySourceCommit": "a664f9834f0398807d748071cc402a991861a870",
+    "effect": "4.1.0",
+    "vitePlugin": "0.29.0",
+    "vite": "8.3.1",
+    "adaptedFrom": {
+      "url": "https://github.com/krausest/js-framework-benchmark/pull/2141",
+      "commit": "8e3f62921b0edc2e136e7f2e759777562b4185a9"
+    },
+    "implementationNotes": [
+      "Random label generation runs in GenerateRows Command; update is pure.",
+      "Rows use h.keyed and createKeyedLazy({ evict: 'AbsentFromRender' }). Cached rows absent from a successful render are evicted."
+    ],
+    "sourceSha256": {
+      "src/main.ts": "be2db08900b7f3fdb6624b652217c0e71f70c10913bf29ed6c76f5cd2be17a01",
+      "vite.config.ts": "7690c842f6acf6bba4b1b0f130fd871a87d12f4c02b71f4d8b3c94510ffab818",
+      "index.html": "6698a23506f7df2cd5127ff2af041f20eba1ba7ae6ff054a76c453186ab3d6a8",
+      "package.json": "806dcefaffd758456b775ea512f2242155c0d324d41bd182b2debd9493c276cc"
+    },
+    "bundleSha256": "fee1771b5747c0bcf453444561e5752401c557e39c03481cbbb408777ce10d20",
+    "basePackageVersion": "0.170.0",
+    "releaseStatus": "unreleased",
+    "cacheFixPullRequest": "https://github.com/foldkit/foldkit/pull/1567",
+    "bundleSize": {
+      "bytes": 306344,
+      "gzipBytes": 99991,
+      "gzipCompressionLevel": 9
+    }
+  },
+  "entries": [
+    {
+      "directory": "keyed/vanillajs-lite",
+      "version": "source pinned to harness commit",
+      "packageLockSha256": "71fbe4246eac204a4a231312b11e13b8122c03c0990e4b608a0b9304857c4f04",
+      "assets": {
+        "index.html": "ab16ba8b84b9cb8a2c92582b02239040f5fb4b8947ae20a756b8078f2ae8b823",
+        "src/Main.js": "0fcf12844ff1dfeeafe86abd8c21b6ead8774915c2983b7487d5be5bbc1fd336"
+      },
+      "upstreamNotes": [772]
+    },
+    {
+      "directory": "keyed/solid",
+      "version": "1.9.3",
+      "packageLockSha256": "50878ee6d9d788bd5a8a7ef1cb0d61b81d1e95264ef8be0017b54311c01e75c8",
+      "assets": {
+        "dist/main.js": "9a7954aedff39e0f0107a9223f717bdcee63a1609b5bb2626065283f633314fe"
+      },
+      "upstreamNotes": []
+    },
+    {
+      "directory": "keyed/react-hooks",
+      "version": "19.2.0",
+      "packageLockSha256": "bee80a1ff6b695518e5f19961a408c9a6b8cbafa78143a9dc6d4252b4003bb62",
+      "assets": {
+        "dist/main.js": "501f594158cea6a26fa05d25f0bae6b2eb463a55fe0a6975594b5df3e13cd62a"
+      },
+      "upstreamNotes": []
+    },
+    {
+      "directory": "keyed/vue",
+      "version": "3.5.39",
+      "packageLockSha256": "7b04dd5631706be5c254647a2c4fe6aee7b8c9c359edaa44422cb3e44b7fdb82",
+      "assets": {
+        "dist/index.html": "f9ca92eb75173248ed112ffcf979f952a14c617ccf9dfe015a76b3670c9c7ef5",
+        "dist/assets/index-LG75j6e7.js": "e783ec6ef7a57144951f5e54a77fff6bee4f03c166bc1627eaca6bf44f24d677"
+      },
+      "upstreamNotes": []
+    },
+    {
+      "directory": "keyed/svelte",
+      "version": "5.42.1",
+      "packageLockSha256": "26f8c3a37e22b9c561f14944a4d5f797a235d4c57fc6dc4dfd8547569573613a",
+      "assets": {
+        "dist/main.js": "38f1cfb64a26539ae1dad97f33e01f3b1211759a6e7fece1650d2a04c5b9c809"
+      },
+      "upstreamNotes": []
+    },
+    {
+      "directory": "keyed/elm",
+      "version": "0.19.1-6",
+      "packageLockSha256": "f63444e3eb1f9da081a46fa8465eddad2fb623be53d7d18c429dcec7dffb6915",
+      "assets": {
+        "dist/main.js": "0c7fca11394d40d7175d45df631ca7aa26365ade4c62b48b267e468525b714d7"
+      },
+      "upstreamNotes": [1139]
+    },
+    {
+      "directory": "keyed/foldkit",
+      "version": "0.170.0-workspace",
+      "packageLockSha256": "79923c8c27468fd0e53a05367c282533b8d0d3ed90e55fd1e973ee5cee405d8e",
+      "assets": {
+        "dist/main.js": "fee1771b5747c0bcf453444561e5752401c557e39c03481cbbb408777ce10d20"
+      },
+      "upstreamNotes": []
+    }
+  ],
+  "sampling": {
+    "cpu": 15,
+    "selection": 25,
+    "memory": 5,
+    "size": 1,
+    "order": "CPU: entries run sequentially in upstream name order within each operation. Memory: seven isolated runners run concurrently, one entry per runner, with each runner processing its memory tests sequentially.",
+    "cpuThrottling": {
+      "03_update10th1k_x16": 4,
+      "04_select1k": 4,
+      "05_swap1k": 4,
+      "06_remove-one-1k": 2,
+      "09_clear1k_x8": 4
+    },
+    "cpuMetric": "Median total duration in milliseconds from upstream Chrome trace parsing.",
+    "memoryMetric": "Median performance.measureUserAgentSpecificMemory().bytes divided by 1024^2, after forced major GC.",
+    "samplesDropped": 0
+  },
+  "commands": {
+    "workingDirectory": "<harness>/webdriver-ts",
+    "cpu": "PORT=8374 node dist/benchmarkRunner.js --framework keyed/vanillajs-lite keyed/solid keyed/react-hooks keyed/vue keyed/svelte keyed/elm keyed/foldkit --benchmark 01_ 02_ 03_ 04_ 05_ 06_ 07_ 08_ 09_ --count 15 --chromeBinary \"$CHROME_BINARY\"",
+    "memory": [
+      "PORT=8374 node dist/benchmarkRunner.js --framework keyed/vanillajs-lite --benchmark 21_ 22_ 25_ --count 5 --headless --chromeBinary \"$CHROME_BINARY\"",
+      "PORT=8374 node dist/benchmarkRunner.js --framework keyed/solid --benchmark 21_ 22_ 25_ --count 5 --headless --chromeBinary \"$CHROME_BINARY\"",
+      "PORT=8374 node dist/benchmarkRunner.js --framework keyed/react-hooks --benchmark 21_ 22_ 25_ --count 5 --headless --chromeBinary \"$CHROME_BINARY\"",
+      "PORT=8374 node dist/benchmarkRunner.js --framework keyed/vue --benchmark 21_ 22_ 25_ --count 5 --headless --chromeBinary \"$CHROME_BINARY\"",
+      "PORT=8374 node dist/benchmarkRunner.js --framework keyed/svelte --benchmark 21_ 22_ 25_ --count 5 --headless --chromeBinary \"$CHROME_BINARY\"",
+      "PORT=8374 node dist/benchmarkRunner.js --framework keyed/elm --benchmark 21_ 22_ 25_ --count 5 --headless --chromeBinary \"$CHROME_BINARY\"",
+      "PORT=8374 node dist/benchmarkRunner.js --framework keyed/foldkit --benchmark 21_ 22_ 25_ --count 5 --headless --chromeBinary \"$CHROME_BINARY\""
+    ],
+    "size": "PORT=8374 node dist/benchmarkRunner.js --framework keyed/vanillajs-lite keyed/solid keyed/react-hooks keyed/vue keyed/svelte keyed/elm keyed/foldkit --benchmark 40_ --chromeBinary \"$CHROME_BINARY\"",
+    "cpuWrapper": "caffeinate -di; LANG=en_US.UTF-8; Node 22.22.3 bin first on PATH",
+    "keyed": "PORT=8374 node dist/isKeyed.js --framework keyed/vanillajs-lite keyed/solid keyed/react-hooks keyed/vue keyed/svelte keyed/elm keyed/foldkit --chromeBinary \"$CHROME_BINARY\" --headless",
+    "csp": "PORT=8374 node dist/isCSPCompliant.js keyed/vanillajs-lite keyed/solid keyed/react-hooks keyed/vue keyed/svelte keyed/elm keyed/foldkit --chromeBinary \"$CHROME_BINARY\" --headless",
+    "memoryWrapper": "One caffeinate -i process per runner; LANG=en_US.UTF-8; Node 22.22.3 bin first on PATH"
+  },
+  "verification": {
+    "cpuSmoke": "All nine CPU operations passed for each selected entry.",
+    "keyed": "All seven entries passed upstream run, remove, and swap DOM-identity checks.",
+    "csp": "Foldkit, React Hooks, Solid, Svelte, vanilla, and Vue passed. Elm has the upstream-declared strict-CSP exception (1139).",
+    "cpuBatch": "All 63 CPU result objects written; runner exited 0 with a successful plausibility check.",
+    "memoryBatch": "All seven isolated memory runners exited 0 with successful plausibility checks; all 21 memory result objects written.",
+    "sizeBatch": "All 21 size/first-paint result objects written; runner exited 0 with a successful plausibility check.",
+    "browserAfterCollection": "Google Chrome for Testing 156.0.8078.75",
+    "assetHashes": "All source, bundle, package-lock, and served asset hashes matched the pre-collection snapshot.",
+    "dataAudit": "105 result objects and 1,141 primary samples. Coverage, counts, finite nonnegative samples, min/max, mean, median, and sample standard deviation validated. Summary cells match independently recomputed raw medians. Corrupt-median and missing-sample mutations were rejected.",
+    "correctnessChecksHeadless": true
+  },
+  "collection": {
+    "cpuStartedAt": "2026-10-30T04:05:29.471401+00:00",
+    "cpuFinishedAt": "2026-10-30T04:35:19.074808+00:00",
+    "memoryStartedAt": "2026-10-30T04:35:29.836776+00:00",
+    "memoryFinishedAt": "2026-10-30T04:40:35.734870+00:00",
+    "sizeStartedAt": "2026-10-30T04:40:35.734952+00:00",
+    "sizeFinishedAt": "2026-10-30T04:41:43.297342+00:00"
+  }
+}

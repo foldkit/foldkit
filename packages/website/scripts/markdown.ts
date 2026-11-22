@@ -170,6 +170,51 @@ export const extractMarkdownFromRenderedDocument = (
     return lines.join('\n')
   }
 
+  const extractTable = (element: Element): string => {
+    const rows: globalThis.Array<ReadonlyArray<string>> = []
+    const collectRows = (parent: Element): void => {
+      for (const child of globalThis.Array.from(parent.children)) {
+        if (isSkippedElement(child)) {
+          continue
+        }
+
+        if (child.tagName === 'TR') {
+          const cells = pipe(
+            globalThis.Array.from(child.children),
+            Array.filter(
+              cell => cell.tagName === 'TH' || cell.tagName === 'TD',
+            ),
+            Array.map(cell => collectInline(cell).trim().replace(/\|/g, '\\|')),
+          )
+
+          if (Array.isArrayNonEmpty(cells)) {
+            rows.push(cells)
+          }
+        } else if (
+          child.tagName === 'THEAD' ||
+          child.tagName === 'TBODY' ||
+          child.tagName === 'TFOOT'
+        ) {
+          collectRows(child)
+        }
+      }
+    }
+    collectRows(element)
+
+    const renderRow = (cells: ReadonlyArray<string>): string =>
+      `| ${Array.join(cells, ' | ')} |`
+
+    return Array.match(rows, {
+      onEmpty: () => '',
+      onNonEmpty: ([header, ...body]) =>
+        [
+          renderRow(header),
+          renderRow(Array.map(header, () => '---')),
+          ...Array.map(body, renderRow),
+        ].join('\n'),
+    })
+  }
+
   const extractBlocks = (parent: Element): string => {
     const parts: globalThis.Array<string> = []
     for (const node of globalThis.Array.from(parent.childNodes)) {
@@ -191,6 +236,16 @@ export const extractMarkdownFromRenderedDocument = (
         continue
       }
       const tag = node.tagName.toLowerCase()
+
+      if (tag === 'table') {
+        const table = extractTable(node)
+
+        if (String.isNonEmpty(table)) {
+          parts.push(table)
+        }
+
+        continue
+      }
 
       switch (tag) {
         case 'h1':

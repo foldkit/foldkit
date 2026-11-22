@@ -130,7 +130,6 @@ const outsideCandidates = (
 
 export const makeOutsideIsolation = (): Readonly<{
   update: (allowedElements: ReadonlyArray<HTMLElement>) => void
-  contains: (element: HTMLElement) => boolean
   recordAttributeMutation: (
     element: HTMLElement,
     attributeName: InertAttribute,
@@ -153,18 +152,9 @@ export const makeOutsideIsolation = (): Readonly<{
       for (const element of candidates) {
         if (!cleanups.has(element)) {
           cleanups.set(element, markInert(element))
-        } else {
-          if (element.getAttribute('aria-hidden') !== 'true') {
-            element.setAttribute('aria-hidden', 'true')
-          }
-
-          if (!element.inert) {
-            element.inert = true
-          }
         }
       }
     },
-    contains: element => cleanups.has(element),
     recordAttributeMutation: (element, attributeName) => {
       if (cleanups.has(element)) {
         recordCurrentAttribute(element, attributeName)
