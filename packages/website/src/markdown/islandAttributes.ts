@@ -23,4 +23,5 @@ export const islandAttributes = {
   Cta: Schema.Struct({}),
   Demo: Schema.Struct({ name: Schema.String }),
   Faq: Schema.Struct({ id: Schema.String, question: Schema.String }),
+  BenchmarkResults: Schema.Struct({ kind: Schema.Literals(['CPU', 'Memory']) }),
 }

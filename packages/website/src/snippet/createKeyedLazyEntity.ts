@@ -28,9 +28,9 @@ const postView = (
   return BlogPostPage.view(post, content)
 }
 
-// One slot per post, keyed by the same slug the route already uses to give
-// the post its DOM identity.
-const lazyPostView = createKeyedLazy()
+// Retain one slot per post in the bounded registry, keyed by the same slug
+// the route already uses to give the post its DOM identity.
+const lazyPostView = createKeyedLazy({ evict: 'None' })
 
 // Navigating between posts moves between slots instead of overwriting one.
 // Coming back to a post you already read returns its cached VNode.

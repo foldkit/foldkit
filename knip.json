@@ -110,6 +110,9 @@
     "internal/lustre-benchmark": {
       "entry": ["src/main.ts", "src/entry.optimised.ts", "bench/*.mjs"]
     },
+    "internal/js-framework-benchmark": {
+      "entry": ["bench/*.mjs"]
+    },
     "internal/api-reference-generator": {
       "ignoreDependencies": ["@foldkit/ui", "foldkit"]
     },

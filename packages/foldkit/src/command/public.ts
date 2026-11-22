@@ -4,6 +4,7 @@ export type {
   CommandDefinitionNoArgs,
   CommandDefinitionWithArgs,
   InterruptOption,
+  ResultMessageSchemas,
 } from './index.js'
 export {
   CommandDefinitionTypeId,

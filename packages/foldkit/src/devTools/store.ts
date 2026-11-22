@@ -37,6 +37,7 @@ export const computeDiff = (
   current: unknown,
 ): DiffResult => {
   const changed = new Set<string>()
+  const activeComparisons = new WeakMap<object, WeakSet<object>>()
 
   const walk = (prev: unknown, curr: unknown, path: string): void => {
     if (prev === curr) {
@@ -48,12 +49,26 @@ export const computeDiff = (
       return
     }
 
-    if (Array.isArray(curr) && Array.isArray(prev)) {
-      walkArray(prev, curr, path)
-    } else if (Predicate.isObject(curr) && Predicate.isObject(prev)) {
-      walkObject(prev, curr, path)
-    } else {
-      changed.add(path)
+    const activeCurrentValues =
+      activeComparisons.get(prev) ?? new WeakSet<object>()
+
+    if (activeCurrentValues.has(curr)) {
+      return
+    }
+
+    activeComparisons.set(prev, activeCurrentValues)
+    activeCurrentValues.add(curr)
+
+    try {
+      if (Array.isArray(curr) && Array.isArray(prev)) {
+        walkArray(prev, curr, path)
+      } else if (Predicate.isObject(curr) && Predicate.isObject(prev)) {
+        walkObject(prev, curr, path)
+      } else {
+        changed.add(path)
+      }
+    } finally {
+      activeCurrentValues.delete(curr)
     }
   }
 
