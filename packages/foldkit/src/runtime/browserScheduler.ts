@@ -19,7 +19,8 @@ const microtaskSetImmediate = (callback: () => void): (() => void) => {
   }
 }
 
-const browserScheduler = new Scheduler.MixedScheduler(
+/** @internal The microtask scheduler used by Foldkit's browser entry points. */
+export const browserScheduler = new Scheduler.MixedScheduler(
   'async',
   microtaskSetImmediate,
 )
