@@ -420,6 +420,140 @@ describe('parseMarkdown', () => {
       parseMarkdown(lines('---', 'title: My Post', '---', '', 'Prose.')),
     ).toThrowError(/Frontmatter is not supported/)
   })
+
+  it('reads id and class shorthands among island attributes', () => {
+    const document = parseMarkdown(
+      `::Counter{label="Clicks" #main .wide .tall step=2 hidden}`,
+    )
+
+    expect(document.blocks).toStrictEqual([
+      {
+        _tag: 'Island',
+        name: 'Counter',
+        attributes: {
+          label: 'Clicks',
+          id: 'main',
+          class: 'wide tall',
+          step: '2',
+          hidden: '',
+        },
+        blocks: [],
+      },
+    ])
+  })
+
+  it('nests a container island inside one with a longer fence', () => {
+    const document = parseMarkdown(
+      lines('::::Note', ':::Aside', 'Inner.', ':::', '', 'Outer.', '::::'),
+    )
+
+    expect(document.blocks).toStrictEqual([
+      {
+        _tag: 'Island',
+        name: 'Note',
+        attributes: {},
+        blocks: [
+          {
+            _tag: 'Island',
+            name: 'Aside',
+            attributes: {},
+            blocks: [
+              {
+                _tag: 'Paragraph',
+                content: [{ _tag: 'Text', value: 'Inner.' }],
+              },
+            ],
+          },
+          { _tag: 'Paragraph', content: [{ _tag: 'Text', value: 'Outer.' }] },
+        ],
+      },
+    ])
+  })
+
+  it('rejects a colon before a name or number in prose as an inline directive', () => {
+    expect(() => parseMarkdown('Meet at 14:20 today.')).toThrowError(
+      /Inline directives are not supported/,
+    )
+    expect(() => parseMarkdown('Ratio 1:1.')).toThrowError(
+      /Inline directives are not supported/,
+    )
+  })
+
+  it('leaves colons in URLs, code, escapes, and double colons alone', () => {
+    const document = parseMarkdown(
+      'See https://example.com:8080/path, `a:b`, a\\:b, and a::b.',
+    )
+
+    expect(document.blocks).toHaveLength(1)
+  })
+
+  it('decodes character references in text and link destinations', () => {
+    const document = parseMarkdown(
+      '&copy; &#169; &#xA9; &bogus; [link](https://example.com/?a=1&amp;b=2)',
+    )
+
+    expect(document.blocks).toStrictEqual([
+      {
+        _tag: 'Paragraph',
+        content: [
+          { _tag: 'Text', value: '© © © &bogus; ' },
+          {
+            _tag: 'Link',
+            url: 'https://example.com/?a=1&b=2',
+            maybeTitle: Option.none(),
+            content: [{ _tag: 'Text', value: 'link' }],
+          },
+        ],
+      },
+    ])
+  })
+
+  it('links email literals only when the domain ends in a letter', () => {
+    const document = parseMarkdown('Mail team@example.com about effect@4.1.0.')
+
+    expect(document.blocks).toStrictEqual([
+      {
+        _tag: 'Paragraph',
+        content: [
+          { _tag: 'Text', value: 'Mail ' },
+          {
+            _tag: 'Link',
+            url: 'mailto:team@example.com',
+            maybeTitle: Option.none(),
+            content: [{ _tag: 'Text', value: 'team@example.com' }],
+          },
+          { _tag: 'Text', value: ' about effect@4.1.0.' },
+        ],
+      },
+    ])
+  })
+
+  it('keeps line endings inside inline code and drops one padding space', () => {
+    const document = parseMarkdown('Run `` pnpm\ntest `` now.')
+
+    expect(document.blocks).toStrictEqual([
+      {
+        _tag: 'Paragraph',
+        content: [
+          { _tag: 'Text', value: 'Run ' },
+          { _tag: 'InlineCode', value: 'pnpm\ntest' },
+          { _tag: 'Text', value: ' now.' },
+        ],
+      },
+    ])
+  })
+
+  it('rejects footnotes', () => {
+    expect(() =>
+      parseMarkdown(lines('A claim.', '', '[^1]: The source.')),
+    ).toThrowError(/Unsupported markdown node "footnoteDefinition" \(line 3\)/)
+  })
+
+  it('reports the line of an unsupported node nested in a list', () => {
+    expect(() =>
+      parseMarkdown(lines('Intro.', '', '- one', '- two <b>bold</b>')),
+    ).toThrowError(/Unsupported markdown node "html" \(line 4\)/)
+  })
 })
 
 describe('parseMarkdownWithFrontmatter', () => {

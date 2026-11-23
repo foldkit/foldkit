@@ -1,14 +1,4 @@
 import { Array, Match, Option, Record } from 'effect'
-import type {
-  ListItem as MdastListItem,
-  Table as MdastTable,
-  TableRow as MdastTableRow,
-  PhrasingContent,
-  Root,
-  RootContent,
-} from 'mdast'
-import type {} from 'mdast-util-directive'
-import type { Position } from 'unist'
 
 import {
   Alignment,
@@ -36,6 +26,15 @@ import {
   ThematicBreak,
 } from '../ast/index.js'
 import type { IslandDefinition, IslandDefinitions } from '../island/index.js'
+import type {
+  PhrasingContent,
+  Position,
+  Root,
+  RootContent,
+  ListItem as SyntaxListItem,
+  Table as SyntaxTable,
+  TableRow as SyntaxTableRow,
+} from './syntax.js'
 import { validateFields } from './validateFields.js'
 
 /**
@@ -171,7 +170,7 @@ const toAlignment = (align: 'left' | 'right' | 'center' | null): Alignment =>
     Match.orElse(() => 'None'),
   )
 
-const toTableRow = (row: MdastTableRow): TableRow =>
+const toTableRow = (row: SyntaxTableRow): TableRow =>
   TableRow({
     cells: row.children.map(cell =>
       TableCell({ content: cell.children.map(toInline) }),
@@ -179,7 +178,7 @@ const toTableRow = (row: MdastTableRow): TableRow =>
   })
 
 /**
- * Converts a parsed mdast tree into a typed {@link MarkdownDocument}.
+ * Converts a parsed syntax tree into a typed {@link MarkdownDocument}.
  * Throws on any node outside the markdown vocabulary.
  */
 export const normalizeRoot = (
@@ -225,7 +224,7 @@ export const normalizeRoot = (
     return Island({ name: directive.name, attributes, blocks })
   }
 
-  const toListItem = (node: MdastListItem): ListItem => {
+  const toListItem = (node: SyntaxListItem): ListItem => {
     if (node.checked === null || node.checked === undefined) {
       return ListItem({ blocks: node.children.map(toBlock) })
     } else {
@@ -233,7 +232,7 @@ export const normalizeRoot = (
     }
   }
 
-  const toTable = (node: MdastTable): Table =>
+  const toTable = (node: SyntaxTable): Table =>
     Array.matchLeft(node.children.map(toTableRow), {
       onEmpty: () => unsupported(node),
       onNonEmpty: (headerRow, bodyRows) =>

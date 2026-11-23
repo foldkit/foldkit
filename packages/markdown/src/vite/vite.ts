@@ -1,10 +1,4 @@
 import { Array, Option, Schema, pipe } from 'effect'
-import type { Root, RootContent, Yaml } from 'mdast'
-import remarkDirective from 'remark-directive'
-import remarkFrontmatter from 'remark-frontmatter'
-import remarkGfm from 'remark-gfm'
-import remarkParse from 'remark-parse'
-import { unified } from 'unified'
 import type { Plugin } from 'vite'
 
 import { MarkdownDocument, encodeDocument } from '../ast/index.js'
@@ -15,18 +9,8 @@ import {
 } from './frontmatter.js'
 import { normalizeRoot } from './normalize.js'
 import type { NormalizeOptions } from './normalize.js'
-
-// NOTE: remark-frontmatter is included so that YAML frontmatter parses as one
-// `yaml` node. With a `frontmatter` schema configured it becomes the document's
-// typed frontmatter; without one it fails the build with guidance. Without the
-// remark plugin, remark reads `---` fences as a thematic break plus a setext
-// heading and renders garbage.
-const processor = unified()
-  .use(remarkParse)
-  .use(remarkFrontmatter)
-  .use(remarkGfm)
-  .use(remarkDirective)
-  .freeze()
+import { parseSource } from './parse.js'
+import type { Root, RootContent, Yaml } from './syntax.js'
 
 /** Options for {@link markdown}, {@link parseMarkdown}, and {@link parseMarkdownWithFrontmatter}. */
 export type MarkdownPluginOptions = NormalizeOptions &
@@ -109,7 +93,7 @@ const parseWithValidatedOptions = (
   options: MarkdownPluginOptions,
 ): ParsedMarkdown => {
   const { contentRoot, maybeFrontmatter } = extractFrontmatter(
-    processor.parse(source),
+    parseSource(source),
     options.frontmatter,
   )
   return {
