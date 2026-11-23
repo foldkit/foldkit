@@ -1,6 +1,6 @@
 import { Array, Option, String, pipe } from 'effect'
-import type { Position } from 'unist'
 
+import type { Position } from './syntax.js'
 import type { FieldsSchema } from './validateFields.js'
 import { validateFields } from './validateFields.js'
 
