@@ -21,11 +21,16 @@ import type { FoldkitMountMarker } from '../html/index.js'
 import {
   FOLDKIT_MOUNT_KEY,
   FileHandlerSymbol,
+  __abandonRender as abandonHtmlRender,
+  __beginRenderTransaction as beginHtmlRender,
   __clearRuntime as clearHtmlRuntime,
+  __createBoundaryRegistry as createHtmlBoundaryRegistry,
+  __endRender as endHtmlRender,
   __htmlBuilder as htmlBuilderFor,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
 import type {
+  BoundaryRegistry,
   Document,
   Html,
   HtmlBuilder,
@@ -287,6 +292,7 @@ type InternalSceneSimulation<
     resolvers: ReadonlyArray<ResolverEntry>
     viewFn: (model: Model, h: HtmlBuilder<Message>) => Html | Document
     capturingDispatch: CapturingDispatch
+    boundaryRegistry: BoundaryRegistry
     scope: Option.Option<Locator>
     mountSlots: ReadonlyArray<MountSlotState>
     outMessages: ReadonlyArray<OutMessage>
@@ -518,6 +524,7 @@ const renderView = <Model, Message>(
   viewFn: (model: Model, h: HtmlBuilder<Message>) => Html | Document,
   model: Model,
   dispatch: DispatchService,
+  boundaryRegistry: BoundaryRegistry,
 ): VNode => {
   const sceneContext = Context.make(Dispatch, dispatch).pipe(
     Context.add(MountTracker, {
@@ -526,13 +533,19 @@ const renderView = <Model, Message>(
     }),
   )
 
-  setHtmlRuntime(dispatch.dispatchSync, sceneContext)
+  beginHtmlRender(boundaryRegistry)
+  setHtmlRuntime(dispatch.dispatchSync, sceneContext, boundaryRegistry)
   let result: Html | Document
   try {
     result = viewFn(model, htmlBuilderFor<Message>())
+  } catch (error) {
+    abandonHtmlRender(boundaryRegistry)
+    throw error
   } finally {
     clearHtmlRuntime()
   }
+
+  endHtmlRender(boundaryRegistry)
 
   const vnode = isDocument(result) ? (result.body ?? null) : result
 
@@ -1776,11 +1789,17 @@ const runSteps = <Model, Message, OutMessage>(
     const internal = toInternal(next)
 
     if ((internal.model as unknown) !== (UNINITIALIZED as unknown)) {
-      const html = renderView(
-        internal.viewFn,
-        internal.model,
-        internal.capturingDispatch.dispatch,
-      )
+      const isViewUnchanged =
+        internal.model === currentInternal.model &&
+        internal.viewFn === currentInternal.viewFn
+      const html = isViewUnchanged
+        ? currentInternal.html
+        : renderView(
+            internal.viewFn,
+            internal.model,
+            internal.capturingDispatch.dispatch,
+            internal.boundaryRegistry,
+          )
       const mountSlots = reconcileMountSlots(internal.mountSlots, html)
       const mounts = pendingMountsOf(mountSlots)
       return { ...internal, html, mountSlots, mounts } as SceneSimulation<
@@ -3090,6 +3109,7 @@ export const scene: {
     html: undefined as unknown,
     viewFn: config.view,
     capturingDispatch,
+    boundaryRegistry: createHtmlBoundaryRegistry(),
     scope: Option.none(),
     lastInteractionOutcome: NotRun,
     maybeUnacknowledgedIgnored: Option.none(),
