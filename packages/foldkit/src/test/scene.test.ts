@@ -3,8 +3,10 @@ import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import * as CustomElement from '../customElement/index.js'
 import {
+  type Html,
   type HtmlBuilder,
   __htmlBuilder as attributeHtml,
+  createLazy,
   inertHtml,
 } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
@@ -47,6 +49,7 @@ import {
 } from './apps/contextMenu.js'
 import {
   Message as CounterMessage,
+  type Model as CounterModel,
   FetchCount,
   FetchCountById,
   initialModel as counterInitialModel,
@@ -3210,6 +3213,115 @@ describe('scene with outMessage', () => {
         expect(outMessage).toEqual(OutMessage.RequestedLogout())
       }),
     )
+  })
+})
+
+describe('scene rendering', () => {
+  test('an assertion step reuses the view the step before it rendered', () => {
+    const renderedCounts: Array<number> = []
+    const countingView = (
+      model: CounterModel,
+      h: HtmlBuilder<CounterMessage>,
+    ): Html => {
+      renderedCounts.push(model.count)
+      return counterView(model, h)
+    }
+
+    Scene.scene(
+      { update: counterUpdate, view: countingView },
+      Scene.given(counterInitialModel),
+      Scene.expect(Scene.role('status')).toHaveText('count: 0'),
+      Scene.expect(
+        Scene.role('button', { name: 'Start three fetches' }),
+      ).toExist(),
+      Scene.Subscription.emit(CounterMessage.Ticked()),
+      Scene.expect(Scene.role('status')).toHaveText('count: 1'),
+    )
+
+    expect(renderedCounts).toEqual([0, 1])
+  })
+
+  test('a Message whose update returns the same Model reuses the view', () => {
+    const renderedCounts: Array<number> = []
+    const countingView = (
+      model: CounterModel,
+      h: HtmlBuilder<CounterMessage>,
+    ): Html => {
+      renderedCounts.push(model.count)
+      return counterView(model, h)
+    }
+
+    Scene.scene(
+      { update: counterUpdate, view: countingView },
+      Scene.given(counterInitialModel),
+      Scene.Subscription.emit(
+        CounterMessage.FailedFetchCount({ error: 'offline' }),
+      ),
+      Scene.expect(Scene.role('status')).toHaveText('count: 0'),
+    )
+
+    expect(renderedCounts).toEqual([0])
+  })
+
+  test('a lazy view keeps its VNode across steps while its arguments are unchanged', () => {
+    const statusSlot = createLazy()
+    const renderedStatuses: Array<number> = []
+    const statusView = (
+      count: number,
+      h: HtmlBuilder<CounterMessage>,
+    ): Html => {
+      renderedStatuses.push(count)
+      return h.span([h.Role('status')], [`count: ${count}`])
+    }
+    const view = (model: CounterModel, h: HtmlBuilder<CounterMessage>): Html =>
+      h.div(
+        [],
+        [
+          statusSlot(statusView, [model.count, h]),
+          h.span([h.Role('log')], [`log: ${model.log.length}`]),
+        ],
+      )
+
+    Scene.scene(
+      { update: counterUpdate, view },
+      Scene.given(counterInitialModel),
+      Scene.Subscription.emit(CounterMessage.SucceededFetchCount({ count: 0 })),
+      Scene.expect(Scene.role('log')).toHaveText('log: 1'),
+      Scene.Subscription.emit(CounterMessage.Ticked()),
+      Scene.expect(Scene.role('status')).toHaveText('count: 1'),
+    )
+
+    expect(renderedStatuses).toEqual([0, 1])
+  })
+
+  test('a handler inside a reused lazy view still dispatches its Message', () => {
+    const tickSlot = createLazy()
+    const renderedButtons: Array<number> = []
+    const tickView = (count: number, h: HtmlBuilder<CounterMessage>): Html => {
+      renderedButtons.push(count)
+      return h.button(
+        [h.OnClick(CounterMessage.Ticked()), h.Role('button')],
+        [`Tick from ${count}`],
+      )
+    }
+    const view = (model: CounterModel, h: HtmlBuilder<CounterMessage>): Html =>
+      h.div(
+        [],
+        [
+          tickSlot(tickView, [model.count, h]),
+          h.span([h.Role('status')], [`count: ${model.count}`]),
+        ],
+      )
+
+    Scene.scene(
+      { update: counterUpdate, view },
+      Scene.given(counterInitialModel),
+      Scene.Subscription.emit(CounterMessage.SucceededFetchCount({ count: 0 })),
+      Scene.click(Scene.role('button', { name: 'Tick from 0' })),
+      Scene.expect(Scene.role('status')).toHaveText('count: 1'),
+    )
+
+    expect(renderedButtons).toEqual([0, 1])
   })
 })
 
