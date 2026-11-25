@@ -510,7 +510,8 @@ export const transformViewIdentity = (
     (first, second) => second.target.start - first.target.start,
   )
   for (const { target, functionId } of orderedWraps) {
-    sourceText.appendLeft(target.start, `${brandAlias}((`)
+    const separator = /[\w$]/u.test(code.charAt(target.start - 1)) ? ' ' : ''
+    sourceText.appendLeft(target.start, `${separator}${brandAlias}((`)
     sourceText.appendRight(target.end, `), ${JSON.stringify(functionId)})`)
   }
   const importStatement = `import { ${BRAND_EXPORT_NAME} as ${brandAlias} } from '${BRAND_MODULE_SPECIFIER}'\n`

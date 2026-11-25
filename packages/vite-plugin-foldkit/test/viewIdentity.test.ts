@@ -1,3 +1,4 @@
+import { brandViewResult } from 'foldkit/brand'
 import { parseAst } from 'vite'
 import { describe, expect, it } from 'vitest'
 
@@ -159,6 +160,22 @@ const panel = { render: () => 2 }
 })
 
 describe('returns and imports', () => {
+  it.each([
+    '"x"',
+    '`x`',
+    '["x"][0]',
+    '{x:"x"}.x',
+    '/x/.source',
+    '!0?"x":""',
+    '("x")',
+  ])('preserves the value of return%s', argument => {
+    const result = requireTransform(`function report(){return${argument}}`)
+    const body = result.code.slice(IMPORT_LINE.length + 1)
+    const run = new Function(ALIAS, `${body}\nreturn report()`)
+
+    expect(run(brandViewResult)).toBe('x')
+  })
+
   it('leaves bare return statements untouched', () => {
     expect(
       transformViewIdentity(
