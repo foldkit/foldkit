@@ -1,4 +1,4 @@
-import { Context, Option } from 'effect'
+import { Chunk, Context, Option } from 'effect'
 import { afterEach, beforeEach, expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -1132,6 +1132,24 @@ describe('h.submodel', () => {
         viewInputs: { maybeValue: Option.some('hello') },
         toParentMessage: message =>
           GotChild({ entryId: 'option-input', message }),
+      }),
+    ).not.toThrow()
+  })
+
+  it('accepts Effect data types whose structure refers back to itself, like Chunk', () => {
+    type ChunkInputs = Readonly<{ log: Chunk.Chunk<string> }>
+    const viewWithChunk = defineView<object, ChildMessage, ChunkInputs>(
+      (_model, _viewInputs) => h('div'),
+    )
+
+    expect(() =>
+      submodel({
+        slotId: 'chunk-input',
+        model: {},
+        view: viewWithChunk,
+        viewInputs: { log: Chunk.make('opened', 'closed') },
+        toParentMessage: message =>
+          GotChild({ entryId: 'chunk-input', message }),
       }),
     ).not.toThrow()
   })
