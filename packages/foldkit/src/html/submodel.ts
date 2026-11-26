@@ -206,13 +206,15 @@ const isPlainObject = (
 const assertNoNestedFunctions = (
   viewInputs: Readonly<Record<string, unknown>>,
 ): void => {
+  const walkedValues = new WeakSet<object>()
+
   for (const key of Object.keys(viewInputs)) {
     const value = viewInputs[key]
     if (isFrameworkBranded(value)) {
       continue
     }
     if (isPlainObject(value) || Array.isArray(value)) {
-      walkForFunctions(value, [key])
+      walkForFunctions(value, [key], walkedValues)
     }
   }
 }
@@ -225,7 +227,14 @@ const isFrameworkBranded = (value: unknown): boolean => isChildAttribute(value)
 const walkForFunctions = (
   source: Readonly<Record<string, unknown>> | ReadonlyArray<unknown>,
   path: ReadonlyArray<string>,
+  walkedValues: WeakSet<object>,
 ): void => {
+  if (walkedValues.has(source)) {
+    return
+  }
+
+  walkedValues.add(source)
+
   const visit = (value: unknown, segment: string): void => {
     const nextPath = [...path, segment]
     if (typeof value === 'function') {
@@ -240,7 +249,7 @@ const walkForFunctions = (
       return
     }
     if (isPlainObject(value) || Array.isArray(value)) {
-      walkForFunctions(value, nextPath)
+      walkForFunctions(value, nextPath, walkedValues)
     }
   }
 
